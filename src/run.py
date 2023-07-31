@@ -2,12 +2,12 @@ import argparse
 import json
 import logging
 
-from ai.open_ai.task_completion_ai import TaskCompletionAI
+from ai.open_ai.task_refinement_ai import TaskRefinementAI
 from runners.console.console_runner import ConsoleRunner
 from runners.voice.voice_runner import VoiceRunner
 
 AI_TYPES = {
-    "task_completion_ai": TaskCompletionAI,
+    "task_refinement_ai": TaskRefinementAI,
 }
 
 RUNNER_TYPES = {

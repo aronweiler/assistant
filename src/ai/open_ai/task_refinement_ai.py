@@ -3,9 +3,9 @@ from ai.open_ai.task_refinement.refine_task import TaskRefiner
 from ai.open_ai.task_refinement.step import Step
 from ai.ai_result import AIResult
 
-# Implement the TaskCompletionAI class as a subclass of the AbstractAI class.
+# Implement the TaskRefinementAI class as a subclass of the AbstractAI class.
 
-class TaskCompletionAI(AbstractAI):    
+class TaskRefinementAI(AbstractAI):    
 
     def configure(self, json_args):
         self.configuration = json_args

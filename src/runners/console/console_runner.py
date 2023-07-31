@@ -20,14 +20,12 @@ class ConsoleRunner(Runner):
 
             query = self.get_multi_line_console_input()
 
-            if query == "x":
-                exit()
-
             # Run the query
             result = abstract_ai.query(query)
 
-            # print the answer
+            # print the result
             pretty_print_conversation(result.result_string)
+
             source_docs = self.get_source_docs_to_print(
                 result.source_documents, "green"
             )
