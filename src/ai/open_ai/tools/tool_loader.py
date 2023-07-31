@@ -3,6 +3,8 @@ import logging
 from typing import List
 from openai_functions import FunctionWrapper
 
+from utilities.instance_tools import create_instance_from_module_and_class
+
 from ai.open_ai.tools.tool_wrapper import OpenAIToolWrapper
 
 
@@ -12,19 +14,11 @@ class ToolLoader:
         if open_ai_tool is None:
             raise Exception("open_ai_tool must be provided")
 
-        try:
-            module = importlib.import_module(open_ai_tool.tool_module)
-
-            # dynamically instantiate the tool based on the parameters
-            tool_instance = getattr(module, open_ai_tool.tool_class)(
-                open_ai_tool.tool_configuration
-            )
-
-            return tool_instance
-        except Exception as e:
-            logging.error("Error creating tool: " + str(e))
-
-        return None
+        return create_instance_from_module_and_class(
+            open_ai_tool.tool_module,
+            open_ai_tool.tool_class,
+            open_ai_tool.tool_configuration,
+        )
 
     # static method to load tools
     @staticmethod

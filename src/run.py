@@ -3,10 +3,12 @@ import json
 import logging
 
 from ai.open_ai.task_refinement_ai import TaskRefinementAI
+from ai.general.task_coordinator_ai import TaskCoordinatorAI
 from runners.console.console_runner import ConsoleRunner
 from runners.voice.voice_runner import VoiceRunner
 
 AI_TYPES = {
+    "task_coordinator_ai": TaskCoordinatorAI,
     "task_refinement_ai": TaskRefinementAI,
 }
 

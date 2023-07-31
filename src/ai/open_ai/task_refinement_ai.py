@@ -2,13 +2,14 @@ from ai.abstract_ai import AbstractAI
 from ai.open_ai.task_refinement.refine_task import TaskRefiner
 from ai.open_ai.task_refinement.step import Step
 from ai.ai_result import AIResult
+from ai.open_ai.configuration import OpenAIConfiguration
 
 # Implement the TaskRefinementAI class as a subclass of the AbstractAI class.
 
 class TaskRefinementAI(AbstractAI):    
 
     def configure(self, json_args):
-        self.configuration = json_args
+        self.configuration = OpenAIConfiguration(json_args)
 
         self.task_refiner = TaskRefiner(json_args)
         # openai_with_tools = TaskRefiner(self.config_json["ai"], sys_info)

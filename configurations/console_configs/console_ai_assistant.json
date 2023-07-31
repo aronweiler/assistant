@@ -1,25 +1,55 @@
 {
     "ai": {
-        "type": "task_refinement_ai",
+        "type": "task_coordinator_ai",
         "arguments": {
+            "name": "open_ai_task_coordinator_ai",
             "model": "gpt-3.5-turbo-0613",
-            "use_conversation_history": true,
-            "conversation_history_limit": 10,
-            "ai_temp": "1",
-            "max_tokens": 4096,
-            "system_message": "Your name is Jarvis. You are a friendly and capable voice assistant, with a host of tools available to help you to assist the user in accomplishing their goals.  If you cannot answer to the user's query with your own knowledge, use one of the tools available to you. Keep your responses brief as possible! All of your answers should be in JSON format, nothing else.",
-            "tools": [
+            "task_refinement_ai": "open_ai_task_refinement_ai",
+            "tool_using_ai": "open_ai_tool_using_ai",
+            "subordinate_ais": [
                 {
-                    "name": "list_tool",
-                    "module": "ai.open_ai.tools.general.list_tool",
-                    "function_name": "create_list",
-                    "class_name": "ListTool"
+                    "module": "ai.open_ai.tool_using_ai",
+                    "class_name": "ToolUsingAI",
+                    "arguments": {
+                        "name": "open_ai_tool_using_ai",
+                        "model": "gpt-3.5-turbo-0613",                   
+                        "tools": [
+                            {
+                                "name": "yelp_tool",
+                                "module": "ai.open_ai.tools.restaurants.yelp_tool",
+                                "function_name": "search_businesses",
+                                "class_name": "YelpTool"
+                            },
+                            {
+                                "name": "yelp_tool",
+                                "module": "ai.open_ai.tools.restaurants.yelp_tool",
+                                "function_name": "get_all_business_details",
+                                "class_name": "YelpTool"
+                            }       
+                        ]
+                    }
                 },
-                {
-                    "name": "tool_recommender",
-                    "module": "ai.open_ai.tools.general.tool_recommender",
-                    "function_name": "recommend_tool",
-                    "class_name": "ToolRecommender"
+                {                    
+                    "module": "ai.open_ai.task_refinement_ai",
+                    "class_name": "TaskRefinementAI",
+                    "arguments": {
+                        "name": "open_ai_task_refinement_ai",
+                        "model": "gpt-3.5-turbo-0613",                   
+                        "tools": [
+                            {
+                                "name": "list_tool",
+                                "module": "ai.open_ai.tools.general.list_tool",
+                                "function_name": "create_list",
+                                "class_name": "ListTool"
+                            },
+                            {
+                                "name": "tool_recommender",
+                                "module": "ai.open_ai.tools.general.tool_recommender",
+                                "function_name": "recommend_tool",
+                                "class_name": "ToolRecommender"
+                            }
+                        ]
+                    }
                 }
             ]
         }

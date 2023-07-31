@@ -48,7 +48,13 @@ class TaskRefiner:
         messages.append(
             {
                 "role": "assistant",
-                "content": "I will take the following request and break it into smaller pieces where it makes sense in order to develop a plan to answer this query. I will create steps that utilize the functions and tools available to me.",
+                "content": "I will take the following request and break it into smaller pieces where it makes sense in order to develop a plan to answer this query.",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I will create steps that utilize the functions and tools available to me.",
             }
         )
         messages.append({"role": "user", "content": input})
@@ -67,7 +73,7 @@ class TaskRefiner:
         messages.append(
             {
                 "role": "assistant",
-                "content": "Here is a list of the step names I would need to take to answer your query (I will call the 'create_list' function to print these):",
+                "content": "Here is a list of the step names (I will NOT number the steps) I would need to take to answer your query (I will call the 'create_list' function to print these):",
             }
         )
 
@@ -124,10 +130,38 @@ class TaskRefiner:
                         and s2 != s
                     ):
                         # Combine the steps
-                        s.step = s.step + " & " + s2.step
+                        s.step = s.step + " " + s2.step
                         parent_step.sub_steps.remove(s2)
 
+        # Rephrase the steps to make them more natural after combining
+        for s in parent_step.sub_steps:
+            s.step = self.rephrase_step(s.step)            
+
         return parent_step
+
+    def rephrase_step(self, step):
+        messages = []
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I am helping a user to rephrase some text so that it is more natural.",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I will take the following text and rephrase it so that any goals are stated unambiguously, the statement is made using good grammar, and punctuation is corrected.",
+            }
+        )
+        messages.append({"role": "user", "content": step})
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "Here is the rephrased text:",
+            }
+        )
+
+        return self.process(messages)[-1]
 
     def evaluate_for_possible_tool_use(self, step):
         # For each of the steps we should evaluate it for possible tool use.
@@ -226,7 +260,6 @@ class TaskRefiner:
                     chat_response = self.open_ai_completion.chat_completion_request(
                         temp_messages,
                         functions=specific_functions,
-                        # function_call={"name": specific_function["name"]},
                     )
                 else:
                     chat_response = self.open_ai_completion.chat_completion_request(

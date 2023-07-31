@@ -3,7 +3,8 @@ from ai.open_ai.tools.tool_loader import ToolLoader
 
 class OpenAIConfiguration:
     def __init__(self, json_args):
-        self.model = json_args.get("model", "gpt-3.5-turbo")
+        self.name = json_args.get("name", "Not Set")
+        self.model = json_args["model"]
         self.use_memory = json_args.get("use_memory", False)
         self.prompt = json_args.get("prompt", None)
         self.chat_model = json_args.get("chat_model", False)

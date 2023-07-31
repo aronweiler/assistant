@@ -9,19 +9,19 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from ai.open_ai.system_info import SystemInfo
+from ai.open_ai.utilities.system_info import SystemInfo
 from ai.open_ai.task_refinement.refine_task import TaskRefiner
-from ai.open_ai.step import Step
+from ai.open_ai.task_refinement.step import Step
 
 
 def test_task_refiner(sys_info, config_json):
-    openai_with_tools = TaskRefiner(config_json["ai"], sys_info)
+    task_refiner = TaskRefiner(config_json["ai"]["arguments"], sys_info)
 
     user_input = "Make a reservation at a 4 star restaurant in downtown San Diego tomorrow night for me and Susan Workman.  I would like to sit outside.  Make sure the restaurant serves steak, and that you send a calendar invite to Susan."
 
     # First break the request down into pieces if possible
     # This should always use the list tool
-    parent_step = openai_with_tools.break_task_into_steps(
+    parent_step = task_refiner.break_task_into_steps(
         user_input, Step(user_input), True
     )
 

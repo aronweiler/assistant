@@ -26,12 +26,15 @@ class ConsoleRunner(Runner):
             # print the result
             pretty_print_conversation(result.result_string)
 
-            source_docs = self.get_source_docs_to_print(
-                result.source_documents, "green"
-            )
+            if result.source_documents:
+                source_docs = self.get_source_docs_to_print(
+                    result.source_documents
+                )
 
-            if source_docs != "":
-                pretty_print_conversation("Source documents:\n" + source_docs, "blue")
+                if len(source_docs) > 0:
+                    pretty_print_conversation("Source documents:\n" + source_docs, "blue")
+
+            
 
     def get_multi_line_console_input(self):
         # Get the query, which can be multiple lines, until the user presses enter twice

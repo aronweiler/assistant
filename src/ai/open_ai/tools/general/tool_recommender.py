@@ -2,9 +2,6 @@ from typing import List
 
 
 class ToolRecommender:
-    def __init__(self, json_args):
-        pass
-
     def recommend_tool(self, tool_name: str):
         """Recommend a tool to use
 
