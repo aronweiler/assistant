@@ -1,0 +1,74 @@
+{
+    "ai": {
+        "type": "open_ai_with_tools",
+        "arguments": {
+            "model": "gpt-3.5-turbo-0613",
+            "use_conversation_history": true,
+            "conversation_history_limit": 10,
+            "ai_temp": "1",
+            "max_tokens": 4096,
+            "system_message": "Your name is Jarvis. You are a friendly and capable voice assistant, with a host of tools available to help you to assist the user in accomplishing their goals.  If you cannot answer to the user's query with your own knowledge, use one of the tools available to you. Keep your responses brief as possible! All of your answers should be in JSON format, nothing else.",
+            "tools": [
+                {
+                    "name": "get_memory_tool",
+                    "description": "Get a memory.  Use this tool whenever you need to look something up that might be related to the user, or any past conversations that you may not know about.",
+                    "module": "ai.open_ai.tools.memory.memory_tool",
+                    "class_name": "MemoryTool",
+                    "tool_configuration": {
+                        "db_env_location": "src/memory/database/db.env",
+                        "top_k": 10
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "The search query to use to find the memory."
+                            },
+                            "associated_user_email": {
+                                "type": "string",
+                                "description": "The email of the associated user (if any). Leave this blank if you want to search for memories without filtering by user."
+                            }
+                        },
+                        "required": [
+                            "text"
+                        ]
+                    }
+                },
+                {
+                    "name": "get_user_information_tool",
+                    "description": "Use this tool to look up anything you may need to know about the user.",
+                    "module": "ai.open_ai.tools.memory.memory_tool",
+                    "class_name": "MemoryTool",
+                    "tool_configuration": {
+                        "db_env_location": "src/memory/database/db.env",
+                        "top_k": 10
+                    },
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "What type of information you are looking for."
+                            },
+                            "associated_user_email": {
+                                "type": "string",
+                                "description": "The email of the user."
+                            }
+                        },
+                        "required": [
+                            "text",
+                            "associated_user_email"
+                        ]
+                    }
+                },
+                {
+                    "name": "list_tool",
+                    "description": "Use this tool to create a list.",
+                    "module": "ai.open_ai.tools.lists.list_tool",
+                    "class_name": "ListTool"                    
+                }
+            ]
+        }
+    }
+}

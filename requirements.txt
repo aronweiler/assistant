@@ -1,0 +1,74 @@
+# Basic stuff
+keyboard
+python-dotenv
+termcolor
+tenacity
+
+# Database
+psycopg2-binary
+alembic
+pgvector
+plotly
+sqlalchemy
+
+# AI
+llama-cpp-python
+openai
+openai-functions
+
+# Audio related
+openwakeword
+pyaudiowpatch
+pyaudio
+webrtcvad
+# Install whisper from github:
+# pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
+# whisper
+sound
+TTS
+# Required for AWS Polly
+boto3
+pydub
+
+# Maffs
+# torch
+# To install torch for GPU (CUDA 12.1), use the following command:
+# pip3 install --force-reinstall --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
+# ^^ The force reinstall is needed because the version of torch that gets installed as a dependency in other places is not correct
+# NOTE: The pip install of ffmpeg-python is broken, so you need to install ffmpeg manually
+# After you install ffmpeg (download from the website), you need to add the bin folder to your path
+ffmpeg 
+ffmpeg-python
+
+# Search
+google-api-python-client
+duckduckgo-search
+
+# Date/Time & Calendars
+pytz
+google-api-python-client 
+google-auth-httplib2 
+google-auth-oauthlib
+
+# Wikipedia
+wikipedia
+
+# Weather
+python-weather
+
+# Document parsing
+pypdf
+docx2txt
+pdfminer.six
+bs4
+
+# Token counting
+tiktoken
+
+# The following are things that I am not using yet, but I want to keep track of them
+# Embeddings 
+# sentence_transformers
+# InstructorEmbedding
+
+# API
+# fastapi

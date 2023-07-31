@@ -1,0 +1,11 @@
+version: '3.9'
+
+services:
+  llm-memory:
+    image: ankane/pgvector
+    container_name: llm-memory
+    restart: always
+    env_file:
+      - long_term/db.env
+    ports:
+      - 5432:5432
