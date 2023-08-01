@@ -6,13 +6,22 @@
             "model": "gpt-3.5-turbo-0613",
             "task_refinement_ai": "open_ai_task_refinement_ai",
             "tool_using_ai": "open_ai_tool_using_ai",
+            "collapse_results_ai": "open_ai_collapse_results_ai",
             "subordinate_ais": [
+                {
+                    "module": "ai.open_ai.collapse_results_ai",
+                    "class_name": "CollapseResultsAI",
+                    "arguments": {
+                        "name": "open_ai_collapse_results_ai",
+                        "model": "gpt-3.5-turbo-0613"
+                    }
+                },
                 {
                     "module": "ai.open_ai.tool_using_ai",
                     "class_name": "ToolUsingAI",
                     "arguments": {
                         "name": "open_ai_tool_using_ai",
-                        "model": "gpt-3.5-turbo-0613",                   
+                        "model": "gpt-3.5-turbo-0613",
                         "tools": [
                             {
                                 "name": "yelp_tool",
@@ -25,16 +34,16 @@
                                 "module": "ai.open_ai.tools.restaurants.yelp_tool",
                                 "function_name": "get_all_business_details",
                                 "class_name": "YelpTool"
-                            }       
+                            }
                         ]
                     }
                 },
-                {                    
+                {
                     "module": "ai.open_ai.task_refinement_ai",
                     "class_name": "TaskRefinementAI",
                     "arguments": {
                         "name": "open_ai_task_refinement_ai",
-                        "model": "gpt-3.5-turbo-0613",                   
+                        "model": "gpt-3.5-turbo-0613",
                         "tools": [
                             {
                                 "name": "list_tool",
@@ -47,6 +56,16 @@
                                 "module": "ai.open_ai.tools.general.tool_recommender",
                                 "function_name": "recommend_tool",
                                 "class_name": "ToolRecommender"
+                            }
+                        ],
+                        "suggested_functions": [
+                            {
+                                "name": "search_businesses",
+                                "description": "This tool is used to search for businesses on Yelp, and gives a list of business (name, phone number, location) matching search specifications in return."
+                            },
+                            {
+                                "name": "get_all_business_details",
+                                "description": "This tool is used to get additional details of a specific business on Yelp."
                             }
                         ]
                     }

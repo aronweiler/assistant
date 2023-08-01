@@ -3,6 +3,7 @@ from ai.open_ai.task_refinement.refine_task import TaskRefiner
 from ai.open_ai.task_refinement.step import Step
 from ai.ai_result import AIResult
 from ai.open_ai.configuration import OpenAIConfiguration
+from utilities.pretty_print import pretty_print
 
 # Implement the TaskRefinementAI class as a subclass of the AbstractAI class.
 
@@ -28,5 +29,6 @@ class TaskRefinementAI(AbstractAI):
             # EXECUTE!
             sub_steps = "\t\t".join([s.step for s in step.sub_steps])
             output_string += f"\n\nSTEP: {step.step}\n\tRECOMMENDED TOOL: {step.recommended_tool}\n\tSUB STEPS:\n\t\t {sub_steps}"
+            pretty_print(output_string)
 
-        return AIResult(parent_step, output_string)   
+        return AIResult(parent_step, None)   

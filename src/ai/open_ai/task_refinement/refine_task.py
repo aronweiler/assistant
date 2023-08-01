@@ -19,8 +19,11 @@ from utilities.pretty_print import pretty_print_conversation
 
 
 class TaskRefiner:
-    def __init__(self, json_args, system_info = None):
+    def __init__(self, json_args, system_info = None):        
         self.configuration = OpenAIConfiguration(json_args)
+        # Add another local var for accessing the list of tools we can suggest
+        self.suggested_functions = json_args["suggested_functions"]
+
         self.openai_api_key = get_openai_api_key()
 
         if system_info is None:
@@ -54,26 +57,38 @@ class TaskRefiner:
         messages.append(
             {
                 "role": "assistant",
-                "content": "I will create steps that utilize the functions and tools available to me.",
+                "content": "I will break the query up into steps that utilize the functions available to me, where possible (keeping the related function calls together).",
             }
         )
-        messages.append({"role": "user", "content": input})
+        messages.append({"role": "user", "content": "Query: " + input})
         messages.append(
             {
                 "role": "assistant",
-                "content": "If I can't break the steps down any further, I will just print 'done'.",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "If I know how to resolve the step through my own knowledge, I will print 'done'.",
+                "content": "Ok, I have the query. If I can't break the steps down any further, or if I know how to resolve the step through my own knowledge, I will just print 'done'.",
             }
         )
         messages.append(
             {
                 "role": "assistant",
-                "content": "Here is a list of the step names (I will NOT number the steps) I would need to take to answer your query (I will call the 'create_list' function to print these):",
+                "content": "Here is a list of the steps that an assistant would need to take to answer the query (I will call the 'create_list' function to print these).",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I have re-ordered the steps in a way that makes logical sense (where necessary).",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I have also made sure that each step contains enough information to allow that step to be addressed independently of information in other steps, relying only on the output of the previous step.",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "Additionally, I have ensured that each step does not contain any additional instructions or information that was not included in the initial query.",
             }
         )
 
@@ -173,60 +188,13 @@ class TaskRefiner:
                 "content": "Available tools:",
             }
         )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "search_tool: Search the internet",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "maps_tool: Use this tool to search for locations, directions, or anything related to geography",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "yelp_tool: The Yelp API allows developers to access a wide range of information from Yelp programmatically. It offers capabilities such as business search, detailed business information retrieval, access to user reviews and photos, filtering by categories and attributes, geolocation integration, ratings and reviews filtering, user authentication, deals and offers access, and potentially events information retrieval. Developers can use these features to build applications that find businesses, display their details, reviews, and images, and integrate maps and user interaction with Yelp's features.",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "reservation_tool: Use this tool to reserve restaurant reservations. You can specify the number of people, the type of seating desired, and other options related to booking restaurant reservations.",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "user_info_tool: Look up information about the user",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "inventory_tool: See what items are in my inventory (e.g. pantry, closet, anything anywhere)",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "calendar_tool: Look up or schedule events in the user's calendar, send invites to other users, get information about holidays or other events.",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "email_tool: Read or send emails.",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "contacts_tool: Look up details about specific contacts.",
-            }
-        )
+        for function_details in self.suggested_functions:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"function: '{function_details['name']}', description: '{function_details['description']}'",
+                }
+            )
         messages.append(
             {
                 "role": "assistant",
