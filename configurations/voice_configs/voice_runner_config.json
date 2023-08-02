@@ -17,7 +17,7 @@
                     "tool_module_name": "ai.agent_tools.settings.settings_tool",
                     "tool_class_name": "SettingsTool",
                     "arguments": {
-                        "db_env_location": "src/memory/long_term/db.env"
+                        "db_env_location": "src/db/database/db.env"
                     }
                 },
                 {                    
@@ -26,7 +26,7 @@
                     "tool_module_name": "ai.agent_tools.memory.memory_tool",
                     "tool_class_name": "MemoryTool",
                     "arguments": {
-                        "db_env_location": "src/memory/long_term/db.env",
+                        "db_env_location": "src/db/database/db.env",
                         "top_k": 10
                     }
                 },                
@@ -90,7 +90,7 @@
             "save_audio": false,
             "sts_model": "tiny.en",
             "default_tts_voice": "Matthew",
-            "db_env_location": "src/memory/long_term/db.env",
+            "db_env_location": "src/db/database/db.env",
             "top_k": 10,
             "wake_word_models": [
                 {

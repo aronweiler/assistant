@@ -2,103 +2,68 @@ import argparse
 import json
 import logging
 
-from ai.open_ai.task_refinement_ai import TaskRefinementAI
-from ai.general.task_coordinator_ai import TaskCoordinatorAI
-from runners.console.console_runner import ConsoleRunner
-from runners.voice.voice_runner import VoiceRunner
+from ai.abstract_ai import AbstractAI
+from runners.runner import Runner
 
-AI_TYPES = {
-    "task_coordinator_ai": TaskCoordinatorAI,
-    "task_refinement_ai": TaskRefinementAI,
-}
-
-RUNNER_TYPES = {
-    "console": ConsoleRunner,
-    "voice": VoiceRunner
-}
+from configuration.assistant_configuration import AssistantConfiguration
+from utilities.instance_utility import create_instance_from_module_and_class
 
 parser = argparse.ArgumentParser()
 
 # Add arguments
-parser.add_argument("--config", type=str, required=True, help="Path to the configuration file")
-parser.add_argument("--logging_level", type=str, required=False, default="INFO", help="Logging level")
+parser.add_argument(
+    "--config", type=str, required=True, help="Path to the configuration file"
+)
+parser.add_argument(
+    "--logging_level", type=str, required=False, default="INFO", help="Logging level"
+)
 
 # Parse the command-line arguments
 args = parser.parse_args()
 
 numeric_level = getattr(logging, args.logging_level.upper(), None)
 logging.basicConfig(level=numeric_level)
-logging.info('Started logging')
+logging.info("Started logging")
 
 # load the config
-with open(args.config) as config_file:
-    config = json.load(config_file)
-
-ai_type = config["ai"]["type"]
-ai_args = config["ai"]["arguments"]
-
-logging.debug("ai_type: " + ai_type)
-
-# Print out the list of arguments in a nice human readable format:
-logging.debug("ai_args:")
-for key, value in ai_args.items():
-    logging.debug(f"{key}: {value}")
-
+config = AssistantConfiguration.from_file(args.config)
 
 # get the ai
-ai_class = AI_TYPES.get(ai_type)
-if ai_class:
-    ai = ai_class()
-    try:
-        ai.configure(ai_args)
-    except Exception as e:
-        logging.debug("Error configuring AI: " + str(e))
-        raise e
-else:
-    raise ValueError(f"ai_type is undefined, {ai_type}")
+if config.ai:
+    ai_inst = create_instance_from_module_and_class(
+        config.ai.type_configuration.module_name,
+        config.ai.type_configuration.class_name,
+        config.ai,
+    )
 
-# If the runners node exists, get that.  Otherwise get the runner node, and put it into a list.  If the runner node doesn't exist, throw an error.
-if "runners" in config:
-    runners = config["runners"]
 else:
-    runners = [config]
+    raise ValueError("AI is not defined in the configuration file")
 
-if not runners:
+if not config.runners:
     raise ValueError("No runners defined")
 
 # TODO: Make this multi-threaded??
-for runner in runners:
-    runner_enabled = runner["runner"].get("enabled", True)
-
-    if not runner_enabled:
+for runner in config.runners:
+    if not runner.enabled:
         logging.debug("Skipping disabled runner, " + runner["runner"]["type"])
         continue
 
-    runner_type = runner["runner"]["type"]
-    runner_args = runner["runner"]["arguments"]
-    logging.debug("runner_type: " + runner_type)
+    # If there are arguments in the runner config, pass them on
+    if runner.arguments and runner.arguments != {}:
+        runner_instance = create_instance_from_module_and_class(
+            runner.type_configuration.module_name,
+            runner.type_configuration.class_name,
+            runner.arguments,
+        )
 
-    # Print out the list of arguments in a nice human readable format:
-    logging.debug("runner_args:")
-    for key, value in runner_args.items():
-        logging.debug(f"{key}: {value}")
-
-    runner_class = RUNNER_TYPES.get(runner_type)
-    if runner_class:
-        # If there are arguments in the runner config, pass them on
-        if runner_args:
-            runner = runner_class(runner_args)
-        else:
-            runner = runner_class()
-
-        # Configure the runner
-        # Reserved for later
-        runner.configure()
-
-        if callable(runner):
-            runner(
-                ai
-            )  # This is here because starting FastAPI in proc demands it (see the RestAPIRunner)
-        runner.run(abstract_ai=ai)
     else:
-        raise ValueError(f"runner type is undefined, {runner_type}")
+        runner_instance = create_instance_from_module_and_class(
+            runner.type_configuration.module_name, runner.type_configuration.class_name
+        )
+
+    # TODO: This is a hack, but it works for now
+    # This is here because starting FastAPI in proc demands it (see the RestAPIRunner)
+    if callable(runner):
+        runner_instance(ai_inst)
+
+    runner_instance.run(abstract_ai=ai_inst)
