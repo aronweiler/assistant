@@ -1,80 +1,47 @@
 {
     "ai": {
-        "type": "task_coordinator_ai",
-        "arguments": {
-            "name": "open_ai_task_coordinator_ai",
-            "model": "gpt-3.5-turbo-0613",
-            "task_refinement_ai": "open_ai_task_refinement_ai",
-            "tool_using_ai": "open_ai_tool_using_ai",
-            "collapse_results_ai": "open_ai_collapse_results_ai",
-            "subordinate_ais": [
-                {
-                    "module": "ai.open_ai.collapse_results_ai",
-                    "class_name": "CollapseResultsAI",
-                    "arguments": {
-                        "name": "open_ai_collapse_results_ai",
-                        "model": "gpt-3.5-turbo-0613"
-                    }
-                },
-                {
-                    "module": "ai.open_ai.tool_using_ai",
-                    "class_name": "ToolUsingAI",
-                    "arguments": {
-                        "name": "open_ai_tool_using_ai",
-                        "model": "gpt-3.5-turbo-0613",
-                        "tools": [
-                            {
-                                "name": "yelp_tool",
-                                "module": "ai.open_ai.tools.restaurants.yelp_tool",
-                                "function_name": "search_businesses",
-                                "class_name": "YelpTool"
-                            },
-                            {
-                                "name": "yelp_tool",
-                                "module": "ai.open_ai.tools.restaurants.yelp_tool",
-                                "function_name": "get_all_business_details",
-                                "class_name": "YelpTool"
-                            }
-                        ]
-                    }
-                },
-                {
-                    "module": "ai.open_ai.task_refinement_ai",
-                    "class_name": "TaskRefinementAI",
-                    "arguments": {
-                        "name": "open_ai_task_refinement_ai",
-                        "model": "gpt-3.5-turbo-0613",
-                        "tools": [
-                            {
-                                "name": "list_tool",
-                                "module": "ai.open_ai.tools.general.list_tool",
-                                "function_name": "create_list",
-                                "class_name": "ListTool"
-                            },
-                            {
-                                "name": "tool_recommender",
-                                "module": "ai.open_ai.tools.general.tool_recommender",
-                                "function_name": "recommend_tool",
-                                "class_name": "ToolRecommender"
-                            }
-                        ],
-                        "suggested_functions": [
-                            {
-                                "name": "search_businesses",
-                                "description": "This tool is used to search for businesses on Yelp, and gives a list of business (name, phone number, location) matching search specifications in return."
-                            },
-                            {
-                                "name": "get_all_business_details",
-                                "description": "This tool is used to get additional details of a specific business on Yelp."
-                            }
-                        ]
-                    }
+        "name": "General Purpose AI Assistant",
+        "module_name": "ai.general_ai",
+        "class_name": "GeneralAI",
+        "llm": {
+            "name": "OpenAI LLM",
+            "module_name": "llms.open_ai.openai_llm",
+            "class_name": "OpenAILLM",
+            "arguments": {
+                "model": "gpt-3.5-turbo-0613",
+                "temperature": 0.5,
+                "max_supported_tokens": 4096,
+                "conversation_history": true,
+                "trim_conversation_history_at_token_count": 3000,
+                "system_prompt": "You are a friendly digital assistant.  You can help me with my work, or just chat with me.",
+                "include_system_info": true
+            }
+        },
+        "subordinate_ais": [],
+        "tools": [
+            {
+                "name": "Get Memory Tool",
+                "module_name": "tools.memory.memory_tool",
+                "class_name": "MemoryTool",
+                "function_name": "get_memory",
+                "arguments": {
+                    "db_env_location": "src/db/database/db.env"
                 }
-            ]
-        }
+            }
+        ]
     },
-    "runner": {
-        "type": "console",
-        "arguments": {}
-    }
+    "runners": [
+        {
+            "name": "Console Runner",
+            "module_name": "runners.console.console_runner",
+            "class_name": "ConsoleRunner",
+            "arguments": {
+                "user_information": {
+                    "user_name": "Aron",
+                    "email_address": "aronweiler@gmail.com",
+                    "location": "San Diego, CA"
+                }
+            }
+        }
+    ]
 }

@@ -11,7 +11,7 @@ import logging
 import json
 import uuid
 
-from ai.abstract_ai import AbstractAI
+from ai.abstract_ai import AbstractLLM
 
 from runners.runner import Runner
 from runners.voice.configuration.voice_runner_configuration import (
@@ -80,7 +80,7 @@ class VoiceRunner(Runner):
 
         self.initialize_users()
 
-    def run(self, abstract_ai: AbstractAI):
+    def run(self, abstract_ai: AbstractLLM):
         self.abstract_ai = abstract_ai
 
         # Create the verifier models

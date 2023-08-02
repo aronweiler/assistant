@@ -1,5 +1,5 @@
 #env
-_old/
+_old*
 data/ChromaDB_*/
 *_venv/
 .vscode/
