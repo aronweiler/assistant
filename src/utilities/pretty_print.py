@@ -1,35 +1,55 @@
 from termcolor import colored
 
-def pretty_print(message, color = "green"):
+
+def pretty_print(message, color="green"):
     print(colored(message, color))
 
-# print arrays and single strings in a pretty way
-def pretty_print_conversation(messages, color = "green"):
+
+def pretty_print_conversation(messages, color="green"):
     role_to_color = {
         "system": "red",
         "user": "green",
         "assistant": "blue",
         "function": "magenta",
         "error": "red",
-        "custom": color
+        "custom": color,
     }
 
     if isinstance(messages, str):
         print(colored(messages, color))
-        return
-    elif isinstance(messages, list) and all(isinstance(msg, str) for msg in messages):
+    elif isinstance(messages, dict):
+        single_message = [{"role": "custom", "content": messages}]
+        pretty_print_conversation(single_message, color)
+    elif isinstance(messages, list):
         for message in messages:
-            if message["role"] == "system":
-                print(colored(f"system: {message['content']}\n", role_to_color[message["role"]]))
-            elif message["role"] == "user":
-                print(colored(f"user: {message['content']}\n", role_to_color[message["role"]]))
-            elif message["role"] == "assistant" and message.get("function_call"):
-                print(colored(f"assistant: {message['function_call']}\n", role_to_color[message["role"]]))
-            elif message["role"] == "assistant" and not message.get("function_call"):
-                print(colored(f"assistant: {message['content']}\n", role_to_color[message["role"]]))
-            elif message["role"] == "function":
-                print(colored(f"function ({message['name']}): {message['content']}\n", role_to_color[message["role"]]))
-            elif message["role"] == "error":
-                print(colored(f"error: {message['content']}\n", role_to_color[message["role"]]))
+            role = message.get("role", "other")
+            content = message.get("content", "")
+            if role in role_to_color:
+                color_code = role_to_color[role]
+                if role == "assistant" and message.get("function_call"):
+                    content = message["function_call"]
+                print(colored(f"{role}: {content}\n", color_code))
             else:
-                print(colored(f"other: {message['content']}\n", color))
+                print(colored(f"other: {content}\n", color))
+    else:
+        print(
+            colored(
+                "Invalid input format. Expected a string, a dictionary, or a list of messages.",
+                "red",
+            )
+        )
+
+
+# Testing when we call this file directly
+if __name__ == "__main__":
+    # Example usage:
+    messages_list = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there!"},
+        {"role": "function", "name": "some_function", "content": "Function executed."},
+        {"role": "error", "content": "Error occurred."},
+    ]
+    pretty_print_conversation(messages_list)
+
+    single_message = "This is a single message."
+    pretty_print_conversation(single_message, color="yellow")
