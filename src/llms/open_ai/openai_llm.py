@@ -70,7 +70,13 @@ class OpenAILLM(AbstractLLM):
 
         result = self._call_underlying_llm(messages, user_information, self.tools)
 
-        return LLMResult(result, result["content"])
+        try:
+            llm_result = LLMResult(result, result["content"])
+        except Exception as e:
+            logging.error(f"Error creating LLMResult: {e}")
+            llm_result = LLMResult(result, "There was an error processing your request. Please check the logs for more information.")
+
+        return llm_result
     
     def get_system_prompt_and_info(self, user_information: User):
         messages = []
@@ -91,7 +97,7 @@ class OpenAILLM(AbstractLLM):
         return messages
 
     def _call_underlying_llm(
-        self, messages: list, user_information: User, available_functions=None, specific_functions_to_use=None
+        self, messages: list, user_information: User, available_functions=None, specific_functions_to_use=None, use_history=True
     ):
         try:
             # Get the system info
@@ -100,7 +106,7 @@ class OpenAILLM(AbstractLLM):
             # Then we have to trim the conversation if it goes beyond the trim_conversation_history_at_token_count
             # I'm including the size of the system info, too, because it's part of the conversation history
             # But I don't want to trim it, so I'm just doing the count
-            if self.llm_arguments_configuration.conversation_history:
+            if self.llm_arguments_configuration.conversation_history and use_history:
                 token_count = self._get_token_count(self.message_history + messages + system_prompt_and_info_messages)
                 logging.debug(f"Conversation history token count: {token_count}")
 
@@ -155,12 +161,17 @@ class OpenAILLM(AbstractLLM):
                     for t in self.tools
                     if t["name"] == assistant_message["function_call"]["name"]
                 ][0].open_ai_function
-
-                logging.debug(f"Calling function: {assistant_message['function_call']['name']}, {assistant_message['function_call']}")
-                function_result = call_function(
-                    assistant_message["function_call"],
-                    function_to_call,
-                )
+                
+                try:
+                    logging.debug(f"Calling function: {assistant_message['function_call']['name']}, {assistant_message['function_call']}")
+                    function_result = call_function(
+                        assistant_message["function_call"],
+                        function_to_call,
+                    )
+                except Exception as e:
+                    logging.error(f"Error calling function: {e}")
+                    # Have the LLM look at the error
+                    function_result = self.handle_function_call_error(exception=e, function_call=assistant_message["function_call"], user_information=user_information)
                 
                 # Run the response through the LLM again to get a summary / response
                 messages.append(
@@ -183,9 +194,11 @@ class OpenAILLM(AbstractLLM):
                 )
                 assistant_message = self._call_underlying_llm(messages, user_information, self.tools)
 
-            self.message_history.append(assistant_message)
+            if assistant_message:
+                if use_history:
+                    self.message_history.append(assistant_message)
 
-            pretty_print_conversation(assistant_message)
+                pretty_print_conversation(assistant_message)
 
             return assistant_message
 
@@ -195,9 +208,52 @@ class OpenAILLM(AbstractLLM):
     def _get_token_count(self, messages: list) -> int:
         token_count = 0
         for message in messages:
-            token_count += get_token_count(message["content"])
+            if message is not None:
+                token_count += get_token_count(message["content"])
 
         return token_count
+    
+    def handle_function_call_error(self, exception: Exception, function_call: dict, user_information) -> str:
+        logging.error(f"Telling the LLM to handle: {str(exception)}")
+        messages = []
+        messages.append(
+            {
+                "role": "assistant",
+                "content": f"I tried to call the function {function_call['name']}, but I received the following error:",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": str(exception),
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I will look at the function call I made, and see if I can fix it.  For example- if I am missing parameters or if there is bad formatting, I will attempt to fix it.",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "I will NOT repeat the same function call.",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "If the problem is something outside of my control, I will summarize the error message and return it to the user.",
+            }
+        )
+        messages.append(
+            {
+                "role": "assistant",
+                "content": "Fixed function call or error message:",
+            }
+        )
+
+        return self._call_underlying_llm(messages, user_information, self.tools, use_history=False)
 
     def trim_conversation_history(self, conversation_history: list) -> list:
         logging.debug("Trimming conversation history")
@@ -229,7 +285,7 @@ class OpenAILLM(AbstractLLM):
         )
 
         chat_response = self.open_ai_completion.chat_completion_request(
-            messages, functions=[self.generic_tools], function_call="create_list"
+            messages, functions=self.generic_tools, function_call="create_list"
         )
 
         if chat_response.status_code != 200:
