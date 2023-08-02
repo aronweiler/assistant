@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import create_engine, text
 
 # Load environment variables from db.env
-if not load_dotenv("src/memory/long_term/db.env"):
+if not load_dotenv("src/db/database/db.env"):
     logging.error("Could not load environment variables from db.env")
 
 # Access the environment variables

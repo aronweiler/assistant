@@ -44,14 +44,13 @@ There are a number of goals for adding storage that the LLM can access and assoc
 
 Pull and run the pgvector docker file, following instructions here: [PGVector GitHub](https://github.com/pgvector/pgvector/tree/master#docker)
 
-You can also run my docker-compose file via `docker-compose up -d` from the long_term folder.
+You can also run my docker-compose file via `docker-compose up -d` from the database folder.
 
-### 3. Enable the pgvector extension
+### 3. Create the database
 
-Create a database, and run the following SQL script on that database:
-``` sql
-CREATE EXTENSION vector;
-```
+Run the [create_database.py](src\db\database\create_database.py) python script.
+
+This creates the database, and alters it to run the PGVector extension.
 
 ### 4. Database migrations:
 

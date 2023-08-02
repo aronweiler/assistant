@@ -120,7 +120,7 @@ class Conversations(VectorDatabase):
 if __name__ == "__main__":    
 
     from memory.models.users import Users
-    db_env = "src/memory/long_term/db.env"
+    db_env = "src/db/database/db.env"
 
     conversations = Conversations(db_env)
     users = Users(db_env)

@@ -66,7 +66,7 @@ class Users(VectorDatabase):
 
 if __name__ == "__main__":    
 
-    db_env = "src/memory/long_term/db.env"
+    db_env = "src/db/database/db.env"
     users = Users(db_env)
 
     with users.session_context(users.Session()) as session:

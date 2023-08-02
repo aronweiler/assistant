@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 
 # Load environment variables from db.env
-if not load_dotenv("src/memory/long_term/db.env"):
+if not load_dotenv("src/db/database/db.env"):
     logging.error("Could not load environment variables from db.env")
 
 # Access the environment variables
@@ -24,7 +24,7 @@ alembic_cfg = Config()
 
 # Set the database URL in the Alembic configuration
 alembic_cfg.set_main_option("sqlalchemy.url", db_url)
-alembic_cfg.set_main_option("script_location", "src/memory/long_term/migrations")
+alembic_cfg.set_main_option("script_location", "src/db/database/migrations")
 
 if __name__ == "__main__":
     # Call Alembic to generate the migration
