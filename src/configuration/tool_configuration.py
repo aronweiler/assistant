@@ -12,7 +12,10 @@ class ToolConfiguration:
     def from_dict(config: dict) -> "ToolConfiguration":
         name = config["name"]
         function_name = config["function_name"]
-        arguments = config["arguments"]
+        if "arguments" in config:
+            arguments = config["arguments"]
+        else:
+            arguments = None
 
         type_configuration = TypeConfiguration.from_dict(config)
 

@@ -40,12 +40,16 @@ pydub
 ffmpeg 
 ffmpeg-python
 
+# REST
+requests
+
 # Search
-google-api-python-client
 duckduckgo-search
 
 # Date/Time & Calendars
 pytz
+
+# Google
 google-api-python-client 
 google-auth-httplib2 
 google-auth-oauthlib

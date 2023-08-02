@@ -27,6 +27,18 @@
                 "arguments": {
                     "db_env_location": "src/db/database/db.env"
                 }
+            },
+            {
+                "name": "HTTP GET Tool",
+                "module_name": "tools.rest.requests_tool",
+                "class_name": "RequestsTool",
+                "function_name": "get_request"                
+            },
+            {
+                "name": "HTTP POST Tool",
+                "module_name": "tools.rest.requests_tool",
+                "class_name": "RequestsTool",
+                "function_name": "post_request"                
             }
         ]
     },
