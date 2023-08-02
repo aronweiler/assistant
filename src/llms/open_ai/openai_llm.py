@@ -1,6 +1,8 @@
 import json
 import logging
 from datetime import datetime
+from typing import Union, List, Dict
+
 
 from utilities.pretty_print import pretty_print_conversation
 from utilities.token_helper import get_token_count
@@ -107,19 +109,23 @@ class OpenAILLM(AbstractLLM):
                 for t in self.tools
                 if t["name"] == function_call["name"]
             ).open_ai_function
-            return call_function(function_call, function_to_call)
+            function_result = call_function(function_call, function_to_call)
+            return function_result
+        
         except Exception as e:
             error_result = self.handle_function_call_error(e, function_call, user_information)["content"]
             return "There was an error calling the function.  I have included this diagnosis: " + error_result
 
-    def _process_response_with_function_call(self, assistant_message, user_information):
+    def _process_response_with_function_call(self, assistant_message, user_information, initial_query, system_info_string):
         function_call = assistant_message["function_call"]
         logging.debug(f"Calling function: {function_call['name']}, {function_call}")
         function_result = self._handle_function_call(function_call, user_information)
 
         messages = [
-            {"role": "user", "content": f"I called '{function_call['name']}'. Here is the result:"},
-            {"role": "user", "content": function_result},
+            {"role": "system", "content": system_info_string},
+            {"role": "user", "content": initial_query},
+            {"role": "assistant", "content": f"I called '{function_call['name']}'. Here is the result:"},
+            {"role": "assistant", "content": function_result},
             {"role": "assistant", "content": "Using these results, the answer to the user's query is:"},
         ]
 
@@ -185,7 +191,7 @@ class OpenAILLM(AbstractLLM):
             assistant_message = chat_response.json()["choices"][0]["message"]
 
             if "function_call" in assistant_message:
-                return self._process_response_with_function_call(assistant_message, user_information)
+                return self._process_response_with_function_call(assistant_message, user_information, conversation[-1]["content"], conversation[1]["content"])
 
             if assistant_message and use_history:
                 self.message_history.append(assistant_message)
@@ -244,61 +250,31 @@ class OpenAILLM(AbstractLLM):
 
         return result
 
-    def trim_conversation_history(self, conversation_history: list) -> list:
+
+    def trim_conversation_history(self, conversation_history: List[Dict]) -> List[Dict]:
         logging.debug("Trimming conversation history")
 
-        messages = []
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "I am shortening the conversation history to make room for the new message.",
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": "I will shorten the following messages as much as possible by summarizing, abbreviating, and eliminating unimportant information without losing any important information.",
-            }
-        )
-        messages.append(
-            {
-                "role": "user",
-                "content": conversation_history,
-            }
-        )
-        messages.append(
-            {
-                "role": "assistant",
-                "content": f"Here I am using '{ListTool.create_list.__name__}' to create a shortened conversation history by summarizing without losing any important information.",
-            }
-        )
+        # Add initial assistant messages
+        messages = [
+            {"role": "assistant", "content": "I am shortening the conversation history to make room for the new message."},
+            {"role": "assistant", "content": "I will shorten the following messages by summarizing, abbreviating, and eliminating unimportant information without losing any important information."},
+            {"role": "user", "content": conversation_history},
+            {"role": "assistant", "content": f"Here I am using 'create_list' to create a shortened conversation history by summarizing without losing any important information."},
+        ]
 
-        chat_response = self.open_ai_completion.chat_completion_request(
-            messages, functions=self.generic_tools, function_call="create_list"
-        )
+        # Call the OpenAI API to generate a shortened conversation history
+        chat_response = self._call_underlying_llm(messages, use_history=False)
 
         if chat_response.status_code != 200:
-            raise Exception(
-                f"Could not shorten conversation history. OpenAI returned a non-200 status code: {chat_response.status_code}.  Response: {chat_response.text}"
-            )
+            raise Exception(f"Could not shorten conversation history. OpenAI returned a non-200 status code: {chat_response.status_code}. Response: {chat_response.text}")
 
         assistant_message = chat_response.json()["choices"][0]["message"]
 
-        # assistant_message should be a function call to shorten the conversation history
+        # Check if the assistant message contains a function call
         if "function_call" in assistant_message:
-            list_function_wrapper = load_tool_from_instance(ListTool(), ListTool.create_list.__name__)
-
-            logging.debug(f"Calling function: {assistant_message['function_call']['name']}, {assistant_message['function_call']}")
-            function_results = self._handle_function_call(assistant_message['function_call'], None)
-            # call_function(
-            #     assistant_message["function_call"], list_function_wrapper.function_ref
-            # )
-
+            function_results = self._handle_function_call(assistant_message["function_call"])
             if function_results:
-                # Should be a list of messages
                 logging.debug("Conversation history trimmed successfully, new token count: " + str(get_token_count(function_results)))
                 return function_results
         else:
-            logging.error(
-                f"Could not shorten conversation history. LLM did not call the tool   Assistant message: {assistant_message}"
-            )
+            logging.error(f"Could not shorten conversation history. LLM did not call the tool. Assistant message: {assistant_message}")
