@@ -9,7 +9,7 @@ from configuration.llm_arguments_configuration import LLMArgumentsConfiguration
 
 from llms.abstract_llm import AbstractLLM
 from llms.llm_result import LLMResult
-from llms.open_ai.utilities.tool_loader import load_tool_from_config
+from llms.open_ai.utilities.tool_loader import load_tool_from_config, load_tool_from_instance
 from llms.open_ai.utilities.chat_completion import OpenAIChatCompletion
 from llms.open_ai.utilities.open_ai_utilities import get_openai_api_key
 from llms.open_ai.utilities.function_caller import call_function
@@ -44,7 +44,7 @@ class OpenAILLM(AbstractLLM):
         self.generic_tools.append(
             {
                 "name": ListTool.create_list.__name__,
-                "tool_instance": ListTool(),
+                "tool_instance": load_tool_from_instance(ListTool(), ListTool.create_list.__name__)
             }
         )
         logging.debug(f"Loaded tool: {ListTool.create_list.__name__}")       
@@ -156,7 +156,7 @@ class OpenAILLM(AbstractLLM):
                     if t["name"] == assistant_message["function_call"]["name"]
                 ][0].open_ai_function
 
-                logging.debug(f"Calling function: {assistant_message['function_call']['name']}")
+                logging.debug(f"Calling function: {assistant_message['function_call']['name']}, {assistant_message['function_call']}")
                 function_result = call_function(
                     assistant_message["function_call"],
                     function_to_call,
@@ -241,9 +241,11 @@ class OpenAILLM(AbstractLLM):
 
         # assistant_message should be a function call to shorten the conversation history
         if "function_call" in assistant_message:
-            logging.debug(f"Calling function: {assistant_message['function_call']}")
+            list_function_wrapper = load_tool_from_instance(ListTool(), ListTool.create_list.__name__)
+
+            logging.debug(f"Calling function: {assistant_message['function_call']['name']}, {assistant_message['function_call']}")
             function_results = call_function(
-                assistant_message["function_call"], self.configuration.tools
+                assistant_message["function_call"], list_function_wrapper.function_ref
             )
 
             if function_results:
@@ -251,6 +253,6 @@ class OpenAILLM(AbstractLLM):
                 logging.debug("Conversation history trimmed successfully, new token count: " + str(get_token_count(function_results)))
                 return function_results
         else:
-            raise Exception(
-                f"Could not shorten conversation history. Failed to call the function to shorten the conversation history.  Assistant message: {assistant_message}"
+            logging.error(
+                f"Could not shorten conversation history. LLM did not call the tool   Assistant message: {assistant_message}"
             )
