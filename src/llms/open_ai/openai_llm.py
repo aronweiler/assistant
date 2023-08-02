@@ -251,6 +251,10 @@ class OpenAILLM(AbstractLLM):
         return result
 
 
+    # TODO: Make this more robust- currently it just strips messages from the conversation
+    # That only works when messages are below the token count threshold
+    # When we get a single message that has a large token count, this will fail
+    # Investigate creating a generic pipeline for trimming conversation histories in all of the LLMs
     def trim_conversation_history(self, conversation_history: List[Dict]) -> List[Dict]:
         logging.debug("Trimming conversation history")
 
