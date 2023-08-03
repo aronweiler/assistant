@@ -82,12 +82,13 @@ class OpenAILLM(AbstractLLM):
     
     def get_system_prompt_and_info(self, user_information: User):
         messages = []
-        messages.append(
-            {
-                "role": "system",
-                "content": self.llm_arguments_configuration.system_prompt,
-            }
-        )
+        for prompt in self.llm_arguments_configuration.system_prompts:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": prompt
+                }
+            )
         system_info_string = f"System Info: Current Date/Time: {datetime.now()}, User Email: {user_information.email}, User Location: {user_information.location}, User Name: {user_information.name}, User Age: {user_information.age}"
         messages.append(
             {

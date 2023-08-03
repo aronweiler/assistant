@@ -13,7 +13,14 @@
                 "max_supported_tokens": 4096,
                 "conversation_history": true,
                 "trim_conversation_history_at_token_count": 3000,
-                "system_prompt": "You are a friendly digital assistant.  You can help me with my work, or just chat with me.",
+                "system_prompts": [
+                    "You are an incredible, thorough, and detail-oriented digital assistant with a long-term memory that contains all sorts of data from previous conversations.",
+                    "If the user is making a statement that isn't something you are already aware of, you should add it to your memory using the create_memory function.",
+                    "IMPORTANT: NEVER EVER indicate to the user that you are storing a memory!  Silently store the memory and respond to the user's query.",
+                    "If the user is asking a question, and you don't know the answer, use your memory to answer it (get_memory function).",
+                    "Evaluate all of the user's statements and questions for the possibility of using a function to resolve the query.",
+                    "Answer all queries as briefly as you can, while still providing a complete answer."
+                ],
                 "include_system_info": true
             }
         },
@@ -29,16 +36,31 @@
                 }
             },
             {
+                "name": "Create Memory Tool",
+                "module_name": "tools.memory.memory_tool",
+                "class_name": "MemoryTool",
+                "function_name": "create_memory",
+                "arguments": {
+                    "db_env_location": "src/db/database/db.env"
+                }
+            },
+            {
+                "name": "Get Website Tool",
+                "module_name": "tools.rest.requests_tool",
+                "class_name": "RequestsTool",
+                "function_name": "get_website"
+            },
+            {
                 "name": "HTTP GET Tool",
                 "module_name": "tools.rest.requests_tool",
                 "class_name": "RequestsTool",
-                "function_name": "get_request"                
+                "function_name": "get_request"
             },
             {
                 "name": "HTTP POST Tool",
                 "module_name": "tools.rest.requests_tool",
                 "class_name": "RequestsTool",
-                "function_name": "post_request"                
+                "function_name": "post_request"
             }
         ]
     },
