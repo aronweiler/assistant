@@ -1,18 +1,34 @@
 import requests
 from typing import List
+from bs4 import BeautifulSoup
 
 # A simple wrapper around the requests library
 
 class RequestsTool:
-    def get_request(self, url:str, params:dict[str, str]=None) -> str:
-        """A portal to the internet. Use this when you need to get specific content from a website. Input should be a  url (i.e. https://www.google.com). The output will be the text response of the GET request.
+    def get_website(self, url:str, params:dict[str, str]=None) -> str:
+        """A website reader. Use this when you need to get content from a website. Input should be a  url (i.e. https://www.google.com). The output will be the text of the requested website.
 
         Args:
             url (str): URL to send the request to
             params (dict[str, str]): optional list of tuples or bytes to send in the query string
 
         Returns:
-            str: The text of the response"""
+            str: The plain-text of the website"""
+        full_html = requests.get(url, params=params).text
+
+        # parse using beautiful soup        
+        soup = BeautifulSoup(full_html, 'html.parser')
+        return soup.get_text()
+    
+    def get_request(self, url:str, params:dict[str, str]=None) -> str:
+        """A RAW portal to the internet. Use this when you need to get the raw content from a URL. Input should be a  url (i.e. https://www.google.com). The output will be the text response of the GET request.
+
+        Args:
+            url (str): URL to send the request to
+            params (dict[str, str]): optional list of tuples or bytes to send in the query string
+
+        Returns:
+            str: The raw HTML of the response"""
         return requests.get(url, params=params).text
 
     def post_request(self, url:str, data:dict[str, str]=None) -> str:

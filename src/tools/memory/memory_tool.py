@@ -83,12 +83,39 @@ class MemoryTool:
                     memories_output.append(memory_string)
 
             if len(memories_output) > 0:
+                logging.info(f"Found the following memories: " + "\n".join(memories_output))
                 return "Found the following memories: " + "\n".join(memories_output)
             else:
+                logging.info(f"No memories found related to that query.")
                 return "No memories found related to that query.  You should query the user for more information."
 
         except Exception as e:
             return f"Failed to retrieve memories.  Error: {e}"
+        
+
+    def create_memory(
+        self,
+        text: str,
+        associated_user_email: Union[str, None] = None,
+    ):
+        """Use this tool to store a memory about an interaction you've had, or when a user asks you to remember something.  If no associated user is specified, the memory will be stored as a general memory.
+        
+        Args:
+            text (str): The memory to store. This field is required!
+            associated_user_email (Union[str, None], optional): The email of the user to associate the memory with.  Defaults to None.
+            """
+        try:
+            with self.users.session_context(self.users.Session()) as session:
+                self.memories.store_text_memory(
+                    session,
+                    memory_text=text,
+                    associated_user_email=associated_user_email
+                )
+
+            return "Memory stored successfully!"
+
+        except Exception as e:
+            return f"Failed to store memory.  Error: {e}"        
 
 
 # Testing
