@@ -2,18 +2,19 @@ import os
 import logging
 from alembic.config import Config
 from alembic import command
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 # Load environment variables from db.env
-if not load_dotenv("src/db/database/db.env"):
+config = dotenv_values("src/db/database/db.env")
+if not config:
     logging.error("Could not load environment variables from db.env")
 
 # Access the environment variables
-host = os.environ.get("POSTGRES_HOST", "localhost")
-port = int(os.environ.get("POSTGRES_PORT", 5432))
-database = os.environ.get("POSTGRES_DB", "postgres")
-user = os.environ.get("POSTGRES_USER", "postgres")
-password = os.environ.get("POSTGRES_PASSWORD", "postgres")
+host = config.get("POSTGRES_HOST", "localhost")
+port = int(config.get("POSTGRES_PORT", 5432))
+database = config.get("POSTGRES_DB", "postgres")
+user = config.get("POSTGRES_USER", "postgres")
+password = config.get("POSTGRES_PASSWORD", "postgres")
 
 # Set the SQLAlchemy database URL
 db_url = f"postgresql://{user}:{password}@localhost:{port}/{database}"

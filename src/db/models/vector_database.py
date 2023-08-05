@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, selectinload
 from sqlalchemy import func
 
 from contextlib import contextmanager
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
 from enum import Enum
 
@@ -17,18 +17,21 @@ class SearchType(Enum):
 
 
 class VectorDatabase:
-    def __init__(self, db_env_location):
-        if not load_dotenv(db_env_location):
+    def __init__(self, db_env_location):       
+
+        config = dotenv_values(db_env_location)
+        
+        if not config:
             raise ValueError(
-                "Could not load environment variables from db.env, memory will not work."
+                "Could not load environment variables from db.env, conversation will not work."
             )
 
         try:
             host = "localhost"
-            port = int(os.environ.get("POSTGRES_PORT", 5432))
-            database = os.environ.get("POSTGRES_DB", "postgres")
-            user = os.environ.get("POSTGRES_USER", "postgres")
-            password = os.environ.get("POSTGRES_PASSWORD", "postgres")
+            port = int(config.get("POSTGRES_PORT", 5432))
+            database = config.get("POSTGRES_DB", "postgres")
+            user = config.get("POSTGRES_USER", "postgres")
+            password = config.get("POSTGRES_PASSWORD", "postgres")
 
             engine = create_engine(
                 f"postgresql://{user}:{password}@{host}:{port}/{database}"

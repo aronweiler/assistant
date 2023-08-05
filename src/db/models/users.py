@@ -32,12 +32,12 @@ class Users(VectorDatabase):
 
         return query.first()
 
-    # def find_user_by_id(self, id, eager_load: List[str]) -> Union[User, None]:
-    #     query = session.query(User).filter(User.id == id)
+    def get_user(self, session, id, eager_load: List[str]) -> Union[User, None]:
+        query = session.query(User).filter(User.id == id)
 
-    #     query = super().eager_load(query, eager_load)
+        query = super().eager_load(query, eager_load)
 
-    #     return query.first()
+        return query.first()
 
     def add_update_user(self, session, user: User, eager_load) -> User:        
         query = session.query(User).filter(User.email == user.email)
@@ -70,14 +70,14 @@ if __name__ == "__main__":
     users = Users(db_env)
 
     with users.session_context(users.Session()) as session:
-        user = users.find_user_by_email(session, "gaiaweiler@gmail.com", eager_load=[User.memories, User.conversations, User.user_settings])
+        user = users.find_user_by_email(session, "gaiaweiler@gmail.com", eager_load=[User.conversations, User.conversations, User.user_settings])
 
         if user is not None:
             for result in user.user_settings:
                 print(f"Setting -- User: {result.user.name} - {result.setting_name}={result.setting_value}")
 
-            for result in user.memories:
-                print(f"Memory -- User: {result.user.name} - {result.memory_text}")
+            for result in user.conversations:
+                print(f"Memory -- User: {result.user.name} - {result.conversation_text}")
 
             for result in user.conversations:
                 print(f"Conversation -- User: {result.user.name} - {result.conversation_text}")

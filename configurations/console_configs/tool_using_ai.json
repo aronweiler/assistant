@@ -1,0 +1,25 @@
+{
+    "name": "Tool Using AI",
+    "module_name": "ai.tool_using_ai",
+    "class_name": "ToolUsingAI",
+    "store_conversation_history": false,
+    "db_env_location": "src/db/database/db.env",
+    "system_prompts": [
+        "You are tool / function using AI.",
+        "Your job is to run the specified tool / function to resolve the user's query."
+    ],
+    "include_system_info": true,
+    "llm": {
+        "name": "OpenAI LLM",
+        "module_name": "llms.open_ai.openai_llm",
+        "class_name": "OpenAILLM",
+        "arguments": {
+            "model": "gpt-3.5-turbo-0613",
+            "temperature": 0.5,
+            "max_supported_tokens": 4096,
+            "max_completion_tokens": 1096
+        }
+    },
+    "subordinate_ais": [],
+    "tools": "configurations/tools/all_tools.json"
+}

@@ -12,8 +12,8 @@ from sqlalchemy import select
 # import os
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from memory.database.models import User, Conversation
-from memory.models.vector_database import VectorDatabase, SearchType
+from db.database.models import User, Conversation
+from db.models.vector_database import VectorDatabase, SearchType
 
 
 class Conversations(VectorDatabase):
@@ -25,16 +25,11 @@ class Conversations(VectorDatabase):
         session,
         conversation_text: str,
         interaction_id: UUID,
-        associated_user: Union[User, None] = None,
-        is_ai_response: bool = False,
+        conversation_role_type_id: int,
+        user_id: Union[int, None] = None,                
         additional_metadata: Union[str, None] = None,
         exception = None
     ):
-        if associated_user is not None:
-            user_id = associated_user.id
-        else:
-            user_id = None
-
         conversation_text = conversation_text.strip()
 
         if len(conversation_text) == 0:
@@ -45,7 +40,7 @@ class Conversations(VectorDatabase):
             interaction_id=interaction_id,
             conversation_text=conversation_text,
             user_id=user_id,
-            is_ai_response=is_ai_response,
+            conversation_role_type_id=conversation_role_type_id,
             additional_metadata=additional_metadata,
             embedding=embedding,
             exception=exception
@@ -53,7 +48,7 @@ class Conversations(VectorDatabase):
 
         session.add(conversation)
 
-    def find_conversations(
+    def search_conversations(
         self,
         session,
         conversation_text_search_query: str,
@@ -67,7 +62,7 @@ class Conversations(VectorDatabase):
         # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
         # Can't perform this query before the 
-        # Before searching, pre-filter the query to only include memories that match the single inputs
+        # Before searching, pre-filter the query to only include conversations that match the single inputs
         query = session.query(Conversation).filter(
             Conversation.is_deleted == return_deleted,
             Conversation.user_id == associated_user.id
@@ -77,6 +72,8 @@ class Conversations(VectorDatabase):
             if interaction_id is not None
             else True,
         )
+
+        query = super().eager_load(query, eager_load)
 
         if search_type == SearchType.key_word:
             # TODO: Do better key word search
@@ -89,9 +86,8 @@ class Conversations(VectorDatabase):
         else:
             raise ValueError(f"Unknown search type: {search_type}")
 
-        query = super().eager_load(query, eager_load)
-
-        return query.all()[:top_k]
+        return query.all()[:top_k]       
+    
 
     def get_conversations_for_interaction(
         self, session, interaction_id: UUID
@@ -119,7 +115,7 @@ class Conversations(VectorDatabase):
 
 if __name__ == "__main__":    
 
-    from memory.models.users import Users
+    from db.models.users import Users
     db_env = "src/db/database/db.env"
 
     conversations = Conversations(db_env)
@@ -127,14 +123,14 @@ if __name__ == "__main__":
 
     with conversations.session_context(conversations.Session()) as session:
         aron = users.find_user_by_email(session, "aronweiler@gmail.com")
-        results = conversations.find_conversations(session, conversation_text_search_query="favorite food is", search_type=SearchType.similarity, top_k=100, associated_user=aron)
+        results = conversations.search_conversations(session, conversation_text_search_query="favorite food is", search_type=SearchType.similarity, top_k=100, associated_user=aron)
 
         for result in results:
             print(result.conversation_text)
 
         print("---------------------------")
 
-        results = conversations.find_conversations(session, conversation_text_search_query="food", search_type=SearchType.key_word, top_k=90, associated_user=aron)
+        results = conversations.search_conversations(session, conversation_text_search_query="food", search_type=SearchType.key_word, top_k=90, associated_user=aron)
 
         for result in results:
             print(result.conversation_text)

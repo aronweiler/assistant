@@ -26,15 +26,15 @@ from runners.voice.audio_transcriber import AudioTranscriber
 from runners.voice.wake_word import WakeWord
 from runners.voice.text_to_speech import TextToSpeech
 
-from memory.models.vector_database import SearchType
-from memory.models.conversations import Conversations
-from memory.models.users import Users
-from memory.models.memories import Memories
+from conversation.models.vector_database import SearchType
+from conversation.models.conversations import Conversations
+from conversation.models.users import Users
+from conversation.models.conversations import Conversations
 
 
-# from memory.models.user_settings import UserSettings
+# from conversation.models.user_settings import UserSettings
 
-from memory.database.models import User, Memory, Conversation, UserSetting
+from conversation.database.models import User, Memory, Conversation, UserSetting
 
 
 from TTS.api import TTS
@@ -74,7 +74,7 @@ class VoiceRunner(Runner):
         self.text_to_speech = TextToSpeech()
 
         self.users = Users(self.args.db_env_location)
-        self.memories = Memories(self.args.db_env_location)
+        self.conversations = Conversations(self.args.db_env_location)
         self.conversations = Conversations(self.args.db_env_location)
         # self.user_settings = UserSettings(self.args.db_env_location)
 
@@ -242,7 +242,7 @@ class VoiceRunner(Runner):
                 wake_model.user_information.user_email,
                 eager_load=[
                     User.user_settings,
-                    User.memories
+                    User.conversations
                 ],
             )
             
@@ -288,7 +288,7 @@ class VoiceRunner(Runner):
                 return
 
             # Pull some context out of previous conversations- but not too much
-            related_conversations = self.conversations.find_conversations(
+            related_conversations = self.conversations.search_conversations(
                 session, transcribed_audio, SearchType.similarity, conversation_user, top_k=5
             )
 
@@ -420,10 +420,10 @@ class VoiceRunner(Runner):
                     for c in related_conversations
                 ]
             ),
-            user_memories="\n".join(
+            user_conversations="\n".join(
                 [
-                    f"{m.record_created}: {m.memory_text}"
-                    for m in user.memories
+                    f"{m.record_created}: {m.conversation_text}"
+                    for m in user.conversations
                 ]
             ),
         )

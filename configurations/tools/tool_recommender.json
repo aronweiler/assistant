@@ -1,0 +1,10 @@
+{
+    "tools": [
+        {
+            "name": "Tool Recommender",
+            "module_name": "tools.general.tool_recommender",
+            "class_name": "ToolRecommender",
+            "function_name": "recommend_tool"
+        }
+    ]
+}

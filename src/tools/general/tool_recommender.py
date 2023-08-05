@@ -2,10 +2,11 @@ from typing import List
 
 
 class ToolRecommender:
-    def recommend_tool(self, tool_name: str):
+    def recommend_tool(self, explanation: str, tool_name: str = None):
         """Recommend a tool to use
 
         Args:
-            tool_name (str): The name of the tool you are recommending
+            explanation (str): The explanation for your choice (or lack thereof) of tool.
+            tool_name (str): The name of the tool you are recommending. None if no tool is recommended.
         """
-        return tool_name
+        return f"I recommend using '{tool_name}', because {explanation}"

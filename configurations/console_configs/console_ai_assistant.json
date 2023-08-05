@@ -3,6 +3,16 @@
         "name": "General Purpose AI Assistant",
         "module_name": "ai.general_ai",
         "class_name": "GeneralAI",
+        "store_conversation_history": true,
+        "db_env_location": "src/db/database/db.env",
+        "system_prompts": [
+            "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have.",
+            "If the user is asking a question in reference to something that might have been in a previous conversation, use the 'search_for_conversation' function to search for it.",
+            "Evaluate all of the user's statements and questions for the possibility of using a function that you know about to resolve the query.",
+            "Only use the functions that you have available to you!  Never make up new functions.",            
+            "Answer all queries as briefly and concisely as you can, do not add anything to the answers (such as the function you used to get the answer), just answer the user's query directly!"
+        ],
+        "include_system_info": true,
         "llm": {
             "name": "OpenAI LLM",
             "module_name": "llms.open_ai.openai_llm",
@@ -11,58 +21,13 @@
                 "model": "gpt-3.5-turbo-0613",
                 "temperature": 0.5,
                 "max_supported_tokens": 4096,
-                "conversation_history": true,
-                "trim_conversation_history_at_token_count": 3000,
-                "system_prompts": [
-                    "You are an incredible, thorough, and detail-oriented digital assistant with a long-term memory that contains all sorts of data from previous conversations.",
-                    "If the user is making a statement that isn't something you are already aware of, you should add it to your memory using the create_memory function.",
-                    "IMPORTANT: NEVER EVER indicate to the user that you are storing a memory!  Silently store the memory and respond to the user's query.",
-                    "If the user is asking a question, and you don't know the answer, use your memory to answer it (get_memory function).",
-                    "Evaluate all of the user's statements and questions for the possibility of using a function to resolve the query.",
-                    "Answer all queries as briefly as you can, while still providing a complete answer."
-                ],
-                "include_system_info": true
+                "max_completion_tokens": 1096,
+                "max_function_limit": 10
             }
         },
-        "subordinate_ais": [],
-        "tools": [
-            {
-                "name": "Get Memory Tool",
-                "module_name": "tools.memory.memory_tool",
-                "class_name": "MemoryTool",
-                "function_name": "get_memory",
-                "arguments": {
-                    "db_env_location": "src/db/database/db.env"
-                }
-            },
-            {
-                "name": "Create Memory Tool",
-                "module_name": "tools.memory.memory_tool",
-                "class_name": "MemoryTool",
-                "function_name": "create_memory",
-                "arguments": {
-                    "db_env_location": "src/db/database/db.env"
-                }
-            },
-            {
-                "name": "Get Website Tool",
-                "module_name": "tools.rest.requests_tool",
-                "class_name": "RequestsTool",
-                "function_name": "get_website"
-            },
-            {
-                "name": "HTTP GET Tool",
-                "module_name": "tools.rest.requests_tool",
-                "class_name": "RequestsTool",
-                "function_name": "get_request"
-            },
-            {
-                "name": "HTTP POST Tool",
-                "module_name": "tools.rest.requests_tool",
-                "class_name": "RequestsTool",
-                "function_name": "post_request"
-            }
-        ]
+        "subordinate_ais": [
+        ],
+        "tools": "configurations/tools/all_tools.json"
     },
     "runners": [
         {
@@ -70,10 +35,9 @@
             "module_name": "runners.console.console_runner",
             "class_name": "ConsoleRunner",
             "arguments": {
+                "db_env_location": "src/db/database/db.env",
                 "user_information": {
-                    "user_name": "Aron",
-                    "email_address": "aronweiler@gmail.com",
-                    "location": "San Diego, CA"
+                    "email_address": "aronweiler@gmail.com"
                 }
             }
         }

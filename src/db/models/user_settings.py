@@ -1,6 +1,6 @@
 # from typing import Union, List
-# from memory.database.models import User, UserSetting
-# from memory.models.vector_database import VectorDatabase
+# from conversation.database.models import User, UserSetting
+# from conversation.models.vector_database import VectorDatabase
 
 # class UserSettings(VectorDatabase):
 #     def __init__(self, db_env_location):
