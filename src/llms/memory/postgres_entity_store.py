@@ -114,7 +114,6 @@ class PostgreSQLEntityStore(BaseEntityStore):
             if results is not None:
                 # This could get large if I don't limit it
                 values_count = 0
-                values = ""
 
                 for result in results:
                     for details in result[0].details:
@@ -330,6 +329,30 @@ class PostgreSQLEntityStore(BaseEntityStore):
                 return neighbor.entity_key
 
             return None
+        
+    def clean_entity_details(self) -> None:
+        try:
+            import sqlalchemy as sa
+        except ImportError:
+            raise ImportError(
+                "Could not import sqlalchemy python package. "
+                "Please install it with `pip install sqlalchemy`."
+            )
+        with self.Session() as session:
+            query = session.query(EntityDetails).all()
+            # Loop through all of the details, and re-summarize to remove duplication within each, and hopefully reduce their size
+            for entity_detail in query:
+                # Get the summary
+                summarizer = LLMChain(llm=self.llm, prompt=self.summarization_prompt)
+                summary = summarizer.predict(                    
+                    input=entity_detail.entity_value
+                )
+
+                # Update the existing entity detail with the new summary
+                entity_detail.entity_value = summary.strip()
+                entity_detail.embedding = self.get_embedding(summary.strip())
+                session.commit()
+
 
     def clear(self) -> None:
         raise NotImplementedError(

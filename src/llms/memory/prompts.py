@@ -115,12 +115,14 @@ ENTITY_SUMMARIZATION_PROMPT = PromptTemplate(
 
 _DEFAULT_SUMMARIZATION_TEMPLATE = """You are an AI assistant helping a human keep track of facts about relevant people, places, and concepts in their life.
 
-Please help me to summarize the following existing data by removing redundant information, and making sure the grammar is correct.
+Please help me to summarize the following existing data by removing redundant information, and making sure the grammar is correct.  Ensure that the final summary does not lack any information that was present in the existing data.
+
+Note: Outside of your view, this data may or may not be associated with an entity, such as a person, place, or thing.  If the data contains within it an indication of possession, that should be included in the final summary.  e.g. my, its, the, etc., are all indications of an entity's possession of this data, and should remain.
 
 Existing data:
 {input}
 
-Summary:
+Updated Summary (removed redundant information, fixed grammar, etc.):
 """
 
 SUMMARIZATION_PROMPT = PromptTemplate(
