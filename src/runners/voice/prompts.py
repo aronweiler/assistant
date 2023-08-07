@@ -8,8 +8,8 @@ Guidance:
 Remember all of your responses are being read by a text to speech engine.
 Try to respond with the personality traits: {personality_keywords}
 
-Recent memories about the user (use the memory tool to look up more if required):
-{user_memories}
+Recent conversations about the user (use the conversation tool to look up more if required):
+{user_conversations}
 
 Previous user conversations related to this query:
 {related_conversations}

@@ -19,17 +19,16 @@ class AbstractAI(ABC):
         # Create any subordinate AIs
         # This is not really used in the GeneralAI, but I want to keep it here to remind me how to do it ;)
         if self.ai_configuration.subordinate_ais:
+            self.subordinate_ais: List[AbstractAI] = []
             for sub_ai in self.ai_configuration.subordinate_ais:
                 self.subordinate_ais.append(
-                    AbstractAI(
-                        create_instance_from_module_and_class(
-                            sub_ai.type_configuration.module_name,
-                            sub_ai.type_configuration.class_name,
-                            sub_ai,
-                        )
+                    create_instance_from_module_and_class(
+                        sub_ai.type_configuration.module_name,
+                        sub_ai.type_configuration.class_name,
+                        sub_ai,
                     )
                 )
 
     @abstractmethod
-    def query(self, query, user_information):
+    def query(self, query, user_id: int):
         pass

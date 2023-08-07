@@ -3,6 +3,7 @@ keyboard
 python-dotenv
 termcolor
 tenacity
+pydantic
 
 # Database
 psycopg2-binary
@@ -15,6 +16,7 @@ sqlalchemy
 llama-cpp-python
 openai
 openai-functions
+langchain
 
 # Audio related
 openwakeword

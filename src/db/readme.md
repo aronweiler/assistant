@@ -1,7 +1,7 @@
 # Long-Term Memory
 *Note: This module has its own dependencies and [requirements.txt](requirements.txt)*
 
-The objective of this module is to allow an LLM to maintain a long-term memory of a sort by storing information in a database.
+The objective of this module is to allow an LLM to maintain a long-term conversation of a sort by storing information in a database.
 
 ## Settings information
 Over time, the LLM may be asked to change its settings (through the settings tool), and we can track the changes here, loading the active settings for things like:
@@ -27,8 +27,8 @@ Reference information can include:
 - ...
 
 # Why?
-There are a number of goals for adding storage that the LLM can access and associating the data with conversations (a.k.a. creating a memory):
-- It will allow the LLM to recall actions it took related to user input, and then see the outcome of its actions (retrieve memories- what worked, what didn't)
+There are a number of goals for adding storage that the LLM can access and associating the data with conversations (a.k.a. creating a conversation):
+- It will allow the LLM to recall actions it took related to user input, and then see the outcome of its actions (retrieve conversations- what worked, what didn't)
 - The LLM can use the data store for the various tools it will employ- for instance, if we have and API specification stored for an application, it can be referenced by the model when interacting with the specified API.
 - The LLM can look up other documents that might not have been available to the model during training.
 - ...

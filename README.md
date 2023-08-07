@@ -24,7 +24,7 @@ An intelligent assistant.  This is a work in progress.
 `pip install -r requirements.txt`
 
 ## 2. Set up the database
-*The database is required for some of the more advanced features, like memories, and eventually things like documents, advanced tooling, etc.*
+*The database is required for some of the more advanced features, like conversations, and eventually things like documents, advanced tooling, etc.*
 ### - Run the PGVector (postgres) docker image:
 
 Pull and run the PGVector docker file, following instructions here: [PGVector GitHub](https://github.com/pgvector/pgvector/tree/master#docker)
@@ -36,7 +36,9 @@ After creating and running the database docker image, you need to create the act
 
 Run the [create_database.py](src\db\database\create_database.py) python script.
 
-This creates the database, and alters it to run the PGVector extension.
+This creates the database...  but for some reason the vector extension is not create.
+
+Connect to the new database, and run: `CREATE EXTENSION IF NOT EXISTS vector;`
 
 ### - Set up database migrations:
 Migrations make it easy to add/change/remove things from the database when you already have data in there. 

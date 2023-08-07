@@ -3,25 +3,34 @@ import time
 from ai.abstract_ai import AbstractLLM
 from runners.runner import Runner
 from db.database.models import User
+from db.models.users import Users
 
 from utilities.pretty_print import pretty_print_conversation
 
 
 class ConsoleRunner(Runner):
-    def __init__(self, user_information):
-        self.user_information = user_information["user_information"]
-        self.user = User(name=self.user_information["user_name"], email=self.user_information["email_address"], location=self.user_information["location"])
+    def __init__(self, arguments):
+        email=arguments["user_information"]["email_address"]
+
+        self.users = Users(arguments["db_env_location"])
+        with self.users.session_context(self.users.Session()) as session:
+            self.user = self.users.find_user_by_email(
+                session,
+                email=email,
+                eager_load=[],
+            )
+
+            self.user_id = self.user.id        
 
     def configure(self):
         pass
 
     def run(self, abstract_ai: AbstractLLM):
-        while True:   
-
+        while True:
             query = input("Query (X to exit):")
 
             # Run the query
-            result = abstract_ai.query(query, self.user)
+            result = abstract_ai.query(query, self.user_id)
 
             # print the result
             pretty_print_conversation(result)
@@ -33,8 +42,6 @@ class ConsoleRunner(Runner):
 
             #     if len(source_docs) > 0:
             #         pretty_print_conversation("Source documents:\n" + source_docs, "blue")
-
-            
 
     def get_multi_line_console_input(self):
         # Get the query, which can be multiple lines, until the user presses enter twice
