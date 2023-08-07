@@ -53,7 +53,7 @@ class AIConfiguration:
         tools = ToolConfiguration.from_json_file(config["tools"])
 
         type_configuration = TypeConfiguration.from_dict(config)
-        llm_configuration = LLMConfiguration.from_dict(config["llm"], tools)
+        llm_configuration = LLMConfiguration.from_dict(config["llm"], tools, "\n".join(system_prompts))
 
         if "subordinate_ais" in config:
             subordinate_ais = [

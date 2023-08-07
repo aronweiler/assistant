@@ -51,24 +51,23 @@ class ConversationManager:
     def store_message(
         self, user_id, content: str, role: MessageRole = MessageRole.USER
     ) -> None:
-        if self.store_conversation_history:
-            # Update the database
-            with self.conversations.session_context(
-                self.conversations.Session()
-            ) as session:
-                role_type = (
-                    session.query(ConversationRoleType)
-                    .filter(ConversationRoleType.role_type == role.value)
-                    .first()
-                )
-                # Create a new conversation entry
-                self.conversations.store_conversation(
-                    session,
-                    user_id=user_id,
-                    interaction_id=self.interaction_id,
-                    conversation_text=content,
-                    conversation_role_type_id=role_type.id,
-                )
+        # Update the database
+        with self.conversations.session_context(
+            self.conversations.Session()
+        ) as session:
+            role_type = (
+                session.query(ConversationRoleType)
+                .filter(ConversationRoleType.role_type == role.value)
+                .first()
+            )
+            # Create a new conversation entry
+            self.conversations.store_conversation(
+                session,
+                user_id=user_id,
+                interaction_id=self.interaction_id,
+                conversation_text=content,
+                conversation_role_type_id=role_type.id,
+            )
         
     def add_message(
         self, user_id, content: str, role: MessageRole = MessageRole.USER, store_message: bool = False

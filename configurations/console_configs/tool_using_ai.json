@@ -11,7 +11,7 @@
     "include_system_info": true,
     "llm": {
         "name": "OpenAI LLM",
-        "module_name": "llms.open_ai.openai_llm",
+        "module_name": "llms.open_ai.raw_openai_llm",
         "class_name": "OpenAILLM",
         "arguments": {
             "model": "gpt-3.5-turbo-0613",
