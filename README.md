@@ -10,8 +10,8 @@ An intelligent assistant.  This is a work in progress.
 - ✅ Console Runner
 - ✅ OpenAI LLM Integration
 - ✅ Memory Retrieval
-- ☑️ Conversation Manager
-- ☑️ Memory Storage
+- ✅ Conversation Manager
+- ✅ Memory Storage (This is really exciting!)
 - ☑️ Voice Runner
 - ☑️ Google API Integration
 - ☑️ Generic Tooling (a.k.a. on-demand tools)
