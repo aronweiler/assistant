@@ -11,7 +11,7 @@ import logging
 import json
 import uuid
 
-from ai.abstract_ai import AbstractLLM
+from ai.abstract_ai import AbstractAI
 
 from runners.runner import Runner
 from runners.voice.configuration.voice_runner_configuration import (
@@ -26,15 +26,12 @@ from runners.voice.audio_transcriber import AudioTranscriber
 from runners.voice.wake_word import WakeWord
 from runners.voice.text_to_speech import TextToSpeech
 
-from conversation.models.vector_database import SearchType
-from conversation.models.conversations import Conversations
-from conversation.models.users import Users
-from conversation.models.conversations import Conversations
+from db.models.users import Users
 
 
 # from conversation.models.user_settings import UserSettings
 
-from conversation.database.models import User, Memory, Conversation, UserSetting
+from db.database.models import User, UserSetting
 
 
 from TTS.api import TTS
@@ -49,8 +46,6 @@ CHANNELS = 1
 RATE = 16000
 CHUNK = 1280
 SILENCE_LIMIT_IN_SECONDS = 2
-
-AI_USER_INFO = {"user_name": "Jarvis", "user_age": 0, "user_location": "The Void"}
 
 
 class VoiceRunner(Runner):
@@ -74,13 +69,13 @@ class VoiceRunner(Runner):
         self.text_to_speech = TextToSpeech()
 
         self.users = Users(self.args.db_env_location)
-        self.conversations = Conversations(self.args.db_env_location)
-        self.conversations = Conversations(self.args.db_env_location)
+        # self.conversations = Conversations(self.args.db_env_location)
+        # self.conversations = Conversations(self.args.db_env_location)
         # self.user_settings = UserSettings(self.args.db_env_location)
 
         self.initialize_users()
 
-    def run(self, abstract_ai: AbstractLLM):
+    def run(self, abstract_ai: AbstractAI):
         self.abstract_ai = abstract_ai
 
         # Create the verifier models
@@ -107,42 +102,48 @@ class VoiceRunner(Runner):
                 )
 
                 if user is None:
-                    logging.info(f"User does not exist, creating new user. {wake_word_model.user_information.user_email}")
-                    # If the user doesn't exist, create a new user
-                    user = User(
-                        name=wake_word_model.user_information.user_name,
-                        age=wake_word_model.user_information.user_age,
-                        location=wake_word_model.user_information.user_location,
-                        email=wake_word_model.user_information.user_email,
+                    logging.error(
+                        f"User does not exist!"
                     )
-                    session.add(user)
-                    session.commit()
+                    raise Exception("User does not exist!")
+                        
+
+                    # If the user doesn't exist, create a new user
+                    # user = User(
+                    #     name=wake_word_model.user_information.user_name,
+                    #     age=wake_word_model.user_information.user_age,
+                    #     location=wake_word_model.user_information.user_location,
+                    #     email=wake_word_model.user_information.user_email,
+                    # )
+                    # session.add(user)
+                    # session.commit()
                 else:
                     logging.info(f"User {user.name} exists")
 
                 # Look at all of the settings int he wake word model user information and add it to the user settings if it doesn't exist
-                for setting in wake_word_model.user_information.settings:
-                    existing_setting = next(
-                        (
-                            item
-                            for item in user.user_settings
-                            if item.setting_name == setting
-                        ),
-                        None,
-                    )
-                    if existing_setting:
-                        existing_setting.setting_value = (
-                            wake_word_model.user_information.settings[setting]
-                        )
-                    else:
-                        user.user_settings.append(
-                            UserSetting(
-                                setting_name=setting,
-                                setting_value=wake_word_model.user_information.settings[
-                                    setting
-                                ],
-                            )
-                        )
+                # for setting in wake_word_model.user_information.settings:
+                #     existing_setting = next(
+                #         (
+                #             item
+                #             for item in user.user_settings
+                #             if item.setting_name == setting
+                #         ),
+                #         None,
+                #     )
+                #     if existing_setting:
+                #         existing_setting.setting_value = (
+                #             wake_word_model.user_information.settings[setting]
+                #         )
+                #     else:
+                #         user.user_settings.append(
+                #             UserSetting(
+                #                 user_id=user.id,
+                #                 setting_name=setting,
+                #                 setting_value=wake_word_model.user_information.settings[
+                #                     setting
+                #                 ],
+                #             )
+                #         )
 
                     # if len(user.user_settings) == 0 or not setting not in user.user_settings:
                     #     user.update_add_setting_for_user(user.email, UserSetting(user_id=user.id, setting_name=setting, setting_value=wake_word_model.user_information.settings[setting]))
@@ -231,7 +232,7 @@ class VoiceRunner(Runner):
 
     def process_activation(self, prediction):
         # Create an interaction ID for this activation
-        interaction_id = uuid.uuid4()
+        #interaction_id = uuid.uuid4()
 
         wake_model = prediction["wake_word_model"]
 
@@ -242,16 +243,16 @@ class VoiceRunner(Runner):
                 wake_model.user_information.user_email,
                 eager_load=[
                     User.user_settings,
-                    User.conversations
+                    # User.conversations
                 ],
-            )
-            
+            )            
+
             if conversation_user is None:
                 self.text_to_speech.speak(
                     "I'm sorry, you are not authorized to use this system.",
                     prediction["wake_word_model"].tts_voice,
                     self.stop_event,
-                    125
+                    125,
                 )
                 logging.error(
                     f"Could not find user {wake_model.user_information.user_email} in the database"
@@ -280,7 +281,7 @@ class VoiceRunner(Runner):
 
             if transcribed_audio is None or len(transcribed_audio) == 0:
                 logging.info("No audio detected")
-                 # Alert the response from the AI is back
+                # Alert the response from the AI is back
                 play_wav_file(
                     os.path.join(os.path.dirname(__file__), "audio", "error.wav"),
                     self.stop_event,
@@ -288,14 +289,14 @@ class VoiceRunner(Runner):
                 return
 
             # Pull some context out of previous conversations- but not too much
-            related_conversations = self.conversations.search_conversations(
-                session, transcribed_audio, SearchType.similarity, conversation_user, top_k=5
-            )
+            # related_conversations = self.conversations.search_conversations(
+            #     session, transcribed_audio, SearchType.similarity, conversation_user, top_k=5
+            # )
 
             # Store the first part of the conversation
-            self.conversations.store_conversation(
-                session, transcribed_audio, interaction_id, conversation_user
-            )
+            # self.conversations.store_conversation(
+            #     session, transcribed_audio, interaction_id, conversation_user
+            # )
 
             try:
                 # Unmute the audio
@@ -323,15 +324,8 @@ class VoiceRunner(Runner):
 
                 ai_query_start_time = time.time()
 
-                ai_response = self.abstract_ai.query(
-                    self.get_prompt(
-                        related_conversations,
-                        transcribed_audio,
-                        user=conversation_user,
-                        interaction_id=interaction_id,
-                    )
-                )
-                
+                ai_response = self.abstract_ai.query(transcribed_audio, user_id=conversation_user.id)
+
                 ai_query_end_time = time.time()
 
                 # Alert the response from the AI is back
@@ -339,34 +333,35 @@ class VoiceRunner(Runner):
                     os.path.join(os.path.dirname(__file__), "audio", "deactivate.wav"),
                     self.stop_event,
                 )
-            
+
                 logging.info(
                     f"AI query took {str(ai_query_end_time - ai_query_start_time)} seconds"
                 )
 
-                logging.debug("AI Response: " + ai_response.result_string)
+                logging.debug("AI Response: " + ai_response)
 
                 # Store the first part of the conversation
                 # TODO: Do I want to store this as the AI response or something?
-                self.conversations.store_conversation(
-                    session,
-                    ai_response.result_string,
-                    interaction_id,
-                    conversation_user,
-                    is_ai_response=True,
-                )
+                # self.conversations.store_conversation(
+                #     session,
+                #     ai_response.result_string,
+                #     interaction_id,
+                #     conversation_user,
+                #     is_ai_response=True,
+                # )
 
                 text_to_speech_start_time = time.time()
                 self.text_to_speech.speak(
-                    ai_response.result_string,
+                    ai_response,
+                    conversation_user.get_setting("tts_voice", "Brian"),
                     # there HAS to be a better way than this... fucking eh, python
-                    [
-                        s
-                        for s in conversation_user.user_settings
-                        if s.setting_name == "tts_voice"
-                    ][0].setting_value,
+                    # [
+                    #     s
+                    #     for s in conversation_user.user_settings
+                    #     if s.setting_name == "tts_voice"
+                    # ][0].setting_value,
                     self.stop_event,
-                    conversation_user.get_setting("speech_rate", 125)
+                    conversation_user.get_setting("speech_rate", 125),
                 )
                 text_to_speech_end_time = time.time()
                 logging.info(
@@ -380,52 +375,52 @@ class VoiceRunner(Runner):
                 )
 
                 # Store the exception
-                self.conversations.store_conversation(
-                    session, "Interaction failed.  See exception for details.", interaction_id, conversation_user, exception=str(e)
-                )  
+                # self.conversations.store_conversation(
+                #     session, "Interaction failed.  See exception for details.", interaction_id, conversation_user, exception=str(e)
+                # )
 
-    def get_prompt(
-        self,
-        related_conversations,
-        transcribed_audio,
-        user: User,
-        interaction_id: uuid.UUID,
-    ):
-        user_info_string = f"associated_user: {user.email}, user_name: {user.name}, user_age: {user.age}, user_location: {user.location}"
+    # def get_prompt(
+    #     self,
+    #     related_conversations,
+    #     transcribed_audio,
+    #     user: User,
+    #     interaction_id: uuid.UUID,
+    # ):
+    #     user_info_string = f"associated_user: {user.email}, user_name: {user.name}, user_age: {user.age}, user_location: {user.location}"
 
-        # Another dumbass way to get something out of a list- I swear there has to be something better
-        personality_setting = next(
-            (
-                item
-                for item in user.user_settings
-                if item.setting_name == "personality_keywords"
-            ),
-            None,
-        )
+    #     # Another dumbass way to get something out of a list- I swear there has to be something better
+    #     personality_setting = next(
+    #         (
+    #             item
+    #             for item in user.user_settings
+    #             if item.setting_name == "personality_keywords"
+    #         ),
+    #         None,
+    #     )
 
-        prompt = VOICE_ASSISTANT_PROMPT.format(
-            query=transcribed_audio,
-            time_zone=datetime.datetime.now().astimezone().tzname(),
-            current_date_time=datetime.datetime.now().strftime(
-                "%I:%M %p %A, %B %d, %Y"
-            ),
-            user_information=user_info_string,
-            personality_keywords=personality_setting.setting_value
-            if personality_setting is not None
-            else "",
-            interaction_id=interaction_id,
-            related_conversations="\n".join(
-                [
-                    f"{c.record_created}: {c.conversation_text}"
-                    for c in related_conversations
-                ]
-            ),
-            user_conversations="\n".join(
-                [
-                    f"{m.record_created}: {m.conversation_text}"
-                    for m in user.conversations
-                ]
-            ),
-        )
+    #     prompt = VOICE_ASSISTANT_PROMPT.format(
+    #         query=transcribed_audio,
+    #         time_zone=datetime.datetime.now().astimezone().tzname(),
+    #         current_date_time=datetime.datetime.now().strftime(
+    #             "%I:%M %p %A, %B %d, %Y"
+    #         ),
+    #         user_information=user_info_string,
+    #         personality_keywords=personality_setting.setting_value
+    #         if personality_setting is not None
+    #         else "",
+    #         interaction_id=interaction_id,
+    #         related_conversations="\n".join(
+    #             [
+    #                 f"{c.record_created}: {c.conversation_text}"
+    #                 for c in related_conversations
+    #             ]
+    #         ),
+    #         user_conversations="\n".join(
+    #             [
+    #                 f"{m.record_created}: {m.conversation_text}"
+    #                 for m in user.conversations
+    #             ]
+    #         ),
+    #     )
 
-        return prompt
+    #     return prompt
