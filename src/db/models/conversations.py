@@ -8,9 +8,10 @@ from sqlalchemy import select
 
 # For testing
 # Add the root path to the python path so we can import the database
-# import sys
-# import os
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from db.database.models import User, Conversation
 from db.models.vector_database import VectorDatabase, SearchType
@@ -26,9 +27,9 @@ class Conversations(VectorDatabase):
         conversation_text: str,
         interaction_id: UUID,
         conversation_role_type_id: int,
-        user_id: Union[int, None] = None,                
+        user_id: Union[int, None] = None,
         additional_metadata: Union[str, None] = None,
-        exception = None
+        exception=None,
     ):
         conversation_text = conversation_text.strip()
 
@@ -43,7 +44,7 @@ class Conversations(VectorDatabase):
             conversation_role_type_id=conversation_role_type_id,
             additional_metadata=additional_metadata,
             embedding=embedding,
-            exception=exception
+            exception=exception,
         )
 
         session.add(conversation)
@@ -61,7 +62,7 @@ class Conversations(VectorDatabase):
     ) -> List[Conversation]:
         # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
-        # Can't perform this query before the 
+        # Can't perform this query before the
         # Before searching, pre-filter the query to only include conversations that match the single inputs
         query = session.query(Conversation).filter(
             Conversation.is_deleted == return_deleted,
@@ -77,7 +78,7 @@ class Conversations(VectorDatabase):
 
         if search_type == SearchType.key_word:
             # TODO: Do better key word search
-            query = query.filter(                
+            query = query.filter(
                 Conversation.conversation_text.contains(conversation_text_search_query)
             )
         elif search_type == SearchType.similarity:
@@ -86,8 +87,7 @@ class Conversations(VectorDatabase):
         else:
             raise ValueError(f"Unknown search type: {search_type}")
 
-        return query.all()[:top_k]       
-    
+        return query.all()[:top_k]
 
     def get_conversations_for_interaction(
         self, session, interaction_id: UUID
@@ -95,6 +95,8 @@ class Conversations(VectorDatabase):
         query = session.query(Conversation).filter(
             Conversation.interaction_id == interaction_id
         )
+
+        query = super().eager_load(query, [Conversation.conversation_role_type])
 
         return query.all()
 
@@ -104,33 +106,55 @@ class Conversations(VectorDatabase):
     def delete_conversation(self, session, conversation: Conversation):
         conversation.is_deleted = True
         session.merge(conversation)
-    
+
     def _get_nearest_neighbors(self, session, query, embedding, top_k=5):
-        return session.scalars(query.order_by(Conversation.embedding.l2_distance(embedding)).limit(top_k))        
+        return session.scalars(
+            query.order_by(Conversation.embedding.l2_distance(embedding)).limit(top_k)
+        )
 
     def _get_embedding(self, text: str, embedding_model="text-embedding-ada-002"):
         return openai.Embedding.create(input=[text], model=embedding_model)["data"][0][
             "embedding"
         ]
 
-if __name__ == "__main__":    
 
+if __name__ == "__main__":
+    from uuid import uuid4
     from db.models.users import Users
+
     db_env = "src/db/database/db.env"
 
     conversations = Conversations(db_env)
     users = Users(db_env)
 
     with conversations.session_context(conversations.Session()) as session:
+        # new uuid
+        interaction_id = uuid4()
+        messages = conversations.get_conversations_for_interaction(
+            session, interaction_id
+        )
+
         aron = users.find_user_by_email(session, "aronweiler@gmail.com")
-        results = conversations.search_conversations(session, conversation_text_search_query="favorite food is", search_type=SearchType.similarity, top_k=100, associated_user=aron)
+        results = conversations.search_conversations(
+            session,
+            conversation_text_search_query="favorite food is",
+            search_type=SearchType.similarity,
+            top_k=100,
+            associated_user=aron,
+        )
 
         for result in results:
             print(result.conversation_text)
 
         print("---------------------------")
 
-        results = conversations.search_conversations(session, conversation_text_search_query="food", search_type=SearchType.key_word, top_k=90, associated_user=aron)
+        results = conversations.search_conversations(
+            session,
+            conversation_text_search_query="food",
+            search_type=SearchType.key_word,
+            top_k=90,
+            associated_user=aron,
+        )
 
         for result in results:
             print(result.conversation_text)

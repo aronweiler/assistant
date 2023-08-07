@@ -4,5 +4,5 @@ from llms.llm_result import LLMResult
 
 class AbstractLLM(ABC):
     @abstractmethod
-    def query(self, messages) -> LLMResult:
+    def query(self, input, user_name, user_email) -> LLMResult:
         pass
