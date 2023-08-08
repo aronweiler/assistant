@@ -70,8 +70,8 @@ class LangChainLLMChain(AbstractLLM):
             openai_api_key=openai_api_key,
             max_tokens=llm_arguments_configuration.max_completion_tokens,
             verbose=True,
-            streaming=True,
-            callbacks=[StreamingStdOutCallbackHandler()],
+            #streaming=True,
+            #callbacks=[StreamingStdOutCallbackHandler()],
         )
 
         # Using a few different types of memory here
@@ -150,6 +150,6 @@ class LangChainLLMChain(AbstractLLM):
                 "system_prompt": self.llm_arguments_configuration.system_prompt,
                 "human_prefix": f"{user_name} ({user_email})",
             }
-        )  # [-1]['content']) # For messages
+        )  
 
         return LLMResult(result, result["text"], False)

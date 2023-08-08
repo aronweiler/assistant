@@ -6,11 +6,8 @@
         "store_conversation_history": true,
         "db_env_location": "src/db/database/db.env",
         "system_prompts": [
-            "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have.",
-            "If the user is asking a question in reference to something that might have been in a previous conversation, use the 'search_for_conversation' function to search for it.",
-            "Evaluate all of the user's statements and questions for the possibility of using a function that you know about to resolve the query.",
-            "Only use the tools and functions that you have available to you, never make up new ones!",            
-            "Answer all queries as briefly and concisely as you can, do not add anything to the answers (such as the function you used to get the answer), just answer the user's query directly!"
+            "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.",
+            "Answer all queries as briefly and concisely as you can."
         ],
         "include_system_info": true,
         "llm": {
@@ -26,8 +23,7 @@
                 "db_env_location": "src/db/database/db.env"
             }
         },
-        "subordinate_ais": [
-        ],
+        "subordinate_ais": [],
         "tools": "configurations/tools/all_tools.json"
     },
     "runners": [
