@@ -8,20 +8,27 @@ jobs:
     runs-on: ubuntu-latest
     name: Code review job
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-           fetch-depth: 2
+          fetch-depth: 0  # OR "2" -> To retrieve the preceding commit.
 
-      - name: Get changes
-        run: git diff --name-only -r HEAD^1 HEAD >> "$GITHUB_OUTPUT"
+    # Example 1
+      - name: Get all test, doc and src files that have changed
+        id: changed-files
+        uses: tj-actions/changed-files@v37
+        with:
+          files_yaml: |
+            python:
+            - '**/*.py'            
+        # Optionally set `files_yaml_from_source_file` to read the YAML from a file. e.g `files_yaml_from_source_file: .github/changed-files.yml`
+                
 
         # Run the code review
       - name: Start code review step
         id: code_review
         uses: aronweiler/codereviewer@main
         env:
-          CHANGES: ${{ env.GITHUB_OUTPUT }}
+          CHANGES: ${{ steps.changed-files.outputs.all_changed_files }}
 
       # Use the output from the code_review step
       - name: Get the summary
