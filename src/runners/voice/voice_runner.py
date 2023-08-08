@@ -106,48 +106,8 @@ class VoiceRunner(Runner):
                         f"User does not exist!"
                     )
                     raise Exception("User does not exist!")
-                        
-
-                    # If the user doesn't exist, create a new user
-                    # user = User(
-                    #     name=wake_word_model.user_information.user_name,
-                    #     age=wake_word_model.user_information.user_age,
-                    #     location=wake_word_model.user_information.user_location,
-                    #     email=wake_word_model.user_information.user_email,
-                    # )
-                    # session.add(user)
-                    # session.commit()
                 else:
-                    logging.info(f"User {user.name} exists")
-
-                # Look at all of the settings int he wake word model user information and add it to the user settings if it doesn't exist
-                # for setting in wake_word_model.user_information.settings:
-                #     existing_setting = next(
-                #         (
-                #             item
-                #             for item in user.user_settings
-                #             if item.setting_name == setting
-                #         ),
-                #         None,
-                #     )
-                #     if existing_setting:
-                #         existing_setting.setting_value = (
-                #             wake_word_model.user_information.settings[setting]
-                #         )
-                #     else:
-                #         user.user_settings.append(
-                #             UserSetting(
-                #                 user_id=user.id,
-                #                 setting_name=setting,
-                #                 setting_value=wake_word_model.user_information.settings[
-                #                     setting
-                #                 ],
-                #             )
-                #         )
-
-                    # if len(user.user_settings) == 0 or not setting not in user.user_settings:
-                    #     user.update_add_setting_for_user(user.email, UserSetting(user_id=user.id, setting_name=setting, setting_value=wake_word_model.user_information.settings[setting]))
-                    #     logging.info(f"Added setting {setting} with value {wake_word_model.user_information.settings[setting]} for user {user.name}")
+                    logging.info(f"User {user.name} exists")                
 
     def configure(self):
         # TODO: Add settings to control voice here
@@ -286,17 +246,7 @@ class VoiceRunner(Runner):
                     os.path.join(os.path.dirname(__file__), "audio", "error.wav"),
                     self.stop_event,
                 )
-                return
-
-            # Pull some context out of previous conversations- but not too much
-            # related_conversations = self.conversations.search_conversations(
-            #     session, transcribed_audio, SearchType.similarity, conversation_user, top_k=5
-            # )
-
-            # Store the first part of the conversation
-            # self.conversations.store_conversation(
-            #     session, transcribed_audio, interaction_id, conversation_user
-            # )
+                return           
 
             try:
                 # Unmute the audio
@@ -340,28 +290,12 @@ class VoiceRunner(Runner):
 
                 logging.debug("AI Response: " + ai_response)
 
-                # Store the first part of the conversation
-                # TODO: Do I want to store this as the AI response or something?
-                # self.conversations.store_conversation(
-                #     session,
-                #     ai_response.result_string,
-                #     interaction_id,
-                #     conversation_user,
-                #     is_ai_response=True,
-                # )
-
                 text_to_speech_start_time = time.time()
                 self.text_to_speech.speak(
                     ai_response,
-                    conversation_user.get_setting("tts_voice", "Brian"),
-                    # there HAS to be a better way than this... fucking eh, python
-                    # [
-                    #     s
-                    #     for s in conversation_user.user_settings
-                    #     if s.setting_name == "tts_voice"
-                    # ][0].setting_value,
+                    conversation_user.get_setting("tts_voice", "Brian"),                    
                     self.stop_event,
-                    conversation_user.get_setting("speech_rate", 125),
+                    conversation_user.get_setting("speech_rate", 100),
                 )
                 text_to_speech_end_time = time.time()
                 logging.info(

@@ -51,14 +51,19 @@
                             "user_name": "Aron Weiler",
                             "user_location": "San Diego",
                             "user_age": 44,
-                            "user_email": "aronweiler@gmail.com",
-                            "settings": {
-                                "personality_keywords": "serious, professional, friendly",
-                                "tts_voice": "Brian",
-                                "speech_rate": 150
-                            }
+                            "user_email": "aronweiler@gmail.com"                            
                         }
-                    }                    
+                    },
+                    {
+                        "model_name": "hey_jarvis_v0.1",
+                        "model_path": "C:\\Repos\\DocTalk\\src\\runners\\voice\\models\\hey_jarvis_v0.1.onnx",
+                        "training_data": "src/runners/voice/training/gaia/model.pkl",
+                        "user_information": {
+                            "user_name": "Gaia Weiler",
+                            "user_location": "San Diego",
+                            "user_email": "gaiaweiler@gmail.com"                            
+                        }
+                    } 
                 ]
             }
         }
