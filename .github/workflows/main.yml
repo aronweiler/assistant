@@ -1,0 +1,15 @@
+on: [workflow_dispatch]
+
+jobs:
+  code_review:
+    runs-on: ubuntu-latest
+    name: Code review job
+    steps:
+      - name: Start code review step
+        id: code_review
+        uses: aronweiler/CodeReviewer@v1
+        with:
+            pr-to-review: 'abc1234'
+      # Use the output from the `hello` step
+      - name: Get the summary
+        run: echo "Summary- ${{ steps.code_review.outputs.summary }}"
