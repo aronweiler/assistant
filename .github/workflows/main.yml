@@ -1,15 +1,28 @@
 on: [workflow_dispatch]
+# on:
+#   pull_request:
+#     branches: [ main ]
 
 jobs:
   code_review:
     runs-on: ubuntu-latest
     name: Code review job
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+           fetch-depth: 2
+
+      - name: Get changes
+        run: git diff --name-only -r HEAD^1 HEAD >> "$GITHUB_OUTPUT"
+
+        # Run the code review
       - name: Start code review step
         id: code_review
         uses: aronweiler/codereviewer@main
-        with:
-            pr-to-review: 'abc1234'
-      # Use the output from the `hello` step
+        env:
+          CHANGES: ${{ env.GITHUB_OUTPUT }}
+
+      # Use the output from the code_review step
       - name: Get the summary
         run: echo "Summary- ${{ steps.code_review.outputs.summary }}"
