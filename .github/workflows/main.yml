@@ -4,8 +4,7 @@ name: Code Review
 # on: [workflow_dispatch]
 on:
   pull_request:
-    branches:
-      - main
+    types: [opened, reopened]
 
 jobs:
   # -------------------------------------------------------------
@@ -23,6 +22,15 @@ jobs:
       pull-requests: read
 
     steps:
+      - name: Get diff
+        id: diff
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const diff_url = context.payload.pull_request.diff_url
+            const result = await github.request(diff_url)
+            console.log(result)
+
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v37
@@ -38,7 +46,7 @@ jobs:
         id: code_review
         uses: aronweiler/codereviewer@main
         env:
-          CHANGES: ${{ steps.changed-files.outputs.unmerged_files }}
+          CHANGES: ${{ steps.changed-files.outputs.all_changed_files }}
 
       # Use the output from the code_review step
       - name: Get the summary
