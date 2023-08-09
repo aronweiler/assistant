@@ -17,9 +17,11 @@ jobs:
     
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@v37
+        uses: tj-actions/changed-files@v37        
         with:
           separator: ","
+          since_last_remote_commit: true
+          
 
       - name: List all changed files
         run: |
