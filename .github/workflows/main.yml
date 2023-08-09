@@ -23,7 +23,6 @@ jobs:
         uses: tj-actions/changed-files@v37        
         with:
           separator: ","
-          since_last_remote_commit: true
           
 
       - name: List all changed files
