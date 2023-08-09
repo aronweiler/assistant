@@ -1,15 +1,55 @@
 on: [workflow_dispatch]
+# on:
+#   pull_request:
+#     branches: [ main ]
 
 jobs:
   code_review:
     runs-on: ubuntu-latest
     name: Code review job
-    steps:
+    permissions:
+      pull-requests: read
+
+    steps:      
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # OR "2" -> To retrieve the preceding commit.        
+    
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v37        
+        with:
+          separator: ","
+          since_last_remote_commit: true
+          
+
+      - name: List all changed files
+        run: |
+            for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+                echo "$file was changed"
+            done
+    
+    #   - name: Get changed files
+    #     id: changed-files
+    #     uses: tj-actions/changed-files@v37
+        
+    #     # To compare changes between the current commit and the last pushed remote commit set `since_last_remote_commit: true`. e.g
+    #     # with:
+    #     #   since_last_remote_commit: true 
+
+    #   - name: List all changed files
+    #     run: |
+    #         for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+    #             echo "$file was changed"
+    #         done                
+
+        # Run the code review
       - name: Start code review step
         id: code_review
         uses: aronweiler/codereviewer@main
-        with:
-            pr-to-review: 'abc1234'
-      # Use the output from the `hello` step
+        env:
+          CHANGES: ${{ steps.changed-files.outputs.all_changed_files }}
+
+      # Use the output from the code_review step
       - name: Get the summary
         run: echo "Summary- ${{ steps.code_review.outputs.summary }}"
