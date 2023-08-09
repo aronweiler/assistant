@@ -1,10 +1,10 @@
 # Name the workflow
 name: Code Review
 
-# on: [workflow_dispatch]
-on:
-  pull_request:
-    types: [opened, reopened]
+on: [workflow_dispatch]
+# on:
+#   pull_request:
+#     types: [opened, reopened]
 
 jobs:
   # -------------------------------------------------------------
