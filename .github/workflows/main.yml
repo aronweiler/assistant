@@ -28,8 +28,8 @@ jobs:
 
       - name: List all changed files
         run: |
-            for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-                echo "$file was changed"
+            for file in ${{ steps.changed-files.outputs.unmerged_files }}; do
+                echo "$file is not merged"
             done
     
     #   - name: Get changed files
@@ -51,7 +51,7 @@ jobs:
         id: code_review
         uses: aronweiler/codereviewer@main
         env:
-          CHANGES: ${{ steps.changed-files.outputs.all_changed_files }}
+          CHANGES: ${{ steps.changed-files.outputs.unmerged_files }}
 
       # Use the output from the code_review step
       - name: Get the summary
