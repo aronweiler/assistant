@@ -23,6 +23,15 @@ jobs:
       pull-requests: read
 
     steps:
+      - name: Get diff
+        id: diff
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const diff_url = context.payload.pull_request.diff_url
+            const result = await github.request(diff_url)
+            console.log(result)
+
       - name: Get changed files
         id: changed-files
         uses: tj-actions/changed-files@v37
