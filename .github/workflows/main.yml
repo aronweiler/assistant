@@ -38,7 +38,7 @@ jobs:
         id: code_review
         uses: aronweiler/codereviewer@main
         env:
-          CHANGES: ${{ steps.changed-files.outputs.unmerged_files }}
+          CHANGES: ${{ steps.changed-files.outputs.all_changed_files }}
 
       # Use the output from the code_review step
       - name: Get the summary
