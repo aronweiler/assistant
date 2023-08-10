@@ -39,14 +39,15 @@ jobs:
         run: |
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
             echo "$file was changed"
-          done
+          done      
 
         # Run the code review
       - name: Start code review step
         id: code_review
         uses: aronweiler/codereviewer@main
         env:
-          CHANGES: ${{ steps.changed-files.outputs.all_changed_files }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Use the output from the code_review step
       - name: Get the summary
