@@ -1,19 +1,10 @@
 import logging
+from uuid import uuid4
 
-from langchain import PromptTemplate
 from langchain.chains import LLMChain as llm_chain
 from langchain.memory import ConversationTokenBufferMemory
-import json
-from uuid import uuid4
-import logging
-from datetime import datetime
-from typing import Union, List, Dict
-from tools.results.summarize_result import SummarizeResult
 
-from langchain.llms import OpenAI, LlamaCpp
 from langchain.chat_models import ChatOpenAI
-from langchain.callbacks import StreamingStdOutCallbackHandler
-
 
 from utilities.pretty_print import pretty_print_conversation
 from utilities.token_helper import (
@@ -21,30 +12,16 @@ from utilities.token_helper import (
     simple_get_tokens_for_message,
 )
 
-
 from configuration.llm_arguments_configuration import LLMArgumentsConfiguration
 
 from llms.abstract_llm import AbstractLLM
 from llms.llm_result import LLMResult
-from llms.open_ai.utilities.tool_loader import (
-    load_tool_from_config,
-    load_tool_from_instance,
-)
-from llms.open_ai.utilities.chat_completion import OpenAIChatCompletion
 from llms.open_ai.utilities.open_ai_utilities import get_openai_api_key
-from llms.open_ai.utilities.function_caller import call_function
 
-from tools.general.list_tool import ListTool
-from tools.general.tool_recommender import ToolRecommender
-
-from db.database.models import User
 from db.models.vector_database import VectorDatabase
 from llms.memory.conversation_entity_memory import CustomConversationEntityMemory
 
-from langchain.memory import (
-    ConversationKGMemory,
-    CombinedMemory,
-)
+from langchain.memory import CombinedMemory
 
 from llms.memory.postgres_chat_message_history import PostgresChatMessageHistory
 from llms.memory.postgres_entity_store import PostgreSQLEntityStore
@@ -70,8 +47,8 @@ class LangChainLLMChain(AbstractLLM):
             openai_api_key=openai_api_key,
             max_tokens=llm_arguments_configuration.max_completion_tokens,
             verbose=True,
-            #streaming=True,
-            #callbacks=[StreamingStdOutCallbackHandler()],
+            # streaming=True,
+            # callbacks=[StreamingStdOutCallbackHandler()],
         )
 
         # Using a few different types of memory here
@@ -114,7 +91,7 @@ class LangChainLLMChain(AbstractLLM):
         combined_memory = CombinedMemory(
             memories=[
                 self.db_store_entity_memory,
-                #conversation_knowledge_graph_memory,
+                # conversation_knowledge_graph_memory,
                 conversation_token_buffer_memory,
             ]
         )
@@ -150,6 +127,6 @@ class LangChainLLMChain(AbstractLLM):
                 "system_prompt": self.llm_arguments_configuration.system_prompt,
                 "human_prefix": f"{user_name} ({user_email})",
             }
-        )  
+        )
 
         return LLMResult(result, result["text"], False)
