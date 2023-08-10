@@ -329,7 +329,7 @@ class PostgreSQLEntityStore(BaseEntityStore):
                 return neighbor.entity_key
 
             return None
-        
+
     def clean_entity_details(self) -> None:
         try:
             import sqlalchemy as sa
@@ -344,15 +344,12 @@ class PostgreSQLEntityStore(BaseEntityStore):
             for entity_detail in query:
                 # Get the summary
                 summarizer = LLMChain(llm=self.llm, prompt=self.summarization_prompt)
-                summary = summarizer.predict(                    
-                    input=entity_detail.entity_value
-                )
+                summary = summarizer.predict(input=entity_detail.entity_value)
 
                 # Update the existing entity detail with the new summary
                 entity_detail.entity_value = summary.strip()
                 entity_detail.embedding = self.get_embedding(summary.strip())
                 session.commit()
-
 
     def clear(self) -> None:
         raise NotImplementedError(
@@ -370,19 +367,3 @@ if __name__ == "__main__":
     postgres_entity_store = PostgreSQLEntityStore(
         llm=llm, db_url=connection_string, chat_memory=ChatMessageHistory()
     )
-
-    result = postgres_entity_store.set("Benson", "Benson sleeping on the couch")
-    result = postgres_entity_store.set(
-        "TestUser", "TestUser is having fun with building the entity store"
-    )
-    result = postgres_entity_store.set(
-        "Jimbob",
-        "Jimbob is watching Benson, who is asleep on the couch, and TestUser, who is now watching TV.",
-    )
-
-    result = postgres_entity_store.get("TestUser", "sadface")
-    print(result)
-    result = postgres_entity_store.get("Jimbob", "sadface")
-    print(result)
-    result = postgres_entity_store.get("Benson", "sadface")
-    print(result)
