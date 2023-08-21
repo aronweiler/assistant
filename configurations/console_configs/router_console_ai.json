@@ -1,8 +1,8 @@
 {
     "ai": {
         "name": "General Purpose AI Assistant",
-        "module_name": "ai.general_ai",
-        "class_name": "GeneralAI",
+        "module_name": "ai.router_ai",
+        "class_name": "RouterAI",
         "store_conversation_history": true,
         "db_env_location": "src/db/database/db.env",
         "system_prompts": [

@@ -5,7 +5,7 @@ from langchain.schema.memory import BaseChatMessageHistory
 from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage, AIMessage, SystemMessage
 
-from db.models.conversations import Conversations
+from db.models.conversations import Conversations, SearchType
 
 
 class PostgresChatMessageHistory(BaseChatMessageHistory):
@@ -34,6 +34,31 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         ) as session:
             messages = self.conversations.get_conversations_for_interaction(
                 session, self.interaction_id
+            )
+
+            for message in messages:
+                if message.conversation_role_type.role_type == "user":
+                    chat_messages.append(
+                        HumanMessage(content=message.conversation_text)
+                    )
+                elif message.conversation_role_type.role_type == "assistant":
+                    chat_messages.append(AIMessage(content=message.conversation_text))
+                elif message.conversation_role_type.role_type == "system":
+                    chat_messages.append(
+                        SystemMessage(content=message.conversation_text)
+                    )
+
+        return chat_messages
+    
+    def get_related_conversation(self, query:str) -> List[BaseMessage]:        
+        chat_messages = []
+        with self.conversations.session_context(
+            self.conversations.Session()
+        ) as session:
+            messages = self.conversations.search_conversations(
+                session,
+                conversation_text_search_query=query,
+                search_type=SearchType.similarity
             )
 
             for message in messages:
