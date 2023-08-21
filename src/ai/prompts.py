@@ -20,6 +20,11 @@ CONVERSATIONAL_PROMPT = PromptTemplate(
     template=CONVERSATIONAL_TEMPLATE
 )
 
+TOOLS_TEMPLATE = """System information:
+{system_information}
+Location: {location}
+{user_name} ({user_email}): {input}
+"""
 
 MEMORY_TEMPLATE = """Below is a query from a user.  I have included some context that may be helpful.
 
@@ -43,4 +48,19 @@ MEMORY_PROMPT = PromptTemplate(
         "input"
     ],
     template=MEMORY_TEMPLATE
+)
+
+INTERNET_SEARCH_TEMPLATE = """Use one of the tools available to you to answer the following query.
+
+QUERY:
+{input}
+
+Answer:
+"""
+
+INTERNET_SEARCH_PROMPT = PromptTemplate(
+    input_variables=[
+        "input"
+    ],
+    template=INTERNET_SEARCH_TEMPLATE
 )

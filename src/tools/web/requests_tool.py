@@ -17,20 +17,20 @@ from tools.results.summarize_result import SummarizeResult
 # A simple wrapper around the requests library
 
 
+        # Args:
+        #     url (str): URL to send the request to
+        #     search_term (str): The term to search for
+        #     top_k (int): The number of results to return
+        #     params (dict[str, str]): optional list of tuples or bytes to send in the query string to the url
+
+        # Returns:
+        #     List[str]: Relevant chunks of text from the website"""
+
 class RequestsTool:
     def search_website(
         self, url: str, search_term: str, top_k: int = 3, params: dict[str, str] = None
     ) -> List[str]:
-        """Website search tool. Use this when you need to get content from a website. 
-
-        Args:
-            url (str): URL to send the request to
-            search_term (str): The term to search for
-            top_k (int): The number of results to return
-            params (dict[str, str]): optional list of tuples or bytes to send in the query string to the url
-
-        Returns:
-            List[str]: Relevant chunks of text from the website"""
+        """Website search tool. Use this when you need to get content from a specific website."""
         full_html = requests.get(url, params=params).text
 
         # parse using beautiful soup

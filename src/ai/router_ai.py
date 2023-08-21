@@ -1,4 +1,5 @@
 from uuid import uuid4
+import json
 from langchain.memory import ConversationTokenBufferMemory
 from langchain.chains.router import MultiPromptChain
 from langchain.llms import OpenAI
@@ -8,13 +9,23 @@ from langchain.prompts import PromptTemplate
 from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
 from langchain.chains.router.multi_prompt_prompt import MULTI_PROMPT_ROUTER_TEMPLATE
 
+from langchain.tools import StructuredTool
+from langchain.agents import load_tools
+from langchain.agents import initialize_agent
+from langchain.agents import AgentType, AgentExecutor
+
+from langchain.tools import DuckDuckGoSearchRun
 from langchain.chains.base import Chain
 
 from llms.memory.postgres_chat_message_history import PostgresChatMessageHistory
 
 from ai.abstract_ai import AbstractAI
 from configuration.ai_configuration import AIConfiguration
-from ai.prompts import CONVERSATIONAL_PROMPT, MEMORY_PROMPT
+from ai.prompts import CONVERSATIONAL_PROMPT, MEMORY_PROMPT, INTERNET_SEARCH_PROMPT, TOOLS_TEMPLATE
+
+from tools.web.requests_tool import RequestsTool
+from tools.general.time_tool import TimeTool
+from tools.weather.weather_tool import WeatherTool
 
 from llms.open_ai.utilities.open_ai_utilities import get_openai_api_key
 import logging
@@ -29,6 +40,13 @@ from langchain.chat_models import ChatOpenAI
 
 
 class RouterAI(AbstractAI):
+    STRUCTURED_TOOLS = [
+        StructuredTool.from_function(DuckDuckGoSearchRun()._run),
+        StructuredTool.from_function(RequestsTool().search_website),
+        StructuredTool.from_function(TimeTool().get_time),
+        StructuredTool.from_function(WeatherTool().get_weather),
+    ]
+
     def __init__(self, ai_configuration: AIConfiguration):
         self.ai_configuration = ai_configuration
 
@@ -60,13 +78,13 @@ class RouterAI(AbstractAI):
             conversations=Conversations(
                 self.ai_configuration.llm_configuration.llm_arguments_configuration.db_env_location
             ),
+            max_token_limit=500,
         )
         self.conversation_token_buffer_memory = ConversationTokenBufferMemory(
             llm=llm,
             memory_key="chat_history",
-            input_key="input",
-            max_token_limit=30,
-            chat_memory=self.postgres_chat_message_history,
+            input_key="input",            
+            chat_memory=self.postgres_chat_message_history            
         )
 
         # Using the langchain stuff pretty much directly from here: https://python.langchain.com/docs/modules/chains/foundational/router
@@ -74,9 +92,8 @@ class RouterAI(AbstractAI):
         self.chains = [
             {
                 "name": "conversational",
-                "description": "Good for carrying on a conversation with a user",
-                "prompt": CONVERSATIONAL_PROMPT,  # Maybe for later
-                "chain": LLMChain(
+                "description": "Good for carrying on a conversation with a user.",
+                "chain_or_agent": LLMChain(
                     llm=llm,
                     prompt=CONVERSATIONAL_PROMPT,
                     memory=self.conversation_token_buffer_memory,
@@ -85,11 +102,16 @@ class RouterAI(AbstractAI):
             },
             {
                 "name": "memory",
-                "description": "Good for when you may need to remember something from a previous conversation with a user, or some information about a user",
-                "prompt": MEMORY_PROMPT,
-                "chain": LLMChain(llm=llm, prompt=MEMORY_PROMPT),
+                "description": "Good for when you may need to remember something from a previous conversation with a user, or some information about a user.",
+                "chain_or_agent": LLMChain(llm=llm, prompt=MEMORY_PROMPT),
                 "function": self.remember,
-            }
+            },
+            {
+                "name": "tool-using",
+                "description": "Good for when you may need to use a tool to answer a query, such as when searching the internet, loading a document, or accessing an API.",                
+                "chain_or_agent": self.get_tools_agent(llm),
+                "function": self.use_tools,
+            },
         ]
 
         # Put the router chain together
@@ -109,6 +131,14 @@ class RouterAI(AbstractAI):
 
         self.router_chain = LLMRouterChain.from_llm(llm, router_prompt)
 
+    def get_tools_agent(self, llm):
+        return initialize_agent(
+            self.STRUCTURED_TOOLS,
+            llm,
+            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+            verbose=True,            
+        )
+
     def query(self, query, user_id):
         # Get the user information
         with self.users.session_context(self.users.Session()) as session:
@@ -117,6 +147,7 @@ class RouterAI(AbstractAI):
             )
 
             self.postgres_chat_message_history.user_id = user_id
+            self.conversation_token_buffer_memory.human_prefix = f"{current_user.name} ({current_user.email})"
 
             try:
                 # Use the router chain first
@@ -148,7 +179,7 @@ class RouterAI(AbstractAI):
                         logging.debug(f"Routing to destination: {destination['name']}")
 
                         response = destination["function"](
-                            destination["chain"], query, current_user
+                            destination["chain_or_agent"], query, current_user
                         )
                     else:
                         logging.warn(
@@ -203,3 +234,26 @@ class RouterAI(AbstractAI):
                 input=query,
                 context="\n".join(previous_conversations),
             )
+
+    def use_tools(self, agent: AgentExecutor, query: str, user: User):
+        system_information = f"Current Date/Time: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')}. Current Time Zone: {datetime.now().astimezone().tzinfo}"
+        
+        query = TOOLS_TEMPLATE.format(system_information=system_information, user_name=user.name, user_email=user.email, input=query, location=user.location)
+
+        results = agent.run(query)
+
+        # Try to load the result into a json object
+        # If it fails, just return the string
+        try:
+            results = json.loads(results)
+        except:
+            return results
+
+        # Find the tool
+        for tool in self.STRUCTURED_TOOLS:
+            if tool.name.lower() == results["action"].lower():
+                # Run the tool
+                return tool.run(**results["action_input"])
+
+
+        return results
