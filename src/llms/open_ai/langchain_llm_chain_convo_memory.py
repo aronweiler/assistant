@@ -32,7 +32,7 @@ from db.models.users import Users
 from llms.memory.prompts import ENTITY_EXTRACTION_PROMPT, DEFAULT_PROMPT
 
 
-class LangChainLLMChain(AbstractLLM):
+class LangChainLLMChainWithConversationMemory(AbstractLLM):
     def __init__(self, llm_arguments_configuration: LLMArgumentsConfiguration):
         self.llm_arguments_configuration = llm_arguments_configuration
 
@@ -47,22 +47,13 @@ class LangChainLLMChain(AbstractLLM):
             openai_api_key=openai_api_key,
             max_tokens=llm_arguments_configuration.max_completion_tokens,
             verbose=True,
-            # streaming=True,
-            # callbacks=[StreamingStdOutCallbackHandler()],
         )
-
-        # Using a few different types of memory here
-
-        # Conversation knowledge graph memory
-        # conversation_knowledge_graph_memory = ConversationKGMemory(
-        #     llm=llm, memory_key="conversation_knowledge_graph", input_key="input"
-        # )
 
         # Conversation token buffer memory backed by the Conversations model (could be database- it is right now)
         self.postgres_chat_message_history = PostgresChatMessageHistory(
             interaction_id=uuid4(),
             conversations=Conversations(llm_arguments_configuration.db_env_location),
-        )
+        )        
         conversation_token_buffer_memory = ConversationTokenBufferMemory(
             llm=llm,
             memory_key="chat_history",
@@ -74,24 +65,10 @@ class LangChainLLMChain(AbstractLLM):
         # Entity memory with a database backing
         connection_string = VectorDatabase.get_connection_string(
             llm_arguments_configuration.db_env_location
-        )
-        self.postgres_entity_store = PostgreSQLEntityStore(
-            llm=llm,
-            db_url=connection_string,
-            chat_memory=self.postgres_chat_message_history,
-        )
-        self.db_store_entity_memory = CustomConversationEntityMemory(
-            llm=llm,
-            entity_store=self.postgres_entity_store,
-            memory_key="entities",
-            input_key="input",
-            entity_extraction_prompt=ENTITY_EXTRACTION_PROMPT,
-        )
+        )        
 
         combined_memory = CombinedMemory(
             memories=[
-                self.db_store_entity_memory,
-                # conversation_knowledge_graph_memory,
                 conversation_token_buffer_memory,
             ]
         )

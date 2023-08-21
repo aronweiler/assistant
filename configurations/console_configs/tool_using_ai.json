@@ -12,7 +12,7 @@
     "llm": {
         "name": "OpenAI LLM",
         "module_name": "llms.open_ai.langchain_llm_chain",
-        "class_name": "LangChainLLMChain",
+        "class_name": "LangChainLLMChainWithEntityMemory",
         "arguments": {
             "model": "gpt-3.5-turbo-0613",
             "temperature": 0.5,

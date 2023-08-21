@@ -100,6 +100,17 @@ class Conversations(VectorDatabase):
 
         return query.all()
 
+    def get_conversations_for_user(
+        self, session, user_id: int
+    ) -> List[Conversation]:
+        query = session.query(Conversation).filter(
+            Conversation.user_id == user_id
+        )
+
+        query = super().eager_load(query, [Conversation.conversation_role_type])
+
+        return query.order_by(Conversation.record_created).all()
+    
     def update_conversation(self, session, conversation: Conversation):
         session.merge(conversation)
 
