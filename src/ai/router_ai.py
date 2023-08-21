@@ -7,7 +7,6 @@ from langchain.chains import ConversationChain
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
-from langchain.chains.router.multi_prompt_prompt import MULTI_PROMPT_ROUTER_TEMPLATE
 
 from langchain.tools import StructuredTool
 from langchain.agents import load_tools
@@ -21,7 +20,13 @@ from llms.memory.postgres_chat_message_history import PostgresChatMessageHistory
 
 from ai.abstract_ai import AbstractAI
 from configuration.ai_configuration import AIConfiguration
-from ai.prompts import CONVERSATIONAL_PROMPT, MEMORY_PROMPT, INTERNET_SEARCH_PROMPT, TOOLS_TEMPLATE
+from ai.prompts import (
+    CONVERSATIONAL_PROMPT,
+    MEMORY_PROMPT,
+    INTERNET_SEARCH_PROMPT,
+    TOOLS_TEMPLATE,
+    MULTI_PROMPT_ROUTER_TEMPLATE,
+)
 
 from tools.web.requests_tool import RequestsTool
 from tools.general.time_tool import TimeTool
@@ -83,8 +88,8 @@ class RouterAI(AbstractAI):
         self.conversation_token_buffer_memory = ConversationTokenBufferMemory(
             llm=llm,
             memory_key="chat_history",
-            input_key="input",            
-            chat_memory=self.postgres_chat_message_history            
+            input_key="input",
+            chat_memory=self.postgres_chat_message_history,
         )
 
         # Using the langchain stuff pretty much directly from here: https://python.langchain.com/docs/modules/chains/foundational/router
@@ -103,13 +108,13 @@ class RouterAI(AbstractAI):
             {
                 "name": "memory",
                 "description": "Good for when you may need to remember something from a previous conversation with a user, or some information about a user.",
-                "chain_or_agent": LLMChain(llm=llm, prompt=MEMORY_PROMPT),
+                "chain_or_agent": LLMChain(llm=llm, prompt=MEMORY_PROMPT, memory=self.conversation_token_buffer_memory),
                 "function": self.remember,
             },
             {
                 "name": "tool-using",
-                "description": "Good for when you may need to use a tool to answer a query, such as when searching the internet, loading a document, or accessing an API.",                
-                "chain_or_agent": self.get_tools_agent(llm),
+                "description": "Good for when you may need to use a tool to answer a query, such as when searching the internet, loading a document, or accessing an API.",
+                "chain_or_agent": self.get_tools_agent(llm, self.conversation_token_buffer_memory),
                 "function": self.use_tools,
             },
         ]
@@ -125,19 +130,28 @@ class RouterAI(AbstractAI):
 
         router_prompt = PromptTemplate(
             template=router_template,
-            input_variables=["input"],
+            input_variables=["input", "chat_history"],
             output_parser=RouterOutputParser(),
         )
 
-        self.router_chain = LLMRouterChain.from_llm(llm, router_prompt)
+        self.router_chain = LLMRouterChain.from_llm(
+            llm, router_prompt, input_keys=["input", "chat_history"]
+        )
 
-    def get_tools_agent(self, llm):
-        return initialize_agent(
+    def get_tools_agent(self, llm, memory):
+        HUMAN_MESSAGE_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
+
+        agent = initialize_agent(
             self.STRUCTURED_TOOLS,
             llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True,            
+            verbose=True,
+            human_message_template=HUMAN_MESSAGE_TEMPLATE,
         )
+
+        agent.memory = memory
+
+        return agent
 
     def query(self, query, user_id):
         # Get the user information
@@ -147,11 +161,18 @@ class RouterAI(AbstractAI):
             )
 
             self.postgres_chat_message_history.user_id = user_id
-            self.conversation_token_buffer_memory.human_prefix = f"{current_user.name} ({current_user.email})"
+            self.conversation_token_buffer_memory.human_prefix = (
+                f"{current_user.name} ({current_user.email})"
+            )
 
             try:
-                # Use the router chain first
-                router_result = self.router_chain(query)
+                # Use the router chain first (why does this use a dictionary when the other calls are all named inputs?? no idea)
+                router_result = self.router_chain(
+                    {
+                        "input": query,
+                        "chat_history": self.postgres_chat_message_history.messages,
+                    }
+                )
 
                 default_chain = LLMChain(
                     llm=self.llm,
@@ -237,10 +258,15 @@ class RouterAI(AbstractAI):
 
     def use_tools(self, agent: AgentExecutor, query: str, user: User):
         system_information = f"Current Date/Time: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')}. Current Time Zone: {datetime.now().astimezone().tzinfo}"
-        
-        query = TOOLS_TEMPLATE.format(system_information=system_information, user_name=user.name, user_email=user.email, input=query, location=user.location)
 
-        results = agent.run(query)
+        # query = TOOLS_TEMPLATE.format(system_information=system_information, user_name=user.name, user_email=user.email, input=query, location=user.location)
+
+        results = agent.run(
+            input=query,
+            system_information=system_information,
+            user_name=user.name,
+            user_email=user.email,
+        )
 
         # Try to load the result into a json object
         # If it fails, just return the string
@@ -254,6 +280,5 @@ class RouterAI(AbstractAI):
             if tool.name.lower() == results["action"].lower():
                 # Run the tool
                 return tool.run(**results["action_input"])
-
 
         return results
