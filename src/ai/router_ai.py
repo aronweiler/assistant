@@ -23,9 +23,9 @@ from configuration.ai_configuration import AIConfiguration
 from ai.prompts import (
     CONVERSATIONAL_PROMPT,
     MEMORY_PROMPT,
-    INTERNET_SEARCH_PROMPT,
-    TOOLS_TEMPLATE,
     MULTI_PROMPT_ROUTER_TEMPLATE,
+    AGENT_TEMPLATE,
+    TOOLS_TEMPLATE
 )
 
 from tools.web.requests_tool import RequestsTool
@@ -45,11 +45,14 @@ from langchain.chat_models import ChatOpenAI
 
 
 class RouterAI(AbstractAI):
-    STRUCTURED_TOOLS = [
-        StructuredTool.from_function(DuckDuckGoSearchRun()._run),
-        StructuredTool.from_function(RequestsTool().search_website),
+    CURRENT_EVENT_TOOLS = [
         StructuredTool.from_function(TimeTool().get_time),
         StructuredTool.from_function(WeatherTool().get_weather),
+    ]
+
+    INTERNET_TOOLS = [
+        StructuredTool.from_function(DuckDuckGoSearchRun()._run),
+        StructuredTool.from_function(RequestsTool().search_website),
     ]
 
     def __init__(self, ai_configuration: AIConfiguration):
@@ -108,13 +111,27 @@ class RouterAI(AbstractAI):
             {
                 "name": "memory",
                 "description": "Good for when you may need to remember something from a previous conversation with a user, or some information about a user.",
-                "chain_or_agent": LLMChain(llm=llm, prompt=MEMORY_PROMPT, memory=self.conversation_token_buffer_memory),
+                "chain_or_agent": LLMChain(
+                    llm=llm,
+                    prompt=MEMORY_PROMPT,
+                    memory=self.conversation_token_buffer_memory,
+                ),
                 "function": self.remember,
             },
             {
-                "name": "tool-using",
-                "description": "Good for when you may need to use a tool to answer a query, such as when searching the internet, loading a document, or accessing an API.",
-                "chain_or_agent": self.get_tools_agent(llm, self.conversation_token_buffer_memory),
+                "name": "current-events",
+                "description": "Good for when you need to answer a query about current events, such as weather, news, traffic, movie showtimes, etc.",
+                "chain_or_agent": self.get_current_events_agent(
+                    llm, self.conversation_token_buffer_memory
+                ),
+                "function": self.use_tools,
+            },
+            {
+                "name": "internet",
+                "description": "Good for when you need to search the internet for an answer, or look at a specific website or other web-based resource.",
+                "chain_or_agent": self.get_internet_agent(
+                    llm, self.conversation_token_buffer_memory
+                ),
                 "function": self.use_tools,
             },
         ]
@@ -130,23 +147,37 @@ class RouterAI(AbstractAI):
 
         router_prompt = PromptTemplate(
             template=router_template,
-            input_variables=["input", "chat_history"],
+            input_variables=["input", "chat_history", "system_information"],
             output_parser=RouterOutputParser(),
         )
 
         self.router_chain = LLMRouterChain.from_llm(
-            llm, router_prompt, input_keys=["input", "chat_history"]
+            llm,
+            router_prompt,
+            input_keys=["input", "chat_history", "system_information"],
         )
 
-    def get_tools_agent(self, llm, memory):
-        HUMAN_MESSAGE_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
+    def get_current_events_agent(self, llm, memory):       
 
         agent = initialize_agent(
-            self.STRUCTURED_TOOLS,
+            self.CURRENT_EVENT_TOOLS,
             llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=HUMAN_MESSAGE_TEMPLATE,
+            human_message_template=AGENT_TEMPLATE,
+        )
+
+        agent.memory = memory
+
+        return agent
+
+    def get_internet_agent(self, llm, memory):
+        agent = initialize_agent(
+            self.INTERNET_TOOLS,
+            llm,
+            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+            verbose=True,
+            human_message_template=AGENT_TEMPLATE,
         )
 
         agent.memory = memory
@@ -171,6 +202,7 @@ class RouterAI(AbstractAI):
                     {
                         "input": query,
                         "chat_history": self.postgres_chat_message_history.messages,
+                        "system_information": self.get_system_information(current_user),
                     }
                 )
 
@@ -220,15 +252,13 @@ class RouterAI(AbstractAI):
                 return "Sorry, I'm not feeling well right now. Please try again later."
 
     def converse(self, chain: Chain, query: str, user: User):
-        system_information = f"Current Date/Time: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')}. Current Time Zone: {datetime.now().astimezone().tzinfo}"
-
         return chain.run(
             system_prompt=self.ai_configuration.llm_configuration.llm_arguments_configuration.system_prompt,
             input=query,
             user_id=user.id,
             user_name=user.name,
             user_email=user.email,
-            system_information=system_information,
+            system_information=self.get_system_information(user),
         )
 
     def remember(self, chain: Chain, query: str, user: User):
@@ -257,13 +287,18 @@ class RouterAI(AbstractAI):
             )
 
     def use_tools(self, agent: AgentExecutor, query: str, user: User):
-        system_information = f"Current Date/Time: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')}. Current Time Zone: {datetime.now().astimezone().tzinfo}"
-
-        # query = TOOLS_TEMPLATE.format(system_information=system_information, user_name=user.name, user_email=user.email, input=query, location=user.location)
-
+        # Since I can't figure out how to get langchain to work with my prompt that includes the necessary information for tools to work, 
+        # I have to build another prompt inline:
+        query = TOOLS_TEMPLATE.format(
+            system_information=self.get_system_information(user),
+            user_name=user.name,
+            user_email=user.email,
+            input=query,
+        )
+        
         results = agent.run(
             input=query,
-            system_information=system_information,
+            system_information=self.get_system_information(user),
             user_name=user.name,
             user_email=user.email,
         )
@@ -276,9 +311,12 @@ class RouterAI(AbstractAI):
             return results
 
         # Find the tool
-        for tool in self.STRUCTURED_TOOLS:
+        for tool in self.INTERNET_TOOLS + self.CURRENT_EVENT_TOOLS:
             if tool.name.lower() == results["action"].lower():
                 # Run the tool
                 return tool.run(**results["action_input"])
 
         return results
+
+    def get_system_information(self, user: User):
+        return f"Current Date/Time: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')}. Current Time Zone: {datetime.now().astimezone().tzinfo}.  Current Location: {user.location}"

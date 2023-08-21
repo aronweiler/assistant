@@ -9,17 +9,12 @@ import logging
 class WeatherTool:
 
     def get_weather(self, location: str, date: str = None) -> str:
-        """Get the weather for a location and date (optional)
-        
-        Args:
-            location (str): The location to get the weather for
-            date (str, optional): The date to get the weather for. Defaults to None.  Format must be "%Y-%m-%d"
-
-        Returns:
-            str: The weather for the location and date
-        """
+        """Get the weather for a location and date.
+        Location is required, and should be a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. "Phoenix, AZ".
+        Date is optional, and should be a string ("%Y-%m-%d") representing the date to get the weather for, e.g. "2023-4-15".  If no date is provided, the weather for the current date will be returned."""
         
         logging.debug(f"Weather Query: {location}, {date}")
+        
         try:
            
             # Parse the date string from the query
