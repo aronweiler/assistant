@@ -17,6 +17,7 @@ class LLMArgumentsConfiguration:
         self.max_function_limit = max_function_limit
         self.db_env_location = db_env_location
         self.system_prompt = ''
+        self.final_rephrase_prompt = ''
 
     @staticmethod
     def from_dict(config: dict, tools):

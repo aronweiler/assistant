@@ -37,10 +37,18 @@ modifications are needed.
 << OUTPUT >>
 """
 
-AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
+#AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
+AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
-TOOLS_TEMPLATE = """{system_information}
-{user_name} ({user_email}): {input}"""
+TOOLS_SUFFIX = """Use any context you may need from the history:
+---  TOOL HISTORY ---
+{agent_chat_history}
+--- TOOL HISTORY ---
+
+Helpful system information: {system_information}
+
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```, then Observation:.
+Thought:"""
 
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
