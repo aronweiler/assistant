@@ -35,7 +35,7 @@ class WeatherTool:
 
             if parsed_date is None or parsed_date == datetime.now().date():
                 logging.debug("Looking for the current weather")
-                return f"Temperature: {result.current.temperature} degrees. Feels like: {result.current.feels_like} degrees. Description: {result.current.description}. Humidity: {result.current.humidity}."
+                return f"The temperature for {location} is {result.current.temperature} degrees. Feels like: {result.current.feels_like} degrees. Description: {result.current.description}. Humidity: {result.current.humidity}."
             else:
                 logging.debug("Looking for a forecast for the date: " + str(parsed_date))
                 # Look for the date in the forecast

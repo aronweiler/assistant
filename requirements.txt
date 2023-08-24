@@ -59,6 +59,9 @@ google-auth-oauthlib
 # Wikipedia
 wikipedia
 
+# News
+gnews
+
 # Weather
 python-weather
 

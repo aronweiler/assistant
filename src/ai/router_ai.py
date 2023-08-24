@@ -1,22 +1,49 @@
-from uuid import uuid4
 import json
-from langchain.memory import ConversationTokenBufferMemory
-from langchain.chains.router import MultiPromptChain
-from langchain.llms import OpenAI
-from langchain.chains import ConversationChain
+import logging
+from datetime import datetime
+from uuid import uuid4
+
+from gnews import GNews
+
+from db.database.models import User
+from db.models.conversations import Conversations, SearchType
+from db.models.users import Users
+
+from langchain.agents import (
+    initialize_agent,
+    AgentType,
+    AgentExecutor,
+    AgentOutputParser,
+)
+from langchain.chat_models import ChatOpenAI
+from langchain.memory import (
+    ConversationTokenBufferMemory,
+    CombinedMemory,
+    ConversationBufferMemory,
+    ReadOnlySharedMemory,
+)
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
 
-from langchain.tools import StructuredTool
-from langchain.agents import load_tools
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType, AgentExecutor
-
-from langchain.tools import DuckDuckGoSearchRun
+from langchain.tools import DuckDuckGoSearchRun, StructuredTool
 from langchain.chains.base import Chain
+from langchain.tools import StructuredTool
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain.schema import HumanMessage
 
 from llms.memory.postgres_chat_message_history import PostgresChatMessageHistory
+from llms.open_ai.utilities.open_ai_utilities import get_openai_api_key
+
+from tools.general.time_tool import TimeTool
+from tools.weather.weather_tool import WeatherTool
+from tools.web.requests_tool import RequestsTool
+from tools.web.wikipedia_tool import WikipediaTool
+from tools.news.g_news_tool import GNewsTool
+from tools.restaurants.yelp_tool import YelpTool
+
+from ai.agent_callback import AgentCallback
+from ai.output_parser import StructuredChatOutputParserWithRetries
 
 from ai.abstract_ai import AbstractAI
 from configuration.ai_configuration import AIConfiguration
@@ -25,34 +52,50 @@ from ai.prompts import (
     MEMORY_PROMPT,
     MULTI_PROMPT_ROUTER_TEMPLATE,
     AGENT_TEMPLATE,
-    TOOLS_TEMPLATE
+    TOOLS_SUFFIX,
 )
-
-from tools.web.requests_tool import RequestsTool
-from tools.general.time_tool import TimeTool
-from tools.weather.weather_tool import WeatherTool
-
-from llms.open_ai.utilities.open_ai_utilities import get_openai_api_key
-import logging
-from datetime import datetime
-
-from db.database.models import User
-
-from db.models.conversations import Conversations, SearchType
-from db.models.users import Users
-
-from langchain.chat_models import ChatOpenAI
 
 
 class RouterAI(AbstractAI):
+    agent_tools_callback = AgentCallback()
+
     CURRENT_EVENT_TOOLS = [
-        StructuredTool.from_function(TimeTool().get_time),
-        StructuredTool.from_function(WeatherTool().get_weather),
+        StructuredTool.from_function(
+            TimeTool().get_time, return_direct=True, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            WeatherTool().get_weather, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            GNewsTool().get_full_article, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            GNewsTool().get_news_by_location, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            GNewsTool().get_news, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            GNewsTool().get_top_news, callbacks=[agent_tools_callback]
+        ),
     ]
 
     INTERNET_TOOLS = [
-        StructuredTool.from_function(DuckDuckGoSearchRun()._run),
-        StructuredTool.from_function(RequestsTool().search_website),
+        StructuredTool.from_function(
+            YelpTool().search_businesses, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            YelpTool().get_all_business_details, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            DuckDuckGoSearchRun()._run, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            RequestsTool().search_website, callbacks=[agent_tools_callback]
+        ),
+        StructuredTool.from_function(
+            WikipediaTool().search_wikipedia, callbacks=[agent_tools_callback]
+        ),
     ]
 
     def __init__(self, ai_configuration: AIConfiguration):
@@ -93,14 +136,25 @@ class RouterAI(AbstractAI):
             memory_key="chat_history",
             input_key="input",
             chat_memory=self.postgres_chat_message_history,
+            max_token_limit=300,
         )
+
+        # Agent memory
+        agent_memory = ConversationTokenBufferMemory(
+            llm=llm,
+            memory_key="agent_chat_history",
+            input_key="input",
+            max_token_limit=300,
+        )
+        agent_memory.human_prefix
+        agent_memory_readonly = ReadOnlySharedMemory(memory=agent_memory)
 
         # Using the langchain stuff pretty much directly from here: https://python.langchain.com/docs/modules/chains/foundational/router
 
         self.chains = [
             {
                 "name": "conversational",
-                "description": "Good for carrying on a conversation with a user.",
+                "description": "Good for carrying on a conversation with a user, or responding to questions that you already know the answer to.",
                 "chain_or_agent": LLMChain(
                     llm=llm,
                     prompt=CONVERSATIONAL_PROMPT,
@@ -121,16 +175,22 @@ class RouterAI(AbstractAI):
             {
                 "name": "current-events",
                 "description": "Good for when you need to answer a query about current events, such as weather, news, traffic, movie showtimes, etc.",
-                "chain_or_agent": self.get_current_events_agent(
-                    llm, self.conversation_token_buffer_memory
+                "chain_or_agent": self.get_agent(
+                    llm,
+                    self.conversation_token_buffer_memory,
+                    self.CURRENT_EVENT_TOOLS,
+                    agent_memory_readonly,
                 ),
                 "function": self.use_tools,
             },
             {
                 "name": "internet",
-                "description": "Good for when you need to search the internet for an answer, or look at a specific website or other web-based resource.",
-                "chain_or_agent": self.get_internet_agent(
-                    llm, self.conversation_token_buffer_memory
+                "description": "Good for when you need to search the internet for an answer or look at a specific website or other web-based resource, which could include things like wikipedia, google, ducduckgo, etc.",
+                "chain_or_agent": self.get_agent(
+                    llm,
+                    self.conversation_token_buffer_memory,
+                    self.INTERNET_TOOLS,
+                    agent_memory_readonly,
                 ),
                 "function": self.use_tools,
             },
@@ -157,32 +217,39 @@ class RouterAI(AbstractAI):
             input_keys=["input", "chat_history", "system_information"],
         )
 
-    def get_current_events_agent(self, llm, memory):       
+    def get_agent(self, llm, memory, tools, agent_memory):
+        # Use my custom parser because ChatGPT occasionally returns junk
+        output_parser = StructuredChatOutputParserWithRetries()
 
         agent = initialize_agent(
-            self.CURRENT_EVENT_TOOLS,
+            tools,
             llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
             human_message_template=AGENT_TEMPLATE,
+            agent_kwargs={
+                "suffix": TOOLS_SUFFIX,
+                "input_variables": [
+                    "input",
+                    "agent_chat_history",
+                    "agent_scratchpad",
+                    "system_information"
+                ],
+                "output_parser": output_parser,
+            },
         )
 
-        agent.memory = memory
+        # Agents should have their own memory (containing past tool runs or other info) that is combined with the conversation memory
+        # Combine with the overall conversation memory
+        agent.memory = CombinedMemory(memories=[memory, agent_memory])
+
+        # Set the memory on the agent tools callback so that it can manually add entries
+        self.agent_tools_callback.memory = agent_memory.memory
 
         return agent
 
-    def get_internet_agent(self, llm, memory):
-        agent = initialize_agent(
-            self.INTERNET_TOOLS,
-            llm,
-            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True,
-            human_message_template=AGENT_TEMPLATE,
-        )
-
-        agent.memory = memory
-
-        return agent
+    def new_agent_action(*args, **kwargs):
+        print("AGENT ACTION", args, kwargs, flush=True)
 
     def query(self, query, user_id):
         # Get the user information
@@ -191,9 +258,12 @@ class RouterAI(AbstractAI):
                 session, user_id, eager_load=[User.user_settings]
             )
 
+            self.current_user_id = user_id
+            self.current_human_prefix = f"{current_user.name} ({current_user.email})"
+
             self.postgres_chat_message_history.user_id = user_id
             self.conversation_token_buffer_memory.human_prefix = (
-                f"{current_user.name} ({current_user.email})"
+                self.current_human_prefix
             )
 
             try:
@@ -201,7 +271,12 @@ class RouterAI(AbstractAI):
                 router_result = self.router_chain(
                     {
                         "input": query,
-                        "chat_history": self.postgres_chat_message_history.messages,
+                        "chat_history": "\n".join(
+                            [
+                                f"{'AI' if m.type == 'ai' else ''}: {m.content}"
+                                for m in self.postgres_chat_message_history.messages
+                            ]
+                        ),
                         "system_information": self.get_system_information(current_user),
                     }
                 )
@@ -246,10 +321,17 @@ class RouterAI(AbstractAI):
                 logging.debug(f"Response from LLM: {response}")
 
                 # General AI returns a string
-                return response
+                return self.final_rephrase(response)
             except Exception as e:
                 logging.exception(e)
                 return "Sorry, I'm not feeling well right now. Please try again later."
+
+    def final_rephrase(self, response):
+        if self.ai_configuration.llm_configuration.llm_arguments_configuration.final_rephrase_prompt != '':
+            return self.llm.predict(self.ai_configuration.llm_configuration.llm_arguments_configuration.final_rephrase_prompt + "\n\n" + response)
+        else:
+            return response
+    
 
     def converse(self, chain: Chain, query: str, user: User):
         return chain.run(
@@ -287,21 +369,32 @@ class RouterAI(AbstractAI):
             )
 
     def use_tools(self, agent: AgentExecutor, query: str, user: User):
-        # Since I can't figure out how to get langchain to work with my prompt that includes the necessary information for tools to work, 
-        # I have to build another prompt inline:
-        query = TOOLS_TEMPLATE.format(
-            system_information=self.get_system_information(user),
-            user_name=user.name,
-            user_email=user.email,
-            input=query,
-        )
-        
-        results = agent.run(
-            input=query,
-            system_information=self.get_system_information(user),
-            user_name=user.name,
-            user_email=user.email,
-        )
+
+        # If there's a CombinedMemory
+        if isinstance(agent.memory, CombinedMemory):
+            for memory in agent.memory.memories:
+                if isinstance(memory, ReadOnlySharedMemory):
+                    # The readonly memory is the agent memory
+                    memory.memory.human_prefix = self.current_human_prefix
+                    # Add the query while I'm in here
+                    memory.memory.chat_memory.messages.append(
+                        HumanMessage(content=query)
+                    )
+                else:
+                    memory.human_prefix = self.current_human_prefix
+        else:
+            agent.memory.human_prefix = self.current_human_prefix
+
+        try:
+            results = agent.run(
+                input=query,
+                system_information=self.get_system_information(user),                
+                user_name=user.name,
+                user_email=user.email,
+            )
+        except Exception as e:
+            logging.exception(e)
+            return "Sorry, the agent couldn't process the request.  Please try again later."
 
         # Try to load the result into a json object
         # If it fails, just return the string
