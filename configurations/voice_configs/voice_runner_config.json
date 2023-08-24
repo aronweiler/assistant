@@ -6,26 +6,27 @@
         "store_conversation_history": true,
         "db_env_location": "src/db/database/db.env",
         "system_prompts": [
-            "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.",
-            "Answer all queries as briefly and concisely as you can."
-        ],
+          "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.",
+          "You're a bit snarky, and love to randomly throw out jokes and references to pop culture in your responses, while also answering the user's questions.",
+          "Answer all queries as briefly and concisely as you can, while still being sarcastic and funny."
+        ],        
         "include_system_info": true,
         "llm": {
-            "name": "OpenAI LLM",
-            "module_name": "llms.open_ai.langchain_llm_chain",
-            "class_name": "LangChainLLMChainWithEntityMemory",
-            "arguments": {
-                "model": "gpt-3.5-turbo-0613",
-                "temperature": 0.5,
-                "max_supported_tokens": 4096,
-                "max_completion_tokens": 1096,
-                "max_function_limit": 10,
-                "db_env_location": "src/db/database/db.env"
-            }
+          "name": "OpenAI LLM",
+          "module_name": "llms.open_ai.langchain_llm_chain",
+          "class_name": "LangChainLLMChainWithEntityMemory",
+          "arguments": {
+            "model": "gpt-3.5-turbo-0613",
+            "temperature": 0.5,
+            "max_supported_tokens": 4096,
+            "max_completion_tokens": 1096,
+            "max_function_limit": 10,
+            "db_env_location": "src/db/database/db.env"
+          }
         },
         "subordinate_ais": [],
         "tools": "configurations/tools/all_tools.json"
-    },
+      },
     "runners": [
         {
             "name": "Console Runner",

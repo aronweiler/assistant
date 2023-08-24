@@ -47,10 +47,6 @@ class AIConfiguration:
         db_env_location = config.get("db_env_location", None)
 
         system_prompts = config["system_prompts"]
-        if "final_rephrase_prompt" in config:
-            final_rephrase_prompt = config["final_rephrase_prompt"]
-        else:
-            final_rephrase_prompt = []
 
         include_system_info = config["include_system_info"]
         
@@ -58,7 +54,7 @@ class AIConfiguration:
         tools = ToolConfiguration.from_json_file(config["tools"])
 
         type_configuration = TypeConfiguration.from_dict(config)
-        llm_configuration = LLMConfiguration.from_dict(config["llm"], tools, "\n".join(system_prompts), "\n".join(final_rephrase_prompt))
+        llm_configuration = LLMConfiguration.from_dict(config["llm"], tools, "\n".join(system_prompts))
 
         if "subordinate_ais" in config:
             subordinate_ais = [

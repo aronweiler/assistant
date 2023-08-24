@@ -32,3 +32,9 @@ class AbstractAI(ABC):
     @abstractmethod
     def query(self, query, user_id: int):
         pass
+
+    # The abstract property final_rephrase_prompt
+    @property
+    @abstractmethod
+    def final_rephrase_prompt(self):
+        pass

@@ -21,7 +21,7 @@ from runners.voice.configuration.voice_runner_configuration import (
 )
 from runners.voice.player import play_wav_file
 from runners.voice.sound import Sound
-from runners.voice.prompts import VOICE_ASSISTANT_PROMPT
+from runners.voice.prompts import FINAL_REPHRASE_PROMPT
 from runners.voice.audio_transcriber import AudioTranscriber
 from runners.voice.wake_word import WakeWord
 from runners.voice.text_to_speech import TextToSpeech
@@ -77,6 +77,7 @@ class VoiceRunner(Runner):
 
     def run(self, abstract_ai: AbstractAI):
         self.abstract_ai = abstract_ai
+        self.abstract_ai.final_rephrase_prompt = FINAL_REPHRASE_PROMPT
 
         # Create the verifier models
         self.wake_word.create_verifier_models(self.args.wake_word_models)

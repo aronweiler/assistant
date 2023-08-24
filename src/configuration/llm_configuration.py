@@ -16,13 +16,12 @@ class LLMConfiguration:
         self.tools = tools
 
     @staticmethod
-    def from_dict(config: dict, tools, system_prompt, rephrase_prompt):
+    def from_dict(config: dict, tools, system_prompt):
         name = config["name"]
         type_configuration = TypeConfiguration.from_dict(config)
         llm_arguments_configuration = LLMArgumentsConfiguration.from_dict(
             config["arguments"], tools
         )
         llm_arguments_configuration.system_prompt = system_prompt
-        llm_arguments_configuration.final_rephrase_prompt = rephrase_prompt
 
         return LLMConfiguration(name, type_configuration, llm_arguments_configuration, tools)

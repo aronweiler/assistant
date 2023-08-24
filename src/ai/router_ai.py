@@ -57,6 +57,7 @@ from ai.prompts import (
 
 
 class RouterAI(AbstractAI):
+    final_rephrase_prompt = ''
     agent_tools_callback = AgentCallback()
 
     CURRENT_EVENT_TOOLS = [
@@ -327,11 +328,11 @@ class RouterAI(AbstractAI):
                 return "Sorry, I'm not feeling well right now. Please try again later."
 
     def final_rephrase(self, response):
-        if self.ai_configuration.llm_configuration.llm_arguments_configuration.final_rephrase_prompt != '':
-            return self.llm.predict(self.ai_configuration.llm_configuration.llm_arguments_configuration.final_rephrase_prompt + "\n\n" + response)
+        if self.final_rephrase_prompt != '':
+            output = self.llm.predict(self.final_rephrase_prompt.format(input=response))
+            return output
         else:
             return response
-    
 
     def converse(self, chain: Chain, query: str, user: User):
         return chain.run(
