@@ -73,6 +73,10 @@ Run the run.py file, with your choice of configuration.
 This should allow you to interact with the AI assistant through the console.  
 
 ## Run the Streamlit UI Assistant
+This is a chat bot interface that has memory, tools, and other fun stuff. 
+
+![Streamlit UI](documentation/streamlit.png)
+
 Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
 
 **Example:**
