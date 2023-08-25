@@ -19,9 +19,7 @@
       "max_completion_tokens": 4096,
       "max_function_limit": 10,
       "db_env_location": "src/db/database/db.env"
-    },
-    "subordinate_ais": [],
-    "tools": "configurations/tools/all_tools.json"
+    }
   },
   "runners": [
     {

@@ -20,14 +20,14 @@ from langchain.memory.chat_memory import BaseChatMessageHistory
 from langchain.memory.chat_message_histories.in_memory import ChatMessageHistory
 
 
-from llms.memory.prompts import (
+from memory.prompts import (
     ENTITY_SUMMARIZATION_PROMPT,
     RELATED_ENTITY_PROMPT,
     ENTITY_EXTRACTION_PROMPT,
     SUMMARIZATION_PROMPT,
 )
 
-from llms.memory.entity_store_models import Entity, EntityDetails
+from memory.entity_store_models import Entity, EntityDetails
 
 
 class PostgreSQLEntityStore(BaseEntityStore):

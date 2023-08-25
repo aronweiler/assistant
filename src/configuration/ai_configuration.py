@@ -50,7 +50,7 @@ class AIConfiguration:
         include_system_info = config["include_system_info"]
         
         # Load the tools files from the config and parse them into ToolConfiguration objects
-        tools = ToolConfiguration.from_json_file(config["tools"])
+        tools = ToolConfiguration.from_json_file(config.get("tools", None))
 
         type_configuration = TypeConfiguration.from_dict(config)
 

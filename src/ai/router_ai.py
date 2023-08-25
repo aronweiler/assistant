@@ -32,8 +32,8 @@ from langchain.tools import StructuredTool
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import HumanMessage
 
-from llms.memory.postgres_chat_message_history import PostgresChatMessageHistory
-from llms.open_ai.utilities.open_ai_utilities import get_openai_api_key
+from memory.postgres_chat_message_history import PostgresChatMessageHistory
+from utilities.openai_utilities import get_openai_api_key
 
 from tools.general.time_tool import TimeTool
 from tools.weather.weather_tool import WeatherTool

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
 from configuration.ai_configuration import AIConfiguration
-from llms.abstract_llm import AbstractLLM
 from utilities.instance_utility import create_instance_from_module_and_class
 
 

@@ -17,7 +17,7 @@ from langchain.prompts import BasePromptTemplate
 from langchain.schema.messages import get_buffer_string
 from langchain.memory.entity import InMemoryEntityStore
 
-from llms.memory.prompts import (
+from memory.prompts import (
     ENTITY_EXTRACTION_PROMPT,
     ENTITY_SUMMARIZATION_PROMPT,
     WORTHINESS_EVALUATION_PROMPT,

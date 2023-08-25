@@ -11,6 +11,9 @@ class ToolConfiguration:
 
     @staticmethod
     def from_json_file(file_path: str) -> List["ToolConfiguration"]:
+        if file_path is None:
+            return []
+
         import json
         import os
 
