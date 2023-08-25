@@ -102,6 +102,10 @@ class RouterAI(AbstractAI):
     def __init__(self, ai_configuration: AIConfiguration):
         self.ai_configuration = ai_configuration
 
+        # Get a unique interaction id
+        self.interaction_id = uuid4()
+        print(f"Interaction ID: {self.interaction_id}")
+
         # Initialize the AbstractLLM and dependent AIs
         self.configure()
 
@@ -111,11 +115,11 @@ class RouterAI(AbstractAI):
         openai_api_key = get_openai_api_key()
 
         self.llm = ChatOpenAI(
-            model=self.ai_configuration.llm_configuration.llm_arguments_configuration.model,
-            max_retries=self.ai_configuration.llm_configuration.llm_arguments_configuration.max_function_limit,
-            temperature=self.ai_configuration.llm_configuration.llm_arguments_configuration.temperature,
+            model=self.ai_configuration.llm_arguments_configuration.model,
+            max_retries=self.ai_configuration.llm_arguments_configuration.max_function_limit,
+            temperature=self.ai_configuration.llm_arguments_configuration.temperature,
             openai_api_key=openai_api_key,
-            max_tokens=self.ai_configuration.llm_configuration.llm_arguments_configuration.max_completion_tokens,
+            max_tokens=self.ai_configuration.llm_arguments_configuration.max_completion_tokens,
             verbose=True,
             # streaming=True,
             # callbacks=[StreamingStdOutCallbackHandler()],
@@ -123,21 +127,20 @@ class RouterAI(AbstractAI):
 
         self.create_chains(self.llm)
 
-    def create_chains(self, llm):
+    def create_chains(self, llm):        
         # Database backed conversation memory
         self.postgres_chat_message_history = PostgresChatMessageHistory(
-            interaction_id=uuid4(),
+            self.interaction_id,
             conversations=Conversations(
-                self.ai_configuration.llm_configuration.llm_arguments_configuration.db_env_location
+                self.ai_configuration.llm_arguments_configuration.db_env_location
             ),
-            max_token_limit=500,
         )
         self.conversation_token_buffer_memory = ConversationTokenBufferMemory(
             llm=llm,
             memory_key="chat_history",
             input_key="input",
             chat_memory=self.postgres_chat_message_history,
-            max_token_limit=300,
+            max_token_limit=1000,
         )
 
         # Agent memory
@@ -145,7 +148,7 @@ class RouterAI(AbstractAI):
             llm=llm,
             memory_key="agent_chat_history",
             input_key="input",
-            max_token_limit=300,
+            max_token_limit=1000,
         )
         agent_memory.human_prefix
         agent_memory_readonly = ReadOnlySharedMemory(memory=agent_memory)
@@ -218,6 +221,9 @@ class RouterAI(AbstractAI):
             input_keys=["input", "chat_history", "system_information"],
         )
 
+    def get_conversation(self):
+        return self.conversation_token_buffer_memory.buffer
+
     def get_agent(self, llm, memory, tools, agent_memory):
         # Use my custom parser because ChatGPT occasionally returns junk
         output_parser = StructuredChatOutputParserWithRetries()
@@ -253,11 +259,20 @@ class RouterAI(AbstractAI):
         print("AGENT ACTION", args, kwargs, flush=True)
 
     def query(self, query, user_id):
+
         # Get the user information
         with self.users.session_context(self.users.Session()) as session:
             current_user = self.users.get_user(
                 session, user_id, eager_load=[User.user_settings]
             )
+
+            # Find some related context in the conversation table (might or might not use it)
+            self.related_context = self.conversations.search_conversations(session, query, SearchType.similarity, top_k=20)
+            # De-dupe the conversations
+            self.related_context = list(
+                set([pc.conversation_text for pc in self.related_context])
+            )
+            self.related_context = "\n".join(self.related_context)
 
             self.current_user_id = user_id
             self.current_human_prefix = f"{current_user.name} ({current_user.email})"
@@ -335,13 +350,16 @@ class RouterAI(AbstractAI):
             return response
 
     def converse(self, chain: Chain, query: str, user: User):
+
+        # Find any related conversations
         return chain.run(
-            system_prompt=self.ai_configuration.llm_configuration.llm_arguments_configuration.system_prompt,
+            system_prompt=self.ai_configuration.llm_arguments_configuration.system_prompt,
             input=query,
             user_id=user.id,
             user_name=user.name,
             user_email=user.email,
             system_information=self.get_system_information(user),
+            context=self.related_context
         )
 
     def remember(self, chain: Chain, query: str, user: User):
@@ -366,7 +384,7 @@ class RouterAI(AbstractAI):
 
             return chain.run(
                 input=query,
-                context="\n".join(previous_conversations),
+                context="\n".join(previous_conversations)
             )
 
     def use_tools(self, agent: AgentExecutor, query: str, user: User):

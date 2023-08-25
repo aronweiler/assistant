@@ -1,12 +1,16 @@
+import openai
 from typing import List
+import os
+from dotenv import load_dotenv
 #from ai.open_ai.tools.tool_wrapper import OpenAIToolWrapper
 
 
 def get_openai_api_key():
-    from dotenv import dotenv_values, load_dotenv
-
     load_dotenv()
-    return dotenv_values().get("OPENAI_API_KEY")
+
+    openai.api_key = os.environ.get("OPENAI_API_KEY")
+
+    return openai.api_key
 
 class ToolWrapper:
     def __init__(self, function_ref, schema):

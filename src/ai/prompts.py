@@ -53,6 +53,8 @@ Thought:"""
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
 {system_information}
+Possibly related context:
+{context}
 Current conversation:
 {chat_history}
 {user_name} ({user_email}): {input}
@@ -62,6 +64,7 @@ CONVERSATIONAL_PROMPT = PromptTemplate(
     input_variables=[
         "system_prompt",
         "system_information",
+        "context",
         "user_name",
         "user_email",
         "chat_history",

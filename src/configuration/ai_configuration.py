@@ -1,7 +1,7 @@
 from typing import List, Union
 from configuration.type_configuration import TypeConfiguration
-from configuration.llm_configuration import LLMConfiguration
 from configuration.tool_configuration import ToolConfiguration
+from configuration.llm_arguments_configuration import LLMArgumentsConfiguration
 
 
 class AIConfiguration:
@@ -9,23 +9,23 @@ class AIConfiguration:
         self,
         name,
         type_configuration: "TypeConfiguration",
-        llm_configuration: "LLMConfiguration",
         subordinate_ais: Union[List[str], None],
         tools: Union[List[str], None],
         store_conversation_history: bool,
         db_env_location: str = None,
         system_prompts: List[str] = None,
         include_system_info: bool = True,
+        llm_arguments_configuration: LLMArgumentsConfiguration = None
     ) -> None:
         self.name = name
         self.type_configuration: TypeConfiguration = type_configuration
-        self.llm_configuration: LLMConfiguration = llm_configuration
         self.subordinate_ais: Union[List[str], None] = subordinate_ais
         self.tools: Union[List[str], None] = tools
         self.store_conversation_history = store_conversation_history
         self.db_env_location = db_env_location
         self.system_prompts = system_prompts
         self.include_system_info = include_system_info
+        self.llm_arguments_configuration = llm_arguments_configuration
 
     @staticmethod
     def from_json_file(json_file_path: str) -> "AIConfiguration":
@@ -41,7 +41,6 @@ class AIConfiguration:
         name = config["name"]
 
         from configuration.type_configuration import TypeConfiguration
-        from configuration.llm_configuration import LLMConfiguration
 
         store_conversation_history = config["store_conversation_history"]
         db_env_location = config.get("db_env_location", None)
@@ -54,7 +53,11 @@ class AIConfiguration:
         tools = ToolConfiguration.from_json_file(config["tools"])
 
         type_configuration = TypeConfiguration.from_dict(config)
-        llm_configuration = LLMConfiguration.from_dict(config["llm"], tools, "\n".join(system_prompts))
+
+        llm_arguments_configuration = LLMArgumentsConfiguration.from_dict(
+            config["arguments"], tools
+        )
+        llm_arguments_configuration.system_prompt = "\n".join(system_prompts)
 
         if "subordinate_ais" in config:
             subordinate_ais = [
@@ -64,20 +67,14 @@ class AIConfiguration:
         else:
             subordinate_ais = None
 
-        # tools = (
-        #     [ToolConfiguration.from_dict(tool) for tool in config["tools"]]
-        #     if "tools" in config
-        #     else None
-        # )
-
         return AIConfiguration(
             name,
             type_configuration,
-            llm_configuration,
             subordinate_ais,
             tools,
             store_conversation_history,
             db_env_location,
             system_prompts,
             include_system_info,
+            llm_arguments_configuration
         )
