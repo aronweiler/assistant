@@ -8,7 +8,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from llms.memory.postgres_entity_store import PostgreSQLEntityStore
+from memory.postgres_entity_store import PostgreSQLEntityStore
 from db.models.vector_database import VectorDatabase
 
 

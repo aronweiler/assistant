@@ -5,10 +5,10 @@ class GNewsTool:
         self.google_news = GNews(max_results=max_results)
 
     def get_news(self, query:str):
-        """Get a list of news headlines for the specified query. 
+        """Use this to get a list of news headlines and article URLs for a specified term. 
 
         Args:
-            query (str): Keyword description of the news you want to look for        
+            query (str): Keyword description of the news you want to look for.  Query should not be empty!
         """
         
         headlines = self.google_news.get_news(key=query)
@@ -18,7 +18,7 @@ class GNewsTool:
         return headlines
 
     def get_top_news(self):
-        """Get a list of the top news story headlines"""
+        """Use this to get a list of the top news story headlines and article URLs"""
         
         headlines = self.google_news.get_top_news()
     
@@ -27,7 +27,7 @@ class GNewsTool:
         return headlines
 
     def get_full_article(self, url:str):
-        """Get the full article for the specified URL.  Use this if a user more details on a specific story or headline.  Note: This can only be used if you have the full article URL.
+        """Use this to get the full article for the specified headline URL.  Note: This can only be used if you already have the article URL.
 
         Args:
             url (str): The URL of the article you want to get the full text for
@@ -38,7 +38,7 @@ class GNewsTool:
         return full_article
 
     def get_news_by_location(self, location:str):
-        """Get a list of the headlines for the specified location.
+        """Get a list of the headlines and article URLs for the specified location.
 
         Args:
             location (str): Location to get the news for.  Should be a city, state, or country only.  e.g. "New York", "United States", "California", etc.
