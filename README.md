@@ -1,18 +1,17 @@
 # AI Assistant
 An intelligent assistant.  This is a work in progress.
 
-### Framework / infrastructure
+### Features
 - ✅ Runner / AI Framework
 - ✅ Tool Framework
 - ✅ Configuration Framework
-
-### Features
 - ✅ Console Runner
 - ✅ OpenAI LLM Integration
 - ✅ Memory Retrieval
 - ✅ Conversation Manager
 - ✅ Memory Storage (This is really exciting!)
-- ☑️ Voice Runner
+- ✅ Voice Runner
+- ✅ BASIC Streamlit UI
 - ☑️ Google API Integration
 - ☑️ Generic Tooling (a.k.a. on-demand tools)
 - ☑️ API Discovery and Calling
@@ -65,9 +64,20 @@ Currently, only the [console_ai_assistant](configurations\console_configs\consol
 
 Modify the [console_ai_assistant](configurations\console_configs\console_ai_assistant.json) to suit your needs.
 
-## 4. Run the assistant
-Run the run.py file.
+## 4. Run the Console or Voice Assistant
+Run the run.py file, with your choice of configuration.
 
-`python run.py --config=configurations/console_configs/console_ai_assistant.json --logging_level=INFO`
+**Example:**
+`python run.py --config=configurations/console_configs/console_ai.json --logging_level=INFO`
 
 This should allow you to interact with the AI assistant through the console.  
+
+## Run the Streamlit UI Assistant
+Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
+
+**Example:**
+`streamlit run src/runners/ui/streamlit_ui.py`
+
+*Note- this approach currently relies on the `OPENAI_API_KEY` and `ASSISTANT_CONFIG_PATH` environment variables.  Make sure they are set.
+
+Use any config that has an `ai` section, such as: `configurations/console_configs/console_ai.json`*

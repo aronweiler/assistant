@@ -54,11 +54,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
     if 'ai' not in st.session_state:
-        os.environ["ASSISTANT_CONFIG_PATH"] = "configurations/console_configs/router_console_ai.json"
+        os.environ["ASSISTANT_CONFIG_PATH"] = "configurations/console_configs/console_ai.json"
     
         assistant_config_path = os.environ.get(
                 "ASSISTANT_CONFIG_PATH",
-                "configurations/console_configs/router_console_ai.json",
+                "configurations/console_configs/console_ai.json",
             )
 
         config, ai_instance = load_assistant_configuration_and_ai(assistant_config_path)
