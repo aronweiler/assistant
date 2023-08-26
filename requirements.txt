@@ -25,12 +25,14 @@ pyaudio
 webrtcvad
 # Install whisper from github:
 # pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
-# whisper
+# openai-whisper
+more-itertools
 sound
 TTS
 # Required for AWS Polly
 boto3
 pydub
+SpeechRecognition
 
 # Maffs
 # torch
@@ -72,7 +74,10 @@ pdfminer.six
 bs4
 
 # Token counting
-tiktoken
+# Currently pegged at this version for whisper compatibility
+tiktoken==0.3.3
+
+
 
 # The following are things that I am not using yet, but I want to keep track of them
 # Embeddings 
