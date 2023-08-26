@@ -54,7 +54,7 @@ def get_interactions():
         return interactions_dict
 
 
-def populate_sidebar(config: AssistantConfiguration):        
+def populate_sidebar(config: AssistantConfiguration):
     new_chat_button_clicked = st.sidebar.button("New Chat")
     
     if new_chat_button_clicked:
