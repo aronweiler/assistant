@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List
 from configuration.ai_configuration import AIConfiguration
+from db.models.users import Users
 from utilities.instance_utility import create_instance_from_module_and_class
 
 
 class AbstractAI(ABC):
     def configure(self) -> None:
-        self.ai_configuration: AIConfiguration
+        self.ai_configuration: AIConfiguration        
 
         # Create any subordinate AIs
         # This is not really used in the GeneralAI, but I want to keep it here to remind me how to do it ;)

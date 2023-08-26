@@ -1,13 +1,14 @@
 import json
 import logging
 from datetime import datetime
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from gnews import GNews
 
-from db.database.models import User
+from db.database.models import User, Interaction
 from db.models.conversations import Conversations, SearchType
 from db.models.users import Users
+from db.models.interactions import Interactions
 
 from langchain.agents import (
     initialize_agent,
@@ -53,6 +54,7 @@ from ai.prompts import (
     MULTI_PROMPT_ROUTER_TEMPLATE,
     AGENT_TEMPLATE,
     TOOLS_SUFFIX,
+    SUMMARIZE_FOR_LABEL_TEMPLATE
 )
 
 
@@ -99,11 +101,48 @@ class RouterAI(AbstractAI):
         ),
     ]
 
-    def __init__(self, ai_configuration: AIConfiguration):
-        self.ai_configuration = ai_configuration
+    def __init__(self, ai_configuration: AIConfiguration, interaction_id: UUID = None):
+        """Create a new RouterAI
 
-        # Get a unique interaction id
-        self.interaction_id = uuid4()
+        Args:
+            ai_configuration (AIConfiguration): AI configuration
+            interaction_id (UUID, optional): The interaction ID here is to be passed in by applications that want to switch to or use a specific interaction, 
+                such as chatbots. Defaults to None.
+        """
+        self.ai_configuration = ai_configuration        
+        self.interactions_helper = Interactions(ai_configuration.db_env_location)
+        self.interaction_needs_summary = True
+
+        # Pull the default user
+        users = Users(self.ai_configuration.db_env_location)
+        with users.session_context(users.Session()) as session:
+            user = users.find_user_by_email(
+                session,
+                email=self.ai_configuration.user_email,
+                eager_load=[],
+            )
+
+            if user is None:
+                raise Exception(f"User with email {self.ai_configuration.user_email} not found.")
+
+            self.default_user_id = user.id
+        
+        with self.interactions_helper.session_context(self.interactions_helper.Session()) as session:
+            if interaction_id is None:
+                # Create a new interaction
+                # Get a unique interaction id                            
+                self.interaction_id = uuid4()
+                self.interactions_helper.create_interaction(session, self.interaction_id, "Chat: " + str(self.interaction_id), self.default_user_id)                
+            else:
+                # This is using an existing interaction
+                self.interaction_id = interaction_id
+
+                # Get the interaction from the db
+                interaction = self.interactions_helper.get_interaction(session, self.interaction_id)
+
+                # TODO: Use this elsewhere to summarize and update the interaction
+                self.interaction_needs_summary = interaction.needs_summary 
+
         print(f"Interaction ID: {self.interaction_id}")
 
         # Initialize the AbstractLLM and dependent AIs
@@ -258,13 +297,21 @@ class RouterAI(AbstractAI):
     def new_agent_action(*args, **kwargs):
         print("AGENT ACTION", args, kwargs, flush=True)
 
-    def query(self, query, user_id):
+    def query(self, query, user_id = None):
+
+        if user_id is None:
+            user_id = self.default_user_id
 
         # Get the user information
         with self.users.session_context(self.users.Session()) as session:
             current_user = self.users.get_user(
                 session, user_id, eager_load=[User.user_settings]
             )
+
+            if self.interaction_needs_summary:
+                interaction_summary = self.llm.predict(SUMMARIZE_FOR_LABEL_TEMPLATE.format(query=query))                
+                self.interactions_helper.update_interaction(session, self.interaction_id, interaction_summary)
+                self.interaction_needs_summary = False
 
             # Find some related context in the conversation table (might or might not use it)
             self.related_context = self.conversations.search_conversations(session, query, SearchType.similarity, top_k=20)
@@ -274,7 +321,6 @@ class RouterAI(AbstractAI):
             )
             self.related_context = "\n".join(self.related_context)
 
-            self.current_user_id = user_id
             self.current_human_prefix = f"{current_user.name} ({current_user.email})"
 
             self.postgres_chat_message_history.user_id = user_id

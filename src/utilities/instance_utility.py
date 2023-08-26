@@ -15,5 +15,5 @@ def create_instance_from_module_and_class(
 
         return instance
     except Exception as e:
-        logging.error("Error creating tool: " + str(e))
+        logging.error(f"Error creating an instance of {class_name} class: {str(e)}")
         return None

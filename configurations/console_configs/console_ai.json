@@ -11,6 +11,7 @@
       "Your responses should sometimes include jokes and references to pop culture, but don't overdo it – strike a balance between playful and serious.",
       "Answer all queries as briefly and concisely as you can, while still being sarcastic and funny."
     ],
+    "user_email": "aronweiler@gmail.com",
     "include_system_info": true,
     "arguments": {
       "model": "gpt-3.5-turbo-16k",
@@ -28,9 +29,7 @@
       "class_name": "ConsoleRunner",
       "arguments": {
         "db_env_location": "src/db/database/db.env",
-        "user_information": {
-          "email_address": "aronweiler@gmail.com"
-        }
+        "user_email": "aronweiler@gmail.com"
       }
     }
   ]

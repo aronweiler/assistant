@@ -11,7 +11,7 @@ from utilities.pretty_print import pretty_print_conversation
 
 class ConsoleRunner(Runner):
     def __init__(self, arguments):
-        email = arguments["user_information"]["email_address"]
+        email = arguments["user_email"]
 
         self.users = Users(arguments["db_env_location"])
         with self.users.session_context(self.users.Session()) as session:

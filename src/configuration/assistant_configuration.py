@@ -22,8 +22,12 @@ class AssistantConfiguration:
             config = json.load(config_file)
 
         ai = AIConfiguration.from_dict(config["ai"])
-        runners = [
-            RunnerConfiguration.from_dict(runner) for runner in config["runners"]
-        ]
+
+        if "runners" in config:
+            runners = [
+                RunnerConfiguration.from_dict(runner) for runner in config["runners"]
+            ]
+        else:
+            runners = None
 
         return AssistantConfiguration(config_file, ai, runners)

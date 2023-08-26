@@ -15,7 +15,8 @@ class AIConfiguration:
         db_env_location: str = None,
         system_prompts: List[str] = None,
         include_system_info: bool = True,
-        llm_arguments_configuration: LLMArgumentsConfiguration = None
+        llm_arguments_configuration: LLMArgumentsConfiguration = None,
+        user_email: str = None,
     ) -> None:
         self.name = name
         self.type_configuration: TypeConfiguration = type_configuration
@@ -26,6 +27,7 @@ class AIConfiguration:
         self.system_prompts = system_prompts
         self.include_system_info = include_system_info
         self.llm_arguments_configuration = llm_arguments_configuration
+        self.user_email = user_email
 
     @staticmethod
     def from_json_file(json_file_path: str) -> "AIConfiguration":
@@ -48,6 +50,8 @@ class AIConfiguration:
         system_prompts = config["system_prompts"]
 
         include_system_info = config["include_system_info"]
+        
+        user_email = config["user_email"]
         
         # Load the tools files from the config and parse them into ToolConfiguration objects
         tools = ToolConfiguration.from_json_file(config.get("tools", None))
@@ -76,5 +80,6 @@ class AIConfiguration:
             db_env_location,
             system_prompts,
             include_system_info,
-            llm_arguments_configuration
+            llm_arguments_configuration,
+            user_email
         )

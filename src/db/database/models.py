@@ -41,6 +41,7 @@ class User(ModelBase):
 
     # Define a one-to-many relationship with other tables
     conversations = relationship("Conversation", back_populates="user")
+    interactions = relationship("Interaction", back_populates="user")
     # conversations = relationship("Memory", back_populates="user")
     documents = relationship("Document", back_populates="user")
     user_settings = relationship("UserSetting", back_populates="user")
@@ -77,6 +78,30 @@ class UserSetting(ModelBase):
     # Define the many to one relationship with User
     user = relationship("User", back_populates="user_settings")
 
+class Interaction(ModelBase):
+    __tablename__ = "interactions"
+
+    id = Column(Uuid, primary_key=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+    interaction_summary = Column(String, nullable=False)
+    needs_summary = Column(Boolean, nullable=False, default=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    is_deleted = Column(Boolean, nullable=False, default=False)
+
+    conversations = relationship("Conversation", back_populates="interaction")
+
+     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
+    user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
+    
+    # Define the CheckConstraint to enforce user_id being NULL or existing in users table
+    user_check_constraint = CheckConstraint(
+        "user_id IS NULL OR user_id IN (SELECT id FROM users)",
+        name="ck_user_id_in_users",
+    )
+    
+    # Define the relationship with User and Conversation
+    user = relationship("User", back_populates="interactions")    
+
 
 class Conversation(ModelBase):
     __tablename__ = "conversations"
@@ -98,9 +123,11 @@ class Conversation(ModelBase):
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
+    
+    # Define the ForeignKeyConstraint to ensure the conversation_role_type_id exists in the conversation_role_types table
     conversation_role_type_constraint = ForeignKeyConstraint(
         [conversation_role_type_id], ["conversation_role_types.id"]
-    )
+    )    
 
     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
     user_check_constraint = CheckConstraint(
@@ -108,12 +135,21 @@ class Conversation(ModelBase):
         name="ck_user_id_in_users",
     )
 
+    # Define the foreign key constraint to ensure the interaction_id exists in the interactions table
+    interaction_constraint = ForeignKeyConstraint([interaction_id], ["interactions.id"])
+
+    # Define the CheckConstraint to enforce interaction_id existing in conversations table
+    conversation_check_constraint = CheckConstraint(
+        "interaction_id IN (SELECT id FROM interactions)",
+        name="ck_interaction_id_in_interactions",
+    )
+
     # Define the relationship with User
     user = relationship("User", back_populates="conversations")
+    interaction = relationship("Interaction", back_populates="conversations")
     conversation_role_type = relationship(
         "ConversationRoleType", back_populates="conversations"
     )
-
 
 class ConversationRoleType(ModelBase):
     __tablename__ = "conversation_role_types"
