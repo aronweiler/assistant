@@ -1,8 +1,8 @@
-"""migration 2023-08-25_11-42-06
+"""migration 2023-08-25_23-11-07
 
-Revision ID: cb2cea5b5cfe
+Revision ID: 9facd89acd74
 Revises: 
-Create Date: 2023-08-25 11:42:06.574652
+Create Date: 2023-08-25 23:11:07.424172
 
 """
 from alembic import op
@@ -11,7 +11,7 @@ import pgvector
 
 
 # revision identifiers, used by Alembic.
-revision = 'cb2cea5b5cfe'
+revision = '9facd89acd74'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,38 +33,11 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
-    op.create_table('conversations',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('record_created', sa.DateTime(), nullable=False),
-    sa.Column('interaction_id', sa.Uuid(), nullable=False),
-    sa.Column('conversation_role_type_id', sa.Integer(), nullable=True),
-    sa.Column('conversation_text', sa.String(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('additional_metadata', sa.String(), nullable=True),
-    sa.Column('embedding', pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
-    sa.Column('exception', sa.String(), nullable=True),
-    sa.Column('is_deleted', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
-    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('documents',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('record_created', sa.DateTime(), nullable=False),
-    sa.Column('document_text', sa.String(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('additional_metadata', sa.String(), nullable=True),
-    sa.Column('embedding', pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
     op.create_table('interactions',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('record_created', sa.DateTime(), nullable=False),
     sa.Column('interaction_summary', sa.String(), nullable=False),
+    sa.Column('needs_summary', sa.Boolean(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('is_deleted', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -80,15 +53,59 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('conversations',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('record_created', sa.DateTime(), nullable=False),
+    sa.Column('interaction_id', sa.Uuid(), nullable=False),
+    sa.Column('conversation_role_type_id', sa.Integer(), nullable=True),
+    sa.Column('conversation_text', sa.String(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('additional_metadata', sa.String(), nullable=True),
+    sa.Column('embedding', pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
+    sa.Column('exception', sa.String(), nullable=True),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
+    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
+    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
+    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('document_collections',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('collection_name', sa.String(), nullable=False),
+    sa.Column('interaction_id', sa.Uuid(), nullable=False),
+    sa.Column('record_created', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
+    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('collection_name')
+    )
+    op.create_table('documents',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('collection_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('additional_metadata', sa.String(), nullable=True),
+    sa.Column('document_text', sa.String(), nullable=False),
+    sa.Column('embedding', pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
+    sa.Column('record_created', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['collection_id'], ['document_collections.id'], ),
+    sa.ForeignKeyConstraint(['collection_id'], ['document_collections.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
+    op.drop_table('documents')
+    op.drop_table('document_collections')
+    op.drop_table('conversations')
     op.drop_table('user_settings')
     op.drop_table('interactions')
-    op.drop_table('documents')
-    op.drop_table('conversations')
     op.drop_table('users')
     op.drop_table('conversation_role_types')
     # ### end Alembic commands ###

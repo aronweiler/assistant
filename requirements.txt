@@ -77,7 +77,8 @@ bs4
 # Currently pegged at this version for whisper compatibility
 tiktoken==0.3.3
 
-
+# UI
+streamlit
 
 # The following are things that I am not using yet, but I want to keep track of them
 # Embeddings 
@@ -86,3 +87,4 @@ tiktoken==0.3.3
 
 # API
 # fastapi
+

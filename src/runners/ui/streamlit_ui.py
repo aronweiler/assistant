@@ -4,22 +4,24 @@ import streamlit as st
 import os
 from dotenv import load_dotenv
 
+from langchain.callbacks import StreamlitCallbackHandler
+
 # for testing
 import sys
 sys.path.append("/Repos/assistant/src")
 
 from ai.router_ai import RouterAI
-from runners.runner import Runner
+
 from configuration.assistant_configuration import AssistantConfiguration
 
 from db.database.models import Conversation, Interaction, User
+
 from db.models.vector_database import VectorDatabase, SearchType
 from db.models.conversations import Conversations
 from db.models.interactions import Interactions
+from db.models.documents import Documents
 
-from langchain.callbacks import StreamlitCallbackHandler
-
-from run import load_assistant_configuration_and_ai
+from documents.document_loader import load_and_split_documents
 
 USER_EMAIL = "aronweiler@gmail.com"
 
@@ -40,10 +42,10 @@ def setup_page():
     st.title("Hey Jarvis...")
 
     # Sidebar
-    st.sidebar.title("Conversations")
+    #st.sidebar.title("Conversations")
 
 def get_interactions():
-    interactions_helper = Interactions(config.ai.db_env_location)
+    interactions_helper = Interactions(st.session_state['config'].ai.db_env_location)
 
     with interactions_helper.session_context(interactions_helper.Session()) as session:
         interactions = interactions_helper.get_interactions(session, USER_EMAIL)
@@ -54,64 +56,111 @@ def get_interactions():
         return interactions_dict
 
 
-def populate_sidebar(config: AssistantConfiguration):
-    new_chat_button_clicked = st.sidebar.button("New Chat")
-    
-    if new_chat_button_clicked:
-        # Recreate the AI with no interaction id (it will create one)
-        ai_instance = RouterAI(config.ai)
-        st.session_state['ai'] = ai_instance
-    else:
-        interactions_dict = get_interactions()
-
-        if 'ai' not in st.session_state:
-            # Check to see if there are interactions, and select the top one
-            if len(interactions_dict) > 0:
-                default_interaction_id = list(interactions_dict.values())[-1]
-                ai_instance = RouterAI(config.ai, default_interaction_id)
+def select_conversation():
+    with st.sidebar.container():
+        with st.sidebar.expander(label="Conversations", expanded=True) as conversations_expander:
+            new_chat_button_clicked = st.sidebar.button("New Chat")
+            
+            if new_chat_button_clicked:
+                # Recreate the AI with no interaction id (it will create one)
+                ai_instance = RouterAI(st.session_state['config'].ai)
                 st.session_state['ai'] = ai_instance
             else:
-                # Create a new interaction, this might be the first run
-                ai_instance = RouterAI(config.ai)
+                interactions_dict = get_interactions()
+
+                if 'ai' not in st.session_state:
+                    # Check to see if there are interactions, and select the top one
+                    if len(interactions_dict) > 0:
+                        default_interaction_id = list(interactions_dict.values())[-1]
+                        ai_instance = RouterAI(st.session_state['config'].ai, default_interaction_id)
+                        st.session_state['ai'] = ai_instance
+                    else:
+                        # Create a new interaction, this might be the first run
+                        ai_instance = RouterAI(st.session_state['config'].ai)
+                        st.session_state['ai'] = ai_instance
+
+                        # Refresh the interactions if we created anything
+                        interactions_dict = get_interactions()
+                
+                selected_interaction_id = st.session_state['ai'].interaction_id
+
+                selected_interaction_summary = st.sidebar.radio("Select Conversation", list(interactions_dict.keys()), index=list(interactions_dict.values()).index(selected_interaction_id))
+                selected_interaction_id = interactions_dict[selected_interaction_summary]
+                    
+                print("Selected interaction: " + str(selected_interaction_id))
+                # Recreate the AI with the selected interaction id
+                ai_instance = RouterAI(st.session_state['config'].ai, selected_interaction_id)
                 st.session_state['ai'] = ai_instance
 
-                # Refresh the interactions if we created anything
-                interactions_dict = get_interactions()
-        
-        selected_interaction_id = st.session_state['ai'].interaction_id
+def select_documents():
+    with st.sidebar.container():
+        status = st.status(f'File status', expanded=False, state='complete')
 
-        selected_interaction_summary = st.sidebar.radio("Select Conversation", list(interactions_dict.keys()), index=list(interactions_dict.values()).index(selected_interaction_id))
-        selected_interaction_id = interactions_dict[selected_interaction_summary]
+        with st.sidebar.expander("Documents", expanded=True) as documents_expander:
+
+            # Add the widgets for uploading documents after setting the target collection name from the list of available collections
+            uploaded_files = st.file_uploader("Choose your files", accept_multiple_files=True)
             
-        print("Selected interaction: " + str(selected_interaction_id))
-        # Recreate the AI with the selected interaction id
-        ai_instance = RouterAI(config.ai, selected_interaction_id)
-        st.session_state['ai'] = ai_instance
-                    
+            if uploaded_files is not None:
+                # TODO: generate the list of collections from the database
+                option = st.selectbox('Which collection would you like to use?', ('general', 'work', 'personal'))
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+                if option:
+                    if st.button('Ingest files') and len(uploaded_files) > 0:
+                        with st.spinner("Loading..."):                    
+                            status.update(label=f'Ingesting files and adding to {option}', expanded=True, state="running")
 
-    # Load environment variables from the .env file
-    load_dotenv("/Repos/assistant/.env")
+                            # get a unique temporary directory to store the files
+                            temp_dir = os.path.join("temp", str(uuid.uuid4()))                                
+                            
+                            if not os.path.exists(temp_dir):
+                                os.makedirs(temp_dir)
 
-    setup_page()
-    
-    # Load the config
-    assistant_config_path = get_configuration_path()
-    config = AssistantConfiguration.from_file(assistant_config_path)
+                            for uploaded_file in uploaded_files:
+                                status.update(label=f"Processing filename: {uploaded_file.name}")
 
-    populate_sidebar(config)
+                                # save the file to the temp directory
+                                file_path = os.path.join(temp_dir, uploaded_file.name)
+                                with open(file_path, "wb") as f:
+                                    f.write(uploaded_file.getbuffer())
 
+                            # Ingest the files into the database
+                            documents = load_and_split_documents(temp_dir, True, 500, 50)
+
+                            documents_helper = Documents(st.session_state['config'].ai.db_env_location)
+
+                            with documents_helper.session_context(documents_helper.Session()) as session:
+                                collection = documents_helper.get_collection(session, option, st.session_state['ai'].interaction_id)
+
+                                # Create a collection if one does not exist
+                                if collection is None:
+                                    collection = documents_helper.create_collection(session, option, st.session_state['ai'].interaction_id)
+
+                                status.update(label=f"Loading document {uploaded_file.name} with {len(documents)} splits into the {option} collection")
+
+                                for document in documents:                                    
+                                    documents_helper.store_document(session, collection.id, st.session_state['ai'].default_user_id, document.page_content, document.metadata)
+
+                                status.update(label="Complete", state="complete", expanded=False)
+
+                                status.update(label=f"Ingestion of {document.metadata['filename']} complete!", state="complete", expanded=False)
+
+                            status.success("Done!")
+                            uploaded_files.clear()
+                    else:
+                        status.warning("No files selected")
+        
+
+def handle_chat():
     # Get the config and the AI instance
     if 'ai' not in st.session_state:        
         st.warning("No AI instance found in session state")
         st.stop()
     else:
-        ai_instance = st.session_state['ai']
+        ai_instance:RouterAI = st.session_state['ai']
 
-    # Add old messages
-    for message in ai_instance.get_conversation():
+    # Add old messages    
+    for message in ai_instance.get_conversation_messages():
         if message.type == "human":
             with st.chat_message("user"):
                 st.markdown(message.content)
@@ -122,10 +171,6 @@ if __name__ == "__main__":
     #with st.form("chat_form"):            
     prompt = st.chat_input("Say something")
 
-    # output_container = st.empty()
-    # answer_container = output_container.chat_message("assistant", avatar="🦜")
-    # st_callback = StreamlitCallbackHandler(answer_container)
-
     # React to user input
     if prompt := st.chat_input("What is up?"):
         # Display user message in chat message container
@@ -134,6 +179,31 @@ if __name__ == "__main__":
 
         with st.chat_message("assistant"):
             st.markdown(ai_instance.query(prompt))
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
+    # Load environment variables from the .env file
+    load_dotenv("/Repos/assistant/.env")
+
+    # Load the config
+    assistant_config_path = get_configuration_path()
+
+    # Populate the config if it's not already there
+    if 'config' not in st.session_state:
+        st.session_state['config'] = AssistantConfiguration.from_file(assistant_config_path)
+
+    print("setting up page")
+    setup_page()
+
+    print("selecting conversation")
+    select_conversation()
+
+    print("selecting documents")
+    select_documents()
+
+    print("handling chat")
+    handle_chat()
 
     
     

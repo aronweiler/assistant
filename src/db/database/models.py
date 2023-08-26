@@ -108,7 +108,7 @@ class Conversation(ModelBase):
 
     id = Column(Integer, primary_key=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    interaction_id = Column(Uuid, nullable=False)
+    interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
     conversation_role_type_id = Column(
         Integer, ForeignKey("conversation_role_types.id")
     )
@@ -161,76 +161,21 @@ class ConversationRoleType(ModelBase):
         "Conversation", back_populates="conversation_role_type"
     )
 
-
-# class ConversationToolUse(ModelBase):
-#     __tablename__ = "conversation_tool_uses"
-
-#     id = Column(Integer, primary_key=True)
-#     conversation_id = Column(Integer, ForeignKey("conversations.id"))
-#     tool_name = Column(String, nullable=False)
-#     tool_input = Column(String, nullable=False)
-#     tool_output = Column(String, nullable=False)
-#     additional_metadata = Column(String, nullable=True)
-
-#     # Define the ForeignKeyConstraint to ensure the conversation_id exists in the conversations table
-#     conversation_constraint = ForeignKeyConstraint([conversation_id], [Conversation.id])
-
-#     # Define the CheckConstraint to enforce conversation_id existing in conversations table
-#     conversation_check_constraint = CheckConstraint(
-#         "conversation_id IN (SELECT id FROM conversations)",
-#         name="ck_conversation_id_in_conversations",
-#     )
-
-#     # Define the relationship with Conversation
-#     conversation = relationship("Conversation", back_populates="conversation_tool_uses")
-
-
-# class Memory(ModelBase):
-#     __tablename__ = "conversations"
-
-#     id = Column(Integer, primary_key=True)
-#     record_created = Column(DateTime, nullable=False, default=datetime.now)
-#     conversation_text = Column(String, nullable=False)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     interaction_id = Column(Uuid, nullable=True)
-#     additional_metadata = Column(String, nullable=True)
-#     embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
-#     is_deleted = Column(Boolean, nullable=False, default=False)
-
-#     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-#     user_constraint = ForeignKeyConstraint([user_id], [User.id])
-
-#     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
-#     user_check_constraint = CheckConstraint(
-#         "user_id IS NULL OR user_id IN (SELECT id FROM users)",
-#         name="ck_user_id_in_users",
-#     )
-
-#     # Define the CheckConstraint to enforce interaction_id being NULL or existing in conversations table
-#     conversation_check_constraint = CheckConstraint(
-#         "interaction_id IS NULL OR interaction_id IN (SELECT interaction_id FROM conversations)",
-#         name="ck_interaction_id_in_conversations",
-#     )
-
-#     # TODO: If this is a conversation about a tool, we need to link to the tool
-
-#     # Define the relationship with User
-#     user = relationship("User", back_populates="conversations")
-
-
 class Document(ModelBase):
     __tablename__ = "documents"
 
     id = Column(Integer, primary_key=True)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)
-    document_text = Column(String, nullable=False)
+    collection_id = Column(Integer, ForeignKey("document_collections.id"))        
     user_id = Column(Integer, ForeignKey("users.id"))
     additional_metadata = Column(String, nullable=True)
+    document_text = Column(String, nullable=False)
     embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)    
 
+    # Define user and collection constraints
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-    user_constraint = ForeignKeyConstraint([user_id], [User.id])
-
+    user_constraint = ForeignKeyConstraint([user_id], [User.id])   
+    
     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
     user_check_constraint = CheckConstraint(
         "user_id IS NULL OR user_id IN (SELECT id FROM users)",
@@ -240,21 +185,33 @@ class Document(ModelBase):
     # Define the relationship with User
     user = relationship("User", back_populates="documents")
 
+    # Define the ForeignKeyConstraint to ensure the collection_id exists in the document_collections table
+    collection_constraint = ForeignKeyConstraint([collection_id], ["document_collections.id"])
 
-# TBD
-# class Tool(ModelBase):
-#     __tablename__ = "tools"
+    # Define the CheckConstraint to enforce collection_id existing in document_collections table
+    collection_check_constraint = CheckConstraint(
+        "collection_id IN (SELECT id FROM document_collections)",
+        name="ck_collection_id_in_document_collections",
+    )
 
-#     id = Column(Integer, primary_key=True)
-#     name = Column(String, nullable=False, unique=True)
-#     description = Column(String, nullable=False)
-#     tool_module = Column(String, nullable=False)
-#     tool_class = Column(String, nullable=False)
-#     tool_arguments = Column(String, nullable=True)
+    # Define the relationship with DocumentCollection
+    collection = relationship("DocumentCollection", back_populates="documents")
 
-#     # Define a one-to-many relationship with ConversationToolUse
-#     conversation_tool_uses = relationship("ConversationToolUse", back_populates="tool")
+class DocumentCollection(ModelBase):
+    __tablename__ = "document_collections"
 
-#     _fields_to_relationships = {
-#         "conversation_tool_uses": conversation_tool_uses,
-#     }
+    id = Column(Integer, primary_key=True)        
+    collection_name = Column(String, nullable=False, unique=True)
+    interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+    
+    # Define the foreign key constraint to ensure the interaction_id exists in the interactions table
+    interaction_constraint = ForeignKeyConstraint([interaction_id], ["interactions.id"])
+
+    # Define the CheckConstraint to enforce interaction_id existing in interactions
+    document_collection_check_constraint = CheckConstraint(
+        "interaction_id IN (SELECT id FROM interactions)",
+        name="ck_interaction_id_in_interactions",
+    )
+
+    documents = relationship("Document", back_populates="collection")

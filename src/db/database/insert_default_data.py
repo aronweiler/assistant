@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from db.models.vector_database import VectorDatabase
-from db.database.models import ConversationRoleType, User, UserSetting
+from db.database.models import ConversationRoleType, User, UserSetting, DocumentCollection
 
 db_env = "src/db/database/db.env"
 
@@ -23,21 +23,23 @@ def insert_users():
     vector_db = VectorDatabase(db_env)
 
     with vector_db.session_context(vector_db.Session()) as session:
-        aron = User(name="Aron Weiler", email="aronweiler@gmail.com")
+        aron = User(name="Aron Weiler", email="aronweiler@gmail.com", age=44, location="San Diego, CA")
         aron.user_settings.append(UserSetting(setting_name="tts_voice", setting_value="Brian"))
-        aron.user_settings.append(UserSetting(setting_name="personality_keywords", setting_value="serious, professional, friendly"))
-        aron.user_settings.append(UserSetting(setting_name="speech_rate", setting_value="150"))        
         aron.user_settings.append(UserSetting(setting_name="user_location", setting_value="San Diego, CA"))
 
+        session.add(aron)
 
-        gaia = User(name="Gaia Weiler", email="gaiaweiler@gmail.com")
+        gaia = User(name="Gaia Weiler", email="gaiaweiler@gmail.com", age=9, location="San Diego, CA")
         gaia.user_settings.append(UserSetting(setting_name="tts_voice", setting_value="Joanna"))
-        gaia.user_settings.append(UserSetting(setting_name="personality_keywords", setting_value="Funny, silly, friendly"))
-        gaia.user_settings.append(UserSetting(setting_name="speech_rate", setting_value="120"))
         gaia.user_settings.append(UserSetting(setting_name="user_location", setting_value="San Diego, CA"))
 
         session.add(gaia)
-        session.add(aron)
+
+        gaia = User(name="Susan Workman", email="susanmae1129@gmail.com", age=3000, location="San Diego, CA")
+        gaia.user_settings.append(UserSetting(setting_name="tts_voice", setting_value="Amy"))
+        gaia.user_settings.append(UserSetting(setting_name="user_location", setting_value="San Diego, CA"))
+
+        session.add(gaia)
         
         session.commit()
 

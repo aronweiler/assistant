@@ -36,7 +36,7 @@ class Conversations(VectorDatabase):
         if len(conversation_text) == 0:
             return
 
-        embedding = self._get_embedding(conversation_text)
+        embedding = self.get_embedding(conversation_text)
         conversation = Conversation(
             interaction_id=interaction_id,
             conversation_text=conversation_text,
@@ -82,7 +82,7 @@ class Conversations(VectorDatabase):
                 Conversation.conversation_text.contains(conversation_text_search_query)
             )
         elif search_type == SearchType.similarity:
-            embedding = self._get_embedding(conversation_text_search_query)
+            embedding = self.get_embedding(conversation_text_search_query)
             query = self._get_nearest_neighbors(session, query, embedding, top_k=top_k)
         else:
             raise ValueError(f"Unknown search type: {search_type}")
@@ -122,12 +122,6 @@ class Conversations(VectorDatabase):
         return session.scalars(
             query.order_by(Conversation.embedding.l2_distance(embedding)).limit(top_k)
         )
-
-    def _get_embedding(self, text: str, embedding_model="text-embedding-ada-002"):
-        return openai.Embedding.create(input=[text], model=embedding_model)["data"][0][
-            "embedding"
-        ]
-
 
 if __name__ == "__main__":
     from uuid import uuid4

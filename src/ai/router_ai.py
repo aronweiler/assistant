@@ -260,8 +260,8 @@ class RouterAI(AbstractAI):
             input_keys=["input", "chat_history", "system_information"],
         )
 
-    def get_conversation(self):
-        return self.conversation_token_buffer_memory.buffer
+    def get_conversation_messages(self):
+        return self.conversation_token_buffer_memory.buffer_as_messages
 
     def get_agent(self, llm, memory, tools, agent_memory):
         # Use my custom parser because ChatGPT occasionally returns junk
