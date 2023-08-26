@@ -44,7 +44,8 @@ from tools.news.g_news_tool import GNewsTool
 from tools.restaurants.yelp_tool import YelpTool
 
 from ai.agent_callback import AgentCallback
-from ai.output_parser import StructuredChatOutputParserWithRetries
+#from ai.output_parser import StructuredChatOutputParserWithRetries
+from langchain.output_parsers.structured import StructuredOutputParser
 
 from ai.abstract_ai import AbstractAI
 from configuration.ai_configuration import AIConfiguration
@@ -265,7 +266,7 @@ class RouterAI(AbstractAI):
 
     def get_agent(self, llm, memory, tools, agent_memory):
         # Use my custom parser because ChatGPT occasionally returns junk
-        output_parser = StructuredChatOutputParserWithRetries()
+        #output_parser = StructuredOutputParser()
 
         agent = initialize_agent(
             tools,
@@ -281,7 +282,7 @@ class RouterAI(AbstractAI):
                     "agent_scratchpad",
                     "system_information"
                 ],
-                "output_parser": output_parser,
+                #"output_parser": output_parser,
             },
         )
 

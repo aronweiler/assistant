@@ -117,7 +117,7 @@ def select_documents():
                                 os.makedirs(temp_dir)
 
                             for uploaded_file in uploaded_files:
-                                status.update(label=f"Processing filename: {uploaded_file.name}")
+                                status.info(f"Processing filename: {uploaded_file.name}")
 
                                 # save the file to the temp directory
                                 file_path = os.path.join(temp_dir, uploaded_file.name)
@@ -136,16 +136,16 @@ def select_documents():
                                 if collection is None:
                                     collection = documents_helper.create_collection(session, option, st.session_state['ai'].interaction_id)
 
-                                status.update(label=f"Loading document {uploaded_file.name} with {len(documents)} splits into the {option} collection")
+                                status.info(f"Loading {len(documents)} chunks")
 
                                 for document in documents:                                    
                                     documents_helper.store_document(session, collection.id, st.session_state['ai'].default_user_id, document.page_content, document.metadata)
-
-                                status.update(label="Complete", state="complete", expanded=False)
+                                
+                                status.info("Complete")
 
                                 status.update(label=f"Ingestion of {document.metadata['filename']} complete!", state="complete", expanded=False)
 
-                            status.success("Done!")
+                            status.success("Done!", icon="✅")
                             uploaded_files.clear()
                     else:
                         status.warning("No files selected")
