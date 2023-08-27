@@ -1,5 +1,6 @@
 import os
 import logging
+import openai
 
 import psycopg2
 from sqlalchemy import create_engine
@@ -67,3 +68,8 @@ class VectorDatabase:
                 raise e
 
         return query
+    
+    def get_embedding(self, text: str, embedding_model="text-embedding-ada-002"):
+        return openai.Embedding.create(input=[text], model=embedding_model)["data"][0][
+            "embedding"
+        ]

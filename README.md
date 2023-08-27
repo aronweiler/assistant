@@ -22,6 +22,13 @@ An intelligent assistant.  This is a work in progress.
 
 `pip install -r requirements.txt`
 
+### Install Whisper and Torch
+I'm using their github, but feel free to use the python packages.
+
+`pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git`
+
+`pip3 install --force-reinstall --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121`
+
 ## 2. Set up the database
 *The database is required for some of the more advanced features, like conversations, and eventually things like documents, advanced tooling, etc.*
 ### - Run the PGVector (postgres) docker image:

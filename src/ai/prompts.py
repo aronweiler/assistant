@@ -47,6 +47,8 @@ TOOLS_SUFFIX = """Use any context you may need from the history:
 
 Helpful system information: {system_information}
 
+Let's think this through, and be very careful to use the right tool arguments in the json blob.
+
 Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```, then Observation:.
 Thought:"""
 
@@ -96,3 +98,47 @@ MEMORY_PROMPT = PromptTemplate(
     ],
     template=MEMORY_TEMPLATE
 )
+
+SUMMARIZE_FOR_LABEL_TEMPLATE = """
+Summarize the following statement in a few words (no more than 5), with the intent of making a label for an interaction.
+
+Examples: 
+"Tell me how to do long division, step by step please." -> "How to do long division"
+"Can you tell me how to make a cake?" -> "How to make a cake"
+"What time is it?" -> "What time is it"
+"Who is the president of the United States?" -> "President of the United States"
+"Where is the nearest grocery store?  Do they sell cake?" -> "Nearest grocery store"
+
+Do not include punctuation in your summary, such as question marks, periods, or exclamation points.
+Do not include any words that are not necessary to understand the statement.
+Do not include any kind of preamble, such as "the summary is..." or anything of the sort.
+
+--- BEGIN Statement to Summarize ---
+{query}
+--- END Statement to Summarize ---
+
+ONLY return the very short summary, nothing else.
+
+Sure, here you go:
+"""
+
+SECONDARY_AGENT_ROUTER_TEMPLATE = """System information:
+{system_information}
+
+You are an AI checking another AI's work.  Your job is to evaluate the following query from a User and a response from another AI that is answering the query.
+
+--- BEGIN USER QUERY (with chat history) ---
+{chat_history}
+--- END USER QUERY ---
+
+--- BEGIN AI RESPONSE ---
+{response}
+--- END AI RESPONSE ---
+
+Review the query and the response above. 
+
+If the AI RESPONSE contains the answer to the user's query, respond only with "YES".
+
+If the AI RESPONSE does not answer the user's query, or there are factual errors with the response, rephrase the question from the USER QUERY into a stand-alone question, and respond only with that.
+
+AI: """

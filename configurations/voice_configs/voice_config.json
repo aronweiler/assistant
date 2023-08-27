@@ -12,6 +12,7 @@
           "Answer all queries as briefly and concisely as you can, while still being sarcastic and funny."
         ],
         "include_system_info": true,
+        "user_email": "aronweiler@gmail.com",
         "arguments": {
           "model": "gpt-3.5-turbo-16k",
           "temperature": 0.5,
