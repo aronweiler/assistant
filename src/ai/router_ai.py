@@ -10,6 +10,11 @@ from db.models.conversations import Conversations, SearchType
 from db.models.users import Users
 from db.models.interactions import Interactions
 
+from langchain_experimental.plan_and_execute import (
+    PlanAndExecute,
+    load_agent_executor,
+    load_chat_planner,
+)
 from langchain.agents import (
     initialize_agent,
     AgentType,
@@ -44,7 +49,8 @@ from tools.news.g_news_tool import GNewsTool
 from tools.restaurants.yelp_tool import YelpTool
 
 from ai.agent_callback import AgentCallback
-#from ai.output_parser import StructuredChatOutputParserWithRetries
+
+# from ai.output_parser import StructuredChatOutputParserWithRetries
 from langchain.output_parsers.structured import StructuredOutputParser
 
 from ai.abstract_ai import AbstractAI
@@ -55,12 +61,13 @@ from ai.prompts import (
     MULTI_PROMPT_ROUTER_TEMPLATE,
     AGENT_TEMPLATE,
     TOOLS_SUFFIX,
-    SUMMARIZE_FOR_LABEL_TEMPLATE
+    SUMMARIZE_FOR_LABEL_TEMPLATE,
+    SECONDARY_AGENT_ROUTER_TEMPLATE,
 )
 
 
 class RouterAI(AbstractAI):
-    final_rephrase_prompt = ''
+    final_rephrase_prompt = ""
     agent_tools_callback = AgentCallback()
 
     CURRENT_EVENT_TOOLS = [
@@ -107,12 +114,11 @@ class RouterAI(AbstractAI):
 
         Args:
             ai_configuration (AIConfiguration): AI configuration
-            interaction_id (UUID, optional): The interaction ID here is to be passed in by applications that want to switch to or use a specific interaction, 
+            interaction_id (UUID, optional): The interaction ID here is to be passed in by applications that want to switch to or use a specific interaction,
                 such as chatbots. Defaults to None.
         """
-        self.ai_configuration = ai_configuration        
+        self.ai_configuration = ai_configuration
         self.interactions_helper = Interactions(ai_configuration.db_env_location)
-        self.interaction_needs_summary = True
 
         # Pull the default user
         users = Users(self.ai_configuration.db_env_location)
@@ -124,25 +130,37 @@ class RouterAI(AbstractAI):
             )
 
             if user is None:
-                raise Exception(f"User with email {self.ai_configuration.user_email} not found.")
+                raise Exception(
+                    f"User with email {self.ai_configuration.user_email} not found."
+                )
 
             self.default_user_id = user.id
-        
-        with self.interactions_helper.session_context(self.interactions_helper.Session()) as session:
+
+        with self.interactions_helper.session_context(
+            self.interactions_helper.Session()
+        ) as session:
             if interaction_id is None:
                 # Create a new interaction
-                # Get a unique interaction id                            
+                # Get a unique interaction id
                 self.interaction_id = uuid4()
-                self.interactions_helper.create_interaction(session, self.interaction_id, "Chat: " + str(self.interaction_id), self.default_user_id)                
+                self.interactions_helper.create_interaction(
+                    session,
+                    self.interaction_id,
+                    "Chat: " + str(self.interaction_id),
+                    self.default_user_id,
+                )
+                self.interaction_needs_summary = True
             else:
                 # This is using an existing interaction
                 self.interaction_id = interaction_id
 
                 # Get the interaction from the db
-                interaction = self.interactions_helper.get_interaction(session, self.interaction_id)
+                interaction = self.interactions_helper.get_interaction(
+                    session, self.interaction_id
+                )
 
-                # TODO: Use this elsewhere to summarize and update the interaction
-                self.interaction_needs_summary = interaction.needs_summary 
+                # Could still need summary if the interaction was just created
+                self.interaction_needs_summary = interaction.needs_summary
 
         print(f"Interaction ID: {self.interaction_id}")
 
@@ -167,7 +185,7 @@ class RouterAI(AbstractAI):
 
         self.create_chains(self.llm)
 
-    def create_chains(self, llm):        
+    def create_chains(self, llm):
         # Database backed conversation memory
         self.postgres_chat_message_history = PostgresChatMessageHistory(
             self.interaction_id,
@@ -226,6 +244,14 @@ class RouterAI(AbstractAI):
                     agent_memory_readonly,
                 ),
                 "function": self.use_tools,
+                # TODO: Look at langchain_experimental for PlanAndExecute to replace this agent
+                "secondary_agent": PlanAndExecute(
+                    planner=load_chat_planner(llm),
+                    executor=load_agent_executor(
+                        llm, self.CURRENT_EVENT_TOOLS, verbose=True
+                    ),
+                    verbose=True,
+                ),
             },
             {
                 "name": "internet",
@@ -237,7 +263,15 @@ class RouterAI(AbstractAI):
                     agent_memory_readonly,
                 ),
                 "function": self.use_tools,
-            },
+                # TODO: Look at langchain_experimental for PlanAndExecute to replace this agent
+                "secondary_agent": PlanAndExecute(
+                    planner=load_chat_planner(llm),
+                    executor=load_agent_executor(
+                        llm, self.CURRENT_EVENT_TOOLS, verbose=True
+                    ),
+                    verbose=True,
+                ),
+            }
         ]
 
         # Put the router chain together
@@ -265,9 +299,6 @@ class RouterAI(AbstractAI):
         return self.conversation_token_buffer_memory.buffer_as_messages
 
     def get_agent(self, llm, memory, tools, agent_memory):
-        # Use my custom parser because ChatGPT occasionally returns junk
-        #output_parser = StructuredOutputParser()
-
         agent = initialize_agent(
             tools,
             llm,
@@ -280,9 +311,8 @@ class RouterAI(AbstractAI):
                     "input",
                     "agent_chat_history",
                     "agent_scratchpad",
-                    "system_information"
+                    "system_information",
                 ],
-                #"output_parser": output_parser,
             },
         )
 
@@ -298,8 +328,7 @@ class RouterAI(AbstractAI):
     def new_agent_action(*args, **kwargs):
         print("AGENT ACTION", args, kwargs, flush=True)
 
-    def query(self, query, user_id = None):
-
+    def query(self, query, user_id=None):
         if user_id is None:
             user_id = self.default_user_id
 
@@ -310,12 +339,18 @@ class RouterAI(AbstractAI):
             )
 
             if self.interaction_needs_summary:
-                interaction_summary = self.llm.predict(SUMMARIZE_FOR_LABEL_TEMPLATE.format(query=query))                
-                self.interactions_helper.update_interaction(session, self.interaction_id, interaction_summary)
+                interaction_summary = self.llm.predict(
+                    SUMMARIZE_FOR_LABEL_TEMPLATE.format(query=query)
+                )
+                self.interactions_helper.update_interaction(
+                    session, self.interaction_id, interaction_summary, False
+                )
                 self.interaction_needs_summary = False
 
             # Find some related context in the conversation table (might or might not use it)
-            self.related_context = self.conversations.search_conversations(session, query, SearchType.similarity, top_k=20)
+            self.related_context = self.conversations.search_conversations(
+                session, query, SearchType.similarity, top_k=20
+            )
             # De-dupe the conversations
             self.related_context = list(
                 set([pc.conversation_text for pc in self.related_context])
@@ -370,7 +405,10 @@ class RouterAI(AbstractAI):
                         logging.debug(f"Routing to destination: {destination['name']}")
 
                         response = destination["function"](
-                            destination["chain_or_agent"], query, current_user
+                            destination["chain_or_agent"],
+                            #destination["secondary_agent"],
+                            query,
+                            current_user,
                         )
                     else:
                         logging.warn(
@@ -390,14 +428,13 @@ class RouterAI(AbstractAI):
                 return "Sorry, I'm not feeling well right now. Please try again later."
 
     def final_rephrase(self, response):
-        if self.final_rephrase_prompt != '':
+        if self.final_rephrase_prompt != "":
             output = self.llm.predict(self.final_rephrase_prompt.format(input=response))
             return output
         else:
             return response
 
     def converse(self, chain: Chain, query: str, user: User):
-
         # Find any related conversations
         return chain.run(
             system_prompt=self.ai_configuration.llm_arguments_configuration.system_prompt,
@@ -406,7 +443,7 @@ class RouterAI(AbstractAI):
             user_name=user.name,
             user_email=user.email,
             system_information=self.get_system_information(user),
-            context=self.related_context
+            context=self.related_context,
         )
 
     def remember(self, chain: Chain, query: str, user: User):
@@ -429,13 +466,14 @@ class RouterAI(AbstractAI):
                 set([pc.conversation_text for pc in previous_conversations])
             )
 
-            return chain.run(
-                input=query,
-                context="\n".join(previous_conversations)
-            )
+            return chain.run(input=query, context="\n".join(previous_conversations))
 
-    def use_tools(self, agent: AgentExecutor, query: str, user: User):
-
+    def use_tools(
+        self,
+        agent: AgentExecutor,
+        query: str,
+        user: User,
+    ):
         # If there's a CombinedMemory
         if isinstance(agent.memory, CombinedMemory):
             for memory in agent.memory.memories:
@@ -446,6 +484,14 @@ class RouterAI(AbstractAI):
                     memory.memory.chat_memory.messages.append(
                         HumanMessage(content=query)
                     )
+
+                    # Extract the last 4 messages from the conversation memory for the secondary agent
+                    # chat_history = "\n".join(
+                    #     [
+                    #         f"{'AI' if m.type == 'ai' else f'{user.name} ({user.email})'}: {m.content}"
+                    #         for m in memory.memory.chat_memory.messages[-4:]
+                    #     ]
+                    # )
                 else:
                     memory.human_prefix = self.current_human_prefix
         else:
@@ -454,13 +500,24 @@ class RouterAI(AbstractAI):
         try:
             results = agent.run(
                 input=query,
-                system_information=self.get_system_information(user),                
+                system_information=self.get_system_information(user),
                 user_name=user.name,
                 user_email=user.email,
             )
         except Exception as e:
             logging.exception(e)
             return "Sorry, the agent couldn't process the request.  Please try again later."
+
+        # Put the run of the secondary agent back in when it doesn't suck
+        # question_answered = self.llm.predict(
+        #     SECONDARY_AGENT_ROUTER_TEMPLATE.format(
+        #         response=results,
+        #         system_information=self.get_system_information(user),
+        #         chat_history=chat_history,
+        #     )
+        # )
+        # if question_answered.lower() != "yes":
+        #     results = secondary_agent.run(question_answered)
 
         # Try to load the result into a json object
         # If it fails, just return the string

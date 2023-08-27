@@ -42,9 +42,8 @@ class WeatherTool:
                 for forecast in result.forecasts:
                     logging.debug("Forecast date: " + str(forecast.date))
                     if forecast.date == parsed_date:
-                        return f"Summarize in one sentence the following hourly forecast for {forecast.date}:\n" + "\n".join([f"Time: {fc.time}, temp: {fc.temperature}, description: {fc.description}" for fc in forecast.hourly])
-                        #return f"Low temp: {forecast.lowest_temperature} degrees. High temp: {forecast.highest_temperature} degrees."
-                
+                        return f"The hourly forecast for {location} on {forecast.date}:\n" + "\n".join([f"Time: {fc.time}, temp: {fc.temperature}, description: {fc.description}" for fc in forecast.hourly])
+                       
                 return f"Could not find a forecast for {parsed_date}."
         except Exception as e:
             logging.error(e)

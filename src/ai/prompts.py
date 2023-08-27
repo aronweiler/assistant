@@ -47,6 +47,8 @@ TOOLS_SUFFIX = """Use any context you may need from the history:
 
 Helpful system information: {system_information}
 
+Let's think this through, and be very careful to use the right tool arguments in the json blob.
+
 Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```, then Observation:.
 Thought:"""
 
@@ -119,3 +121,24 @@ ONLY return the very short summary, nothing else.
 
 Sure, here you go:
 """
+
+SECONDARY_AGENT_ROUTER_TEMPLATE = """System information:
+{system_information}
+
+You are an AI checking another AI's work.  Your job is to evaluate the following query from a User and a response from another AI that is answering the query.
+
+--- BEGIN USER QUERY (with chat history) ---
+{chat_history}
+--- END USER QUERY ---
+
+--- BEGIN AI RESPONSE ---
+{response}
+--- END AI RESPONSE ---
+
+Review the query and the response above. 
+
+If the AI RESPONSE contains the answer to the user's query, respond only with "YES".
+
+If the AI RESPONSE does not answer the user's query, or there are factual errors with the response, rephrase the question from the USER QUERY into a stand-alone question, and respond only with that.
+
+AI: """

@@ -40,12 +40,13 @@ class Interactions(VectorDatabase):
 
         session.add(interaction)
 
-    def update_interaction(self, session, interaction_id: UUID, interaction_summary: str):
+    def update_interaction(self, session, interaction_id: UUID, interaction_summary: str, needs_summary: bool = False):
         interaction_summary = interaction_summary.strip()
 
         session.query(Interaction).filter(Interaction.id == interaction_id).update(
             {
-                Interaction.interaction_summary: interaction_summary
+                Interaction.interaction_summary: interaction_summary,
+                Interaction.needs_summary: needs_summary
             }
         )
 
