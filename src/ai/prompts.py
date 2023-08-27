@@ -142,3 +142,26 @@ If the AI RESPONSE contains the answer to the user's query, respond only with "Y
 If the AI RESPONSE does not answer the user's query, or there are factual errors with the response, rephrase the question from the USER QUERY into a stand-alone question, and respond only with that.
 
 AI: """
+
+DOCUMENT_TEMPLATE = """{system_prompt}
+System information:
+{system_information}
+Related context:
+{context}
+Current conversation:
+{chat_history}
+{user_name} ({user_email}): {query}
+AI:"""
+        
+DOCUMENT_PROMPT = PromptTemplate(
+    input_variables=[
+        "system_prompt",
+        "system_information",
+        "context",
+        "user_name",
+        "user_email",
+        "chat_history",
+        "query",
+    ],
+    template=DOCUMENT_TEMPLATE
+)

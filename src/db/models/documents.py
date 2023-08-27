@@ -97,7 +97,7 @@ class Documents(VectorDatabase):
         collection_id: int,
         eager_load: List[InstrumentedAttribute[Any]] = [],
         top_k=10,
-    ) -> List[Conversation]:
+    ) -> List[Document]:
         # # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
         # Before searching, pre-filter the query to only include conversations that match the single inputs
@@ -114,9 +114,14 @@ class Documents(VectorDatabase):
             )
         elif search_type == SearchType.similarity:
             embedding = self.get_embedding(search_query)
-            query = self._get_nearest_neighbors(session, query, embedding, top_k=top_k)
+            query = self.get_nearest_neighbors(session, query, embedding, top_k=top_k)
         else:
             raise ValueError(f"Unknown search type: {search_type}")
 
         return query.all()[:top_k]
+    
+    def get_nearest_neighbors(self, session, query, embedding, top_k=5):
+        return session.scalars(
+            query.order_by(Document.embedding.l2_distance(embedding)).limit(top_k)
+        )
     
