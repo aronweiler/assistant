@@ -134,25 +134,28 @@ def select_conversation():
 
                 st.sidebar.radio(
                     "Select Conversation",
-                    options=list(interactions_dict.keys()),
-                    index=list(interactions_dict.values()).index(
-                        selected_interaction_id
-                    ),
+                    list(interactions_dict.keys()),
+                    # index=list(interactions_dict.values()).index(
+                    #     selected_interaction_id
+                    # ),
                     key="conversation_selector",
                     on_change=conversation_selected
                 )
+
+                
 
 
 def select_documents():
     with st.sidebar.container():
         status = st.status(f"File status", expanded=False, state="complete")
-        with st.sidebar.expander("Documents", expanded=False) as documents_expander:
+        with st.sidebar.expander("Documents", expanded=st.session_state.get('docs_expanded', False)) as documents_expander:
             # Add the widgets for uploading documents after setting the target collection name from the list of available collections
             uploaded_files = st.file_uploader(
                 "Choose your files", accept_multiple_files=True
             )
 
             if uploaded_files is not None:
+                st.session_state['docs_expanded'] = True
                 # TODO: generate the list of collections from the database
                 option = st.selectbox(
                     "Which collection would you like to use?",
@@ -196,29 +199,34 @@ def select_documents():
                             with documents_helper.session_context(
                                 documents_helper.Session()
                             ) as session:
+                                print(f"Getting collection {option} (interaction id: {st.session_state['ai'].interaction_id})")
                                 collection = documents_helper.get_collection(
                                     session,
                                     option,
                                     st.session_state["ai"].interaction_id,
                                 )
+                                print(f"Got collection {collection}")
 
                                 # Create a collection if one does not exist
                                 if collection is None:
+                                    print(f"Creating collection {option} (interaction id: {st.session_state['ai'].interaction_id})")
                                     collection = documents_helper.create_collection(
                                         session,
                                         option,
                                         st.session_state["ai"].interaction_id,
                                     )
+                                    print(f"Created collection {collection}")
 
                                 status.info(f"Loading {len(documents)} chunks")
 
                                 for document in documents:
                                     documents_helper.store_document(
-                                        session,
-                                        collection.id,
-                                        st.session_state["ai"].default_user_id,
-                                        document.page_content,
-                                        document.metadata,
+                                        session=session,
+                                        collection_id=collection.id,
+                                        user_id=st.session_state["ai"].default_user_id,
+                                        document_text=document.page_content,
+                                        document_name=document.metadata["filename"],
+                                        additional_metadata=document.metadata
                                     )
 
                                 status.info("Complete")
@@ -264,7 +272,7 @@ def handle_chat():
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            st.markdown(ai_instance.query(prompt))
+            st.markdown(ai_instance.query(prompt, st.session_state.get("selected_collection_id", None)))
 
 
 if __name__ == "__main__":

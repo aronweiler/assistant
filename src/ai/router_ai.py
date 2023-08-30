@@ -6,9 +6,11 @@ from uuid import uuid4, UUID
 from gnews import GNews
 
 from db.database.models import User, Interaction
+from db.models.documents import DocumentCollection, Documents
 from db.models.conversations import Conversations, SearchType
 from db.models.users import Users
 from db.models.interactions import Interactions
+from db.models.pgvector_retriever import PGVectorRetriever
 
 from langchain_experimental.plan_and_execute import (
     PlanAndExecute,
@@ -28,18 +30,23 @@ from langchain.memory import (
     ConversationBufferMemory,
     ReadOnlySharedMemory,
 )
+from langchain.base_language import BaseLanguageModel
 from langchain.chains.llm import LLMChain
 from langchain.prompts import PromptTemplate
 from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+from langchain.chains import RetrievalQA, StuffDocumentsChain
+from langchain.chains.summarize import load_summarize_chain
+from langchain.schema import Document
 
 from langchain.tools import DuckDuckGoSearchRun, StructuredTool
 from langchain.chains.base import Chain
 from langchain.tools import StructuredTool
 from langchain.callbacks.base import BaseCallbackHandler
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, AIMessage
 
 from memory.postgres_chat_message_history import PostgresChatMessageHistory
 from utilities.openai_utilities import get_openai_api_key
+from utilities.token_helper import simple_get_tokens_for_message
 
 from tools.general.time_tool import TimeTool
 from tools.weather.weather_tool import WeatherTool
@@ -62,7 +69,10 @@ from ai.prompts import (
     AGENT_TEMPLATE,
     TOOLS_SUFFIX,
     SUMMARIZE_FOR_LABEL_TEMPLATE,
-    SECONDARY_AGENT_ROUTER_TEMPLATE,
+    REPHRASE_TEMPLATE,
+    SIMPLE_SUMMARIZE_PROMPT,
+    SIMPLE_REFINE_PROMPT,
+    SINGLE_LINE_SUMMARIZE_PROMPT
 )
 
 
@@ -91,6 +101,11 @@ class RouterAI(AbstractAI):
         ),
     ]
 
+    # TBD
+    DOCUMENT_TOOLS = [
+        
+    ]
+
     INTERNET_TOOLS = [
         StructuredTool.from_function(
             YelpTool().search_businesses, callbacks=[agent_tools_callback]
@@ -115,7 +130,7 @@ class RouterAI(AbstractAI):
         Args:
             ai_configuration (AIConfiguration): AI configuration
             interaction_id (UUID, optional): The interaction ID here is to be passed in by applications that want to switch to or use a specific interaction,
-                such as chatbots. Defaults to None.
+                such as chatbots. Defaults to None.  This can also be configured in the ai configuration section.
         """
         self.ai_configuration = ai_configuration
         self.interactions_helper = Interactions(ai_configuration.db_env_location)
@@ -135,6 +150,11 @@ class RouterAI(AbstractAI):
                 )
 
             self.default_user_id = user.id
+
+        # Do we have an interaction ID in the configuration? (only use it if we have no incoming interaction id)
+        if interaction_id is None:
+            if self.ai_configuration.interaction_id is not None:
+                interaction_id = self.ai_configuration.interaction_id
 
         with self.interactions_helper.session_context(
             self.interactions_helper.Session()
@@ -159,8 +179,17 @@ class RouterAI(AbstractAI):
                     session, self.interaction_id
                 )
 
-                # Could still need summary if the interaction was just created
-                self.interaction_needs_summary = interaction.needs_summary
+                if interaction is None:
+                    self.interactions_helper.create_interaction(
+                        session,
+                        self.interaction_id,
+                        "Chat: " + str(self.interaction_id),
+                        self.default_user_id,
+                    )
+                    self.interaction_needs_summary = True
+                else:
+                    # Could still need summary if the interaction was just created
+                    self.interaction_needs_summary = interaction.needs_summary
 
         print(f"Interaction ID: {self.interaction_id}")
 
@@ -216,7 +245,7 @@ class RouterAI(AbstractAI):
         self.chains = [
             {
                 "name": "conversational",
-                "description": "Good for carrying on a conversation with a user, or responding to questions that you already know the answer to.",
+                "description": "Good for carrying on a conversation with a user, or responding to questions that you already know the answer to. Also use this when an answer to the user's question is contained within the context here (chat history or loaded documents).",
                 "chain_or_agent": LLMChain(
                     llm=llm,
                     prompt=CONVERSATIONAL_PROMPT,
@@ -237,7 +266,7 @@ class RouterAI(AbstractAI):
             {
                 "name": "current-events",
                 "description": "Good for when you need to answer a query about current events, such as weather, news, traffic, movie showtimes, etc.",
-                "chain_or_agent": self.get_agent(
+                "chain_or_agent": self.get_tool_using_agent(
                     llm,
                     self.conversation_token_buffer_memory,
                     self.CURRENT_EVENT_TOOLS,
@@ -245,33 +274,37 @@ class RouterAI(AbstractAI):
                 ),
                 "function": self.use_tools,
                 # TODO: Look at langchain_experimental for PlanAndExecute to replace this agent
-                "secondary_agent": PlanAndExecute(
-                    planner=load_chat_planner(llm),
-                    executor=load_agent_executor(
-                        llm, self.CURRENT_EVENT_TOOLS, verbose=True
-                    ),
-                    verbose=True,
-                ),
+                # "secondary_agent": PlanAndExecute(
+                #     planner=load_chat_planner(llm),
+                #     executor=load_agent_executor(
+                #         llm, self.CURRENT_EVENT_TOOLS, verbose=True
+                #     ),
+                #     verbose=True,
+                # ),
             },
             {
                 "name": "internet",
                 "description": "Good for when you need to search the internet for an answer or look at a specific website or other web-based resource, which could include things like wikipedia, google, ducduckgo, etc.",
-                "chain_or_agent": self.get_agent(
+                "chain_or_agent": self.get_tool_using_agent(
                     llm,
                     self.conversation_token_buffer_memory,
                     self.INTERNET_TOOLS,
                     agent_memory_readonly,
                 ),
-                "function": self.use_tools,
-                # TODO: Look at langchain_experimental for PlanAndExecute to replace this agent
-                "secondary_agent": PlanAndExecute(
-                    planner=load_chat_planner(llm),
-                    executor=load_agent_executor(
-                        llm, self.CURRENT_EVENT_TOOLS, verbose=True
-                    ),
-                    verbose=True,
-                ),
-            }
+                "function": self.use_tools
+            },
+            {
+                "name": "documents-search",
+                "description": "Good for when you need to search through the contents of the loaded documents for an answer to a question.",                
+                "chain_or_agent": llm,
+                "function": self.search_documents,
+            },
+            {
+                "name": "documents-summarize",
+                "description": "Good for when you need to summarize information within one or more loaded documents.",                
+                "chain_or_agent": llm,
+                "function": self.summarize_documents,
+            },
         ]
 
         # Put the router chain together
@@ -285,20 +318,20 @@ class RouterAI(AbstractAI):
 
         router_prompt = PromptTemplate(
             template=router_template,
-            input_variables=["input", "chat_history", "system_information"],
+            input_variables=["input", "chat_history", "system_information", "loaded_documents"],
             output_parser=RouterOutputParser(),
         )
 
         self.router_chain = LLMRouterChain.from_llm(
             llm,
             router_prompt,
-            input_keys=["input", "chat_history", "system_information"],
+            input_keys=["input", "chat_history", "system_information", "loaded_documents"],
         )
 
     def get_conversation_messages(self):
         return self.conversation_token_buffer_memory.buffer_as_messages
 
-    def get_agent(self, llm, memory, tools, agent_memory):
+    def get_tool_using_agent(self, llm, memory, tools, agent_memory):
         agent = initialize_agent(
             tools,
             llm,
@@ -323,14 +356,17 @@ class RouterAI(AbstractAI):
         # Set the memory on the agent tools callback so that it can manually add entries
         self.agent_tools_callback.memory = agent_memory.memory
 
-        return agent
+        return agent    
 
     def new_agent_action(*args, **kwargs):
         print("AGENT ACTION", args, kwargs, flush=True)
 
-    def query(self, query, user_id=None):
+    def query(self, query, user_id=None, collection_id=None):
         if user_id is None:
             user_id = self.default_user_id
+
+        # any document collection we might be working with
+        self.collection_id = collection_id
 
         # Get the user information
         with self.users.session_context(self.users.Session()) as session:
@@ -365,10 +401,14 @@ class RouterAI(AbstractAI):
             )
 
             try:
-                # Use the router chain first (why does this use a dictionary when the other calls are all named inputs?? no idea)
+                # Rephrase the query so that it is stand-alone
+                # Use the llm to rephrase, adding in the conversation memory for context
+                route_query = self.rephrase_query_to_standalone(query, current_user)
+
+                # Use the router chain first
                 router_result = self.router_chain(
                     {
-                        "input": query,
+                        "input": route_query,
                         "chat_history": "\n".join(
                             [
                                 f"{'AI' if m.type == 'ai' else ''}: {m.content}"
@@ -376,6 +416,7 @@ class RouterAI(AbstractAI):
                             ]
                         ),
                         "system_information": self.get_system_information(current_user),
+                        "loaded_documents": "\n".join(self.get_loaded_documents())
                     }
                 )
 
@@ -406,7 +447,7 @@ class RouterAI(AbstractAI):
 
                         response = destination["function"](
                             destination["chain_or_agent"],
-                            #destination["secondary_agent"],
+                            # destination["secondary_agent"],
                             query,
                             current_user,
                         )
@@ -444,6 +485,7 @@ class RouterAI(AbstractAI):
             user_email=user.email,
             system_information=self.get_system_information(user),
             context=self.related_context,
+            loaded_documents=self.get_loaded_documents()
         )
 
     def remember(self, chain: Chain, query: str, user: User):
@@ -466,7 +508,7 @@ class RouterAI(AbstractAI):
                 set([pc.conversation_text for pc in previous_conversations])
             )
 
-            return chain.run(input=query, context="\n".join(previous_conversations))
+            return chain.run(input=query, context="\n".join(previous_conversations))    
 
     def use_tools(
         self,
@@ -533,6 +575,132 @@ class RouterAI(AbstractAI):
                 return tool.run(**results["action_input"])
 
         return results
+
+    def search_documents(
+        self,
+        llm: BaseLanguageModel,
+        query: str,
+        user: User,
+    ):
+        query = self.rephrase_query_to_standalone(query, user)
+
+        # Create the documents class for the retriever
+        documents = Documents(self.ai_configuration.db_env_location)
+        self.pgvector_retriever = PGVectorRetriever(vectorstore=documents)
+
+        qa = RetrievalQA.from_chain_type(
+            llm=llm,
+            chain_type="stuff",
+            retriever=self.pgvector_retriever,
+        )
+
+        # Set the search kwargs for my custom retriever
+        # TODO: Replace "general" with the actual collection name
+        search_kwargs = {
+            "top_k": 20,
+            "search_type": SearchType.similarity,
+            "collection_name": "general",
+            "interaction_id": self.interaction_id,
+        }
+        self.pgvector_retriever.search_kwargs = search_kwargs
+
+        results = qa.run(query=query)
+
+        self.postgres_chat_message_history.add_user_message(query)
+        self.postgres_chat_message_history.add_ai_message(results)
+
+        return results
+    
+    def summarize_documents(
+        self,
+        llm: BaseLanguageModel,
+        query: str,
+        user: User,
+    ):
+        query = self.rephrase_query_to_standalone(query, user)
+
+        # Create the documents class for the retriever
+        documents = Documents(self.ai_configuration.db_env_location)
+        self.pgvector_retriever = PGVectorRetriever(vectorstore=documents)
+
+        # TODO: Replace with real stuff
+        with documents.session_context(documents.Session()) as session:
+            document_chunks = documents.get_document_chunks_by_filename(session, "aron-weiler-resume")
+
+            # Loop through the found documents, and join them until they fill up as much context as we can
+            docs = []
+            doc_str = ''
+            for doc in document_chunks:
+                doc_str += doc.document_text + '\n'
+                if simple_get_tokens_for_message(doc_str) > 2000: # TODO: Get rid of this magic number
+                    docs.append(Document(
+                        page_content=doc_str,
+                        metadata=json.loads(doc.additional_metadata) # Only use the last metadata
+                    ))
+                    doc_str = ''
+
+            if len(docs) <= 0:
+                result = "Sorry, I couldn't find any documents to summarize."            
+            elif len(docs) == 1:
+                result = self.summarize(llm, docs)
+            else:
+                result = self.refine_summarize(llm, docs)
+
+            # Add the messages manually to the conversation memory
+            self.postgres_chat_message_history.add_user_message(query)
+            self.postgres_chat_message_history.add_ai_message(result)
+
+            return result
+
+    def refine_summarize(self, llm, docs):       
+        chain = load_summarize_chain(
+            llm=llm,
+            chain_type="refine",
+            question_prompt=SIMPLE_SUMMARIZE_PROMPT,
+            refine_prompt=SIMPLE_REFINE_PROMPT,
+            return_intermediate_steps=True,
+            input_key="input_documents",
+            output_key="output_text"
+        )
+        
+        result = chain({"input_documents": docs}, return_only_outputs=True)
+
+        return result["output_text"]
+    
+    def summarize(self, llm, docs):       
+        llm_chain = LLMChain(llm=llm, prompt=SINGLE_LINE_SUMMARIZE_PROMPT)
+
+        stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
+                                          
+        return stuff_chain.run(docs)
+    
+    def rephrase_query_to_standalone(self, query, user):
+        # Rephrase the query so that it is stand-alone
+        # Use the llm to rephrase, adding in the conversation memory for context
+        rephrase_results = self.llm.predict(
+            REPHRASE_TEMPLATE.format(
+                input=query,
+                chat_history="\n".join(
+                    [
+                        f"{'AI' if m.type == 'ai' else f'{user.name} ({user.email})'}: {m.content}"
+                        for m in self.postgres_chat_message_history.messages[-8:]
+                    ]
+                ),
+                system_information=self.get_system_information(user),
+                user_name=user.name,
+                user_email=user.email,
+                loaded_documents="\n".join(self.get_loaded_documents())
+            )
+        )
+
+        return rephrase_results
+    
+    def get_loaded_documents(self):
+        documents = Documents(self.ai_configuration.db_env_location)
+
+        with documents.session_context(documents.Session()) as session:
+            docs = documents.get_collection_file_names(session, self.collection_id)
+            return [d.document_name for d in docs]
 
     def get_system_information(self, user: User):
         return f"Current Date/Time: {datetime.now().strftime('%m/%d/%Y %H:%M:%S')}. Current Time Zone: {datetime.now().astimezone().tzinfo}.  Current Location: {user.location}"

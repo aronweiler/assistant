@@ -43,7 +43,9 @@ class PGVectorRetriever(BaseRetriever):
             collection = self.vectorstore.get_collection(session, collection_name, interaction_id)
 
             if collection is None:
-                raise ValueError(f"Collection {collection_name} does not exist for interaction {str(interaction_id)}")
+                collection_id = None
+            else:
+                collection_id = collection.id
             
             if 'search_type' in self.search_kwargs:                
                 search_type = self.search_kwargs['search_type']
@@ -55,7 +57,7 @@ class PGVectorRetriever(BaseRetriever):
             else:
                 top_k = 4
 
-            documents = self.vectorstore.search_document_embeddings(session, search_query=query, collection_id=collection.id, search_type=search_type, top_k=top_k)
+            documents = self.vectorstore.search_document_embeddings(session, search_query=query, collection_id=collection_id, search_type=search_type, top_k=top_k)
 
             # Transform these into the document type expected by langchain
             documents = [

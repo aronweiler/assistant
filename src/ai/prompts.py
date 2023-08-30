@@ -14,6 +14,9 @@ by doing things like resolving coreferences in the input (e.g. assigning names t
 << CHAT HISTORY >>
 {{chat_history}}
 
+<< LOADED DOCUMENTS >>
+{{loaded_documents}}
+
 << FORMATTING >>
 Return a markdown code snippet with a JSON object formatted to look like:
 ```json
@@ -55,6 +58,8 @@ Thought:"""
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
 {system_information}
+Loaded documents:
+{loaded_documents}
 Possibly related context:
 {context}
 Current conversation:
@@ -66,6 +71,7 @@ CONVERSATIONAL_PROMPT = PromptTemplate(
     input_variables=[
         "system_prompt",
         "system_information",
+        "loaded_documents",
         "context",
         "user_name",
         "user_email",
@@ -143,25 +149,64 @@ If the AI RESPONSE does not answer the user's query, or there are factual errors
 
 AI: """
 
-DOCUMENT_TEMPLATE = """{system_prompt}
+REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  Use any of the available chat history or system information to help you rephrase the user's input into a stand-alone question or statement.
+
 System information:
 {system_information}
-Related context:
-{context}
-Current conversation:
+Chat history:
 {chat_history}
-{user_name} ({user_email}): {query}
-AI:"""
+Documents available:
+{loaded_documents}
+------- BEGIN USER INPUT TO REPHRASE -------
+{user_name} ({user_email}): {input}
+------- END USER INPUT TO REPHRASE -------
+
+AI: I have rephrased the user input so that it can be understood without any other context:
+"""
         
-DOCUMENT_PROMPT = PromptTemplate(
+REPHRASE_PROMPT = PromptTemplate(
     input_variables=[
-        "system_prompt",
         "system_information",
-        "context",
         "user_name",
         "user_email",
         "chat_history",
-        "query",
+        "loaded_documents",
+        "input",
     ],
-    template=DOCUMENT_TEMPLATE
+    template=REPHRASE_TEMPLATE
 )
+
+SINGLE_LINE_SUMMARIZE_TEMPLATE = """Provide a single-line summary of the following text, making sure to capture important details, such as thematically important people, organizations, places, etc.  This summary will be used to help route requests to the appropriate AI, based on the content of the text- so while your summary should be very short, it should also be as detailed as possible.
+
+{text}
+
+SINGLE LINE SUMMARY:
+"""
+
+SINGLE_LINE_SUMMARIZE_PROMPT = PromptTemplate.from_template(SINGLE_LINE_SUMMARIZE_TEMPLATE)
+
+CONCISE_SUMMARIZE_TEMPLATE = """Write a concise summary of the following:
+
+{text}
+
+CONCISE SUMMARY:
+"""
+
+SIMPLE_SUMMARIZE_PROMPT = PromptTemplate.from_template(CONCISE_SUMMARIZE_TEMPLATE)
+
+SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the following text. We have provided an existing summary up to a certain point: 
+
+----- BEGIN EXISTING SUMMARY -----
+{existing_answer}
+----- BEGIN EXISTING SUMMARY -----
+
+Now you have the opportunity to refine the existing summary (only if needed) with some more context below.
+
+----- BEGIN ADDITIONAL CONTEXT -----
+{text}
+----- END ADDITIONAL CONTEXT -----
+
+Given the new context, refine the original summary.  If the context isn't useful, just return the original summary.
+"""
+
+SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)
