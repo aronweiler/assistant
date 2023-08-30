@@ -72,7 +72,8 @@ from ai.prompts import (
     REPHRASE_TEMPLATE,
     SIMPLE_SUMMARIZE_PROMPT,
     SIMPLE_REFINE_PROMPT,
-    SINGLE_LINE_SUMMARIZE_PROMPT
+    SINGLE_LINE_SUMMARIZE_PROMPT,
+    REPHRASE_TO_KEYWORDS_TEMPLATE
 )
 
 
@@ -582,7 +583,7 @@ class RouterAI(AbstractAI):
         query: str,
         user: User,
     ):
-        query = self.rephrase_query_to_standalone(query, user)
+        query = self.rephrase_query_to_search_keywords(query, user)
 
         # Create the documents class for the retriever
         documents = Documents(self.ai_configuration.db_env_location)
@@ -611,6 +612,7 @@ class RouterAI(AbstractAI):
 
         return results
     
+    # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_documents(
         self,
         llm: BaseLanguageModel,
@@ -623,9 +625,8 @@ class RouterAI(AbstractAI):
         documents = Documents(self.ai_configuration.db_env_location)
         self.pgvector_retriever = PGVectorRetriever(vectorstore=documents)
 
-        # TODO: Replace with real stuff
         with documents.session_context(documents.Session()) as session:
-            document_chunks = documents.get_document_chunks_by_filename(session, "aron-weiler-resume")
+            document_chunks = documents.get_document_chunks_by_collection_id(session, self.collection_id)
 
             # Loop through the found documents, and join them until they fill up as much context as we can
             docs = []
@@ -683,7 +684,28 @@ class RouterAI(AbstractAI):
                 chat_history="\n".join(
                     [
                         f"{'AI' if m.type == 'ai' else f'{user.name} ({user.email})'}: {m.content}"
-                        for m in self.postgres_chat_message_history.messages[-8:]
+                        for m in self.postgres_chat_message_history.messages[-16:]
+                    ]
+                ),
+                system_information=self.get_system_information(user),
+                user_name=user.name,
+                user_email=user.email,
+                loaded_documents="\n".join(self.get_loaded_documents())
+            )
+        )
+
+        return rephrase_results
+    
+    def rephrase_query_to_search_keywords(self, query, user):
+        # Rephrase the query so that it is stand-alone
+        # Use the llm to rephrase, adding in the conversation memory for context
+        rephrase_results = self.llm.predict(
+            REPHRASE_TO_KEYWORDS_TEMPLATE.format(
+                input=query,
+                chat_history="\n".join(
+                    [
+                        f"{'AI' if m.type == 'ai' else f'{user.name} ({user.email})'}: {m.content}"
+                        for m in self.postgres_chat_message_history.messages[-16:]
                     ]
                 ),
                 system_information=self.get_system_information(user),

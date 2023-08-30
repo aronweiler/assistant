@@ -80,6 +80,15 @@ class Documents(VectorDatabase):
 
         return document
     
+    def get_document_chunks_by_collection_id(
+        self,
+        session,
+        collection_id
+    ) -> List[Document]:
+        document = session.query(Document).filter(Document.collection_id == collection_id).all()
+
+        return document
+    
     def get_collection_file_names(
         self,
         session,

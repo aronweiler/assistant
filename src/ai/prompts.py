@@ -149,14 +149,35 @@ If the AI RESPONSE does not answer the user's query, or there are factual errors
 
 AI: """
 
-REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  Use any of the available chat history or system information to help you rephrase the user's input into a stand-alone question or statement.
+REPHRASE_TO_KEYWORDS_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone set of keywords to use when searching a vector database.  This means that the rephrased input should be able to be understood without any other context besides the input itself (resolve coreferences such as he/him/her/she/it/they, etc.).  Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone set of keywords.
 
 System information:
 {system_information}
+
 Chat history:
 {chat_history}
+
 Documents available:
 {loaded_documents}
+
+------- BEGIN USER INPUT TO REPHRASE -------
+{user_name} ({user_email}): {input}
+------- END USER INPUT TO REPHRASE -------
+
+AI: I have rephrased the user input as search keywords so that it can be understood without any other context:
+"""
+
+REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone question or statement.  Do not otherwise modify the user's input.
+
+System information:
+{system_information}
+
+Chat history:
+{chat_history}
+
+Documents available:
+{loaded_documents}
+
 ------- BEGIN USER INPUT TO REPHRASE -------
 {user_name} ({user_email}): {input}
 ------- END USER INPUT TO REPHRASE -------

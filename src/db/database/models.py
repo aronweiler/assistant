@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     CheckConstraint,
+    UniqueConstraint,
     Boolean,
 )
 
@@ -238,7 +239,7 @@ class DocumentCollection(ModelBase):
     __tablename__ = "document_collections"
 
     id = Column(Integer, primary_key=True)        
-    collection_name = Column(String, nullable=False, unique=True)
+    collection_name = Column(String, nullable=False)
     interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
     
@@ -252,3 +253,6 @@ class DocumentCollection(ModelBase):
     )
 
     documents = relationship("Document", back_populates="collection")
+
+    # define the unique constraint on both the interaction_id and collection_name
+    __table_args__ = (UniqueConstraint("interaction_id", "collection_name"),)
