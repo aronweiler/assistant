@@ -581,7 +581,8 @@ class RouterAI(AbstractAI):
         query: str,
         user: User,
     ):
-        query = self.rephrase_query_to_search_keywords(query, user)
+        rephrased_query = self.rephrase_query_to_search_keywords(query, user)
+        #rephrased_query = self.rephrase_query_to_standalone(query, user)
 
         # Create the documents class for the retriever
         documents = Documents(self.ai_configuration.db_env_location)
@@ -603,7 +604,7 @@ class RouterAI(AbstractAI):
         }
         self.pgvector_retriever.search_kwargs = search_kwargs
 
-        results = qa.run(query=query)
+        results = qa.run(query=rephrased_query)
 
         self.postgres_chat_message_history.add_user_message(query)
         self.postgres_chat_message_history.add_ai_message(results)

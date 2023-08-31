@@ -90,45 +90,44 @@ def create_collections_container(main_window_container):
   overflow-x: hidden;   /* Hides horizontal scrollbar */
 }"""
 
-    #collections_container = main_window_container.container()
-    with stylable_container(key="collections_container", css_styles=css_style):
-        if "ai" in st.session_state:            
-            st.caption("Selected collection:")
-            # This is a hack, but it works
-            col1, col2 = st.columns([.80, .2])
-            col1.selectbox(
-                "Active document collection",
-                get_available_collections(st.session_state["ai"].interaction_id),
-                key="active_collection",
-                label_visibility="collapsed",
-            )
-            
-            with st.container():
-                col1, col2 = st.columns(2)
-                col1.text_input("Collection name", key="new_collection_name", label_visibility="collapsed")
-                new_collection = col2.button("Create New", key="create_collection")
+    with main_window_container:
+        with stylable_container(key="collections_container", css_styles=css_style):
+            if "ai" in st.session_state:            
+                st.caption("Selected collection:")
+                # This is a hack, but it works
+                col1, col2 = st.columns([.80, .2])
+                col1.selectbox(
+                    "Active document collection",
+                    get_available_collections(st.session_state["ai"].interaction_id),
+                    key="active_collection",
+                    label_visibility="collapsed",
+                )
                 
-                if new_collection and st.session_state.get("new_collection_name"):
-                    create_collection(st.session_state["new_collection_name"])
-                    #select_collection(st.session_state["new_collection_name"])                    
+                with st.container():
+                    col1, col2 = st.columns(2)
+                    col1.text_input("Collection name", key="new_collection_name", label_visibility="collapsed")
+                    new_collection = col2.button("Create New", key="create_collection")
+                    
+                    if st.session_state.get("new_collection_name") and new_collection:
+                        create_collection(st.session_state["new_collection_name"])                
 
-            if "ai" in st.session_state:
-                option = st.session_state["active_collection"]
-                if option:
-                    collection_id = collection_id_from_option(
-                        option, st.session_state["ai"].interaction_id
-                    )
+                if "ai" in st.session_state:
+                    option = st.session_state["active_collection"]
+                    if option:
+                        collection_id = collection_id_from_option(
+                            option, st.session_state["ai"].interaction_id
+                        )
 
-                    st.session_state["ai"].collection_id = collection_id
+                        st.session_state["ai"].collection_id = collection_id
 
-                    loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
+                        loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
 
-                    expander = st.expander(label=f"({len(loaded_docs)}) documents in {option}", expanded=True)
+                        expander = st.expander(label=f"({len(loaded_docs)}) documents in {option}", expanded=True)
 
-                    for doc in loaded_docs:
-                        expander.write(doc)
-                else:
-                    st.warning("No collection selected")
+                        for doc in loaded_docs:
+                            expander.write(doc)
+                    else:
+                        st.warning("No collection selected")
 
 
 def get_interactions():
@@ -292,59 +291,38 @@ def ingest_files(uploaded_files, option, collection_id, status):
         uploaded_files.clear()
 
 
-def handle_chat(main_window_container):    
-    container = main_window_container.container()
-    # Get the config and the AI instance
-    if "ai" not in st.session_state:
-        container.warning("No AI instance found in session state")
-        st.stop()
-    else:
-        ai_instance: RouterAI = st.session_state["ai"]
+def handle_chat(main_window_container):        
+    chat_container =  main_window_container.container()
 
-    # Add old messages
-    for message in ai_instance.get_conversation_messages():
-        if message.type == "human":
-            with container.chat_message("user"):
-                container.markdown(message.content)
+    with chat_container:
+        # Get the config and the AI instance
+        if "ai" not in st.session_state:
+            st.warning("No AI instance found in session state")
+            st.stop()
         else:
-            with container.chat_message("assistant"):
-                container.markdown(message.content)
+            ai_instance: RouterAI = st.session_state["ai"]
+
+        # Add old messages
+        for message in ai_instance.get_conversation_messages():
+            if message.type == "human":
+                with st.chat_message("user"):
+                    st.markdown(message.content)
+            else:
+                with st.chat_message("assistant"):
+                    st.markdown(message.content)
 
     # with st.form("chat_form"):
-    prompt = main_window_container.chat_input("Enter your message here")
+    prompt = st.chat_input("Enter your message here")
 
-    # React to user input
-    if prompt: # := container.chat_input("Enter your message here"):
-        # Display user message in chat message container
-        with container.chat_message("user"):
-            container.markdown(prompt)
+    with chat_container:
+        # React to user input
+        if prompt: # := container.chat_input("Enter your message here"):
+            # Display user message in chat message container
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
-        with container.chat_message("assistant"):
-            container.markdown(ai_instance.query(prompt))
-
-
-def show_collections():
-    pass
-
-
-def loaded_documents():
-    pass
-    # with st.sidebar.container():
-    #     if "ai" in st.session_state:
-    #         option = st.session_state["active_collection"]
-    #         if option:
-    #             collection_id = collection_id_from_option(
-    #                 option, st.session_state["ai"].interaction_id
-    #             )
-
-    #             loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
-
-    #             expander = st.sidebar.expander(label=f"Loaded documents ({len(loaded_docs)})", expanded=True)
-
-    #             for doc in loaded_docs:
-    #                 expander.write(doc)
-    #         else:
-    #             expander.write("No collection selected")
+            with st.chat_message("assistant"):
+                st.markdown(ai_instance.query(prompt))
 
 
 if __name__ == "__main__":
@@ -367,13 +345,15 @@ if __name__ == "__main__":
     st.set_page_config(
         page_title="Hey Jarvis...",
         page_icon="😎",
-        layout="centered",
+        layout="wide",
         initial_sidebar_state="expanded",
     )
 
     st.title("Hey Jarvis 😎...")
 
-    main_window_container = st.container()        
+    main_window_container = st.container()
+
+    col1, col2 = main_window_container.columns([.65, .35])            
 
     print("loading ai")
     load_ai()
@@ -382,16 +362,10 @@ if __name__ == "__main__":
     select_conversation()
 
     print("creating collections container")
-    create_collections_container(main_window_container)
+    create_collections_container(col2)
 
     print("selecting documents")
     select_documents()
 
-    print("showing loaded documents")
-    loaded_documents()
-
     print("handling chat")
-    handle_chat(main_window_container)    
-
-    print("showing collections")
-    show_collections()
+    handle_chat(col1)

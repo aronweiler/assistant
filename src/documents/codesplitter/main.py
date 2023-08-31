@@ -2,6 +2,10 @@
 import argparse
 import logging
 import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
+
 import documents.codesplitter.utils as utils
 
 import documents.codesplitter.splitter.splitter_utils as splitter_utils
