@@ -1,6 +1,8 @@
 import logging
 import uuid
 import streamlit as st
+from streamlit_extras.stylable_container import stylable_container
+from streamlit_extras.grid import grid
 import os
 from dotenv import load_dotenv
 
@@ -36,19 +38,68 @@ def get_configuration_path():
     )
 
 
-def setup_page():
-    # Set up our page
-    st.set_page_config(
-        page_title="Hey Jarvis...",
-        page_icon="😎",
-        layout="centered",
-        initial_sidebar_state="expanded",
-    )
+def get_available_collections(interaction_id) -> dict[str, int]:
+    documents_helper = Documents(st.session_state["config"].ai.db_env_location)
 
-    st.title("Hey Jarvis...")
+    with documents_helper.session_context(documents_helper.Session()) as session:
+        collections = documents_helper.get_collections(session, interaction_id)
 
-    # Sidebar
-    # st.sidebar.title("Conversations")
+        # Create a dictionary of collection id to collection summary
+        collections_dict = {
+            collection.collection_name: collection.id for collection in collections
+        }
+
+        return collections_dict
+
+
+def collection_id_from_option(option, interaction_id):
+    collections_dict = get_available_collections(interaction_id)
+
+    return collections_dict[option]
+
+
+def create_collections_container(main_window_container):
+
+    css_style = """{
+  position: fixed;  /* Keeps the element fixed on the screen */
+  top: 100px;        /* Adjust the top position as needed */
+  right: 100px;      /* Adjust the right position as needed */
+  width: 300px;     /* Adjust the width as needed */
+  max-width: 100%;  /* Ensures the element width doesn't exceed area */
+  z-index: 9999;    /* Ensures the element is on top of other content */
+  max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
+  overflow: auto;     /* Adds a scrollbar when the content overflows */
+}"""
+
+    #collections_container = main_window_container.container()
+    with stylable_container(key="collections_container", css_styles=css_style):
+        if "ai" in st.session_state:            
+            st.caption("Selected collection:")
+            # This is a hack, but it works
+            col1, col2 = st.columns([.80, .2])
+            col1.selectbox(
+                "Active document collection",
+                get_available_collections(st.session_state["ai"].interaction_id),
+                key="active_collection",
+                label_visibility="collapsed",
+            )
+            st.button("Create New", key="create_collection")
+
+            if "ai" in st.session_state:
+                option = st.session_state["active_collection"]
+                if option:
+                    collection_id = collection_id_from_option(
+                        option, st.session_state["ai"].interaction_id
+                    )
+
+                    loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
+
+                    expander = st.expander(label=f"Loaded documents ({len(loaded_docs)})", expanded=True)
+
+                    for doc in loaded_docs:
+                        expander.write(doc)
+                else:
+                    expander.write("No collection selected")
 
 
 def get_interactions():
@@ -68,20 +119,23 @@ def get_interactions():
 
         return interactions_dict
 
+
 def conversation_selected():
-    if 'conversation_selector' not in st.session_state:
+    if "conversation_selector" not in st.session_state:
         interaction_key = None
     else:
-        interaction_key = st.session_state['conversation_selector']
+        interaction_key = st.session_state["conversation_selector"]
 
     interactions_dict = get_interactions()
 
-    if 'conversation_selector' in st.session_state:
+    if "conversation_selector" in st.session_state:
         selected_interaction_id = interactions_dict[interaction_key]
     else:
         selected_interaction_id = None
 
-    print(f"conversation_selected: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}")
+    print(
+        f"conversation_selected: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}"
+    )
 
     if "ai" not in st.session_state:
         print("conversation_selected: ai not in session state")
@@ -101,8 +155,12 @@ def conversation_selected():
 
             # Refresh the interactions if we created anything
             interactions_dict = get_interactions()
-    elif selected_interaction_id is not None and selected_interaction_id != str(st.session_state["ai"].interaction_id):
-        print("conversation_selected: interaction id is not none and not equal to ai interaction id")
+    elif selected_interaction_id is not None and selected_interaction_id != str(
+        st.session_state["ai"].interaction_id
+    ):
+        print(
+            "conversation_selected: interaction id is not none and not equal to ai interaction id"
+        )
         # We have an AI instance, but we need to change the interaction
         ai_instance = RouterAI(st.session_state["config"].ai, selected_interaction_id)
         st.session_state["ai"] = ai_instance
@@ -118,19 +176,21 @@ def select_conversation():
         with st.sidebar.expander(
             label="Conversations", expanded=True
         ) as conversations_expander:
-            new_chat_button_clicked = st.sidebar.button("New Chat", key="new_chat", on_click=conversation_selected)
+            new_chat_button_clicked = st.sidebar.button(
+                "New Chat", key="new_chat", on_click=conversation_selected
+            )
 
             if new_chat_button_clicked:
                 # Recreate the AI with no interaction id (it will create one)
                 ai_instance = RouterAI(st.session_state["config"].ai)
                 st.session_state["ai"] = ai_instance
             else:
-                interactions_dict = get_interactions()                
+                interactions_dict = get_interactions()
 
-                if 'ai' not in st.session_state:
+                if "ai" not in st.session_state:
                     conversation_selected()
 
-                selected_interaction_id = st.session_state["ai"].interaction_id
+                # selected_interaction_id = st.session_state["ai"].interaction_id
 
                 st.sidebar.radio(
                     "Select Conversation",
@@ -139,28 +199,32 @@ def select_conversation():
                     #     selected_interaction_id
                     # ),
                     key="conversation_selector",
-                    on_change=conversation_selected
+                    on_change=conversation_selected,
                 )
-
-                
 
 
 def select_documents():
     with st.sidebar.container():
         status = st.status(f"File status", expanded=False, state="complete")
-        with st.sidebar.expander("Documents", expanded=st.session_state.get('docs_expanded', False)) as documents_expander:
+        with st.sidebar.expander(
+            "Documents", expanded=st.session_state.get("docs_expanded", False)
+        ) as documents_expander:
             # Add the widgets for uploading documents after setting the target collection name from the list of available collections
             uploaded_files = st.file_uploader(
                 "Choose your files", accept_multiple_files=True
             )
 
             if uploaded_files is not None:
-                st.session_state['docs_expanded'] = True
+                st.session_state["docs_expanded"] = True
                 # TODO: generate the list of collections from the database
-                option = st.selectbox(
-                    "Which collection would you like to use?",
-                    ("general", "work", "personal"),
-                )
+
+                option = None
+                if st.session_state["active_collection"] is not None:
+                    option = st.session_state["active_collection"]
+                    collection_id = collection_id_from_option(
+                        option, st.session_state["ai"].interaction_id
+                    )
+                    print(f"Active collection: {option}")
 
                 if option:
                     if st.button("Ingest files") and len(uploaded_files) > 0:
@@ -199,34 +263,35 @@ def select_documents():
                             with documents_helper.session_context(
                                 documents_helper.Session()
                             ) as session:
-                                print(f"Getting collection {option} (interaction id: {st.session_state['ai'].interaction_id})")
-                                collection = documents_helper.get_collection(
-                                    session,
-                                    option,
-                                    st.session_state["ai"].interaction_id,
+                                collection_id = collection_id_from_option(
+                                    option, st.session_state["ai"].interaction_id
                                 )
-                                print(f"Got collection {collection}")
 
                                 # Create a collection if one does not exist
-                                if collection is None:
-                                    print(f"Creating collection {option} (interaction id: {st.session_state['ai'].interaction_id})")
+                                if collection_id is None:
+                                    print(
+                                        f"Creating collection {option} (interaction id: {st.session_state['ai'].interaction_id})"
+                                    )
                                     collection = documents_helper.create_collection(
                                         session,
                                         option,
                                         st.session_state["ai"].interaction_id,
                                     )
-                                    print(f"Created collection {collection}")
+                                    print(
+                                        f"Created collection {collection.collection_name}"
+                                    )
+                                    collection_id = collection.id
 
                                 status.info(f"Loading {len(documents)} chunks")
 
                                 for document in documents:
                                     documents_helper.store_document(
                                         session=session,
-                                        collection_id=collection.id,
+                                        collection_id=collection_id,
                                         user_id=st.session_state["ai"].default_user_id,
                                         document_text=document.page_content,
                                         document_name=document.metadata["filename"],
-                                        additional_metadata=document.metadata
+                                        additional_metadata=document.metadata,
                                     )
 
                                 status.info("Complete")
@@ -242,13 +307,12 @@ def select_documents():
                     else:
                         status.warning("No files selected")
 
-        
 
-
-def handle_chat():
+def handle_chat(main_window_container):    
+    container = main_window_container.container()
     # Get the config and the AI instance
     if "ai" not in st.session_state:
-        st.warning("No AI instance found in session state")
+        container.warning("No AI instance found in session state")
         st.stop()
     else:
         ai_instance: RouterAI = st.session_state["ai"]
@@ -256,23 +320,47 @@ def handle_chat():
     # Add old messages
     for message in ai_instance.get_conversation_messages():
         if message.type == "human":
-            with st.chat_message("user"):
-                st.markdown(message.content)
+            with container.chat_message("user"):
+                container.markdown(message.content)
         else:
-            with st.chat_message("assistant"):
-                st.markdown(message.content)
+            with container.chat_message("assistant"):
+                container.markdown(message.content)
 
     # with st.form("chat_form"):
-    prompt = st.chat_input("Say something")
+    prompt = main_window_container.chat_input("Enter your message here")
 
     # React to user input
-    if prompt := st.chat_input("What is up?"):
+    if prompt: # := container.chat_input("Enter your message here"):
         # Display user message in chat message container
-        with st.chat_message("user"):
-            st.markdown(prompt)
+        with container.chat_message("user"):
+            container.markdown(prompt)
 
-        with st.chat_message("assistant"):
-            st.markdown(ai_instance.query(prompt, st.session_state.get("selected_collection_id", None)))
+        with container.chat_message("assistant"):
+            container.markdown(ai_instance.query(prompt))
+
+
+def show_collections():
+    pass
+
+
+def loaded_documents():
+    pass
+    # with st.sidebar.container():
+    #     if "ai" in st.session_state:
+    #         option = st.session_state["active_collection"]
+    #         if option:
+    #             collection_id = collection_id_from_option(
+    #                 option, st.session_state["ai"].interaction_id
+    #             )
+
+    #             loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
+
+    #             expander = st.sidebar.expander(label=f"Loaded documents ({len(loaded_docs)})", expanded=True)
+
+    #             for doc in loaded_docs:
+    #                 expander.write(doc)
+    #         else:
+    #             expander.write("No collection selected")
 
 
 if __name__ == "__main__":
@@ -291,7 +379,18 @@ if __name__ == "__main__":
         )
 
     print("setting up page")
-    setup_page()
+    # Set up our page
+    st.set_page_config(
+        page_title="Hey Jarvis...",
+        page_icon="😎",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
+
+    st.title("Hey Jarvis...")
+
+    main_window_container = st.container()
+    create_collections_container(main_window_container)    
 
     print("selecting conversation")
     select_conversation()
@@ -299,5 +398,11 @@ if __name__ == "__main__":
     print("selecting documents")
     select_documents()
 
+    print("showing loaded documents")
+    loaded_documents()
+
     print("handling chat")
-    handle_chat()
+    handle_chat(main_window_container)    
+
+    print("showing collections")
+    show_collections()

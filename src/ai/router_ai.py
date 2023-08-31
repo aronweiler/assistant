@@ -362,12 +362,13 @@ class RouterAI(AbstractAI):
     def new_agent_action(*args, **kwargs):
         print("AGENT ACTION", args, kwargs, flush=True)
 
-    def query(self, query, user_id=None, collection_id=None):
-        if user_id is None:
-            user_id = self.default_user_id
-
+    def set_collection_id(self, collection_id):
         # any document collection we might be working with
         self.collection_id = collection_id
+
+    def query(self, query, user_id=None):
+        if user_id is None:
+            user_id = self.default_user_id
 
         # Get the user information
         with self.users.session_context(self.users.Session()) as session:
@@ -404,12 +405,12 @@ class RouterAI(AbstractAI):
             try:
                 # Rephrase the query so that it is stand-alone
                 # Use the llm to rephrase, adding in the conversation memory for context
-                route_query = self.rephrase_query_to_standalone(query, current_user)
+                # query = self.rephrase_query_to_standalone(query, current_user)
 
                 # Use the router chain first
                 router_result = self.router_chain(
                     {
-                        "input": route_query,
+                        "input": query,
                         "chat_history": "\n".join(
                             [
                                 f"{'AI' if m.type == 'ai' else ''}: {m.content}"
@@ -417,7 +418,7 @@ class RouterAI(AbstractAI):
                             ]
                         ),
                         "system_information": self.get_system_information(current_user),
-                        "loaded_documents": "\n".join(self.get_loaded_documents())
+                        "loaded_documents": "\n".join(self.get_loaded_documents(self.collection_id))
                     }
                 )
 
@@ -486,7 +487,7 @@ class RouterAI(AbstractAI):
             user_email=user.email,
             system_information=self.get_system_information(user),
             context=self.related_context,
-            loaded_documents=self.get_loaded_documents()
+            loaded_documents=self.get_loaded_documents(self.collection_id)
         )
 
     def remember(self, chain: Chain, query: str, user: User):
@@ -690,7 +691,7 @@ class RouterAI(AbstractAI):
                 system_information=self.get_system_information(user),
                 user_name=user.name,
                 user_email=user.email,
-                loaded_documents="\n".join(self.get_loaded_documents())
+                loaded_documents="\n".join(self.get_loaded_documents(self.collection_id))
             )
         )
 
@@ -711,17 +712,17 @@ class RouterAI(AbstractAI):
                 system_information=self.get_system_information(user),
                 user_name=user.name,
                 user_email=user.email,
-                loaded_documents="\n".join(self.get_loaded_documents())
+                loaded_documents="\n".join(self.get_loaded_documents(self.collection_id))
             )
         )
 
         return rephrase_results
     
-    def get_loaded_documents(self):
+    def get_loaded_documents(self, collection_id):
         documents = Documents(self.ai_configuration.db_env_location)
 
         with documents.session_context(documents.Session()) as session:
-            docs = documents.get_collection_file_names(session, self.collection_id)
+            docs = documents.get_collection_file_names(session, collection_id)
             return [d.document_name for d in docs]
 
     def get_system_information(self, user: User):

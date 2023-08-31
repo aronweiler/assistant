@@ -79,6 +79,7 @@ tiktoken==0.3.3
 
 # UI
 streamlit
+streamlit-extras
 
 # The following are things that I am not using yet, but I want to keep track of them
 # Embeddings 
