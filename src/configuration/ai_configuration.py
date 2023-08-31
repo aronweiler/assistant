@@ -13,6 +13,7 @@ class AIConfiguration:
         tools: Union[List[str], None],
         store_conversation_history: bool,
         db_env_location: str = None,
+        interaction_id: str = None,
         system_prompts: List[str] = None,
         include_system_info: bool = True,
         llm_arguments_configuration: LLMArgumentsConfiguration = None,
@@ -24,6 +25,7 @@ class AIConfiguration:
         self.tools: Union[List[str], None] = tools
         self.store_conversation_history = store_conversation_history
         self.db_env_location = db_env_location
+        self.interaction_id = interaction_id
         self.system_prompts = system_prompts
         self.include_system_info = include_system_info
         self.llm_arguments_configuration = llm_arguments_configuration
@@ -48,6 +50,8 @@ class AIConfiguration:
         db_env_location = config.get("db_env_location", None)
 
         system_prompts = config["system_prompts"]
+
+        interaction_id = config.get("interaction_id", None)
 
         include_system_info = config["include_system_info"]
         
@@ -78,6 +82,7 @@ class AIConfiguration:
             tools,
             store_conversation_history,
             db_env_location,
+            interaction_id,
             system_prompts,
             include_system_info,
             llm_arguments_configuration,

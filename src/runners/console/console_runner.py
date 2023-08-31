@@ -12,7 +12,7 @@ from utilities.pretty_print import pretty_print_conversation
 class ConsoleRunner(Runner):
     def __init__(self, arguments):
         email = arguments["user_email"]
-
+        self.collection_id = arguments["collection_id"]
         self.users = Users(arguments["db_env_location"])
         with self.users.session_context(self.users.Session()) as session:
             self.user = self.users.find_user_by_email(
@@ -35,7 +35,7 @@ class ConsoleRunner(Runner):
             query = input("Query (X to exit):")
 
             # Run the query
-            result = abstract_ai.query(query, self.user_id)
+            result = abstract_ai.query(query, self.user_id, self.collection_id)
 
             # print the result
             pretty_print_conversation(result)

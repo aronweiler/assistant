@@ -5,6 +5,7 @@
     "class_name": "RouterAI",
     "store_conversation_history": true,
     "db_env_location": "src/db/database/db.env",
+    "interaction_id": "abcd878a-0f94-4c83-8193-da958a65d565",    
     "system_prompts": [
       "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.",
       "You're a bit snarky, and love to randomly throw out jokes and references to pop culture in your responses, while also answering the user's questions.",
@@ -17,7 +18,7 @@
       "model": "gpt-3.5-turbo-16k",
       "temperature": 0.5,
       "max_supported_tokens": 16384,
-      "max_completion_tokens": 4096,
+      "max_completion_tokens": 8192,
       "max_function_limit": 10,
       "db_env_location": "src/db/database/db.env"
     }
@@ -29,7 +30,8 @@
       "class_name": "ConsoleRunner",
       "arguments": {
         "db_env_location": "src/db/database/db.env",
-        "user_email": "aronweiler@gmail.com"
+        "user_email": "aronweiler@gmail.com",
+        "collection_id": "12"
       }
     }
   ]

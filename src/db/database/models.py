@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     CheckConstraint,
+    UniqueConstraint,
     Boolean,
 )
 
@@ -161,16 +162,53 @@ class ConversationRoleType(ModelBase):
         "Conversation", back_populates="conversation_role_type"
     )
 
+# TODO: Implement when I want to make more of a hierarchical structure
+# class File(ModelBase):
+#     __tablename__ = "files"
+
+#     id = Column(Integer, primary_key=True)
+#     collection_id = Column(Integer, ForeignKey("document_collections.id"), nullable=False)        
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     file_name = Column(String, nullable=False)
+#     file_summary = Column(String, nullable=False)
+#     file_contents = Column(String, nullable=False)    
+#     record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+#     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
+#     user_constraint = ForeignKeyConstraint([user_id], [User.id])   
+    
+#     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
+#     user_check_constraint = CheckConstraint(
+#         "user_id IS NULL OR user_id IN (SELECT id FROM users)",
+#         name="ck_user_id_in_users",
+#     )
+
+#     # Define the relationship with User
+#     user = relationship("User", back_populates="files")
+
+#     # Define the ForeignKeyConstraint to ensure the collection_id exists in the document_collections table
+#     collection_constraint = ForeignKeyConstraint([collection_id], ["document_collections.id"])
+
+#     # Define the CheckConstraint to enforce collection_id existing in document_collections table
+#     collection_check_constraint = CheckConstraint(
+#         "collection_id IN (SELECT id FROM document_collections)",
+#         name="ck_collection_id_in_document_collections",
+#     )
+
+#     # Define the relationship with DocumentCollection
+#     collection = relationship("DocumentCollection", back_populates="files")
+
 class Document(ModelBase):
     __tablename__ = "documents"
 
     id = Column(Integer, primary_key=True)
-    collection_id = Column(Integer, ForeignKey("document_collections.id"))        
+    collection_id = Column(Integer, ForeignKey("document_collections.id"), nullable=False)        
     user_id = Column(Integer, ForeignKey("users.id"))
     additional_metadata = Column(String, nullable=True)
     document_text = Column(String, nullable=False)
+    document_name = Column(String, nullable=False)
     embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)    
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
 
     # Define user and collection constraints
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
@@ -201,7 +239,7 @@ class DocumentCollection(ModelBase):
     __tablename__ = "document_collections"
 
     id = Column(Integer, primary_key=True)        
-    collection_name = Column(String, nullable=False, unique=True)
+    collection_name = Column(String, nullable=False)
     interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
     
@@ -215,3 +253,6 @@ class DocumentCollection(ModelBase):
     )
 
     documents = relationship("Document", back_populates="collection")
+
+    # define the unique constraint on both the interaction_id and collection_name
+    __table_args__ = (UniqueConstraint("interaction_id", "collection_name"),)

@@ -31,15 +31,16 @@ class Documents(VectorDatabase):
         collection = DocumentCollection(collection_name=collection_name, interaction_id=interaction_id)        
 
         session.add(collection)
+        session.commit()
         return collection
     
     def get_collection(
         self,
         session,
-        collection_name,
+        collection_id,
         interaction_id
     ):
-        collection = session.query(DocumentCollection).filter(DocumentCollection.collection_name == collection_name).filter(DocumentCollection.interaction_id == interaction_id).first()
+        collection = session.query(DocumentCollection).filter(DocumentCollection.id == collection_id).filter(DocumentCollection.interaction_id == interaction_id).first()
 
         return collection
         
@@ -70,12 +71,40 @@ class Documents(VectorDatabase):
 
         return document
     
+    def get_document_chunks_by_filename(
+        self,
+        session,
+        document_name
+    ) -> List[Document]:
+        document = session.query(Document).filter(Document.additional_metadata.contains(f'"filename": "{document_name}"')).all()
+
+        return document
+    
+    def get_document_chunks_by_collection_id(
+        self,
+        session,
+        collection_id
+    ) -> List[Document]:
+        document = session.query(Document).filter(Document.collection_id == collection_id).all()
+
+        return document
+    
+    def get_collection_file_names(
+        self,
+        session,
+        collection_id
+    ) -> List[str]:
+        documents = session.query(Document.document_name).distinct().filter(Document.collection_id == collection_id).all()
+
+        return documents
+    
     def store_document(
         self,
         session,
         collection_id,
         user_id,
         document_text,
+        document_name,
         additional_metadata=None
     ):
         document = Document(
@@ -83,6 +112,7 @@ class Documents(VectorDatabase):
             user_id=user_id,
             additional_metadata=json.dumps(additional_metadata),
             document_text=document_text,
+            document_name=document_name,
             embedding=self.get_embedding(document_text),            
         )
 
@@ -97,13 +127,16 @@ class Documents(VectorDatabase):
         collection_id: int,
         eager_load: List[InstrumentedAttribute[Any]] = [],
         top_k=10,
-    ) -> List[Conversation]:
+    ) -> List[Document]:
         # # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
         # Before searching, pre-filter the query to only include conversations that match the single inputs
-        query = session.query(Document).filter(
-            Document.collection_id == collection_id
-        )
+        query = session.query(Document)
+        
+        if collection_id is not None:
+            query = query.filter(
+                Document.collection_id == collection_id
+            )
 
         query = super().eager_load(query, eager_load)
 
@@ -114,9 +147,14 @@ class Documents(VectorDatabase):
             )
         elif search_type == SearchType.similarity:
             embedding = self.get_embedding(search_query)
-            query = self._get_nearest_neighbors(session, query, embedding, top_k=top_k)
+            query = self.get_nearest_neighbors(session, query, embedding, top_k=top_k)
         else:
             raise ValueError(f"Unknown search type: {search_type}")
 
         return query.all()[:top_k]
+    
+    def get_nearest_neighbors(self, session, query, embedding, top_k=5):
+        return session.scalars(
+            query.order_by(Document.embedding.l2_distance(embedding)).limit(top_k)
+        )
     
