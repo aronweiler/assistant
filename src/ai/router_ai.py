@@ -80,6 +80,7 @@ from ai.prompts import (
 class RouterAI(AbstractAI):
     final_rephrase_prompt = ""
     agent_tools_callback = AgentCallback()
+    collection_id = None
 
     CURRENT_EVENT_TOOLS = [
         StructuredTool.from_function(
@@ -302,7 +303,7 @@ class RouterAI(AbstractAI):
             },
             {
                 "name": "documents-summarize",
-                "description": "Good for when you need to summarize information within one or more loaded documents.",                
+                "description": "Only use this if the user specifically asks you to summarize a document.",                
                 "chain_or_agent": llm,
                 "function": self.summarize_documents,
             },
@@ -361,10 +362,6 @@ class RouterAI(AbstractAI):
 
     def new_agent_action(*args, **kwargs):
         print("AGENT ACTION", args, kwargs, flush=True)
-
-    def set_collection_id(self, collection_id):
-        # any document collection we might be working with
-        self.collection_id = collection_id
 
     def query(self, query, user_id=None):
         if user_id is None:
@@ -601,7 +598,6 @@ class RouterAI(AbstractAI):
         search_kwargs = {
             "top_k": 20,
             "search_type": SearchType.similarity,
-            "collection_name": "general",
             "interaction_id": self.interaction_id,
         }
         self.pgvector_retriever.search_kwargs = search_kwargs

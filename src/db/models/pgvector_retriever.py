@@ -33,19 +33,19 @@ class PGVectorRetriever(BaseRetriever):
             if 'collection_name' in self.search_kwargs:                
                 collection_name = self.search_kwargs['collection_name']
             else:
-                collection_name = "general"
+                raise Exception("collection_name must be specified in search_kwargs")
 
             if 'interaction_id' in self.search_kwargs:                
                 interaction_id = self.search_kwargs['interaction_id']
             else:
-                interaction_id = "general"
+                raise Exception("interaction_id must be specified in search_kwargs")
 
             collection = self.vectorstore.get_collection(session, collection_name, interaction_id)
 
-            if collection is None:
-                collection_id = None
-            else:
+            if collection is not None:
                 collection_id = collection.id
+            else:
+                raise Exception("Collection not found")                    
             
             if 'search_type' in self.search_kwargs:                
                 search_type = self.search_kwargs['search_type']

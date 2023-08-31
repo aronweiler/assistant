@@ -55,8 +55,26 @@ def get_available_collections(interaction_id) -> dict[str, int]:
 def collection_id_from_option(option, interaction_id):
     collections_dict = get_available_collections(interaction_id)
 
-    return collections_dict[option]
+    if option in collections_dict:
+        return collections_dict[option]
+    else:
+        return None
 
+def create_collection(name):
+    print(f"Creating collection {name} (interaction id: {st.session_state['ai'].interaction_id})")
+    documents_helper = Documents(st.session_state["config"].ai.db_env_location)
+    with documents_helper.session_context(documents_helper.Session()) as session:
+        collection = documents_helper.create_collection(
+            session,
+            name,
+            st.session_state["ai"].interaction_id,
+        )
+        print(
+            f"Created collection {collection.collection_name}"
+        )
+        collection_id = collection.id
+
+    return collection_id
 
 def create_collections_container(main_window_container):
 
@@ -69,6 +87,7 @@ def create_collections_container(main_window_container):
   z-index: 9999;    /* Ensures the element is on top of other content */
   max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
   overflow: auto;     /* Adds a scrollbar when the content overflows */
+  overflow-x: hidden;   /* Hides horizontal scrollbar */
 }"""
 
     #collections_container = main_window_container.container()
@@ -83,7 +102,15 @@ def create_collections_container(main_window_container):
                 key="active_collection",
                 label_visibility="collapsed",
             )
-            st.button("Create New", key="create_collection")
+            
+            with st.container():
+                col1, col2 = st.columns(2)
+                col1.text_input("Collection name", key="new_collection_name", label_visibility="collapsed")
+                new_collection = col2.button("Create New", key="create_collection")
+                
+                if new_collection and st.session_state.get("new_collection_name", None):
+                    create_collection(st.session_state["new_collection_name"])
+                    #select_collection(st.session_state["new_collection_name"])                    
 
             if "ai" in st.session_state:
                 option = st.session_state["active_collection"]
@@ -92,6 +119,8 @@ def create_collections_container(main_window_container):
                         option, st.session_state["ai"].interaction_id
                     )
 
+                    st.session_state["ai"].collection_id = collection_id
+
                     loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
 
                     expander = st.expander(label=f"Loaded documents ({len(loaded_docs)})", expanded=True)
@@ -99,7 +128,7 @@ def create_collections_container(main_window_container):
                     for doc in loaded_docs:
                         expander.write(doc)
                 else:
-                    expander.write("No collection selected")
+                    st.warning("No collection selected")
 
 
 def get_interactions():
@@ -175,7 +204,7 @@ def select_conversation():
     with st.sidebar.container():
         with st.sidebar.expander(
             label="Conversations", expanded=True
-        ) as conversations_expander:
+        ):
             new_chat_button_clicked = st.sidebar.button(
                 "New Chat", key="new_chat", on_click=conversation_selected
             )
@@ -192,12 +221,9 @@ def select_conversation():
 
                 # selected_interaction_id = st.session_state["ai"].interaction_id
 
-                st.sidebar.radio(
+                st.sidebar.selectbox(
                     "Select Conversation",
                     list(interactions_dict.keys()),
-                    # index=list(interactions_dict.values()).index(
-                    #     selected_interaction_id
-                    # ),
                     key="conversation_selector",
                     on_change=conversation_selected,
                 )
@@ -219,7 +245,7 @@ def select_documents():
                 # TODO: generate the list of collections from the database
 
                 option = None
-                if st.session_state["active_collection"] is not None:
+                if st.session_state.get("active_collection", None) is not None:
                     option = st.session_state["active_collection"]
                     collection_id = collection_id_from_option(
                         option, st.session_state["ai"].interaction_id
@@ -266,21 +292,6 @@ def select_documents():
                                 collection_id = collection_id_from_option(
                                     option, st.session_state["ai"].interaction_id
                                 )
-
-                                # Create a collection if one does not exist
-                                if collection_id is None:
-                                    print(
-                                        f"Creating collection {option} (interaction id: {st.session_state['ai'].interaction_id})"
-                                    )
-                                    collection = documents_helper.create_collection(
-                                        session,
-                                        option,
-                                        st.session_state["ai"].interaction_id,
-                                    )
-                                    print(
-                                        f"Created collection {collection.collection_name}"
-                                    )
-                                    collection_id = collection.id
 
                                 status.info(f"Loading {len(documents)} chunks")
 

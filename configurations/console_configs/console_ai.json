@@ -18,7 +18,7 @@
       "model": "gpt-3.5-turbo-16k",
       "temperature": 0.5,
       "max_supported_tokens": 16384,
-      "max_completion_tokens": 4096,
+      "max_completion_tokens": 8192,
       "max_function_limit": 10,
       "db_env_location": "src/db/database/db.env"
     }
