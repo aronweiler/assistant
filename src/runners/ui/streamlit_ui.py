@@ -371,7 +371,7 @@ if __name__ == "__main__":
         initial_sidebar_state="expanded",
     )
 
-    st.title("Hey Jarvis...")
+    st.title("Hey Jarvis 😎...")
 
     main_window_container = st.container()        
 
