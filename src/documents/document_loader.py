@@ -11,6 +11,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # Custom loaders
 from documents.pdf_loader import PDFLoader
+from documents.code_loader import CodeLoader
 
 # TODO: Add loaders for PPT, and other document types
 from langchain.document_loaders import CSVLoader, TextLoader, Docx2txtLoader, BSHTMLLoader
@@ -22,6 +23,10 @@ DOCUMENT_TYPES = {
     ".pdf": PDFLoader,
     ".csv": CSVLoader,
     ".html": BSHTMLLoader,
+    ".cpp" : CodeLoader,
+    ".c" : CodeLoader,
+    ".cc" : CodeLoader,
+    ".h" : CodeLoader,
 }
 
 WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}

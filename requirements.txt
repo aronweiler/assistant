@@ -73,6 +73,9 @@ docx2txt
 pdfminer.six
 bs4
 
+# Code parsing
+libclang==16.0.6
+
 # Token counting
 # Currently pegged at this version for whisper compatibility
 tiktoken==0.3.3

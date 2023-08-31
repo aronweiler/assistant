@@ -297,7 +297,7 @@ class RouterAI(AbstractAI):
             },
             {
                 "name": "documents-search",
-                "description": "Good for when you need to search through the contents of the loaded documents for an answer to a question.",                
+                "description": "Good for when you need to search through the contents of the loaded documents for an answer to a question.  Use this when the user is referring to any loaded documents in their search for information.",                
                 "chain_or_agent": llm,
                 "function": self.search_documents,
             },
@@ -411,7 +411,7 @@ class RouterAI(AbstractAI):
                         "chat_history": "\n".join(
                             [
                                 f"{'AI' if m.type == 'ai' else ''}: {m.content}"
-                                for m in self.postgres_chat_message_history.messages
+                                for m in self.postgres_chat_message_history.messages[-8:]
                             ]
                         ),
                         "system_information": self.get_system_information(current_user),
@@ -599,6 +599,7 @@ class RouterAI(AbstractAI):
             "top_k": 20,
             "search_type": SearchType.similarity,
             "interaction_id": self.interaction_id,
+            "collection_id": self.collection_id,
         }
         self.pgvector_retriever.search_kwargs = search_kwargs
 

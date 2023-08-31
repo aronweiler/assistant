@@ -148,13 +148,18 @@ def get_interactions():
 
         return interactions_dict
 
-
-def conversation_selected():
+def load_interactions(interactions_dict):        
     interaction_key = st.session_state.get("conversation_selector")
-    interactions_dict = get_interactions()
+
     selected_interaction_id = interactions_dict.get(interaction_key)
 
-    print(f"conversation_selected: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}")
+    print(f"load_interactions: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}")
+
+    return selected_interaction_id
+
+def load_ai():
+    interactions_dict = get_interactions()
+    selected_interaction_id = load_interactions(interactions_dict)
 
     if "ai" not in st.session_state:
         print("conversation_selected: ai not in session state")
@@ -197,109 +202,94 @@ def select_conversation():
                 # Recreate the AI with no interaction id (it will create one)
                 ai_instance = RouterAI(st.session_state["config"].ai)
                 st.session_state["ai"] = ai_instance
-                st.session_state["conversation_selector"] = None
+                #st.session_state["conversation_selector"] = None
             else:
                 interactions_dict = get_interactions()
 
-                if "conversation_selector" not in st.session_state:
-                    st.session_state["conversation_selector"] = None
+                print(f"select_conversation: interactions_dict: {str(list(interactions_dict.keys()))}")
+
+                # if "conversation_selector" not in st.session_state:
+                #     st.session_state["conversation_selector"] = None
 
                 st.sidebar.selectbox(
                     "Select Conversation",
                     list(interactions_dict.keys()),
                     key="conversation_selector",
-                    on_change=conversation_selected,
+                    on_change=load_ai,
                 )
 
 
 def select_documents():
     with st.sidebar.container():
         status = st.status(f"File status", expanded=False, state="complete")
-        with st.sidebar.expander(
+        docs_expanded = st.sidebar.expander(
             "Documents", expanded=st.session_state.get("docs_expanded", False)
-        ) as documents_expander:
-            # Add the widgets for uploading documents after setting the target collection name from the list of available collections
-            uploaded_files = st.file_uploader(
-                "Choose your files", accept_multiple_files=True
+        )
+
+        uploaded_files = st.file_uploader(
+            "Choose your files", accept_multiple_files=True
+        )
+
+        if uploaded_files is not None:
+            docs_expanded.expanded = True
+
+            option = st.session_state.get("active_collection")
+            collection_id = None
+
+            if option:
+                collection_id = collection_id_from_option(
+                    option, st.session_state["ai"].interaction_id
+                )
+                print(f"Active collection: {option}")
+
+            if option and st.button("Ingest files") and len(uploaded_files) > 0:
+                ingest_files(uploaded_files, option, collection_id, status)
+
+def ingest_files(uploaded_files, option, collection_id, status):
+    with st.spinner("Loading..."):
+        status.update(
+            label=f"Ingesting files and adding to {option}",
+            expanded=True,
+            state="running",
+        )
+
+        temp_dir = os.path.join("temp", str(uuid.uuid4()))
+
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir)
+
+        for uploaded_file in uploaded_files:
+            status.info(f"Processing filename: {uploaded_file.name}")
+
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+        documents = load_and_split_documents(temp_dir, True, 500, 50)
+        documents_helper = Documents(st.session_state["config"].ai.db_env_location)
+
+        with documents_helper.session_context(documents_helper.Session()) as session:
+            status.info(f"Loading {len(documents)} chunks")
+
+            for document in documents:
+                documents_helper.store_document(
+                    session=session,
+                    collection_id=collection_id,
+                    user_id=st.session_state["ai"].default_user_id,
+                    document_text=document.page_content,
+                    document_name=document.metadata["filename"],
+                    additional_metadata=document.metadata,
+                )
+
+            status.info("Complete")
+            status.update(
+                label=f"Ingestion of {document.metadata['filename']} complete!",
+                state="complete",
+                expanded=False,
             )
 
-            if uploaded_files is not None:
-                st.session_state["docs_expanded"] = True
-                # TODO: generate the list of collections from the database
-
-                option = None
-                if st.session_state.get("active_collection", None) is not None:
-                    option = st.session_state["active_collection"]
-                    collection_id = collection_id_from_option(
-                        option, st.session_state["ai"].interaction_id
-                    )
-                    print(f"Active collection: {option}")
-
-                if option:
-                    if st.button("Ingest files") and len(uploaded_files) > 0:
-                        with st.spinner("Loading..."):
-                            status.update(
-                                label=f"Ingesting files and adding to {option}",
-                                expanded=True,
-                                state="running",
-                            )
-
-                            # get a unique temporary directory to store the files
-                            temp_dir = os.path.join("temp", str(uuid.uuid4()))
-
-                            if not os.path.exists(temp_dir):
-                                os.makedirs(temp_dir)
-
-                            for uploaded_file in uploaded_files:
-                                status.info(
-                                    f"Processing filename: {uploaded_file.name}"
-                                )
-
-                                # save the file to the temp directory
-                                file_path = os.path.join(temp_dir, uploaded_file.name)
-                                with open(file_path, "wb") as f:
-                                    f.write(uploaded_file.getbuffer())
-
-                            # Ingest the files into the database
-                            documents = load_and_split_documents(
-                                temp_dir, True, 500, 50
-                            )
-
-                            documents_helper = Documents(
-                                st.session_state["config"].ai.db_env_location
-                            )
-
-                            with documents_helper.session_context(
-                                documents_helper.Session()
-                            ) as session:
-                                collection_id = collection_id_from_option(
-                                    option, st.session_state["ai"].interaction_id
-                                )
-
-                                status.info(f"Loading {len(documents)} chunks")
-
-                                for document in documents:
-                                    documents_helper.store_document(
-                                        session=session,
-                                        collection_id=collection_id,
-                                        user_id=st.session_state["ai"].default_user_id,
-                                        document_text=document.page_content,
-                                        document_name=document.metadata["filename"],
-                                        additional_metadata=document.metadata,
-                                    )
-
-                                status.info("Complete")
-
-                                status.update(
-                                    label=f"Ingestion of {document.metadata['filename']} complete!",
-                                    state="complete",
-                                    expanded=False,
-                                )
-
-                            status.success("Done!", icon="✅")
-                            uploaded_files.clear()
-                    else:
-                        status.warning("No files selected")
+        status.success("Done!", icon="✅")
+        uploaded_files.clear()
 
 
 def handle_chat(main_window_container):    
@@ -383,11 +373,16 @@ if __name__ == "__main__":
 
     st.title("Hey Jarvis...")
 
-    main_window_container = st.container()
-    create_collections_container(main_window_container)    
+    main_window_container = st.container()        
+
+    print("loading ai")
+    load_ai()
 
     print("selecting conversation")
     select_conversation()
+
+    print("creating collections container")
+    create_collections_container(main_window_container)
 
     print("selecting documents")
     select_documents()

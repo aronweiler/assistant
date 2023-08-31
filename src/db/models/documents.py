@@ -37,10 +37,10 @@ class Documents(VectorDatabase):
     def get_collection(
         self,
         session,
-        collection_name,
+        collection_id,
         interaction_id
     ):
-        collection = session.query(DocumentCollection).filter(DocumentCollection.collection_name == collection_name).filter(DocumentCollection.interaction_id == interaction_id).first()
+        collection = session.query(DocumentCollection).filter(DocumentCollection.id == collection_id).filter(DocumentCollection.interaction_id == interaction_id).first()
 
         return collection
         
