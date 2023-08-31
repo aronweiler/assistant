@@ -1,0 +1,86 @@
+{
+  "assistant_configuration": {
+    "user_email": "aronweiler@gmail.com",
+    "db_env_location": "src/db/database/db.env",
+    "request_router": {
+      "model_configuration": {
+        "llm_type": "open_ai",
+        "model": "gpt-3.5-turbo",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 4096,
+        "max_conversation_history_tokens": 500,
+        "max_completion_tokens": 2048      
+      },
+      "destination_routes": [
+        {
+          "destination": {
+            "name": "conversational",
+            "module": "ai.destinations.conversational",
+            "class_name": "ConversationalAI",
+            "description": "Good for carrying on a conversation with a user, or responding to questions that you were trained on.",
+            "model_configuration": {
+              "llm_type": "open_ai",
+              "model": "gpt-3.5-turbo-16k",
+              "temperature": 0.7,
+              "max_retries": 3,
+              "max_model_supported_tokens": 16384,
+              "max_conversation_history_tokens": 4096,
+              "max_completion_tokens": 8192      
+            }            
+          }
+        },
+        {
+          "destination": {
+            "name": "memory",
+            "module": "ai.destinations.memory",
+            "class_name": "MemoryAI",
+            "description": "Good for when you may need to remember something from a previous conversation with the user, or look up some information about the user.",
+            "model_configuration": {
+              "llm_type": "open_ai",
+              "model": "gpt-3.5-turbo-16k",
+              "temperature": 0,
+              "max_retries": 3,
+              "max_model_supported_tokens": 16384,
+              "max_conversation_history_tokens": 4096,
+              "max_completion_tokens": 8192      
+            }            
+          }
+        },
+        {
+          "destination": {
+            "name": "documents",
+            "module": "ai.destinations.documents",
+            "class_name": "DocumentsAI",
+            "description": "Good for interacting with any of the documents that maybe be loaded (see: LOADED DOCUMENTS).  If there are no loaded documents, this should never be used.",
+            "model_configuration": {
+              "llm_type": "open_ai",
+              "model": "gpt-3.5-turbo-16k",
+              "temperature": 0,
+              "max_retries": 3,
+              "max_model_supported_tokens": 16384,
+              "max_conversation_history_tokens": 4096,
+              "max_completion_tokens": 8192      
+            }            
+          }
+        },
+        {
+          "destination": {
+            "name": "current-events",
+            "module": "ai.destinations.current_events",
+            "class_name": "CurrentEventsAI",
+            "description": "Good for when you need to answer a query about current events such as weather, news, sports, traffic, movie show times, etc.",
+            "model_configuration": {
+              "llm_type": "open_ai",
+              "model": "gpt-3.5-turbo",
+              "temperature": 0.5,
+              "max_model_supported_tokens": 4096,
+              "max_conversation_history_tokens": 1000,
+              "max_completion_tokens": 2048
+            }            
+          }
+        }
+      ]
+    }
+  }
+}
