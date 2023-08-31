@@ -108,7 +108,7 @@ def create_collections_container(main_window_container):
                 col1.text_input("Collection name", key="new_collection_name", label_visibility="collapsed")
                 new_collection = col2.button("Create New", key="create_collection")
                 
-                if new_collection and st.session_state.get("new_collection_name", None):
+                if new_collection and st.session_state.get("new_collection_name"):
                     create_collection(st.session_state["new_collection_name"])
                     #select_collection(st.session_state["new_collection_name"])                    
 
@@ -123,7 +123,7 @@ def create_collections_container(main_window_container):
 
                     loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
 
-                    expander = st.expander(label=f"Loaded documents ({len(loaded_docs)})", expanded=True)
+                    expander = st.expander(label=f"({len(loaded_docs)}) documents in {option}", expanded=True)
 
                     for doc in loaded_docs:
                         expander.write(doc)
@@ -150,31 +150,19 @@ def get_interactions():
 
 
 def conversation_selected():
-    if "conversation_selector" not in st.session_state:
-        interaction_key = None
-    else:
-        interaction_key = st.session_state["conversation_selector"]
-
+    interaction_key = st.session_state.get("conversation_selector")
     interactions_dict = get_interactions()
+    selected_interaction_id = interactions_dict.get(interaction_key)
 
-    if "conversation_selector" in st.session_state:
-        selected_interaction_id = interactions_dict[interaction_key]
-    else:
-        selected_interaction_id = None
-
-    print(
-        f"conversation_selected: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}"
-    )
+    print(f"conversation_selected: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}")
 
     if "ai" not in st.session_state:
         print("conversation_selected: ai not in session state")
         # First time loading the page
         # Check to see if there are interactions, and select the top one
-        if len(interactions_dict) > 0:
-            default_interaction_id = list(interactions_dict.values())[0]
-            ai_instance = RouterAI(
-                st.session_state["config"].ai, default_interaction_id
-            )
+        if interactions_dict:
+            default_interaction_id = [value for value in interactions_dict.values()][0]
+            ai_instance = RouterAI(st.session_state["config"].ai, default_interaction_id)
             st.session_state["ai"] = ai_instance
         else:
             print("conversation_selected: no interactions found")
@@ -184,16 +172,12 @@ def conversation_selected():
 
             # Refresh the interactions if we created anything
             interactions_dict = get_interactions()
-    elif selected_interaction_id is not None and selected_interaction_id != str(
-        st.session_state["ai"].interaction_id
-    ):
-        print(
-            "conversation_selected: interaction id is not none and not equal to ai interaction id"
-        )
+    elif selected_interaction_id and selected_interaction_id != str(st.session_state["ai"].interaction_id):
+        print("conversation_selected: interaction id is not none and not equal to ai interaction id")
         # We have an AI instance, but we need to change the interaction
         ai_instance = RouterAI(st.session_state["config"].ai, selected_interaction_id)
         st.session_state["ai"] = ai_instance
-    elif selected_interaction_id is None:
+    elif not selected_interaction_id:
         print("conversation_selected: interaction id is none")
         # We have an AI instance, but they clicked new chat
         ai_instance = RouterAI(st.session_state["config"].ai)
@@ -206,20 +190,19 @@ def select_conversation():
             label="Conversations", expanded=True
         ):
             new_chat_button_clicked = st.sidebar.button(
-                "New Chat", key="new_chat", on_click=conversation_selected
+                "New Chat", key="new_chat"
             )
 
             if new_chat_button_clicked:
                 # Recreate the AI with no interaction id (it will create one)
                 ai_instance = RouterAI(st.session_state["config"].ai)
                 st.session_state["ai"] = ai_instance
+                st.session_state["conversation_selector"] = None
             else:
                 interactions_dict = get_interactions()
 
-                if "ai" not in st.session_state:
-                    conversation_selected()
-
-                # selected_interaction_id = st.session_state["ai"].interaction_id
+                if "conversation_selector" not in st.session_state:
+                    st.session_state["conversation_selector"] = None
 
                 st.sidebar.selectbox(
                     "Select Conversation",
