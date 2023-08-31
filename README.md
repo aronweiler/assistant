@@ -11,7 +11,8 @@ An intelligent assistant.  This is a work in progress.
 - ✅ Conversation Manager
 - ✅ Memory Storage (This is really exciting!)
 - ✅ Voice Runner
-- ✅ BASIC Streamlit UI
+- ✅ Streamlit UI
+- ✅ Chat with Documents (UI/Console only)
 - ☑️ Google API Integration
 - ☑️ Generic Tooling (a.k.a. on-demand tools)
 - ☑️ API Discovery and Calling
@@ -91,4 +92,4 @@ Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
 
 *Note- this approach currently relies on the `OPENAI_API_KEY` and `ASSISTANT_CONFIG_PATH` environment variables.  Make sure they are set.
 
-Use any config that has an `ai` section, such as: `configurations/console_configs/console_ai.json`*
+Use any config that has an `ai` section, such as: `configurations/ui_configs/ui_ai.json`*
