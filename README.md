@@ -17,7 +17,7 @@ An intelligent assistant.  This is a work in progress.
 - ☑️ Generic Tooling (a.k.a. on-demand tools)
 - ☑️ API Discovery and Calling
 
-# Running the Assistant
+# Prerequisits
 
 ## 1. Install the python requirements:
 
@@ -71,6 +71,8 @@ See [Memory](src\db\readme.md)
 Currently, only the [console_ai_assistant](configurations\console_configs\console_ai_assistant.json) is supported.  Take a look at that configuration file to get a flavor for what future implementations will look like.
 
 Modify the [console_ai_assistant](configurations\console_configs\console_ai_assistant.json) to suit your needs.
+
+# Running the Assistant
 
 ## 4. Run the Console or Voice Assistant
 Run the run.py file, with your choice of configuration.
