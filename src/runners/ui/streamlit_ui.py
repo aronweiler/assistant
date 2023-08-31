@@ -93,7 +93,7 @@ def create_collections_container(main_window_container):
     with main_window_container:
         with stylable_container(key="collections_container", css_styles=css_style):
             if "ai" in st.session_state:            
-                st.caption("Selected collection:")
+                st.caption("Selected document collection:")
                 # This is a hack, but it works
                 col1, col2 = st.columns([.80, .2])
                 col1.selectbox(
