@@ -139,7 +139,7 @@ if __name__ == "__main__":
             session, interaction_id
         )
 
-        aron = users.find_user_by_email(session, "aronweiler@gmail.com")
+        aron = users.get_user_by_email(session, "aronweiler@gmail.com")
         results = conversations.search_conversations(
             session,
             conversation_text_search_query="favorite food is",

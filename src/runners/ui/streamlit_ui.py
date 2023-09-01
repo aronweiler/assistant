@@ -13,16 +13,18 @@ import sys
 
 sys.path.append("/Repos/assistant/src")
 
-from ai.router_ai import RouterAI
+from ai.request_router import RequestRouter
 
-from configuration.assistant_configuration import AssistantConfiguration
+from configuration.assistant_configuration import AssistantConfiguration, ConfigurationLoader
 
 from db.database.models import Conversation, Interaction, User
+
 
 from db.models.vector_database import VectorDatabase, SearchType
 from db.models.conversations import Conversations
 from db.models.interactions import Interactions
 from db.models.documents import Documents
+from db.models.users import Users
 
 from documents.document_loader import load_and_split_documents
 
@@ -30,16 +32,16 @@ USER_EMAIL = "aronweiler@gmail.com"
 
 
 def get_configuration_path():
-    os.environ["ASSISTANT_CONFIG_PATH"] = "configurations/ui_configs/ui_ai.json"
+    os.environ["ASSISTANT_CONFIG_PATH"] = "configurations/ui_configs/ui_config.json"
 
     return os.environ.get(
         "ASSISTANT_CONFIG_PATH",
-        "configurations/ui_configs/ui_ai.json",
+        "configurations/ui_configs/ui_config.json",
     )
 
 
 def get_available_collections(interaction_id) -> dict[str, int]:
-    documents_helper = Documents(st.session_state["config"].ai.db_env_location)
+    documents_helper = Documents(st.session_state["config"].db_env_location)
 
     with documents_helper.session_context(documents_helper.Session()) as session:
         collections = documents_helper.get_collections(session, interaction_id)
@@ -61,13 +63,16 @@ def collection_id_from_option(option, interaction_id):
         return None
 
 def create_collection(name):
-    print(f"Creating collection {name} (interaction id: {st.session_state['ai'].interaction_id})")
-    documents_helper = Documents(st.session_state["config"].ai.db_env_location)
+    selected_interaction_id = get_selected_interaction_id()
+    
+    print(f"Creating collection {name} (interaction id: {selected_interaction_id})")
+
+    documents_helper = Documents(st.session_state["config"].db_env_location)
     with documents_helper.session_context(documents_helper.Session()) as session:
         collection = documents_helper.create_collection(
             session,
             name,
-            st.session_state["ai"].interaction_id,
+            selected_interaction_id,
         )
         print(
             f"Created collection {collection.collection_name}"
@@ -90,6 +95,8 @@ def create_collections_container(main_window_container):
   overflow-x: hidden;   /* Hides horizontal scrollbar */
 }"""
 
+    selected_interaction_id = get_selected_interaction_id()
+
     with main_window_container:
         with stylable_container(key="collections_container", css_styles=css_style):
             if "ai" in st.session_state:            
@@ -98,7 +105,7 @@ def create_collections_container(main_window_container):
                 col1, col2 = st.columns([.80, .2])
                 col1.selectbox(
                     "Active document collection",
-                    get_available_collections(st.session_state["ai"].interaction_id),
+                    get_available_collections(selected_interaction_id),
                     key="active_collection",
                     label_visibility="collapsed",
                 )
@@ -115,12 +122,12 @@ def create_collections_container(main_window_container):
                     option = st.session_state["active_collection"]
                     if option:
                         collection_id = collection_id_from_option(
-                            option, st.session_state["ai"].interaction_id
+                            option, selected_interaction_id
                         )
 
-                        st.session_state["ai"].collection_id = collection_id
+                        st.session_state["ai"].interaction_manager.collection_id = collection_id
 
-                        loaded_docs = st.session_state["ai"].get_loaded_documents(collection_id)
+                        loaded_docs = st.session_state["ai"].interaction_manager.get_loaded_documents()
 
                         expander = st.expander(label=f"({len(loaded_docs)}) documents in {option}", expanded=True)
 
@@ -130,63 +137,65 @@ def create_collections_container(main_window_container):
                         st.warning("No collection selected")
 
 
-def get_interactions():
-    interactions_helper = Interactions(st.session_state["config"].ai.db_env_location)
+def get_interaction_pairs():
+    """Gets the interactions for the current user in 'UUID:STR' format"""
+    interactions_helper = Interactions(st.session_state["config"].db_env_location)
 
     with interactions_helper.session_context(interactions_helper.Session()) as session:
-        interactions = interactions_helper.get_interactions(session, USER_EMAIL)
+        interactions = interactions_helper.get_interactions_by_user_id(session, st.session_state["user_id"])
+
+        if not interactions:
+            return None
 
         # Reverse the list so the most recent interactions are at the top
         interactions.reverse()
 
-        # Create a dictionary of interaction id to interaction summary
-        interactions_dict = {
-            interaction.interaction_summary: interaction.id
-            for interaction in interactions
-        }
+        interaction_pairs = [f"{i.id}:{i.interaction_summary}" for i in interactions]
 
-        return interactions_dict
+        print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
 
-def load_interactions(interactions_dict):        
-    interaction_key = st.session_state.get("conversation_selector")
+        return interaction_pairs
+    
+def load_interaction_selectbox():
+    """Loads the interaction selectbox"""
 
-    selected_interaction_id = interactions_dict.get(interaction_key)
+    st.sidebar.selectbox(
+        "Select Conversation",
+        get_interaction_pairs(),
+        key="interaction_summary_selectbox",
+        format_func=lambda x: x.split(":")[1],
+        on_change=load_ai,
+    )
 
-    print(f"load_interactions: {str(interaction_key)} ({selected_interaction_id}), interactions: {str(interactions_dict)}")
+def get_selected_interaction_id():   
+    """Gets the selected interaction id from the selectbox"""     
+    selected_interaction_pair = st.session_state.get("interaction_summary_selectbox")
+    
+    if not selected_interaction_pair:
+        return None
+    
+    selected_interaction_id = selected_interaction_pair.split(":")[0]
+
+    print(f"get_selected_interaction_id: selected_interaction_id: {selected_interaction_id}")
 
     return selected_interaction_id
+    
 
 def load_ai():
-    interactions_dict = get_interactions()
-    selected_interaction_id = load_interactions(interactions_dict)
+    """Loads the AI instance for the selected interaction id"""
+    selected_interaction_id = get_selected_interaction_id()
 
     if "ai" not in st.session_state:
-        print("conversation_selected: ai not in session state")
         # First time loading the page
-        # Check to see if there are interactions, and select the top one
-        if interactions_dict:
-            default_interaction_id = [value for value in interactions_dict.values()][0]
-            ai_instance = RouterAI(st.session_state["config"].ai, default_interaction_id)
-            st.session_state["ai"] = ai_instance
-        else:
-            print("conversation_selected: no interactions found")
-            # Create a new interaction, this might be the first run
-            ai_instance = RouterAI(st.session_state["config"].ai)
-            st.session_state["ai"] = ai_instance
-
-            # Refresh the interactions if we created anything
-            interactions_dict = get_interactions()
-    elif selected_interaction_id and selected_interaction_id != str(st.session_state["ai"].interaction_id):
-        print("conversation_selected: interaction id is not none and not equal to ai interaction id")
-        # We have an AI instance, but we need to change the interaction
-        ai_instance = RouterAI(st.session_state["config"].ai, selected_interaction_id)
+        print("conversation_selected: ai not in session state")        
+        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id)
         st.session_state["ai"] = ai_instance
-    elif not selected_interaction_id:
-        print("conversation_selected: interaction id is none")
-        # We have an AI instance, but they clicked new chat
-        ai_instance = RouterAI(st.session_state["config"].ai)
+        
+    elif selected_interaction_id and selected_interaction_id != str(st.session_state["ai"].interaction_manager.interaction_id):
+        # We have an AI instance, but we need to change the interaction id
+        print("conversation_selected: interaction id is not none and not equal to ai interaction id")        
+        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id)
         st.session_state["ai"] = ai_instance
-
 
 def select_conversation():
     with st.sidebar.container():
@@ -194,28 +203,11 @@ def select_conversation():
             label="Conversations", expanded=True
         ):
             new_chat_button_clicked = st.sidebar.button(
-                "New Chat", key="new_chat"
+                "New Chat", key="new_chat_button"
             )
 
             if new_chat_button_clicked:
-                # Recreate the AI with no interaction id (it will create one)
-                ai_instance = RouterAI(st.session_state["config"].ai)
-                st.session_state["ai"] = ai_instance
-                #st.session_state["conversation_selector"] = None
-            else:
-                interactions_dict = get_interactions()
-
-                print(f"select_conversation: interactions_dict: {str(list(interactions_dict.keys()))}")
-
-                # if "conversation_selector" not in st.session_state:
-                #     st.session_state["conversation_selector"] = None
-
-                st.sidebar.selectbox(
-                    "Select Conversation",
-                    list(interactions_dict.keys()),
-                    key="conversation_selector",
-                    on_change=load_ai,
-                )
+                create_interaction("Empty Chat")   
 
 
 def select_documents():
@@ -237,7 +229,7 @@ def select_documents():
 
             if option:
                 collection_id = collection_id_from_option(
-                    option, st.session_state["ai"].interaction_id
+                    option, st.session_state["ai"].interaction_manager.interaction_id
                 )
                 print(f"Active collection: {option}")
 
@@ -265,7 +257,7 @@ def ingest_files(uploaded_files, option, collection_id, status):
                 f.write(uploaded_file.getbuffer())
 
         documents = load_and_split_documents(temp_dir, True, 500, 50)
-        documents_helper = Documents(st.session_state["config"].ai.db_env_location)
+        documents_helper = Documents(st.session_state["config"].db_env_location)
 
         with documents_helper.session_context(documents_helper.Session()) as session:
             status.info(f"Loading {len(documents)} chunks")
@@ -291,7 +283,7 @@ def ingest_files(uploaded_files, option, collection_id, status):
         uploaded_files.clear()
 
 
-def handle_chat(main_window_container):        
+def handle_chat(main_window_container):
     chat_container =  main_window_container.container()
 
     with chat_container:
@@ -300,10 +292,10 @@ def handle_chat(main_window_container):
             st.warning("No AI instance found in session state")
             st.stop()
         else:
-            ai_instance: RouterAI = st.session_state["ai"]
+            ai_instance: RequestRouter = st.session_state["ai"]
 
         # Add old messages
-        for message in ai_instance.get_conversation_messages():
+        for message in ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages:
             if message.type == "human":
                 with st.chat_message("user"):
                     st.markdown(message.content)
@@ -324,36 +316,71 @@ def handle_chat(main_window_container):
             with st.chat_message("assistant"):
                 st.markdown(ai_instance.query(prompt))
 
+def set_user_id_from_email(email):
+    users_helper = Users(st.session_state["config"].db_env_location)
+    with users_helper.session_context(users_helper.Session()) as session:
+            user = users_helper.get_user_by_email(session, email)
+            st.session_state["user_id"] = user.id
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+def create_interaction(interaction_summary):
+    interactions_helper = Interactions(st.session_state["config"].db_env_location)
+    
+    with interactions_helper.session_context(interactions_helper.Session()) as session:
+        interactions_helper.create_interaction(
+            session,
+            id=str(uuid.uuid4()),
+            interaction_summary=interaction_summary,
+            user_id=st.session_state["user_id"],            
+        )        
+        
+        session.commit()
+
+def ensure_interaction():
+    """Ensures that an interaction exists for the current user"""
+
+    # Only do this if we haven't already done it
+    if "interaction_ensured" not in st.session_state or not st.session_state["interaction_ensured"]:
+        
+        if not get_interaction_pairs():
+            create_interaction("Empty Chat")
+
+        st.session_state["interaction_ensured"] = True
+
+def load_configuration():
 
     # Load environment variables from the .env file
     load_dotenv("/Repos/assistant/.env")
 
-    # Load the config
     assistant_config_path = get_configuration_path()
-
-    # Populate the config if it's not already there
     if "config" not in st.session_state:
-        st.session_state["config"] = AssistantConfiguration.from_file(
-            assistant_config_path
-        )
+        st.session_state["config"] = ConfigurationLoader.from_file(assistant_config_path)
 
-    print("setting up page")
-    # Set up our page
+def set_page_config():
     st.set_page_config(
-        page_title="Hey Jarvis...",
-        page_icon="😎",
+        page_title="Jarvis",
+        page_icon="🤖",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
-    st.title("Hey Jarvis 😎...")
+    st.title("Hey Jarvis 🤖...")
 
-    main_window_container = st.container()
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+        
+    # Always comes first!
+    load_configuration()
 
-    col1, col2 = main_window_container.columns([.65, .35])            
+    set_page_config()
+    
+    set_user_id_from_email(USER_EMAIL)
+
+    ensure_interaction()
+
+    load_interaction_selectbox()
+    
+    # Set up columns for chat and collections
+    col1, col2 = st.columns([.65, .35])            
 
     print("loading ai")
     load_ai()

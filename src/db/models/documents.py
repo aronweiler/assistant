@@ -43,6 +43,16 @@ class Documents(VectorDatabase):
         collection = session.query(DocumentCollection).filter(DocumentCollection.id == collection_id).filter(DocumentCollection.interaction_id == interaction_id).first()
 
         return collection
+    
+    def get_collection_by_name(
+        self,
+        session,
+        collection_name,
+        interaction_id
+    ):
+        collection = session.query(DocumentCollection).filter(DocumentCollection.collection_name == collection_name).filter(DocumentCollection.interaction_id == interaction_id).first()
+
+        return collection
         
     def get_collections(
         self,

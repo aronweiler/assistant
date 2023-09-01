@@ -60,7 +60,7 @@ System information:
 {system_information}
 Loaded documents:
 {loaded_documents}
-Possibly related context:
+Possibly related conversation context:
 {context}
 Current conversation:
 {chat_history}

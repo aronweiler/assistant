@@ -1,5 +1,6 @@
 import logging
 from uuid import UUID
+from typing import List
 
 from langchain.base_language import BaseLanguageModel
 from langchain.prompts import PromptTemplate
@@ -8,10 +9,12 @@ from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParse
 from configuration.assistant_configuration import AssistantConfiguration, Destination
 
 from ai.abstract_ai import AbstractAI
-from ai.prompts import MULTI_PROMPT_ROUTER_TEMPLATE
+from ai.prompts import MULTI_PROMPT_ROUTER_TEMPLATE, SUMMARIZE_FOR_LABEL_TEMPLATE
 from ai.interactions.interaction_manager import InteractionManager
 from ai.llm_helper import get_llm
 from ai.system_info import get_system_information
+from ai.destinations.destination_base import DestinationBase
+from ai.destination_route import DestinationRoute
 
 from utilities.instance_utility import create_instance_from_module_and_class
 
@@ -49,11 +52,18 @@ class RequestRouter(AbstractAI):
 
         self._create_router_chain()
 
-    def query(self, query: str, document_collection_id: int = None):
+    def query(self, query: str, collection_id: int = None):
         """Routes the query to the appropriate AI, and returns the response."""
 
         # Set the document collection id on the interaction manager
-        self.interaction_manager.document_collection_id = document_collection_id
+        self.interaction_manager.collection_id = collection_id
+
+        if self.interaction_manager.interaction_needs_summary:
+            interaction_summary = self.llm.predict(
+                SUMMARIZE_FOR_LABEL_TEMPLATE.format(query=query)
+            )
+            self.interaction_manager.set_interaction_summary(interaction_summary)
+            self.interaction_manager.interaction_needs_summary = False
 
         # Execute the router chain
         router_result = self.router_chain(
@@ -76,42 +86,45 @@ class RequestRouter(AbstractAI):
             }
         )
 
-        return self._route_response(router_result)
+        return self._route_response(router_result, query)
 
-    def _route_response(self, router_result):
+    def _route_response(self, router_result, query):
         """Routes the response from the router chain to the appropriate AI, and returns the response."""
 
         if "destination" in router_result and router_result["destination"] is not None:
             # Get the destination chain
             destination = next(
-                (c for c in self.routes if c["name"] == router_result["destination"]),
+                (c for c in self.routes if c.name == router_result["destination"]),
                 None,
             )
 
             if destination is not None:
-                logging.debug(f"Routing to destination: {destination['name']}")
+                logging.debug(f"Routing to destination: {destination.name}")
 
-                response = destination["instance"].run(
-                    input=router_result["next_inputs"],
-                    interaction_manager=self.interaction_manager,
-                )
+                response = destination.instance.run(input=query) # router_result['next_inputs']['input']) # Use the original query for now
 
                 logging.debug(f"Response from LLM: {response}")
-
+        
                 return response
-            else:
-                raise Exception(
-                    f"Destination not found: {router_result['destination']}"
-                )
+            
 
-        else:
-            raise Exception(
-                f"Destination not specified by the router chain. Cannot route response. Router response was: {router_result}"
-            )
+        logging.error(
+            f"Destination not specified by the router chain. Cannot route response. Router response was: {router_result}.\n\nGetting default chain."
+        )
+
+        # If we got here, something went wrong.  Get the default chain.
+        destination = next(
+            (c for c in self.routes if c.is_default == True),
+            None,
+        )
+        
+        destination.instance.run(input=query)
+        
 
     def _create_router_chain(self):
-        # Put the router chain together
-        destinations = [f"{p['name']}: {p['description']}" for p in self.routes]
+        """Creates the router chain for this router."""
+
+        destinations = [f"{r.name}: {r.description}" for r in self.routes]
 
         destinations_str = "\n".join(destinations)
 
@@ -144,19 +157,26 @@ class RequestRouter(AbstractAI):
     def _create_routes(self, destination_routes):
         """Creates the routes for the specified destination routes."""
 
-        self.routes = []
+        self.routes: List[DestinationRoute] = []
 
         for destination in destination_routes:
             destination = self._create_destination(destination)
             self.routes.append(destination)
 
     def _create_destination(self, destination: Destination):
-        instance = create_instance_from_module_and_class(
-            destination.module, destination.class_name, destination
+        """Creates an instance of a DestinationBase from the specified destination."""
+        instance: DestinationBase = create_instance_from_module_and_class(
+            module_name=destination.module,
+            class_name=destination.class_name,
+            constructor_kwargs={
+                "destination": destination,
+                "interaction_manager": self.interaction_manager,
+            },
         )
 
-        return {
-            "name": destination.name,
-            "description": destination.description,
-            "instance": instance,
-        }
+        return DestinationRoute(
+            name=destination.name,
+            description=destination.description,
+            is_default=destination.is_default,
+            instance=instance,
+        )

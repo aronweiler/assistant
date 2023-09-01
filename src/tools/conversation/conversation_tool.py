@@ -34,7 +34,7 @@ class ConversationTool:
             """
         try:
             with self.users.session_context(self.users.Session()) as session:
-                user = self.users.find_user_by_email(session, associated_user_email)
+                user = self.users.get_user_by_email(session, associated_user_email)
                 profile_string = f"User: {user.name} ({user.email}), age: {user.age}, location: {user.location}"
 
             conversations = self._get_conversations(
@@ -59,7 +59,7 @@ class ConversationTool:
         try:
             with self.users.session_context(self.users.Session()) as session:
                 if associated_user_email is not None:
-                    user = self.users.find_user_by_email(session, associated_user_email)
+                    user = self.users.get_user_by_email(session, associated_user_email)
                 else:
                     user = None               
 

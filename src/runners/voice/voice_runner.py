@@ -96,7 +96,7 @@ class VoiceRunner(Runner):
         for wake_word_model in self.args.wake_word_models:
             # See if the user exists in the database
             with self.users.session_context(self.users.Session()) as session:
-                user = self.users.find_user_by_email(
+                user = self.users.get_user_by_email(
                     session,
                     wake_word_model.user_information.user_email,
                     eager_load=[User.user_settings],
@@ -199,7 +199,7 @@ class VoiceRunner(Runner):
 
         # Get the user that activated us
         with self.users.session_context(self.users.Session()) as session:
-            conversation_user = self.users.find_user_by_email(
+            conversation_user = self.users.get_user_by_email(
                 session,
                 wake_model.user_information.user_email,
                 eager_load=[

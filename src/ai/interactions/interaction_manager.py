@@ -16,7 +16,7 @@ class InteractionManager:
     """Class that manages the interactions for the AI, including conversation history."""
 
     interaction_id: int
-    document_collection_id: int
+    collection_id: int
 
     user_id: int
     user_email: str
@@ -67,7 +67,7 @@ class InteractionManager:
 
         # Get the user
         with self.users_helper.session_context(self.users_helper.Session()) as session:
-            user = self.users_helper.find_user_by_email(
+            user = self.users_helper.get_user_by_email(
                 session, user_email
             )
 
@@ -80,6 +80,7 @@ class InteractionManager:
             self.user_name = user.name
             self.user_email = user.email
             self.user_location = user.location
+
 
         # Ensure the interaction exists
         self._ensure_interaction_exists(self.user_id)        
@@ -102,12 +103,12 @@ class InteractionManager:
     def get_loaded_documents(self):
         """Gets the loaded documents for the specified collection."""
 
-        if self.document_collection_id is None:
+        if self.collection_id is None:
             logging.warning("No document collection ID specified, cannot get loaded documents.")
             return []
 
         with self.documents_helper.session_context(self.documents_helper.Session()) as session:
-            docs = self.documents_helper.get_collection_file_names(session, self.document_collection_id)
+            docs = self.documents_helper.get_collection_file_names(session, self.collection_id)
             return [d.document_name for d in docs]
 
     def _ensure_interaction_exists(self, user_id: int):
@@ -146,6 +147,8 @@ class InteractionManager:
             self.interaction_id,
             conversations=self.conversations_helper,
         )
+
+        self.postgres_chat_message_history.user_id = self.user_id        
 
         self.conversation_token_buffer_memory = ConversationTokenBufferMemory(
             llm=llm,
