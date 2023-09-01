@@ -94,7 +94,7 @@ class Conversations(VectorDatabase):
     ) -> List[Conversation]:
         query = session.query(Conversation).filter(
             Conversation.interaction_id == interaction_id
-        )
+        ).order_by(Conversation.record_created)
 
         query = super().eager_load(query, [Conversation.conversation_role_type])
 

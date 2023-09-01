@@ -47,8 +47,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
     @property
     def messages(self) -> List[BaseMessage]:
         """A list of Messages stored in the DB."""
-        return self.chat_messages   
-    
+        return self.chat_messages    
     
     def get_related_conversation(self, query:str) -> List[BaseMessage]:        
         chat_messages = []

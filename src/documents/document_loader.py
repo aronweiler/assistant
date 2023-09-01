@@ -85,8 +85,8 @@ def load_single_document(file_path: str) -> List[Document]:
         documents = loader.load()
 
         for doc in documents:
-            # get the file name without the path or extension 
-            doc.metadata["filename"] = os.path.splitext(os.path.basename(file_path))[0]
+            # get the file name
+            doc.metadata["filename"] = os.path.basename(file_path)
 
         return documents
     except Exception as e:

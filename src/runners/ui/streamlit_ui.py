@@ -198,48 +198,48 @@ def load_ai():
         st.session_state["ai"] = ai_instance
 
 def select_conversation():
-    with st.sidebar.container():
-        with st.sidebar.expander(
-            label="Conversations", expanded=True
-        ):
-            new_chat_button_clicked = st.sidebar.button(
-                "New Chat", key="new_chat_button"
-            )
+    with st.sidebar.container():        
+        new_chat_button_clicked = st.sidebar.button(
+            "New Chat", key="new_chat_button"
+        )
 
-            if new_chat_button_clicked:
-                create_interaction("Empty Chat")   
+        if new_chat_button_clicked:
+            create_interaction("Empty Chat")   
 
 
 def select_documents():
     with st.sidebar.container():
+
         status = st.status(f"File status", expanded=False, state="complete")
-        docs_expanded = st.sidebar.expander(
-            "Documents", expanded=st.session_state.get("docs_expanded", False)
-        )
+        
+        # docs_expanded = st.expander(
+        #     "Documents", expanded=st.session_state.get("docs_expanded", False)
+        # )
 
         uploaded_files = st.file_uploader(
             "Choose your files", accept_multiple_files=True
         )
 
-        if uploaded_files is not None:
-            docs_expanded.expanded = True
+        active_collection = st.session_state.get("active_collection")
 
-            option = st.session_state.get("active_collection")
+        if uploaded_files and active_collection:
+            # docs_expanded.expanded = True
+
             collection_id = None
 
-            if option:
+            if active_collection:
                 collection_id = collection_id_from_option(
-                    option, st.session_state["ai"].interaction_manager.interaction_id
+                    active_collection, st.session_state["ai"].interaction_manager.interaction_id
                 )
-                print(f"Active collection: {option}")
+                print(f"Active collection: {active_collection}")
 
-            if option and st.button("Ingest files") and len(uploaded_files) > 0:
-                ingest_files(uploaded_files, option, collection_id, status)
+            if active_collection and st.button("Ingest files") and len(uploaded_files) > 0:
+                ingest_files(uploaded_files, active_collection, collection_id, status)
 
-def ingest_files(uploaded_files, option, collection_id, status):
+def ingest_files(uploaded_files, active_collection, collection_id, status):
     with st.spinner("Loading..."):
         status.update(
-            label=f"Ingesting files and adding to {option}",
+            label=f"Ingesting files and adding to {active_collection}",
             expanded=True,
             state="running",
         )
@@ -266,7 +266,7 @@ def ingest_files(uploaded_files, option, collection_id, status):
                 documents_helper.store_document(
                     session=session,
                     collection_id=collection_id,
-                    user_id=st.session_state["ai"].default_user_id,
+                    user_id=st.session_state["user_id"],
                     document_text=document.page_content,
                     document_name=document.metadata["filename"],
                     additional_metadata=document.metadata,
@@ -314,7 +314,7 @@ def handle_chat(main_window_container):
                 st.markdown(prompt)
 
             with st.chat_message("assistant"):
-                st.markdown(ai_instance.query(prompt))
+                st.markdown(ai_instance.query(prompt, collection_id=ai_instance.interaction_manager.collection_id))
 
 def set_user_id_from_email(email):
     users_helper = Users(st.session_state["config"].db_env_location)

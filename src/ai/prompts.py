@@ -43,17 +43,23 @@ modifications are needed.
 #AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
-TOOLS_SUFFIX = """Use any context you may need from the history:
----  TOOL HISTORY ---
-{agent_chat_history}
---- TOOL HISTORY ---
+# Use any context you may need from the history:
+# ---  TOOL HISTORY ---
+# {agent_chat_history}
+# --- TOOL HISTORY ---
 
-Helpful system information: {system_information}
+TOOLS_SUFFIX = """Helpful system information: {system_information}
 
 Let's think this through, and be very careful to use the right tool arguments in the json blob.
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```, then Observation:.
-Thought:"""
+--- FORMAT --- 
+Action:
+```$JSON_BLOB```
+--- FORMAT --- 
+
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. 
+
+"""
 
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
@@ -66,7 +72,7 @@ Current conversation:
 {chat_history}
 {user_name} ({user_email}): {input}
 AI:"""
-        
+
 CONVERSATIONAL_PROMPT = PromptTemplate(
     input_variables=[
         "system_prompt",

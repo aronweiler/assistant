@@ -81,12 +81,13 @@ class Documents(VectorDatabase):
 
         return document
     
-    def get_document_chunks_by_filename(
+    def get_document_chunks_by_document_name(
         self,
         session,
+        collection_id,
         document_name
     ) -> List[Document]:
-        document = session.query(Document).filter(Document.additional_metadata.contains(f'"filename": "{document_name}"')).all()
+        document = session.query(Document).filter(Document.collection_id == collection_id and Document.additional_metadata.contains(f'"filename": "{document_name}"')).all()
 
         return document
     

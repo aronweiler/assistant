@@ -23,6 +23,8 @@ class InteractionManager:
     user_name: str
     user_location: str
 
+    db_env_location: str
+
     interaction_needs_summary: bool = True
 
     interactions_helper : Interactions
@@ -59,6 +61,8 @@ class InteractionManager:
         
         # Set our internal interaction id
         self.interaction_id = interaction_id
+
+        self.db_env_location = db_env_location
 
         self.interactions_helper = Interactions(db_env_location)
         self.conversations_helper = Conversations(db_env_location)
