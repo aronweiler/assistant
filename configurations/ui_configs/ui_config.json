@@ -15,6 +15,7 @@
       "destination_routes": [
         {
           "destination": {
+            "is_default": true,
             "name": "conversational",
             "module": "ai.destinations.conversational",
             "class_name": "ConversationalAI",

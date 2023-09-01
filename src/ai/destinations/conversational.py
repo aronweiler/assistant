@@ -48,7 +48,7 @@ class ConversationalAI(DestinationBase):
                 self.interaction_manager.user_location
             ),
             context=self._get_related_context(input),
-            loaded_documents=self.interaction_manager.get_loaded_documents(),
+            loaded_documents="\n".join(self.interaction_manager.get_loaded_documents()),
         )
 
     def _get_related_context(self, query):

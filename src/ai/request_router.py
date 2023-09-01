@@ -80,9 +80,7 @@ class RequestRouter(AbstractAI):
                 "system_information": get_system_information(
                     self.interaction_manager.user_location
                 ),
-                "loaded_documents": "\n".join(
-                    self.interaction_manager.get_loaded_documents()
-                ),
+                "loaded_documents": "\n".join(self.interaction_manager.get_loaded_documents()),
             }
         )
 
@@ -117,6 +115,10 @@ class RequestRouter(AbstractAI):
             (c for c in self.routes if c.is_default == True),
             None,
         )
+
+        # If it's still None, we have a problem, just use the first one
+        if destination is None:
+            destination = self.routes[0]
         
         destination.instance.run(input=query)
         

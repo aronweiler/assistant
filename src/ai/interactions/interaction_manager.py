@@ -109,11 +109,10 @@ class InteractionManager:
 
         if self.collection_id is None:
             logging.warning("No document collection ID specified, cannot get loaded documents.")
-            return []
+            return ["There is no document collection selected, so I can't see what documents are loaded."]
 
         with self.documents_helper.session_context(self.documents_helper.Session()) as session:
-            docs = self.documents_helper.get_collection_file_names(session, self.collection_id)
-            return [d.document_name for d in docs]
+            return [f"{file.file_name} ({file.file_classification})" for file in self.documents_helper.get_collection_files(session, self.collection_id)]
 
     def _ensure_interaction_exists(self, user_id: int):
         """Ensures the interaction exists, and creates it if it doesn't."""

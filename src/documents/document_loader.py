@@ -165,7 +165,12 @@ def load_and_split_documents(
     chunk_size: int,
     chunk_overlap: int,
 ) -> List[Document]:
-    documents = load_documents(document_directory)
+    
+    # Check if the document_directory is a single file or a path
+    if os.path.isfile(document_directory):
+        documents = load_single_document(document_directory)
+    else:
+        documents = load_documents(document_directory)
 
     if split_documents:
         text_splitter = RecursiveCharacterTextSplitter(
