@@ -136,6 +136,7 @@ class Documents(VectorDatabase):
         search_query: str,
         search_type: SearchType,
         collection_id: int,
+        target_file: str = None,
         eager_load: List[InstrumentedAttribute[Any]] = [],
         top_k=10,
     ) -> List[Document]:
@@ -147,6 +148,11 @@ class Documents(VectorDatabase):
         if collection_id is not None:
             query = query.filter(
                 Document.collection_id == collection_id
+            )
+
+        if target_file is not None:
+            query = query.filter(
+                Document.document_name == target_file            
             )
 
         query = super().eager_load(query, eager_load)

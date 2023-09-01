@@ -24,6 +24,7 @@ from db.models.documents import Documents
 from db.models.users import User
 from db.models.pgvector_retriever import PGVectorRetriever
 
+from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
 from ai.interactions.interaction_manager import InteractionManager
 from ai.llm_helper import get_llm
 from ai.system_info import get_system_information
@@ -36,7 +37,9 @@ from ai.prompts import (
     SIMPLE_REFINE_PROMPT,
     SINGLE_LINE_SUMMARIZE_PROMPT,
     REPHRASE_TO_KEYWORDS_TEMPLATE,
-    TOOLS_SUFFIX    
+    TOOLS_SUFFIX,
+    REPHRASE_TEMPLATE,
+    TOOLS_FORMAT_INSTRUCTIONS
 )
 
 from utilities.token_helper import simple_get_tokens_for_message
@@ -56,16 +59,18 @@ class DocumentsAI(DestinationBase):
         self.create_document_tools()        
 
         self.agent = initialize_agent(
-            self.document_tools,
-            self.llm,
+            tools=self.document_tools,
+            llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=AGENT_TEMPLATE,
+            human_message_template=AGENT_TEMPLATE,            
             agent_kwargs={
                 "suffix": TOOLS_SUFFIX,
+                "format_instructions": TOOLS_FORMAT_INSTRUCTIONS,
+                "output_parser": CustomStructuredChatOutputParserWithRetries(),
                 "input_variables": [
                     "input",
-                    #"agent_chat_history",
+                    "agent_chat_history",
                     "agent_scratchpad",
                     "system_information",
                 ],
@@ -85,25 +90,39 @@ class DocumentsAI(DestinationBase):
             StructuredTool.from_function(       
                 name="search_documents",
                 func=self.search_loaded_documents,
-                description="Good for when you need to search through the loaded documents for an answer to a question.  Use this when the user is referring to any loaded documents in their search for information.",
+                description="Good for when you need to search through the loaded documents or files for an answer to a question.  Use this when the user is referring to any loaded document or file in their search for information. The target_file argument is optional, and can be used to search a specific file.",
             ),
             StructuredTool.from_function(
                 name="summarize_document",
                 func=self.summarize_document,
-                description="Useful for summarizing a specific document. Only use this if the user is asking you to summarize a specific document.",
+                description="Useful for summarizing a specific document or file. Only use this if the user is asking you to summarize something.",
+            ),            
+            StructuredTool.from_function(
+                name="list_documents",
+                func=self.list_documents,
+                description="Useful for discovering which documents or files are loaded or otherwise available to you.",
             ),
         ]
 
     def run(self, input: str):
-        
-        self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_user_message(input) #.add_message(HumanMessage(input))
+
+        rephrased_input = self.rephrase_query_to_standalone(input)
 
         results = self.agent.run(
-                input=input,
+                input=rephrased_input,
                 system_information=get_system_information(self.interaction_manager.user_location),
                 user_name=self.interaction_manager.user_name,
                 user_email=self.interaction_manager.user_email,
+                agent_chat_history="\n".join(
+                    [
+                        f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
+                        for m in self.interaction_manager.conversation_token_buffer_memory.chat_memory.messages[-16:]
+                    ]
+                ),
             )
+        
+        # Adding this after the run so that the agent can't see it in the history
+        self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_user_message(input) #.add_message(HumanMessage(input))
         
         try:
             # Try loading the result as json (sometimes it doesn't run the tool on its own)
@@ -113,8 +132,12 @@ class DocumentsAI(DestinationBase):
             for tool in self.document_tools:
                 if tool.name.lower() == results["action"].lower():
                     # Run the tool
-                    results = tool.func(**results["action_input"])
-                    break
+                    try:
+                        results = tool.func(**results["action_input"])
+                        break
+                    except Exception as es:
+                        print(f"Error running tool {tool.name} in documents AI, {es}")
+                        results = f"Error running tool {tool.name} in documents AI, {es}"
         except Exception as e:
             print(f"Error loading json from agent results, {e}")            
             
@@ -123,15 +146,22 @@ class DocumentsAI(DestinationBase):
 
         return results
 
+    def list_documents(
+        self
+    ):
+        return "\n".join(self.interaction_manager.get_loaded_documents())
+
     def search_loaded_documents(
         self,
-        query: str
+        query: str,
+        target_file: str = None,
     ):
         search_kwargs = {
             "top_k": 20,
             "search_type": SearchType.similarity,
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,
+            "target_file": target_file
         }
 
         # Create the documents class for the retriever
@@ -211,6 +241,27 @@ class DocumentsAI(DestinationBase):
         )
 
         return stuff_chain.run(docs)
+
+    def rephrase_query_to_standalone(self, query):
+        # Rephrase the query so that it is stand-alone
+        # Use the llm to rephrase, adding in the conversation memory for context
+        rephrase_results = self.llm.predict(
+            REPHRASE_TEMPLATE.format(
+                input=query,
+                chat_history="\n".join(
+                    [
+                        f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
+                        for m in self.interaction_manager.postgres_chat_message_history.messages[-16:]
+                    ]
+                ),
+                system_information=get_system_information(self.interaction_manager.user_location),
+                user_name=self.interaction_manager.user_name,
+                user_email=self.interaction_manager.user_email,
+                loaded_documents="\n".join(self.interaction_manager.get_loaded_documents())
+            )
+        )
+
+        return rephrase_results
 
     # def rephrase_query_to_search_keywords(self, query, user):
     #     # Rephrase the query so that it is stand-alone

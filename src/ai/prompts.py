@@ -43,21 +43,61 @@ modifications are needed.
 #AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
-# Use any context you may need from the history:
-# ---  TOOL HISTORY ---
-# {agent_chat_history}
-# --- TOOL HISTORY ---
+TOOLS_FORMAT_INSTRUCTIONS = """Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
 
-TOOLS_SUFFIX = """Helpful system information: {system_information}
+Valid "action" values: "Final Answer" or {tool_names}
+
+Provide only ONE action per $JSON_BLOB, formatted as shown:
+
+--- BEGIN JSON BLOB FORMAT ---
+```json
+{{{{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}}}}
+```
+--- END JSON BLOB FORMAT ---
+
+Then, follow this format for your response:
+
+Query: <<user input query>>
+
+Thought: <<Describe your thinking on the previously taken steps and plan subsequent steps.  If the data exists to answer the users query, return the final answer.>>
+
+Action:
+```
+$JSON_BLOB
+```
+
+Observation: <<action result>>
+
+... (repeat Thought/Action/Observation as many times as necessary to get to the final answer)
+
+When you arrive at the final answer to the query, the format is:
+```json
+{{{{
+  "action": "Final Answer",
+  "action_input": "<<Your final response to the user>>"
+}}}}
+```"""
+
+TOOLS_SUFFIX = """Use any context you may need from the chat history (e.g. document names, or other information):
+---  CHAT HISTORY ---
+{agent_chat_history}
+--- CHAT HISTORY ---
+
+Helpful system information: {system_information}
 
 Let's think this through, and be very careful to use the right tool arguments in the json blob.
 
 --- FORMAT --- 
 Action:
-```$JSON_BLOB```
+```json
+$JSON_BLOB
+```
 --- FORMAT --- 
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. 
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern. Use tools if necessary. Respond directly if appropriate. DO NOT respond with the same action twice in a row!  Each action you take should be different from the previous action.
 
 """
 
@@ -173,7 +213,13 @@ Documents available:
 AI: I have rephrased the user input as search keywords so that it can be understood without any other context:
 """
 
-REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone question or statement.  Do not otherwise modify the user's input.
+REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  
+
+Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone question or statement.  Do not otherwise modify the user's input.
+
+Be sure to resolve all coreferences in the input (e.g. assign names to things like "him", or places like "here", or dates like "tomorrow", etc).  If the coreference refers to a document or file, be sure to include the full name of the document or file in your rephrased question or statement.
+
+For example, if the user says "Tell me about that file", you should determine what "that file" is referring to (by looking at the available files), and then rephrase the question as "Tell me about '<<that file>>'" (replacing <<that file>> with the actual file name from the list of available files).
 
 System information:
 {system_information}
@@ -181,14 +227,14 @@ System information:
 Chat history:
 {chat_history}
 
-Documents available:
+Documents / files available:
 {loaded_documents}
 
 ------- BEGIN USER INPUT TO REPHRASE -------
 {user_name} ({user_email}): {input}
 ------- END USER INPUT TO REPHRASE -------
 
-AI: I have rephrased the user input so that it can be understood without any other context:
+AI: I have rephrased the user input so that it can be understood without any other context by resolving any ambiguous references and coreferences, ensuring that any files or documents are referred to by their full name:
 """
         
 REPHRASE_PROMPT = PromptTemplate(
