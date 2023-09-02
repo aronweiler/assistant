@@ -16,6 +16,7 @@ from ai.system_info import get_system_information
 from ai.destination_route import DestinationRoute
 from ai.system_info import get_system_information
 from ai.destinations.destination_base import DestinationBase
+from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 
 from ai.prompts import CONVERSATIONAL_PROMPT
 
@@ -24,12 +25,25 @@ class ConversationalAI(DestinationBase):
     """A conversational AI that uses an LLM to generate responses"""
 
     def __init__(
-        self, destination: Destination, interaction_manager: InteractionManager
+        self,
+        destination: Destination,
+        interaction_id: int,
+        user_email: str,
+        db_env_location: str,
+        streaming: bool = False,
     ):
         self.destination = destination
-        self.interaction_manager = interaction_manager
+        self.token_management_handler = TokenManagementCallbackHandler()
 
-        self.llm = get_llm(destination.model_configuration)
+        self.llm = get_llm(destination.model_configuration, callbacks=[self.token_management_handler], tags=['conversational'], streaming=streaming)
+        
+        self.interaction_manager = InteractionManager(
+            interaction_id,
+            user_email,
+            self.llm,
+            db_env_location,
+            destination.model_configuration.max_conversation_history_tokens,
+        )
 
         self.chain = LLMChain(
             llm=self.llm,
@@ -37,7 +51,7 @@ class ConversationalAI(DestinationBase):
             memory=self.interaction_manager.conversation_token_buffer_memory,
         )
 
-    def run(self, input: str):
+    def run(self, input: str, callbacks: list = []):
         """Runs the conversational AI with the given input"""
         return self.chain.run(
             system_prompt=self.destination.system_prompt,
@@ -49,6 +63,7 @@ class ConversationalAI(DestinationBase):
             ),
             context=self._get_related_context(input),
             loaded_documents="\n".join(self.interaction_manager.get_loaded_documents()),
+            callbacks=callbacks
         )
 
     def _get_related_context(self, query):
@@ -59,7 +74,7 @@ class ConversationalAI(DestinationBase):
         ) as session:
             related_context = (
                 self.interaction_manager.conversations_helper.search_conversations(
-                    session, query, SearchType.similarity, top_k=20
+                    session, query, SearchType.similarity, top_k=10
                 )
             )
 

@@ -6,5 +6,5 @@ from ai.interactions.interaction_manager import InteractionManager
 class DestinationBase(ABC):
 
     @abstractmethod
-    def run(self, input:str, interaction_manager: InteractionManager):
+    def run(self, input:str, callbacks: list = []):
         pass

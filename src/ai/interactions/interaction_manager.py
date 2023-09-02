@@ -16,7 +16,7 @@ class InteractionManager:
     """Class that manages the interactions for the AI, including conversation history."""
 
     interaction_id: int
-    collection_id: int
+    collection_id :int = None    
 
     user_id: int
     user_email: str
@@ -32,6 +32,16 @@ class InteractionManager:
 
     postgres_chat_message_history: PostgresChatMessageHistory
     conversation_token_buffer_memory: ConversationTokenBufferMemory
+
+    @classmethod
+    def set_collection_id(cls, value):
+        # Class method to set the collection_id
+        cls.collection_id = value
+
+    @classmethod
+    def get_collection_id(cls):
+        # Class method to get the collection_id
+        return cls.collection_id
 
     def __init__(
         self,

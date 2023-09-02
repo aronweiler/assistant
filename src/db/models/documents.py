@@ -144,13 +144,17 @@ class Documents(VectorDatabase):
     def get_document_chunks_by_document_name(
         self, session, collection_id, document_name
     ) -> List[Document]:
+        
+        file = session.query(File).filter(File.file_name == document_name and File.collection_id == collection_id).first()
+
+        if file is None:
+            raise ValueError(f"File {document_name} does not exist in collection {collection_id}")
+
         document = (
             session.query(Document)
             .filter(
                 Document.collection_id == collection_id
-                and Document.additional_metadata.contains(
-                    f'"filename": "{document_name}"'
-                )
+                and Document.file_id == file.id
             )
             .all()
         )

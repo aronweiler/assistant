@@ -63,7 +63,10 @@ class CppSplitter(SplitterBase):
             type_map = {
                 CursorKind.CXX_METHOD: NodeType.CLASS_METHOD,
                 CursorKind.FUNCTION_DECL: NodeType.FUNCTION_DEFINITION,
-                CursorKind.TRANSLATION_UNIT: NodeType.MODULE
+                CursorKind.TRANSLATION_UNIT: NodeType.MODULE,
+                CursorKind.CLASS_DECL: NodeType.CLASS_DEFINITION,
+                CursorKind.STRUCT_DECL: NodeType.STRUCT_DEFINITION,
+                CursorKind.PREPROCESSING_DIRECTIVE: NodeType.PREPROCESSING_DIRECTIVE,
             }
 
             try:
@@ -77,7 +80,8 @@ class CppSplitter(SplitterBase):
                 'signature': signature,
                 'text': text,
                 'file_loc': file_loc,
-                'includes': self._get_includes(node)
+                'includes': self._get_includes(node),      
+                'source': f"{os.path.basename(file_loc)} (line: {start_line}): {signature}",          
             }
 
             if node.kind == CursorKind.CXX_METHOD:
@@ -102,7 +106,10 @@ class CppSplitter(SplitterBase):
         NODE_KINDS_OF_INTEREST = (  
             CursorKind.CXX_METHOD,
             CursorKind.FUNCTION_DECL,
-            CursorKind.TRANSLATION_UNIT
+            CursorKind.TRANSLATION_UNIT,
+            CursorKind.CLASS_DECL,
+            CursorKind.STRUCT_DECL,
+            CursorKind.PREPROCESSING_DIRECTIVE
         )
 
         FUNCTION_KINDS = (

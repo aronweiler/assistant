@@ -33,7 +33,6 @@ from documents.document_loader import load_and_split_documents
 
 USER_EMAIL = "aronweiler@gmail.com"
 
-
 def get_configuration_path():
     os.environ["ASSISTANT_CONFIG_PATH"] = "configurations/ui_configs/ui_config.json"
 
@@ -144,8 +143,10 @@ def create_collections_container(main_window_container):
                             expanded=True,
                         )
 
-                        for doc in loaded_docs:
-                            expander.write(doc)
+                        col1, col2 = expander.columns(2)
+                        for doc in loaded_docs:                            
+                            col1.write(doc)
+                            col2.button("Delete", key=f"delete_{doc}")
                     else:
                         st.warning("No collection selected")
 
@@ -207,7 +208,7 @@ def load_ai():
     if "ai" not in st.session_state:
         # First time loading the page
         print("conversation_selected: ai not in session state")
-        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id)
+        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id, streaming=True)
         st.session_state["ai"] = ai_instance
 
     elif selected_interaction_id and selected_interaction_id != str(
@@ -217,7 +218,7 @@ def load_ai():
         print(
             "conversation_selected: interaction id is not none and not equal to ai interaction id"
         )
-        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id)
+        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id, streaming=True)
         st.session_state["ai"] = ai_instance
 
 
@@ -369,11 +370,14 @@ def handle_chat(main_window_container):
                 st.markdown(prompt)
 
             with st.chat_message("assistant"):
+                
+                st_callback = StreamlitCallbackHandler(st.container())
+
                 collection_id = collection_id_from_option(
                     st.session_state["active_collection"],
                     ai_instance.interaction_manager.interaction_id,
                 )
-                st.markdown(ai_instance.query(prompt, collection_id=collection_id))
+                st.markdown(ai_instance.query(prompt, collection_id=collection_id, callbacks=[st_callback]))
 
 
 def set_user_id_from_email(email):

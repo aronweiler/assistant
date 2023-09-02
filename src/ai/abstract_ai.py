@@ -7,5 +7,5 @@ from utilities.instance_utility import create_instance_from_module_and_class
 class AbstractAI(ABC):
     
     @abstractmethod
-    def query(self, query: str, collection_id: int = None):
+    def query(self, query: str, collection_id: int = None, callbacks: list = []):
         pass

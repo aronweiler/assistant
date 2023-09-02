@@ -16,6 +16,7 @@ from ai.system_info import get_system_information
 from ai.destination_route import DestinationRoute
 from ai.system_info import get_system_information
 from ai.destinations.destination_base import DestinationBase
+from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 
 from ai.prompts import MEMORY_PROMPT
 
@@ -24,12 +25,31 @@ class MemoryAI(DestinationBase):
     """A conversational AI that uses an LLM to generate responses"""
 
     def __init__(
-        self, destination: Destination, interaction_manager: InteractionManager
+        self,
+        destination: Destination,
+        interaction_id: int,
+        user_email: str,
+        db_env_location: str,
+        streaming: bool = False,
     ):
-        self.destination = destination
-        self.interaction_manager = interaction_manager
+        self.destination = destination        
 
-        self.llm = get_llm(destination.model_configuration)
+        self.token_management_handler = TokenManagementCallbackHandler()
+
+        self.llm = get_llm(
+            destination.model_configuration,
+            callbacks=[self.token_management_handler],
+            tags=["memory"],
+            streaming=streaming,
+        )
+
+        self.interaction_manager = InteractionManager(
+            interaction_id,
+            user_email,
+            self.llm,
+            db_env_location,
+            destination.model_configuration.max_conversation_history_tokens,
+        )
 
         self.chain = LLMChain(
             llm=self.llm,
@@ -37,16 +57,15 @@ class MemoryAI(DestinationBase):
             memory=self.interaction_manager.conversation_token_buffer_memory,
         )
 
-    def run(self, input: str):
+    def run(self, input: str, callbacks: list = []):
         """Runs the memory AI with the given input"""
-        
+
         # Look up some stuff based on the query
         # Looking into the conversations table for now
 
         with self.interaction_manager.conversations_helper.session_context(
             self.interaction_manager.conversations_helper.Session()
         ) as session:
-
             previous_conversations = self.interaction_manager.conversations_helper.search_conversations_with_user_id(
                 session,
                 conversation_text_search_query=input,
@@ -60,4 +79,8 @@ class MemoryAI(DestinationBase):
                 set([pc.conversation_text for pc in previous_conversations])
             )
 
-            return self.chain.run(input=input, context="\n".join(previous_conversations)) 
+            return self.chain.run(
+                input=input,
+                context="\n".join(previous_conversations),
+                callbacks=callbacks,
+            )

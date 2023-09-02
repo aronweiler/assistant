@@ -75,4 +75,4 @@ def run(path):
     return all_nodes
 
 if __name__ == "__main__":
-    run("/Repos/sample_docs/cpp/ggml-alloc.c")
+    run("/Repos/sample_docs/cpp/llama.cpp")

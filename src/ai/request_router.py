@@ -5,6 +5,7 @@ from typing import List
 from langchain.base_language import BaseLanguageModel
 from langchain.prompts import PromptTemplate
 from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+from langchain.memory.readonly import ReadOnlySharedMemory
 
 from configuration.assistant_configuration import AssistantConfiguration, Destination
 
@@ -15,6 +16,7 @@ from ai.llm_helper import get_llm
 from ai.system_info import get_system_information
 from ai.destinations.destination_base import DestinationBase
 from ai.destination_route import DestinationRoute
+from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 
 from utilities.instance_utility import create_instance_from_module_and_class
 
@@ -27,7 +29,7 @@ class RequestRouter(AbstractAI):
     assistant_configuration: AssistantConfiguration
 
     def __init__(
-        self, assistant_configuration: AssistantConfiguration, interaction_id: UUID
+        self, assistant_configuration: AssistantConfiguration, interaction_id: UUID, streaming: bool = False
     ):
         """Creates a new RequestRouter
 
@@ -37,7 +39,10 @@ class RequestRouter(AbstractAI):
             user_id (int): The user ID to use for this router.
         """
         self.assistant_configuration = assistant_configuration
-        self.llm = get_llm(assistant_configuration.request_router.model_configuration)
+        self.token_management_handler = TokenManagementCallbackHandler()
+        self.streaming = streaming
+
+        self.llm = get_llm(assistant_configuration.request_router.model_configuration, callbacks=[self.token_management_handler], tags=['request-router'], streaming=streaming)
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
@@ -52,7 +57,7 @@ class RequestRouter(AbstractAI):
 
         self._create_router_chain()
 
-    def query(self, query: str, collection_id: int = None):
+    def query(self, query: str, collection_id: int = None, callbacks: list = []):
         """Routes the query to the appropriate AI, and returns the response."""
 
         # Set the document collection id on the interaction manager
@@ -69,14 +74,14 @@ class RequestRouter(AbstractAI):
         router_result = self.router_chain(
             {
                 "input": query,
-                "chat_history": "\n".join(
-                    [
-                        f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
-                        for m in self.interaction_manager.postgres_chat_message_history.messages[
-                            -8:
-                        ]
-                    ]
-                ),
+                # "chat_history": "\n".join(
+                #     [
+                #         f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
+                #         for m in self.interaction_manager.postgres_chat_message_history.messages[
+                #             -8:
+                #         ]
+                #     ]
+                # ),
                 "system_information": get_system_information(
                     self.interaction_manager.user_location
                 ),
@@ -84,9 +89,9 @@ class RequestRouter(AbstractAI):
             }
         )
 
-        return self._route_response(router_result, query)
+        return self._route_response(router_result, query, callbacks)
 
-    def _route_response(self, router_result, query):
+    def _route_response(self, router_result, query, callbacks):
         """Routes the response from the router chain to the appropriate AI, and returns the response."""
 
         if "destination" in router_result and router_result["destination"] is not None:
@@ -99,7 +104,7 @@ class RequestRouter(AbstractAI):
             if destination is not None:
                 logging.debug(f"Routing to destination: {destination.name}")
 
-                response = destination.instance.run(input=query) # router_result['next_inputs']['input']) # Use the original query for now
+                response = destination.instance.run(input=query, callbacks=callbacks) # router_result['next_inputs']['input']) # Use the original query for now
 
                 logging.debug(f"Response from LLM: {response}")
         
@@ -120,7 +125,7 @@ class RequestRouter(AbstractAI):
         if destination is None:
             destination = self.routes[0]
         
-        destination.instance.run(input=query)
+        destination.instance.run(input=query, callbacks=callbacks)
         
 
     def _create_router_chain(self):
@@ -154,6 +159,7 @@ class RequestRouter(AbstractAI):
                 "system_information",
                 "loaded_documents",
             ],
+            memory=ReadOnlySharedMemory(memory=self.interaction_manager.conversation_token_buffer_memory),
         )
 
     def _create_routes(self, destination_routes):
@@ -172,7 +178,10 @@ class RequestRouter(AbstractAI):
             class_name=destination.class_name,
             constructor_kwargs={
                 "destination": destination,
-                "interaction_manager": self.interaction_manager,
+                "interaction_id": self.interaction_manager.interaction_id,
+                "user_email": self.interaction_manager.user_email,
+                "db_env_location": self.assistant_configuration.db_env_location,                
+                "streaming": self.streaming,
             },
         )
 
