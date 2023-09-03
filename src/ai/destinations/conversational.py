@@ -51,8 +51,9 @@ class ConversationalAI(DestinationBase):
             memory=self.interaction_manager.conversation_token_buffer_memory,
         )
 
-    def run(self, input: str, callbacks: list = []):
+    def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
         """Runs the conversational AI with the given input"""
+        self.interaction_manager.collection_id = collection_id
         return self.chain.run(
             system_prompt=self.destination.system_prompt,
             input=input,
@@ -62,8 +63,8 @@ class ConversationalAI(DestinationBase):
                 self.interaction_manager.user_location
             ),
             context=self._get_related_context(input),
-            loaded_documents="\n".join(self.interaction_manager.get_loaded_documents()),
-            callbacks=callbacks
+            loaded_documents="\n".join(self.interaction_manager.get_loaded_documents_for_display()),
+            callbacks=llm_callbacks
         )
 
     def _get_related_context(self, query):

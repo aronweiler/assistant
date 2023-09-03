@@ -49,17 +49,17 @@ class PGVectorRetriever(BaseRetriever):
             else:
                 search_type = SearchType.similarity
 
-            if 'target_file' in self.search_kwargs:                
-                target_file = self.search_kwargs['target_file']
+            if 'target_file_id' in self.search_kwargs:                
+                target_file_id = self.search_kwargs['target_file_id']
             else:
-                target_file = None
+                target_file_id = None
 
             if 'top_k' in self.search_kwargs:                
                 top_k = self.search_kwargs['top_k']
             else:
                 top_k = 4
 
-            documents = self.vectorstore.search_document_embeddings(session, search_query=query, collection_id=collection_id, search_type=search_type, top_k=top_k, target_file=target_file)
+            documents = self.vectorstore.search_document_embeddings(session, search_query=query, collection_id=collection_id, search_type=search_type, top_k=top_k, target_file_id=target_file_id)
 
             # Transform these into the document type expected by langchain
             documents = [

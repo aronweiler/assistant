@@ -11,7 +11,7 @@ import documents.codesplitter.utils as utils
 import documents.codesplitter.splitter.splitter_utils as splitter_utils
 
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 

@@ -5,12 +5,12 @@
     "request_router": {
       "model_configuration": {
         "llm_type": "open_ai",
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-3.5-turbo-16k",
         "temperature": 0,
         "max_retries": 3,
-        "max_model_supported_tokens": 4096,
-        "max_conversation_history_tokens": 500,
-        "max_completion_tokens": 2048
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 8192,
+        "max_completion_tokens": 6096
       },
       "destination_routes": [
         {
@@ -27,7 +27,7 @@
               "temperature": 0.7,
               "max_retries": 3,
               "max_model_supported_tokens": 16384,
-              "max_conversation_history_tokens": 500,
+              "max_conversation_history_tokens": 6096,
               "max_completion_tokens": 8192
             }
           }
@@ -95,8 +95,8 @@
     "class_name": "ConsoleRunner",    
     "arguments": {
       "user_email": "aronweiler@gmail.com",
-      "collection_name": "Console Collection",
-      "interaction_id": "d6c12a4d-ee36-4f10-9891-e31b4003d2c4",
+      "collection_name": "Rene",
+      "interaction_id": "c6f2eeb0-a175-41fb-b69e-b934c03c9900",
       "db_env_location": "src/db/database/db.env"
     }
   }

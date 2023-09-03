@@ -141,14 +141,14 @@ class Documents(VectorDatabase):
 
         return document
 
-    def get_document_chunks_by_document_name(
-        self, session, collection_id, document_name
+    def get_document_chunks_by_file_id(
+        self, session, collection_id, target_file_id
     ) -> List[Document]:
         
-        file = session.query(File).filter(File.file_name == document_name and File.collection_id == collection_id).first()
+        file = session.query(File).filter(File.id == target_file_id and File.collection_id == collection_id).first()
 
         if file is None:
-            raise ValueError(f"File {document_name} does not exist in collection {collection_id}")
+            raise ValueError(f"File with ID '{target_file_id}' does not exist in collection '{collection_id}'")
 
         document = (
             session.query(Document)
@@ -172,7 +172,7 @@ class Documents(VectorDatabase):
 
         return document
 
-    def get_collection_files(self, session, collection_id) -> List[str]:
+    def get_collection_files(self, session, collection_id) -> List[File]:
         documents = (
             session.query(File)
             .filter(File.collection_id == collection_id)
@@ -211,7 +211,7 @@ class Documents(VectorDatabase):
         search_query: str,
         search_type: SearchType,
         collection_id: int,
-        target_file: str = None,
+        target_file_id: int = None,
         eager_load: List[InstrumentedAttribute[Any]] = [],
         top_k=10,
     ) -> List[Document]:
@@ -223,8 +223,8 @@ class Documents(VectorDatabase):
         if collection_id is not None:
             query = query.filter(Document.collection_id == collection_id)
 
-        if target_file is not None:
-            query = query.filter(Document.document_name == target_file)
+        if target_file_id is not None:
+            query = query.filter(Document.file_id == target_file_id)
 
         query = super().eager_load(query, eager_load)
 

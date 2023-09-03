@@ -14,7 +14,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
     conversations: Conversations
     user_id: int
 
-    def __init__(self, interaction_id: UUID, conversations: Conversations):
+    def __init__(self, interaction_id: UUID, conversations: Conversations, max_token_limit: int = 500):
         """Initialize the PostgresChatMessageHistory.
 
         Args:
@@ -23,9 +23,33 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         """
         self.interaction_id = interaction_id
         self.conversations = conversations
+        self.max_token_limit = max_token_limit
 
         # Fill the chat messages list from the DB
-        self.chat_messages = []
+        # self.chat_messages = []
+        # with self.conversations.session_context(
+        #     self.conversations.Session()
+        # ) as session:
+        #     messages = self.conversations.get_conversations_for_interaction(
+        #         session, self.interaction_id
+        #     )
+        #     for message in messages:
+        #         if message.conversation_role_type.role_type == "user":
+        #             self.chat_messages.append(
+        #                 HumanMessage(content=message.conversation_text)
+        #             )
+        #         elif message.conversation_role_type.role_type == "assistant":
+        #             self.chat_messages.append(AIMessage(content=message.conversation_text))
+        #         elif message.conversation_role_type.role_type == "system":
+        #             self.chat_messages.append(
+        #                 SystemMessage(content=message.conversation_text)
+        #             )
+
+    @property
+    def messages(self) -> List[BaseMessage]:
+        """A list of Messages stored in the DB."""
+        #return self.chat_messages    
+        chat_messages = []
         with self.conversations.session_context(
             self.conversations.Session()
         ) as session:
@@ -34,20 +58,17 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             )
             for message in messages:
                 if message.conversation_role_type.role_type == "user":
-                    self.chat_messages.append(
+                    chat_messages.append(
                         HumanMessage(content=message.conversation_text)
                     )
                 elif message.conversation_role_type.role_type == "assistant":
-                    self.chat_messages.append(AIMessage(content=message.conversation_text))
+                    chat_messages.append(AIMessage(content=message.conversation_text))
                 elif message.conversation_role_type.role_type == "system":
-                    self.chat_messages.append(
+                    chat_messages.append(
                         SystemMessage(content=message.conversation_text)
                     )
 
-    @property
-    def messages(self) -> List[BaseMessage]:
-        """A list of Messages stored in the DB."""
-        return self.chat_messages    
+        return chat_messages
     
     def get_related_conversation(self, query:str) -> List[BaseMessage]:        
         chat_messages = []
@@ -101,7 +122,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
                 user_id=self.user_id,
             )
 
-        self.chat_messages.append(message)
+        #self.chat_messages.append(message)
 
     def clear(self) -> None:
         """Clear memory contents."""

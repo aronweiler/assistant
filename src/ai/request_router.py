@@ -29,7 +29,10 @@ class RequestRouter(AbstractAI):
     assistant_configuration: AssistantConfiguration
 
     def __init__(
-        self, assistant_configuration: AssistantConfiguration, interaction_id: UUID, streaming: bool = False
+        self,
+        assistant_configuration: AssistantConfiguration,
+        interaction_id: UUID,
+        streaming: bool = False,
     ):
         """Creates a new RequestRouter
 
@@ -42,7 +45,12 @@ class RequestRouter(AbstractAI):
         self.token_management_handler = TokenManagementCallbackHandler()
         self.streaming = streaming
 
-        self.llm = get_llm(assistant_configuration.request_router.model_configuration, callbacks=[self.token_management_handler], tags=['request-router'], streaming=streaming)
+        self.llm = get_llm(
+            assistant_configuration.request_router.model_configuration,
+            callbacks=[self.token_management_handler],
+            tags=["request-router"],
+            streaming=streaming,
+        )
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
@@ -57,7 +65,7 @@ class RequestRouter(AbstractAI):
 
         self._create_router_chain()
 
-    def query(self, query: str, collection_id: int = None, callbacks: list = []):
+    def query(self, query: str, collection_id: int = None, llm_callbacks: list = [], agent_callbacks: list = []):
         """Routes the query to the appropriate AI, and returns the response."""
 
         # Set the document collection id on the interaction manager
@@ -85,13 +93,15 @@ class RequestRouter(AbstractAI):
                 "system_information": get_system_information(
                     self.interaction_manager.user_location
                 ),
-                "loaded_documents": "\n".join(self.interaction_manager.get_loaded_documents()),
+                "loaded_documents": "\n".join(
+                    self.interaction_manager.get_loaded_documents_for_reference()
+                ),
             }
         )
 
-        return self._route_response(router_result, query, callbacks)
+        return self._route_response(router_result, query, llm_callbacks, agent_callbacks)
 
-    def _route_response(self, router_result, query, callbacks):
+    def _route_response(self, router_result, query, llm_callbacks, agent_callbacks):
         """Routes the response from the router chain to the appropriate AI, and returns the response."""
 
         if "destination" in router_result and router_result["destination"] is not None:
@@ -104,12 +114,16 @@ class RequestRouter(AbstractAI):
             if destination is not None:
                 logging.debug(f"Routing to destination: {destination.name}")
 
-                response = destination.instance.run(input=query, callbacks=callbacks) # router_result['next_inputs']['input']) # Use the original query for now
+                response = destination.instance.run(
+                    input=query,
+                    collection_id=self.interaction_manager.collection_id,
+                    llm_callbacks=llm_callbacks, 
+                    agent_callbacks=agent_callbacks
+                )  # router_result['next_inputs']['input']) # Use the original query for now
 
                 logging.debug(f"Response from LLM: {response}")
-        
+
                 return response
-            
 
         logging.error(
             f"Destination not specified by the router chain. Cannot route response. Router response was: {router_result}.\n\nGetting default chain."
@@ -124,9 +138,8 @@ class RequestRouter(AbstractAI):
         # If it's still None, we have a problem, just use the first one
         if destination is None:
             destination = self.routes[0]
-        
-        destination.instance.run(input=query, callbacks=callbacks)
-        
+
+        destination.instance.run(input=query, collection_id=self.interaction_manager.collection_id, callbacks=callbacks)
 
     def _create_router_chain(self):
         """Creates the router chain for this router."""
@@ -159,7 +172,9 @@ class RequestRouter(AbstractAI):
                 "system_information",
                 "loaded_documents",
             ],
-            memory=ReadOnlySharedMemory(memory=self.interaction_manager.conversation_token_buffer_memory),
+            memory=ReadOnlySharedMemory(
+                memory=self.interaction_manager.conversation_token_buffer_memory
+            ),
         )
 
     def _create_routes(self, destination_routes):
@@ -180,7 +195,7 @@ class RequestRouter(AbstractAI):
                 "destination": destination,
                 "interaction_id": self.interaction_manager.interaction_id,
                 "user_email": self.interaction_manager.user_email,
-                "db_env_location": self.assistant_configuration.db_env_location,                
+                "db_env_location": self.assistant_configuration.db_env_location,
                 "streaming": self.streaming,
             },
         )

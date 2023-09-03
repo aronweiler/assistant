@@ -9,18 +9,21 @@ from typing import List
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Custom loaders
 from documents.pdf_loader import PDFLoader
 from documents.code_loader import CodeLoader
 
 # TODO: Add loaders for PPT, and other document types
-from langchain.document_loaders import CSVLoader, TextLoader, Docx2txtLoader, BSHTMLLoader
+from langchain.document_loaders import CSVLoader, TextLoader, Docx2txtLoader, BSHTMLLoader, PDFPlumberLoader
 
 
 # TODO: Add loaders for PPT, and other document types
 DOCUMENT_TYPES = {
     ".txt": TextLoader,
-    ".pdf": PDFLoader,
+    ".pdf": PDFPlumberLoader,#PDFLoader,
     ".csv": CSVLoader,
     ".html": BSHTMLLoader,
     ".cpp" : CodeLoader,
@@ -73,7 +76,7 @@ def convert_word_doc_to_pdf(input_doc, out_folder):
 def load_single_document(file_path: str) -> List[Document]:
     # Loads a single document from a file path
     file_extension = os.path.splitext(file_path)[1]
-    loader_class = DOCUMENT_TYPES.get(file_extension)
+    loader_class = DOCUMENT_TYPES.get(file_extension.lower())
 
     if loader_class:
         loader = loader_class(file_path)
@@ -196,3 +199,11 @@ def load_and_split_documents(
     )
 
     return texts
+
+# Testing
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    # Test loading and splitting documents
+    source = "C:\\Repos\\sample_docs\\textbooks\\Robert L. Crooks, Karla Baur, Laura Widman - Our Sexuality (MindTap Course List)-Cengage Learning (2020).pdf"
+    documents = load_and_split_documents(source, True, 1000, 100)

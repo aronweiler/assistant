@@ -116,7 +116,8 @@ class CurrentEventsAI(DestinationBase):
             ),
         ]
 
-    def run(self, input: str, callbacks: list = []):
+    def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
+        self.interaction_manager.collection_id = collection_id
         results = self.agent.run(
             input=input,
             system_information=get_system_information(
@@ -132,7 +133,7 @@ class CurrentEventsAI(DestinationBase):
                     ]
                 ]
             ),
-            callbacks=callbacks,
+            callbacks=agent_callbacks,
         )
 
         # Adding this after the run so that the agent can't see it in the history

@@ -6,7 +6,8 @@ from streamlit_extras.grid import grid
 import os
 from dotenv import load_dotenv
 
-from langchain.callbacks import StreamlitCallbackHandler
+#from langchain.callbacks import StreamlitCallbackHandler
+from langchain.callbacks.base import BaseCallbackHandler
 
 # for testing
 import sys
@@ -31,14 +32,27 @@ from db.models.users import Users
 
 from documents.document_loader import load_and_split_documents
 
+from runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
+
 USER_EMAIL = "aronweiler@gmail.com"
 
+class StreamHandler(BaseCallbackHandler):
+    def __init__(self, container, initial_text=""):
+        self.container = container
+        self.text = initial_text
+
+    def on_llm_new_token(self, token: str, **kwargs) -> None:
+        self.text += token
+        self.container.markdown(self.text)
+
 def get_configuration_path():
-    os.environ["ASSISTANT_CONFIG_PATH"] = "configurations/ui_configs/ui_config.json"
+    os.environ[
+        "ASSISTANT_CONFIG_PATH"
+    ] = "configurations/console_configs/console_ai.json"
 
     return os.environ.get(
         "ASSISTANT_CONFIG_PATH",
-        "configurations/ui_configs/ui_config.json",
+        "configurations/console_configs/console_ai.json",
     )
 
 
@@ -136,7 +150,7 @@ def create_collections_container(main_window_container):
 
                         loaded_docs = st.session_state[
                             "ai"
-                        ].interaction_manager.get_loaded_documents()
+                        ].interaction_manager.get_loaded_documents_for_display()
 
                         expander = st.expander(
                             label=f"({len(loaded_docs)}) documents in {option}",
@@ -144,7 +158,7 @@ def create_collections_container(main_window_container):
                         )
 
                         col1, col2 = expander.columns(2)
-                        for doc in loaded_docs:                            
+                        for doc in loaded_docs:
                             col1.write(doc)
                             col2.button("Delete", key=f"delete_{doc}")
                     else:
@@ -207,18 +221,20 @@ def load_ai():
 
     if "ai" not in st.session_state:
         # First time loading the page
-        print("conversation_selected: ai not in session state")
-        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id, streaming=True)
+        print("load_ai: ai not in session state")
+        ai_instance = RequestRouter(
+            st.session_state["config"], selected_interaction_id, streaming=True
+        )
         st.session_state["ai"] = ai_instance
 
     elif selected_interaction_id and selected_interaction_id != str(
         st.session_state["ai"].interaction_manager.interaction_id
     ):
         # We have an AI instance, but we need to change the interaction id
-        print(
-            "conversation_selected: interaction id is not none and not equal to ai interaction id"
+        print("load_ai: interaction id is not none and not equal to ai interaction id")
+        ai_instance = RequestRouter(
+            st.session_state["config"], selected_interaction_id, streaming=True
         )
-        ai_instance = RequestRouter(st.session_state["config"], selected_interaction_id, streaming=True)
         st.session_state["ai"] = ai_instance
 
 
@@ -232,6 +248,7 @@ def select_conversation():
 
 def select_documents():
     with st.sidebar.container():
+        st.toggle('Show LLM thoughts', key='show_llm_thoughts')
         status = st.status(f"File status", expanded=False, state="complete")
 
         # docs_expanded = st.expander(
@@ -290,7 +307,7 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
                     session,
                     collection_id,
                     user_id=st.session_state["user_id"],
-                    file_name=uploaded_file.name
+                    file_name=uploaded_file.name,
                 )
 
                 # TODO: Make this configurable
@@ -320,13 +337,17 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
 
                 file.file_summary = ai_instance.llm.predict(classify_string)
 
-                file.file_classification = ai_instance.llm.predict(f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: ")
+                file.file_classification = ai_instance.llm.predict(
+                    f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: "
+                )
 
-                print(f"File summary: {file.file_summary}, classification: {file.file_classification}")
+                print(
+                    f"File summary: {file.file_summary}, classification: {file.file_classification}"
+                )
 
             status.info("Complete")
             status.update(
-                label=f"Ingestion of {document.metadata['filename']} complete!",
+                label=f"Document ingestion complete!",
                 state="complete",
                 expanded=False,
             )
@@ -334,50 +355,63 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
         status.success("Done!", icon="✅")
         uploaded_files.clear()
 
+def show_old_messages(ai_instance):
+    #Add old messages
+    print(f"length of old messages: {str(len(ai_instance.interaction_manager.postgres_chat_message_history.messages))}")
+    for (
+        m
+    ) in (
+        ai_instance.interaction_manager.postgres_chat_message_history.messages
+    ):
+        if m.type == "human":
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(m.content)
+        else:
+            with st.chat_message("assistant", avatar="🤖"):
+                st.markdown(m.content)
 
+# TODO: Replace the DB backed chat history with a cached one here!
 def handle_chat(main_window_container):
-    chat_container = main_window_container.container()
+    with main_window_container.container():
 
-    with chat_container:
-        # Get the config and the AI instance
+        # Get the AI instance from session state
         if "ai" not in st.session_state:
             st.warning("No AI instance found in session state")
             st.stop()
         else:
-            ai_instance: RequestRouter = st.session_state["ai"]
+            ai_instance = st.session_state["ai"]
 
-        # Add old messages
-        for (
-            message
-        ) in (
-            ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
-        ):
-            if message.type == "human":
-                with st.chat_message("user"):
-                    st.markdown(message.content)
-            else:
-                with st.chat_message("assistant"):
-                    st.markdown(message.content)
+        show_old_messages(ai_instance)
 
-    # with st.form("chat_form"):
-    prompt = st.chat_input("Enter your message here")
+    # Get user input (must be outside of the container)
+    prompt = st.chat_input("Enter your message here", key="chat_input")
 
-    with chat_container:
-        # React to user input
-        if prompt:  # := container.chat_input("Enter your message here"):
-            # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(prompt)
+    if prompt:
+        with main_window_container.container():
+            st.chat_message("user", avatar="👤").markdown(prompt)
+            
+            with st.chat_message("assistant", avatar="🤖"):
+                llm_callbacks = []
+                llm_callbacks.append(StreamHandler(st.container().empty()))
 
-            with st.chat_message("assistant"):
-                
-                st_callback = StreamlitCallbackHandler(st.container())
-
+                agent_callbacks = []
+                if st.session_state['show_llm_thoughts']:
+                    print("showing agent thoughts")
+                    agent_callback = StreamlitAgentCallbackHandler(st.container(), expand_new_thoughts=True, collapse_completed_thoughts=True)
+                    agent_callbacks.append(agent_callback)
+            
                 collection_id = collection_id_from_option(
                     st.session_state["active_collection"],
                     ai_instance.interaction_manager.interaction_id,
                 )
-                st.markdown(ai_instance.query(prompt, collection_id=collection_id, callbacks=[st_callback]))
+                
+                result = ai_instance.query(
+                    prompt, collection_id=collection_id, llm_callbacks=llm_callbacks, agent_callbacks=agent_callbacks
+                )
+
+                print(f"Result: {result}")
+
+            show_old_messages(ai_instance)
 
 
 def set_user_id_from_email(email):
@@ -438,7 +472,7 @@ def set_page_config():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     # Always comes first!
     load_configuration()

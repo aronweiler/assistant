@@ -57,11 +57,9 @@ class MemoryAI(DestinationBase):
             memory=self.interaction_manager.conversation_token_buffer_memory,
         )
 
-    def run(self, input: str, callbacks: list = []):
+    def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
         """Runs the memory AI with the given input"""
-
-        # Look up some stuff based on the query
-        # Looking into the conversations table for now
+        self.interaction_manager.collection_id = collection_id
 
         with self.interaction_manager.conversations_helper.session_context(
             self.interaction_manager.conversations_helper.Session()
@@ -82,5 +80,5 @@ class MemoryAI(DestinationBase):
             return self.chain.run(
                 input=input,
                 context="\n".join(previous_conversations),
-                callbacks=callbacks,
+                callbacks=llm_callbacks,
             )

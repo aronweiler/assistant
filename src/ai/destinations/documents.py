@@ -11,9 +11,11 @@ from langchain.chains import (
     RetrievalQA,
     RetrievalQAWithSourcesChain,
     StuffDocumentsChain,
+    create_qa_with_sources_chain,
 )
 from langchain.schema import Document, HumanMessage, AIMessage
 from langchain.chains.summarize import load_summarize_chain
+from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from langchain.agents import (
     initialize_agent,
     AgentType,
@@ -46,6 +48,9 @@ from ai.prompts import (
     TOOLS_SUFFIX,
     REPHRASE_TEMPLATE,
     TOOLS_FORMAT_INSTRUCTIONS,
+    QUESTION_PROMPT,
+    COMBINE_PROMPT,
+    DOCUMENT_PROMPT
 )
 
 from utilities.token_helper import simple_get_tokens_for_message
@@ -62,7 +67,7 @@ class DocumentsAI(DestinationBase):
         db_env_location: str,
         streaming: bool = False,
     ):
-        self.destination = destination        
+        self.destination = destination
 
         self.agent_callback = AgentCallback()
         self.token_management_handler = TokenManagementCallbackHandler()
@@ -71,7 +76,7 @@ class DocumentsAI(DestinationBase):
             destination.model_configuration,
             callbacks=[self.token_management_handler],
             tags=["documents"],
-            streaming=streaming
+            streaming=streaming,
         )
 
         self.interaction_manager = InteractionManager(
@@ -113,18 +118,19 @@ class DocumentsAI(DestinationBase):
     def create_document_tools(self):
         self.document_tools = [
             StructuredTool.from_function(
-                func=self.search_loaded_documents, callbacks=[self.agent_callback]
+                func=self.search_loaded_documents, callbacks=[self.agent_callback], return_direct=True
             ),
-            StructuredTool.from_function(
-                name="summarize_document",
-                func=self.summarize_document,
-                description="Useful for summarizing a specific document or file. Only use this if the user is asking you to summarize something.",
-                callbacks=[self.agent_callback],
-            ),
+            # TODO: Make this less expensive for large documents
+            # StructuredTool.from_function(
+            #     name="summarize_document",
+            #     func=self.summarize_document,
+            #     description="Useful for summarizing a specific document or file. Only use this if the user is asking you to summarize something.",
+            #     callbacks=[self.agent_callback],
+            # ),
             StructuredTool.from_function(
                 name="list_documents",
                 func=self.list_documents,
-                description="Useful for discovering which documents or files are loaded or otherwise available to you.",
+                description="Useful for discovering which documents or files are loaded or otherwise available to you.  Always use this tool to get the target_file_id before calling anything else that requires it.",
                 callbacks=[self.agent_callback],
             ),
             StructuredTool.from_function(
@@ -135,7 +141,8 @@ class DocumentsAI(DestinationBase):
             ),
         ]
 
-    def run(self, input: str, callbacks: list = []):
+    def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
+        self.interaction_manager.collection_id = collection_id
         rephrased_input = self.rephrase_query_to_standalone(input)
 
         results = self.agent.run(
@@ -153,7 +160,7 @@ class DocumentsAI(DestinationBase):
                     ]
                 ]
             ),
-            callbacks=callbacks
+            callbacks=agent_callbacks,
         )
 
         # Adding this after the run so that the agent can't see it in the history
@@ -178,7 +185,7 @@ class DocumentsAI(DestinationBase):
                             f"Error running tool {tool.name} in documents AI, {es}"
                         )
         except Exception as e:
-            print(f"Error loading json from agent results, {e}")
+            print(f"Couldn't load results as json, which probably means it's just a text result.")
 
         print(results)
         self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_ai_message(
@@ -188,26 +195,31 @@ class DocumentsAI(DestinationBase):
         return results
 
     def list_documents(self):
-        return "\n".join(self.interaction_manager.get_loaded_documents())
+        return "\n".join(self.interaction_manager.get_loaded_documents_for_reference())
 
     def search_loaded_documents(
         self,
         query: str,
-        target_file: str = None,
+        target_file_id: int = None,
     ):
-        """Searches the loaded documents for the given query.  Use this tool when the user is referring to any loaded document or file in their search for information. The target_file argument is optional, and can be used to search a specific file.
+        """Searches the loaded documents for the given query.  Use this tool when the user is referring to any loaded document or file in their search for information. The target_file_id argument is optional, and can be used to search a specific file.
 
         Args:
             query (str): The query you would like to search for.  Input should be a fully formed question.
-            target_file (str, optional): The file you would like to search in.  If not specified, all loaded files will be searched.
+            target_file_id (int, optional): The file_id you got from the list_documents tool, if you want to search a specific file. Defaults to None which searches all files.
         """
 
+        # with self.interaction_manager.documents_helper.session_context(self.interaction_manager.documents_helper.Session()) as session:
+        #     file = self.interaction_manager.documents_helper.get_file(session, target_file_id)
+        #     if file is None or file.collection_id != self.interaction_manager.collection_id:
+        #         return f"Sorry, I couldn't find a file with ID {target_file_id} in this collection.  You probably didn't use the list_documents tool to get the ID.  Try again with the proper ID after calling list_documents."
+
         search_kwargs = {
-            "top_k": 20,
+            "top_k": 10,
             "search_type": SearchType.similarity,
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,
-            "target_file": target_file,
+            "target_file_id": target_file_id,
         }
 
         # Create the documents class for the retriever
@@ -216,13 +228,31 @@ class DocumentsAI(DestinationBase):
             search_kwargs=search_kwargs,
         )
 
-        qa = RetrievalQAWithSourcesChain.from_chain_type(
-            llm=self.llm, chain_type="stuff", retriever=self.pgvector_retriever
+        qa_chain = LLMChain(llm=self.llm, prompt=QUESTION_PROMPT, verbose=True)
+
+        qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=self.pgvector_retriever,            
+            chain_type_kwargs={
+                "prompt": QUESTION_PROMPT
+            },
         )
 
-        results = qa({"question": query})
+        combine_chain = StuffDocumentsChain(
+            llm_chain=qa_chain,
+            document_prompt=DOCUMENT_PROMPT,
+            document_variable_name="summaries",
+        )
 
-        return results
+        qa_with_sources.combine_documents_chain = combine_chain
+        qa_with_sources.return_source_documents = True
+
+        results = qa_with_sources({"question": query})
+
+        # TODO: Maybe do something with the metadata that is returned... like linking/showing the user the actual document.
+        # + "\n\n\t-" + "\n\t-".join([f"{d.metadata['filename']}: {d.metadata['page']}" for d in results['source_documents']])
+        return results['answer'] 
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_document(
@@ -234,7 +264,7 @@ class DocumentsAI(DestinationBase):
         documents = Documents(self.interaction_manager.db_env_location)
 
         with documents.session_context(documents.Session()) as session:
-            document_chunks = documents.get_document_chunks_by_document_name(
+            document_chunks = documents.get_document_chunks_by_file_id(
                 session, self.interaction_manager.collection_id, target_document
             )
 
@@ -298,8 +328,8 @@ class DocumentsAI(DestinationBase):
                 chat_history="\n".join(
                     [
                         f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
-                        for m in self.interaction_manager.postgres_chat_message_history.messages[
-                            -16:
+                        for m in self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[
+                            -8:
                         ]
                     ]
                 ),
@@ -309,7 +339,7 @@ class DocumentsAI(DestinationBase):
                 user_name=self.interaction_manager.user_name,
                 user_email=self.interaction_manager.user_email,
                 loaded_documents="\n".join(
-                    self.interaction_manager.get_loaded_documents()
+                    self.interaction_manager.get_loaded_documents_for_reference()
                 ),
             )
         )
@@ -341,21 +371,21 @@ class DocumentsAI(DestinationBase):
 
     def code_structure(
         self,
-        target_file: str,
+        target_file_id: int,
         code_type: str = None,
     ):
-        """Useful for understanding the high-level structure of a specific loaded code file.  Use this tool before using the 'code_detail' tool.  
+        """Useful for understanding the high-level structure of a specific loaded code file.  Use this tool before using the 'code_detail' tool.
         This tool will give you a list of module names, function signatures, and class method signatures.
         You can use the signature of any of these to get more details about that specific piece of code when calling code_detail.
 
         Args:
-            target_file (str): The file you would like to get the code structure for.
+            target_file_id (int): The file ID you would like to get the code structure for.
             code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'.
         """
         documents = Documents(self.interaction_manager.db_env_location)
         with documents.session_context(documents.Session()) as session:
-            document_chunks = documents.get_document_chunks_by_document_name(
-                session, self.interaction_manager.collection_id, target_file
+            document_chunks = documents.get_document_chunks_by_file_id(
+                session, self.interaction_manager.collection_id, target_file_id
             )
 
             code_structure = ""
@@ -376,7 +406,7 @@ class DocumentsAI(DestinationBase):
                 document_chunks,
             )
 
-            code_structure = "The code structure for " + target_file + " is:\n\n"
+            code_structure = "The code structure is:\n\n"
             if code_type is None or code_type == "MODULE":
                 code_structure += (
                     "Modules: " + ", ".join([m["filename"] for m in modules]) + "\n\n"
@@ -425,23 +455,23 @@ class DocumentsAI(DestinationBase):
 
     def code_details(
         self,
-        target_file: str,
+        target_file_id: int,
         target_signature: str,
     ):
         """Useful for getting the details of a specific piece of code in a loaded code file.  Use this tool after using the 'code_structure' tool.  This tool will give you the code details for the specific piece of code you requested.  You can get the signature of any piece of code from the 'code_structure' tool.
 
         Args:
-            target_file (str): The file you would like to get the code details for.
+            target_file_id (int): The file ID you would like to get the code details for.
             target_signature (str): The signature of the piece of code you would like to get the details for. Valid values for this argument are the signatures returned by the 'code_structure' tool.
         """
         documents = Documents(self.interaction_manager.db_env_location)
         with documents.session_context(documents.Session()) as session:
-            document_chunks = documents.get_document_chunks_by_document_name(
-                session, self.interaction_manager.collection_id, target_file
+            document_chunks = documents.get_document_chunks_by_file_id(
+                session, self.interaction_manager.collection_id, target_file_id
             )
 
             code_details = (
-                f"The code details for {target_file} {target_signature} is:\n\n"
+                f"The code details for {target_signature} is:\n\n"
             )
 
             # Find the document chunk that matches the target signature
@@ -461,7 +491,7 @@ class DocumentsAI(DestinationBase):
                     target_signature,
                     SearchType.similarity,
                     self.interaction_manager.collection_id,
-                    target_file,
+                    target_file_id,
                     top_k=20,  # TODO: ... magic number
                 )
 
