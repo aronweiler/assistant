@@ -11,7 +11,7 @@ import documents.codesplitter.utils as utils
 import documents.codesplitter.splitter.splitter_utils as splitter_utils
 
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 logger = logging.getLogger(__name__)
 
@@ -75,4 +75,4 @@ def run(path):
     return all_nodes
 
 if __name__ == "__main__":
-    run("/Repos/sample_docs/cpp/ggml-alloc.c")
+    run("/Repos/sample_docs/cpp/llama.cpp")

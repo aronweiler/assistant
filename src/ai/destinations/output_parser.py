@@ -5,30 +5,27 @@ import logging
 import re
 from typing import Optional, Union
 
-from pydantic import Field
-
 from langchain.agents.agent import AgentOutputParser
 from langchain.agents.structured_chat.prompt import FORMAT_INSTRUCTIONS
 from langchain.output_parsers import OutputFixingParser
+from langchain.pydantic_v1 import Field
 from langchain.schema import AgentAction, AgentFinish, OutputParserException
 from langchain.schema.language_model import BaseLanguageModel
 
 logger = logging.getLogger(__name__)
 
 
-class StructuredChatOutputParser(AgentOutputParser):
+class CustomStructuredChatOutputParser(AgentOutputParser):
     """Output parser for the structured chat agent."""
+
+    pattern = re.compile(r"```(?:json)?\n(.*?)```", re.DOTALL)
 
     def get_format_instructions(self) -> str:
         return FORMAT_INSTRUCTIONS
 
     def parse(self, text: str) -> Union[AgentAction, AgentFinish]:
         try:
-            # TODO: This is hacky- make it an output parser (or fixer) that I can pass to the agent
-            if "```json" in text:
-                text = text.replace("```json", "```")
-            
-            action_match = re.search(r"```(.*?)```?", text, re.DOTALL)
+            action_match = self.pattern.search(text)
             if action_match is not None:
                 response = json.loads(action_match.group(1).strip(), strict=False)
                 if isinstance(response, list):
@@ -51,10 +48,10 @@ class StructuredChatOutputParser(AgentOutputParser):
         return "structured_chat"
 
 
-class StructuredChatOutputParserWithRetries(AgentOutputParser):
+class CustomStructuredChatOutputParserWithRetries(AgentOutputParser):
     """Output parser with retries for the structured chat agent."""
 
-    base_parser: AgentOutputParser = Field(default_factory=StructuredChatOutputParser)
+    base_parser: AgentOutputParser = Field(default_factory=CustomStructuredChatOutputParser)
     """The base parser to use."""
     output_fixing_parser: Optional[OutputFixingParser] = None
     """The output fixing parser to use."""
@@ -78,10 +75,10 @@ class StructuredChatOutputParserWithRetries(AgentOutputParser):
     def from_llm(
         cls,
         llm: Optional[BaseLanguageModel] = None,
-        base_parser: Optional[StructuredChatOutputParser] = None,
-    ) -> StructuredChatOutputParserWithRetries:
+        base_parser: Optional[CustomStructuredChatOutputParser] = None,
+    ) -> CustomStructuredChatOutputParserWithRetries:
         if llm is not None:
-            base_parser = base_parser or StructuredChatOutputParser()
+            base_parser = base_parser or CustomStructuredChatOutputParser()
             output_fixing_parser = OutputFixingParser.from_llm(
                 llm=llm, parser=base_parser
             )

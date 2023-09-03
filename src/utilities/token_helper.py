@@ -1,5 +1,10 @@
 import tiktoken
 
+def num_tokens_from_string(string: str, encoding_name: str = "gpt-3.5-turbo") -> int:
+    encoding = tiktoken.encoding_for_model(encoding_name)
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
+
 def num_tokens_from_messages(messages, model="gpt-3.5-turbo-0613"):
     """Return the number of tokens used by a list of messages."""
     try:

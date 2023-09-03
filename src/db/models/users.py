@@ -25,7 +25,7 @@ class Users(VectorDatabase):
 
     #     return query.first()
         
-    def find_user_by_email(self, session, email, eager_load = []) -> Union[User, None]:
+    def get_user_by_email(self, session, email, eager_load = []) -> Union[User, None]:
         query = session.query(User).filter(User.email == email)
 
         query = super().eager_load(query, eager_load)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     users = Users(db_env)
 
     with users.session_context(users.Session()) as session:
-        user = users.find_user_by_email(session, "gaiaweiler@gmail.com", eager_load=[User.conversations, User.conversations, User.user_settings])
+        user = users.get_user_by_email(session, "gaiaweiler@gmail.com", eager_load=[User.conversations, User.conversations, User.user_settings])
 
         if user is not None:
             for result in user.user_settings:

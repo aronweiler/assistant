@@ -4,38 +4,73 @@ from ai.abstract_ai import AbstractAI
 from runners.runner import Runner
 from db.database.models import User
 from db.models.users import Users
+from db.models.documents import Documents
+from db.models.interactions import Interactions
 
 
 from utilities.pretty_print import pretty_print_conversation
 
 
 class ConsoleRunner(Runner):
-    def __init__(self, arguments):
-        email = arguments["user_email"]
-        self.collection_id = arguments["collection_id"]
-        self.users = Users(arguments["db_env_location"])
-        with self.users.session_context(self.users.Session()) as session:
-            self.user = self.users.find_user_by_email(
-                session,
-                email=email,
-                eager_load=[],
-            )
+    def __init__(self, interaction_id, collection_name, db_env_location, user_email):
+        self.interaction_id = interaction_id
+        self.collection_name = collection_name
+        self.db_env_location = db_env_location
+        self.user_email = user_email        
 
-            self.user_id = self.user.id
+        # Ensure the interaction exists
+        self.ensure_interaction_exists()
+
+        self.collection_id = self.ensure_collection_exists()
+
+    def ensure_collection_exists(self):
+        """Ensures that a collection exists for the current user"""
+
+        documents_helper = Documents(self.db_env_location)     
+
+        with documents_helper.session_context(documents_helper.Session()) as session:
+            collection = documents_helper.get_collection_by_name(session, self.collection_name, self.interaction_id)            
+
+            if collection is None:
+                collection = documents_helper.create_collection(
+                    session,
+                    collection_name=self.collection_name,
+                    interaction_id=self.interaction_id,
+                )        
+                
+                session.commit() 
+
+            return collection.id
+
+    def ensure_interaction_exists(self):
+        """Ensures that an interaction exists for the current user"""
+
+        interactions_helper = Interactions(self.db_env_location)   
+        users_helper = Users(self.db_env_location)     
+    
+        with interactions_helper.session_context(interactions_helper.Session()) as session:
+            interaction = interactions_helper.get_interaction(session, self.interaction_id)
+
+            if interaction is None:
+                interactions_helper.create_interaction(
+                    session,
+                    id=self.interaction_id,
+                    interaction_summary="Console interaction",
+                    user_id=users_helper.get_user_by_email(session, self.user_email).id,            
+                )        
+                
+                session.commit()
 
     def configure(self):
         pass
 
     def run(self, abstract_ai: AbstractAI):
-        # TODO: Remove this- testing the voice prompt only
-        # from runners.voice.prompts import FINAL_REPHRASE_PROMPT
-        # abstract_ai.final_rephrase_prompt = FINAL_REPHRASE_PROMPT
 
         while True:
             query = input("Query (X to exit):")
 
             # Run the query
-            result = abstract_ai.query(query, self.user_id, self.collection_id)
+            result = abstract_ai.query(query, self.collection_id)
 
             # print the result
             pretty_print_conversation(result)

@@ -19,9 +19,9 @@ class AgentCallback(BaseCallbackHandler):
     ):
 
         """Run when tool starts running."""
-        logging.debug(f"Tool input: {input_str}")
+        logging.debug(f"on_tool_start: {serialized}, {input_str}, {run_id}, {parent_run_id}, {tags}, {metadata}, {kwargs}")
 
-        self.memory.chat_memory.messages.append(AIMessage(content=f"{serialized['name']} called with {input_str}"))
+        #self.memory.chat_memory.messages.append(AIMessage(content=f"{serialized['name']} called with {input_str}"))
 
     # def on_tool_end(
     #     self,
@@ -38,7 +38,7 @@ class AgentCallback(BaseCallbackHandler):
         """Run when tool ends running."""
         logging.debug(f"Tool output: {output}")
 
-        self.memory.chat_memory.messages.append(AIMessage(content=output))
+        #self.memory.chat_memory.messages.append(AIMessage(content=output))
 
     def on_tool_error(
         self,

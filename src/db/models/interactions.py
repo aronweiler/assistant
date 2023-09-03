@@ -64,21 +64,47 @@ class Interactions(VectorDatabase):
 
         return query.first()
     
-    def get_interactions(
+    def get_interaction_by_summary(
+        self,
+        session,
+        user_id: int,
+        interaction_summary: str,
+        eager_load: List[InstrumentedAttribute[Any]] = []
+    ):
+        query = session.query(Interaction).filter(Interaction.user_id == user_id, Interaction.interaction_summary == interaction_summary)
+
+        query = super().eager_load(query, eager_load)
+
+        return query.first()
+    
+    def get_interactions_by_user_email(
         self,
         session,
         user_email: Union[str, None] = None,
         eager_load: List[InstrumentedAttribute[Any]] = []
-    ):       
+    ) -> List[Interaction]:       
         
         if user_email is not None:
             users = Users(self.db_env_location)
-            user = users.find_user_by_email(session, user_email, eager_load)
+            user = users.get_user_by_email(session, user_email, eager_load)
             user_id = user.id
             query = session.query(Interaction).filter(Interaction.user_id == user_id)
         else:
             query = session.query(Interaction)
 
+        query = super().eager_load(query, eager_load)
+
+        return query.all()
+    
+    def get_interactions_by_user_id(
+        self,
+        session,
+        user_id: int,
+        eager_load: List[InstrumentedAttribute[Any]] = []
+    ) -> List[Interaction]:       
+        
+        query = session.query(Interaction).filter(Interaction.user_id == user_id)
+    
         query = super().eager_load(query, eager_load)
 
         return query.all()

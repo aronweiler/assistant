@@ -63,6 +63,7 @@ wikipedia
 
 # News
 gnews
+newspaper3k
 
 # Weather
 python-weather
@@ -72,6 +73,7 @@ pypdf
 docx2txt
 pdfminer.six
 bs4
+pdfplumber
 
 # Code parsing
 libclang==16.0.6

@@ -1,26 +1,18 @@
 import argparse
 import logging
 
-from configuration.assistant_configuration import AssistantConfiguration
+from configuration.assistant_configuration import (
+    AssistantConfiguration,
+    ConfigurationLoader,
+)
+from configuration.runner_configuration import RunnerConfig, RunnerArguments
 from utilities.instance_utility import create_instance_from_module_and_class
 
-def load_assistant_configuration_and_ai(config_path):   
+from ai.request_router import RequestRouter
+from runners.runner import Runner
 
-    # load the config
-    config = AssistantConfiguration.from_file(config_path)
 
-    # get the ai
-    if config.ai:
-        ai_inst = create_instance_from_module_and_class(
-            config.ai.type_configuration.module_name,
-            config.ai.type_configuration.class_name,
-            config.ai,
-        )
 
-    else:
-        raise ValueError("AI is not defined in the configuration file")
-    
-    return config, ai_inst
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -30,7 +22,11 @@ if __name__ == "__main__":
         "--config", type=str, required=True, help="Path to the configuration file"
     )
     parser.add_argument(
-        "--logging_level", type=str, required=False, default="INFO", help="Logging level"
+        "--logging_level",
+        type=str,
+        required=False,
+        default="INFO",
+        help="Logging level",
     )
 
     # Parse the command-line arguments
@@ -40,34 +36,29 @@ if __name__ == "__main__":
     logging.basicConfig(level=numeric_level)
     logging.info("Started logging")
 
-    config, ai_inst = load_assistant_configuration_and_ai(args.config)
+    runner_config: RunnerConfig = RunnerConfig.load_from_file(args.config)
+    assistant_config: AssistantConfiguration = ConfigurationLoader.from_file(args.config)
 
-    if not config.runners:
-        raise ValueError("No runners defined")
+    # Create the AI instance
+    ai_inst = RequestRouter(assistant_config, runner_config.arguments.interaction_id)
 
-    # TODO: Make this multi-threaded??
-    for runner in config.runners:
-        if not runner.enabled:
-            logging.debug("Skipping disabled runner, " + runner["runner"]["type"])
-            continue
+    # If there are arguments in the runner config, pass them on
+    if runner_config.arguments:
+        runner_instance: Runner = create_instance_from_module_and_class(
+            runner_config.module_name,
+            runner_config.class_name,
+            vars(runner_config.arguments),
+        )
 
-        # If there are arguments in the runner config, pass them on
-        if runner.arguments and runner.arguments != {}:
-            runner_instance = create_instance_from_module_and_class(
-                runner.type_configuration.module_name,
-                runner.type_configuration.class_name,
-                runner.arguments,
-            )
+    else:
+        runner_instance: Runner = create_instance_from_module_and_class(
+            runner_config.module_name,
+            runner_config.class_name,
+        )
 
-        else:
-            runner_instance = create_instance_from_module_and_class(
-                runner.type_configuration.module_name, runner.type_configuration.class_name
-            )
+    # TODO: This is a hack, but it works for now
+    # This is here because starting FastAPI in proc demands it (see the RestAPIRunner)
+    if callable(runner_instance):
+        runner_instance(ai_inst)
 
-        # TODO: This is a hack, but it works for now
-        # This is here because starting FastAPI in proc demands it (see the RestAPIRunner)
-        if callable(runner):
-            runner_instance(ai_inst)
-
-        runner_instance.run(abstract_ai=ai_inst)
-
+    runner_instance.run(abstract_ai=ai_inst)

@@ -1,7 +1,6 @@
 from langchain.prompts import PromptTemplate
 
-MULTI_PROMPT_ROUTER_TEMPLATE = """\
-<< SYSTEM INFORMATION >>
+MULTI_PROMPT_ROUTER_TEMPLATE = """<< SYSTEM INFORMATION >>
 {{system_information}}
 
 Given a raw text input to a language model, select the model best suited for processing \
@@ -21,15 +20,13 @@ by doing things like resolving coreferences in the input (e.g. assigning names t
 Return a markdown code snippet with a JSON object formatted to look like:
 ```json
 {{{{
-    "destination": string \\ name of the prompt to use or "DEFAULT"
+    "destination": string \\ name of the MODEL to use. Must be one of the candidate model specified below.
     "next_inputs": string \\ a potentially modified version of the original input
 }}}}
 ```
 
-REMEMBER: "destination" MUST be one of the candidate prompt names specified below OR \
-it can be "DEFAULT" if the input is not well suited for any of the candidate prompts.
-REMEMBER: "next_inputs" can just be the original input if you don't think any \
-modifications are needed.
+REMEMBER: "destination" MUST be one of the candidate model names specified below.
+REMEMBER: "next_inputs" can just be the original input if you don't think any modifications are needed.
 
 << CANDIDATE MODELS >>
 {destinations}
@@ -43,30 +40,76 @@ modifications are needed.
 #AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
-TOOLS_SUFFIX = """Use any context you may need from the history:
----  TOOL HISTORY ---
+TOOLS_FORMAT_INSTRUCTIONS = """Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
+
+Valid "action" values: "Final Answer" or {tool_names}
+
+Provide only ONE action per $JSON_BLOB, formatted as shown:
+
+--- BEGIN JSON BLOB FORMAT ---
+```json
+{{{{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}}}}
+```
+--- END JSON BLOB FORMAT ---
+
+Then, follow this format for your response:
+
+Query: <<user input query>>
+
+Thought: <<Describe your thinking on the previously taken steps and plan subsequent steps.  If the data exists to answer the users query, return the final answer.>>
+
+Action:
+```
+$JSON_BLOB
+```
+
+Observation: <<action result>>
+
+... (repeat Thought/Action/Observation as many times as necessary to get to the final answer)
+
+When you arrive at the final answer to the query, the format is:
+```json
+{{{{
+  "action": "Final Answer",
+  "action_input": "<<Your final response to the user>>"
+}}}}
+```"""
+
+TOOLS_SUFFIX = """Use any context you may need from the chat history (e.g. document names, or other information):
+---  CHAT HISTORY ---
 {agent_chat_history}
---- TOOL HISTORY ---
+--- CHAT HISTORY ---
 
 Helpful system information: {system_information}
 
 Let's think this through, and be very careful to use the right tool arguments in the json blob.
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action. Use tools if necessary. Respond directly if appropriate. Format is Action:```$JSON_BLOB```, then Observation:.
-Thought:"""
+--- FORMAT --- 
+Action:
+```json
+$JSON_BLOB
+```
+--- FORMAT --- 
+
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern. Use tools if necessary. Respond directly if appropriate. DO NOT respond with the same action twice in a row!  Each action you take should be different from the previous action.
+
+"""
 
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
 {system_information}
 Loaded documents:
 {loaded_documents}
-Possibly related context:
+Possibly related conversation context:
 {context}
 Current conversation:
 {chat_history}
 {user_name} ({user_email}): {input}
 AI:"""
-        
+
 CONVERSATIONAL_PROMPT = PromptTemplate(
     input_variables=[
         "system_prompt",
@@ -167,22 +210,30 @@ Documents available:
 AI: I have rephrased the user input as search keywords so that it can be understood without any other context:
 """
 
-REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone question or statement.  Do not otherwise modify the user's input.
+REPHRASE_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone question or statement.  This means that your rephrased question or statement should be able to be understood without any other context besides the question or statement itself.  
+
+Use the available chat history, system information, and files to help you rephrase the user's input into a stand-alone question or statement.  Do not otherwise modify the user's input.
+
+Be sure to resolve all coreferences in the input (e.g. assign names to things like "that", "this", "her", "him", or places like "here", or dates like "tomorrow", etc).  If the coreference refers to a file, be sure to include the full name and ID of the file in your rephrased question or statement.
+
+For example, if the user says "Tell me about that file", you should determine what "that file" is referring to (by looking at the available files), and then rephrase the question as "Tell me about '<<that file>>'" (replacing <<that file>> with the actual file name and ID from the list of available files).  If the user asks you to "elaborate on that", they are likely referring to something in the chat history, so you should rephrase the question as "Elaborate on '<<the entity>>'" (replacing <<the entity>> with the actual entity from the chat history).
 
 System information:
 {system_information}
 
-Chat history:
+Chat history (use this to resolve coreferences):
 {chat_history}
-
-Documents available:
-{loaded_documents}
 
 ------- BEGIN USER INPUT TO REPHRASE -------
 {user_name} ({user_email}): {input}
 ------- END USER INPUT TO REPHRASE -------
 
-AI: I have rephrased the user input so that it can be understood without any other context:
+-- AVAILABLE FILE IDs --
+{loaded_documents}
+
+When referencing any of the available files, you MUST include the ID of the file when referencing that file in your output.  For example, if a user references a file named "my_file.txt", you should rephrase the user's input as "Tell me about 'my_file.txt' (file_id: 12345)".
+
+AI: I have rephrased the user input so that it can be understood without any other context by resolving any ambiguous references and coreferences, ensuring that any files are referred to by their full name AND file_id:
 """
         
 REPHRASE_PROMPT = PromptTemplate(
@@ -231,3 +282,85 @@ Given the new context, refine the original summary.  If the context isn't useful
 """
 
 SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)
+
+QUESTION_PROMPT_TEMPLATE = """Use the following portion(s) of a long document to see if any of the text is relevant to answer the question. 
+Return any relevant text verbatim, including citations, if any.
+
+--- BEGIN EXAMPLE ---
+CONTENT: 
+ARON WEILER
+aronweiler@gmail.com · www.linkedin.com/in/aronweiler ·
+SUMMARY
+With over 20 years of experience in the software industry, I bring to the table a
+broad range of project management and product development skills- from customer
+interactions for user needs gathering and analysis, to requirements, specifications,
+architecture, design, planning, and implementation.
+SOURCE: temp\50b1c6d9-6385-4af4-9534-ffd12ec989e9\aron weiler resume.pdf (Page 1)
+
+CONTENT: 
+SEPT 2002 – JUL 2004
+SENIOR SOFTWARE ENGINEER
+OFFICETOOL.COM, INC.
+Hired in September of 2002, I was brought aboard as a contractor for my skills in
+Microsoft’s .NET programming languages. After that, I was hired on as a full-time
+employee, managed several projects with multiple programmers, developed
+applications from beginning to end independently, participated in training other
+developers on the .NET architecture as well as testing and maintaining new and
+existing applications.
+SOURCE: temp\50b1c6d9-6385-4af4-9534-ffd12ec989e9\aron weiler resume.pdf (Page 5)
+
+Question: describe the job Aron had in 2004
+
+Relevant text, if any, including document and page citations (in Markdown format):
+Aron Weiler held the position of Senior Software Engineer at **OFFICETOOL.COM, INC.** from Sept 2002 to Jul 2004.
+
+Here are some details about the position:
+
+- Joined in September 2002 as a contractor, leveraging expertise in Microsoft's .NET programming languages.
+- Transitioned to a full-time employee role.
+- Managed multiple projects with cross-functional teams of programmers.
+- Independently developed applications from inception to completion.
+- Conducted training sessions for fellow developers on the .NET architecture.
+- Assisted in testing and maintenance of both new and existing applications.
+
+*[Source:](temp\50b1c6d9-6385-4af4-9534-ffd12ec989e9\aron%weiler%resume.pdf) [Page 5]*
+--- END EXAMPLE ---
+
+{summaries}
+
+Question: {question}
+
+Relevant text, if any, including document and page citations (in Markdown format):
+"""
+
+QUESTION_PROMPT = PromptTemplate(
+    template=QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
+)
+
+COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES"). 
+If you don't know the answer, just say that you don't know. Don't try to make up an answer.
+ALWAYS return a "SOURCES" part in your answer.
+
+Every response should follow this format:
+--- BEGIN EXAMPLE RESPONSE --- 
+FINAL ANSWER: << your answer here >>
+SOURCES: << sources here >>
+--- END EXAMPLE RESPONSE --- 
+
+QUESTION: {question}
+
+Extracted Document Parts:
+=========
+{summaries}
+=========
+
+FINAL ANSWER:"""
+COMBINE_PROMPT = PromptTemplate(
+    template=COMBINE_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
+)
+
+DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: {source} (Page {page})"""
+
+DOCUMENT_PROMPT = PromptTemplate(
+    template=DOCUMENT_PROMPT_TEMPLATE, input_variables=["page_content", "source", "page"]
+)

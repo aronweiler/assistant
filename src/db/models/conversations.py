@@ -62,13 +62,51 @@ class Conversations(VectorDatabase):
     ) -> List[Conversation]:
         # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
+        if associated_user is not None:
+            return self.search_conversations_with_user_id(session, conversation_text_search_query, search_type, associated_user.id, interaction_id, eager_load, top_k, return_deleted)
+
         # Can't perform this query before the
         # Before searching, pre-filter the query to only include conversations that match the single inputs
         query = session.query(Conversation).filter(
             Conversation.is_deleted == return_deleted,
-            Conversation.user_id == associated_user.id
-            if associated_user is not None
+            Conversation.interaction_id == interaction_id
+            if interaction_id is not None
             else True,
+        )
+
+        query = super().eager_load(query, eager_load)
+
+        if search_type == SearchType.key_word:
+            # TODO: Do better key word search
+            query = query.filter(
+                Conversation.conversation_text.contains(conversation_text_search_query)
+            )
+        elif search_type == SearchType.similarity:
+            embedding = self.get_embedding(conversation_text_search_query)
+            query = self._get_nearest_neighbors(session, query, embedding, top_k=top_k)
+        else:
+            raise ValueError(f"Unknown search type: {search_type}")
+
+        return query.all()[:top_k]
+    
+    def search_conversations_with_user_id(
+        self,
+        session,
+        conversation_text_search_query: str,
+        search_type: SearchType,
+        associated_user_id: int,
+        interaction_id: Union[UUID, None] = None,
+        eager_load: List[InstrumentedAttribute[Any]] = [],
+        top_k=10,
+        return_deleted=False,
+    ) -> List[Conversation]:
+        # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
+
+        # Can't perform this query before the
+        # Before searching, pre-filter the query to only include conversations that match the single inputs
+        query = session.query(Conversation).filter(
+            Conversation.is_deleted == return_deleted,
+            Conversation.user_id == associated_user_id,
             Conversation.interaction_id == interaction_id
             if interaction_id is not None
             else True,
@@ -94,7 +132,7 @@ class Conversations(VectorDatabase):
     ) -> List[Conversation]:
         query = session.query(Conversation).filter(
             Conversation.interaction_id == interaction_id
-        )
+        ).order_by(Conversation.record_created)
 
         query = super().eager_load(query, [Conversation.conversation_role_type])
 
@@ -139,7 +177,7 @@ if __name__ == "__main__":
             session, interaction_id
         )
 
-        aron = users.find_user_by_email(session, "aronweiler@gmail.com")
+        aron = users.get_user_by_email(session, "aronweiler@gmail.com")
         results = conversations.search_conversations(
             session,
             conversation_text_search_query="favorite food is",
