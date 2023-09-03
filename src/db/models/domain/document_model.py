@@ -38,6 +38,9 @@ class DocumentModel:
 
     @classmethod
     def from_database_model(cls, db_document):
+        if not db_document:
+            return None
+        
         return cls(
             id=db_document.id,
             collection_id=db_document.collection_id,

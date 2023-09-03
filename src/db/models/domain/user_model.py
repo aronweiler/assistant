@@ -41,6 +41,8 @@ class UserModel:
 
     @classmethod
     def from_database_model(cls, db_user):
+        if db_user is None:
+            return None
         return cls(
             id=db_user.id,
             name=db_user.name,

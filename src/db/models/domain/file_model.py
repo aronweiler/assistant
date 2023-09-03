@@ -24,6 +24,8 @@ class FileModel:
 
     @classmethod
     def from_database_model(cls, db_file):
+        if not db_file:
+            return None
         return cls(
             id=db_file.id,
             collection_id=db_file.collection_id,

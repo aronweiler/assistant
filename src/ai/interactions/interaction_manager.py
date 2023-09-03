@@ -142,35 +142,28 @@ class InteractionManager:
 
     def _ensure_interaction_exists(self, user_id: int):
         """Ensures the interaction exists, and creates it if it doesn't."""
+        # Get the interaction from the db
+        interaction = self.interactions_helper.get_interaction(self.interaction_id)
 
-        with self.interactions_helper.session_context(
-            self.interactions_helper.Session()
-        ) as session:
-            # Get the interaction from the db
-            interaction = self.interactions_helper.get_interaction(
-                session, self.interaction_id
+        # If the interaction doesn't exist, create it
+        if interaction is None:
+            self.interactions_helper.create_interaction(
+                self.interaction_id,
+                "New Chat",
+                user_id,
             )
+            self.interaction_needs_summary = True
 
-            # If the interaction doesn't exist, create it
-            if interaction is None:
-                self.interactions_helper.create_interaction(
-                    session,
-                    self.interaction_id,
-                    "New Chat",
-                    user_id,
-                )
-                self.interaction_needs_summary = True
+            logging.info(
+                f"Interaction ID: {self.interaction_id} created for user {user_id}"
+            )
+        else:
+            # The interaction already exists, but could still need summary
+            self.interaction_needs_summary = interaction.needs_summary
 
-                logging.info(
-                    f"Interaction ID: {self.interaction_id} created for user {user_id}"
-                )
-            else:
-                # The interaction already exists, but could still need summary
-                self.interaction_needs_summary = interaction.needs_summary
-
-                logging.info(
-                    f"Interaction ID: {self.interaction_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
-                )
+            logging.info(
+                f"Interaction ID: {self.interaction_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
+            )
 
     def _create_conversation_memory(self, llm, max_token_limit):
         """Creates the conversation memory for the interaction."""

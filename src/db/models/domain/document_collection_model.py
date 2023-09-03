@@ -21,6 +21,9 @@ class DocumentCollectionModel:
 
     @classmethod
     def from_database_model(cls, db_document_collection):
+        if db_document_collection is None:
+            return None
+        
         return cls(
             id=db_document_collection.id,
             collection_name=db_document_collection.collection_name,

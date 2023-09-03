@@ -19,6 +19,9 @@ class UserSettingModel:
 
     @classmethod
     def from_database_model(cls, db_user_setting):
+        if db_user_setting is None:
+            return None
+        
         return cls(
             id=db_user_setting.id,
             user_id=db_user_setting.user_id,

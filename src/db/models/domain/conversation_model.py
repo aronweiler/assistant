@@ -40,6 +40,9 @@ class ConversationModel:
 
     @classmethod
     def from_database_model(cls, db_conversation):
+        if db_conversation is None:
+            return None
+        
         return cls(            
             id=db_conversation.id,
             record_created=db_conversation.record_created,

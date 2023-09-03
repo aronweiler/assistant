@@ -454,15 +454,11 @@ def set_user_id_from_email(email):
 def create_interaction(interaction_summary):
     interactions_helper = Interactions(st.session_state["config"].db_env_location)
 
-    with interactions_helper.session_context(interactions_helper.Session()) as session:
-        interactions_helper.create_interaction(
-            session,
-            id=str(uuid.uuid4()),
-            interaction_summary=interaction_summary,
-            user_id=st.session_state["user_id"],
-        )
-
-        session.commit()
+    interactions_helper.create_interaction(        
+        id=str(uuid.uuid4()),
+        interaction_summary=interaction_summary,
+        user_id=st.session_state["user_id"]
+    )
 
 
 def ensure_interaction():

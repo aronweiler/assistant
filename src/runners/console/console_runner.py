@@ -44,18 +44,15 @@ class ConsoleRunner(Runner):
         interactions_helper = Interactions(self.db_env_location)   
         users_helper = Users(self.db_env_location)     
     
-        with interactions_helper.session_context(interactions_helper.Session()) as session:
-            interaction = interactions_helper.get_interaction(session, self.interaction_id)
+        interaction = interactions_helper.get_interaction(self.interaction_id)
+        user_id = users_helper.get_user_by_email(self.user_email).id
 
-            if interaction is None:
-                interactions_helper.create_interaction(
-                    session,
-                    id=self.interaction_id,
-                    interaction_summary="Console interaction",
-                    user_id=users_helper.get_user_by_email(session, self.user_email).id,            
-                )        
-                
-                session.commit()
+        if interaction is None:
+            interactions_helper.create_interaction(                
+                id=self.interaction_id,
+                interaction_summary="Console interaction",
+                user_id=user_id
+            )                    
 
     def configure(self):
         pass
