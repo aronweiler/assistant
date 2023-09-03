@@ -79,16 +79,15 @@ class InteractionManager:
         self.documents_helper = Documents(db_env_location)
 
         # Get the user
-        with self.users_helper.session_context(self.users_helper.Session()) as session:
-            user = self.users_helper.get_user_by_email(session, user_email)
+        user = self.users_helper.get_user_by_email(user_email)
 
-            if user is None:
-                raise Exception(f"User with email {user_email} not found.")
+        if user is None:
+            raise Exception(f"User with email {user_email} not found.")
 
-            self.user_id = user.id
-            self.user_name = user.name
-            self.user_email = user.email
-            self.user_location = user.location
+        self.user_id = user.id
+        self.user_name = user.name
+        self.user_email = user.email
+        self.user_location = user.location
 
         # Ensure the interaction exists
         self._ensure_interaction_exists(self.user_id)

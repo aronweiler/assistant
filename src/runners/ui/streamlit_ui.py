@@ -168,22 +168,21 @@ def get_interaction_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions_helper = Interactions(st.session_state["config"].db_env_location)
 
-    with interactions_helper.session_context(interactions_helper.Session()) as session:
-        interactions = interactions_helper.get_interactions_by_user_id(
-            session, st.session_state["user_id"]
-        )
+    interactions = interactions_helper.get_interactions_by_user_id(
+        st.session_state["user_id"]
+    )
 
-        if not interactions:
-            return None
+    if not interactions:
+        return None
 
-        # Reverse the list so the most recent interactions are at the top
-        interactions.reverse()
+    # Reverse the list so the most recent interactions are at the top
+    interactions.reverse()
 
-        interaction_pairs = [f"{i.id}:{i.interaction_summary}" for i in interactions]
+    interaction_pairs = [f"{i.id}:{i.interaction_summary}" for i in interactions]
 
-        print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
+    print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
 
-        return interaction_pairs
+    return interaction_pairs
 
 
 def load_interaction_selectbox():
@@ -446,18 +445,18 @@ def handle_chat(main_window_container):
 
 def set_user_id_from_email(email):
     users_helper = Users(st.session_state["config"].db_env_location)
-    with users_helper.session_context(users_helper.Session()) as session:
-        user = users_helper.get_user_by_email(session, email)
-        st.session_state["user_id"] = user.id
+
+    user = users_helper.get_user_by_email(email)
+    st.session_state["user_id"] = user.id
 
 
 def create_interaction(interaction_summary):
     interactions_helper = Interactions(st.session_state["config"].db_env_location)
 
-    interactions_helper.create_interaction(        
+    interactions_helper.create_interaction(
         id=str(uuid.uuid4()),
         interaction_summary=interaction_summary,
-        user_id=st.session_state["user_id"]
+        user_id=st.session_state["user_id"],
     )
 
 
