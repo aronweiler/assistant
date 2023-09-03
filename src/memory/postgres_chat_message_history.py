@@ -3,9 +3,10 @@ from uuid import UUID
 
 from langchain.schema.memory import BaseChatMessageHistory
 from langchain.schema.messages import BaseMessage
-from langchain.schema.messages import HumanMessage, AIMessage, SystemMessage
+from langchain.schema.messages import HumanMessage, AIMessage, SystemMessage, FunctionMessage
 
-from db.models.conversations import Conversations, SearchType
+from db.models.conversations import Conversations, ConversationModel
+from db.models.domain.conversation_role_type import ConversationRoleType
 
 class PostgresChatMessageHistory(BaseChatMessageHistory):
     """Chat message history stored in Postgres."""
@@ -25,73 +26,25 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         self.conversations = conversations
         self.max_token_limit = max_token_limit
 
-        # Fill the chat messages list from the DB
-        # self.chat_messages = []
-        # with self.conversations.session_context(
-        #     self.conversations.Session()
-        # ) as session:
-        #     messages = self.conversations.get_conversations_for_interaction(
-        #         session, self.interaction_id
-        #     )
-        #     for message in messages:
-        #         if message.conversation_role_type.role_type == "user":
-        #             self.chat_messages.append(
-        #                 HumanMessage(content=message.conversation_text)
-        #             )
-        #         elif message.conversation_role_type.role_type == "assistant":
-        #             self.chat_messages.append(AIMessage(content=message.conversation_text))
-        #         elif message.conversation_role_type.role_type == "system":
-        #             self.chat_messages.append(
-        #                 SystemMessage(content=message.conversation_text)
-        #             )
-
     @property
     def messages(self) -> List[BaseMessage]:
         """A list of Messages stored in the DB."""
         #return self.chat_messages    
-        chat_messages = []
-        with self.conversations.session_context(
-            self.conversations.Session()
-        ) as session:
-            messages = self.conversations.get_conversations_for_interaction(
-                session, self.interaction_id
-            )
-            for message in messages:
-                if message.conversation_role_type.role_type == "user":
-                    chat_messages.append(
-                        HumanMessage(content=message.conversation_text)
-                    )
-                elif message.conversation_role_type.role_type == "assistant":
-                    chat_messages.append(AIMessage(content=message.conversation_text))
-                elif message.conversation_role_type.role_type == "system":
-                    chat_messages.append(
-                        SystemMessage(content=message.conversation_text)
-                    )
-
-        return chat_messages
-    
-    def get_related_conversation(self, query:str) -> List[BaseMessage]:        
-        chat_messages = []
-        with self.conversations.session_context(
-            self.conversations.Session()
-        ) as session:
-            messages = self.conversations.search_conversations(
-                session,
-                conversation_text_search_query=query,
-                search_type=SearchType.similarity
-            )
-
-            for message in messages:
-                if message.conversation_role_type.role_type == "user":
-                    chat_messages.append(
-                        HumanMessage(content=message.conversation_text)
-                    )
-                elif message.conversation_role_type.role_type == "assistant":
-                    chat_messages.append(AIMessage(content=message.conversation_text))
-                elif message.conversation_role_type.role_type == "system":
-                    chat_messages.append(
-                        SystemMessage(content=message.conversation_text)
-                    )
+        chat_messages = []       
+        messages = self.conversations.get_conversations_for_interaction(
+            self.interaction_id
+        )
+        for message in messages:
+            if message.conversation_role_type == ConversationRoleType.USER:
+                chat_messages.append(
+                    HumanMessage(content=message.conversation_text)
+                )
+            elif message.conversation_role_type == ConversationRoleType.ASSISTANT:
+                chat_messages.append(AIMessage(content=message.conversation_text))
+            elif message.conversation_role_type == ConversationRoleType.SYSTEM:
+                chat_messages.append(
+                    SystemMessage(content=message.conversation_text)
+                )
 
         return chat_messages
 
@@ -102,25 +55,23 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             message: A BaseMessage object to store.
         """
 
-        # TODO: Make this a lookup
-        role_type_id = 3
         if type(message) == HumanMessage:            
-            role_type_id = 3
+            role_type = ConversationRoleType.USER
         elif type(message) == AIMessage:
-            role_type_id = 2
+            role_type = ConversationRoleType.ASSISTANT
         elif type(message) == SystemMessage:
-            role_type_id = 1
+            role_type = ConversationRoleType.SYSTEM
+        elif type(message) == FunctionMessage:
+            role_type = ConversationRoleType.FUNCTION
+        else:
+            raise ValueError("Unknown message type")
 
-        with self.conversations.session_context(
-            self.conversations.Session()
-        ) as session:
-            self.conversations.store_conversation(
-                session,
-                interaction_id=self.interaction_id,
-                conversation_text=message.content,
-                conversation_role_type_id=role_type_id,
-                user_id=self.user_id,
-            )
+        self.conversations.add_conversation(ConversationModel(            
+            interaction_id=self.interaction_id,
+            conversation_text=message.content,
+            conversation_role_type=role_type,
+            user_id=self.user_id,
+        ))
 
         #self.chat_messages.append(message)
 

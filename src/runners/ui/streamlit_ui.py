@@ -21,11 +21,8 @@ from configuration.assistant_configuration import (
     ConfigurationLoader,
 )
 
-from db.database.models import Conversation, Interaction, User
-
-
 from db.models.vector_database import VectorDatabase, SearchType
-from db.models.conversations import Conversations
+from db.models.conversations import Conversations, SearchType, ConversationModel
 from db.models.interactions import Interactions
 from db.models.documents import Documents
 from db.models.users import Users

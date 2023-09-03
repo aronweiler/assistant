@@ -162,7 +162,6 @@ class ConversationRoleType(ModelBase):
         "Conversation", back_populates="conversation_role_type"
     )
 
-# TODO: Implement when I want to make more of a hierarchical structure
 class File(ModelBase):
     __tablename__ = "files"
 
