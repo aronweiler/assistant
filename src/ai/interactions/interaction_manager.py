@@ -201,6 +201,8 @@ class InteractionManager:
             max_token_limit=max_token_limit,
         )
 
+        self.conversation_token_buffer_memory.human_prefix = f"{self.user_name} ({self.user_email})"
+
         # Required because when pulling the database memory in the first time, there might be too many messages.
         self.conversation_token_buffer_memory.prune_buffer()
 

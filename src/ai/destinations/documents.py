@@ -208,12 +208,6 @@ class DocumentsAI(DestinationBase):
             query (str): The query you would like to search for.  Input should be a fully formed question.
             target_file_id (int, optional): The file_id you got from the list_documents tool, if you want to search a specific file. Defaults to None which searches all files.
         """
-
-        # with self.interaction_manager.documents_helper.session_context(self.interaction_manager.documents_helper.Session()) as session:
-        #     file = self.interaction_manager.documents_helper.get_file(session, target_file_id)
-        #     if file is None or file.collection_id != self.interaction_manager.collection_id:
-        #         return f"Sorry, I couldn't find a file with ID {target_file_id} in this collection.  You probably didn't use the list_documents tool to get the ID.  Try again with the proper ID after calling list_documents."
-
         search_kwargs = {
             "top_k": 10,
             "search_type": SearchType.similarity,
@@ -250,8 +244,6 @@ class DocumentsAI(DestinationBase):
 
         results = qa_with_sources({"question": query})
 
-        # TODO: Maybe do something with the metadata that is returned... like linking/showing the user the actual document.
-        # + "\n\n\t-" + "\n\t-".join([f"{d.metadata['filename']}: {d.metadata['page']}" for d in results['source_documents']])
         return results['answer'] 
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
@@ -378,6 +370,8 @@ class DocumentsAI(DestinationBase):
         This tool will give you a list of module names, function signatures, and class method signatures.
         You can use the signature of any of these to get more details about that specific piece of code when calling code_detail.
 
+        Don't use this on anything that isn't classified as 'Code'.
+
         Args:
             target_file_id (int): The file ID you would like to get the code structure for.
             code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'.
@@ -459,6 +453,8 @@ class DocumentsAI(DestinationBase):
         target_signature: str,
     ):
         """Useful for getting the details of a specific piece of code in a loaded code file.  Use this tool after using the 'code_structure' tool.  This tool will give you the code details for the specific piece of code you requested.  You can get the signature of any piece of code from the 'code_structure' tool.
+
+        Don't use this on anything that isn't classified as 'Code'.
 
         Args:
             target_file_id (int): The file ID you would like to get the code details for.

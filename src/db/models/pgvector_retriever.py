@@ -62,12 +62,15 @@ class PGVectorRetriever(BaseRetriever):
             documents = self.vectorstore.search_document_embeddings(session, search_query=query, collection_id=collection_id, search_type=search_type, top_k=top_k, target_file_id=target_file_id)
 
             # Transform these into the document type expected by langchain
-            documents = [
-                Document(
-                    page_content=document.document_text,
-                    metadata=json.loads(document.additional_metadata)
-                )
-                for document in documents
-            ]
+            documents_to_return = []
+            for document in documents:
+                page_content=document.document_text
+                metadata=json.loads(document.additional_metadata)
+                metadata['file_id'] = document.file_id
+
+                documents_to_return.append(Document(
+                    page_content=page_content,
+                    metadata=metadata
+                ))
         
-        return documents
+            return documents_to_return

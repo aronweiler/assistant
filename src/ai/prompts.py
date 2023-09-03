@@ -295,7 +295,7 @@ With over 20 years of experience in the software industry, I bring to the table 
 broad range of project management and product development skills- from customer
 interactions for user needs gathering and analysis, to requirements, specifications,
 architecture, design, planning, and implementation.
-SOURCE: temp\50b1c6d9-6385-4af4-9534-ffd12ec989e9\aron weiler resume.pdf (Page 1)
+SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='1'
 
 CONTENT: 
 SEPT 2002 – JUL 2004
@@ -307,7 +307,7 @@ employee, managed several projects with multiple programmers, developed
 applications from beginning to end independently, participated in training other
 developers on the .NET architecture as well as testing and maintaining new and
 existing applications.
-SOURCE: temp\50b1c6d9-6385-4af4-9534-ffd12ec989e9\aron weiler resume.pdf (Page 5)
+SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='5'
 
 Question: describe the job Aron had in 2004
 
@@ -323,7 +323,7 @@ Here are some details about the position:
 - Conducted training sessions for fellow developers on the .NET architecture.
 - Assisted in testing and maintenance of both new and existing applications.
 
-*[Source:](temp\50b1c6d9-6385-4af4-9534-ffd12ec989e9\aron%weiler%resume.pdf) [Page 5]*
+*Source: [aron weiler resume.pdf (Page 5)](/files?file_id=1234&page=5)*
 --- END EXAMPLE ---
 
 {summaries}
@@ -359,8 +359,8 @@ COMBINE_PROMPT = PromptTemplate(
     template=COMBINE_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
 )
 
-DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: {source} (Page {page})"""
+DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}', page='{page}'"""
 
 DOCUMENT_PROMPT = PromptTemplate(
-    template=DOCUMENT_PROMPT_TEMPLATE, input_variables=["page_content", "source", "page"]
+    template=DOCUMENT_PROMPT_TEMPLATE, input_variables=["page_content", "page", "filename", "file_id"]
 )

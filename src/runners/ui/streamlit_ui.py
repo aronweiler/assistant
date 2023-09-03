@@ -152,15 +152,16 @@ def create_collections_container(main_window_container):
                             "ai"
                         ].interaction_manager.get_loaded_documents_for_display()
 
-                        expander = st.expander(
+                        with st.expander(
                             label=f"({len(loaded_docs)}) documents in {option}",
-                            expanded=True,
-                        )
-
-                        col1, col2 = expander.columns(2)
-                        for doc in loaded_docs:
-                            col1.write(doc)
-                            col2.button("Delete", key=f"delete_{doc}")
+                            expanded=False,
+                        ):
+                            for doc in loaded_docs:
+                                st.write(doc)
+                        # col1, col2 = expander.columns(2)
+                        # for doc in loaded_docs:
+                        #     col1.write(doc)
+                        #     col2.button("Delete", key=f"delete_{doc}")
                     else:
                         st.warning("No collection selected")
 
@@ -248,37 +249,35 @@ def select_conversation():
 
 def select_documents():
     with st.sidebar.container():
-        st.toggle('Show LLM thoughts', key='show_llm_thoughts')
+        st.toggle('Show LLM thoughts', key='show_llm_thoughts', value=True)        
         status = st.status(f"File status", expanded=False, state="complete")
 
-        # docs_expanded = st.expander(
-        #     "Documents", expanded=st.session_state.get("docs_expanded", False)
-        # )
+        with st.expander("Documents", expanded=False):
+            
+            uploaded_files = st.file_uploader(
+                "Choose your files", accept_multiple_files=True
+            )
 
-        uploaded_files = st.file_uploader(
-            "Choose your files", accept_multiple_files=True
-        )
+            active_collection = st.session_state.get("active_collection")
 
-        active_collection = st.session_state.get("active_collection")
+            if uploaded_files and active_collection:
+                # docs_expanded.expanded = True
 
-        if uploaded_files and active_collection:
-            # docs_expanded.expanded = True
+                collection_id = None
 
-            collection_id = None
+                if active_collection:
+                    collection_id = collection_id_from_option(
+                        active_collection,
+                        st.session_state["ai"].interaction_manager.interaction_id,
+                    )
+                    print(f"Active collection: {active_collection}")
 
-            if active_collection:
-                collection_id = collection_id_from_option(
-                    active_collection,
-                    st.session_state["ai"].interaction_manager.interaction_id,
-                )
-                print(f"Active collection: {active_collection}")
-
-            if (
-                active_collection
-                and st.button("Ingest files")
-                and len(uploaded_files) > 0
-            ):
-                ingest_files(uploaded_files, active_collection, collection_id, status)
+                if (
+                    active_collection
+                    and st.button("Ingest files")
+                    and len(uploaded_files) > 0
+                ):
+                    ingest_files(uploaded_files, active_collection, collection_id, status)
 
 
 def ingest_files(uploaded_files, active_collection, collection_id, status):
@@ -355,20 +354,39 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
         status.success("Done!", icon="✅")
         uploaded_files.clear()
 
-def show_old_messages(ai_instance):
-    #Add old messages
-    print(f"length of old messages: {str(len(ai_instance.interaction_manager.postgres_chat_message_history.messages))}")
-    for (
-        m
-    ) in (
-        ai_instance.interaction_manager.postgres_chat_message_history.messages
-    ):
-        if m.type == "human":
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(m.content)
+def refresh_messages_session_state(ai_instance):
+    """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
+
+    buffer_messages = ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+    
+    print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
+
+    st.session_state["messages"] = []
+
+    for message in buffer_messages:
+        if message.type == "human":
+            st.session_state["messages"].append({"role": "user", "content": message.content, "avatar": "🗣️"})            
         else:
-            with st.chat_message("assistant", avatar="🤖"):
-                st.markdown(m.content)
+            st.session_state["messages"].append({"role": "assistant", "content": message.content, "avatar": "🤖"})
+        
+    # with st.chat_message("user", avatar="👤"):
+    #             st.markdown(m.content)
+
+    #  = ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+
+    # for (
+    #     m
+    # ) in (
+    #     ai_instance.interaction_manager.postgres_chat_message_history.messages
+    # ):
+        
+
+def show_old_messages(ai_instance):
+    refresh_messages_session_state(ai_instance)
+
+    for message in st.session_state["messages"]:
+        with st.chat_message(message["role"], avatar=message["avatar"]):
+            st.markdown(message["content"])    
 
 # TODO: Replace the DB backed chat history with a cached one here!
 def handle_chat(main_window_container):
@@ -410,8 +428,6 @@ def handle_chat(main_window_container):
                 )
 
                 print(f"Result: {result}")
-
-            show_old_messages(ai_instance)
 
 
 def set_user_id_from_email(email):
