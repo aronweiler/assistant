@@ -6,7 +6,7 @@ from streamlit_extras.grid import grid
 import os
 from dotenv import load_dotenv
 
-#from langchain.callbacks import StreamlitCallbackHandler
+# from langchain.callbacks import StreamlitCallbackHandler
 from langchain.callbacks.base import BaseCallbackHandler
 
 # for testing
@@ -21,20 +21,20 @@ from configuration.assistant_configuration import (
     ConfigurationLoader,
 )
 
-from db.database.models import Conversation, Interaction, User
-
-
 from db.models.vector_database import VectorDatabase, SearchType
-from db.models.conversations import Conversations
+from db.models.conversations import Conversations, SearchType, ConversationModel
 from db.models.interactions import Interactions
 from db.models.documents import Documents
 from db.models.users import Users
+from db.models.domain.file_model import FileModel
+from db.models.domain.document_model import DocumentModel
 
 from documents.document_loader import load_and_split_documents
 
 from runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
 
 USER_EMAIL = "aronweiler@gmail.com"
+
 
 class StreamHandler(BaseCallbackHandler):
     def __init__(self, container, initial_text=""):
@@ -44,6 +44,7 @@ class StreamHandler(BaseCallbackHandler):
     def on_llm_new_token(self, token: str, **kwargs) -> None:
         self.text += token
         self.container.markdown(self.text)
+
 
 def get_configuration_path():
     os.environ[
@@ -59,15 +60,14 @@ def get_configuration_path():
 def get_available_collections(interaction_id) -> dict[str, int]:
     documents_helper = Documents(st.session_state["config"].db_env_location)
 
-    with documents_helper.session_context(documents_helper.Session()) as session:
-        collections = documents_helper.get_collections(session, interaction_id)
+    collections = documents_helper.get_collections(interaction_id)
 
-        # Create a dictionary of collection id to collection summary
-        collections_dict = {
-            collection.collection_name: collection.id for collection in collections
-        }
+    # Create a dictionary of collection id to collection summary
+    collections_dict = {
+        collection.collection_name: collection.id for collection in collections
+    }
 
-        return collections_dict
+    return collections_dict
 
 
 def collection_id_from_option(option, interaction_id):
@@ -85,16 +85,14 @@ def create_collection(name):
     print(f"Creating collection {name} (interaction id: {selected_interaction_id})")
 
     documents_helper = Documents(st.session_state["config"].db_env_location)
-    with documents_helper.session_context(documents_helper.Session()) as session:
-        collection = documents_helper.create_collection(
-            session,
-            name,
-            selected_interaction_id,
-        )
-        print(f"Created collection {collection.collection_name}")
-        collection_id = collection.id
+    collection = documents_helper.create_collection(
+        name,
+        selected_interaction_id,
+    )
 
-    return collection_id
+    print(f"Created collection {collection.collection_name}")
+
+    return collection.id
 
 
 def create_collections_container(main_window_container):
@@ -152,15 +150,16 @@ def create_collections_container(main_window_container):
                             "ai"
                         ].interaction_manager.get_loaded_documents_for_display()
 
-                        expander = st.expander(
+                        with st.expander(
                             label=f"({len(loaded_docs)}) documents in {option}",
-                            expanded=True,
-                        )
-
-                        col1, col2 = expander.columns(2)
-                        for doc in loaded_docs:
-                            col1.write(doc)
-                            col2.button("Delete", key=f"delete_{doc}")
+                            expanded=False,
+                        ):
+                            for doc in loaded_docs:
+                                st.write(doc)
+                        # col1, col2 = expander.columns(2)
+                        # for doc in loaded_docs:
+                        #     col1.write(doc)
+                        #     col2.button("Delete", key=f"delete_{doc}")
                     else:
                         st.warning("No collection selected")
 
@@ -169,22 +168,21 @@ def get_interaction_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions_helper = Interactions(st.session_state["config"].db_env_location)
 
-    with interactions_helper.session_context(interactions_helper.Session()) as session:
-        interactions = interactions_helper.get_interactions_by_user_id(
-            session, st.session_state["user_id"]
-        )
+    interactions = interactions_helper.get_interactions_by_user_id(
+        st.session_state["user_id"]
+    )
 
-        if not interactions:
-            return None
+    if not interactions:
+        return None
 
-        # Reverse the list so the most recent interactions are at the top
-        interactions.reverse()
+    # Reverse the list so the most recent interactions are at the top
+    interactions.reverse()
 
-        interaction_pairs = [f"{i.id}:{i.interaction_summary}" for i in interactions]
+    interaction_pairs = [f"{i.id}:{i.interaction_summary}" for i in interactions]
 
-        print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
+    print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
 
-        return interaction_pairs
+    return interaction_pairs
 
 
 def load_interaction_selectbox():
@@ -248,37 +246,36 @@ def select_conversation():
 
 def select_documents():
     with st.sidebar.container():
-        st.toggle('Show LLM thoughts', key='show_llm_thoughts')
+        st.toggle("Show LLM thoughts", key="show_llm_thoughts", value=True)
         status = st.status(f"File status", expanded=False, state="complete")
 
-        # docs_expanded = st.expander(
-        #     "Documents", expanded=st.session_state.get("docs_expanded", False)
-        # )
+        with st.expander("Documents", expanded=False):
+            uploaded_files = st.file_uploader(
+                "Choose your files", accept_multiple_files=True
+            )
 
-        uploaded_files = st.file_uploader(
-            "Choose your files", accept_multiple_files=True
-        )
+            active_collection = st.session_state.get("active_collection")
 
-        active_collection = st.session_state.get("active_collection")
+            if uploaded_files and active_collection:
+                # docs_expanded.expanded = True
 
-        if uploaded_files and active_collection:
-            # docs_expanded.expanded = True
+                collection_id = None
 
-            collection_id = None
+                if active_collection:
+                    collection_id = collection_id_from_option(
+                        active_collection,
+                        st.session_state["ai"].interaction_manager.interaction_id,
+                    )
+                    print(f"Active collection: {active_collection}")
 
-            if active_collection:
-                collection_id = collection_id_from_option(
-                    active_collection,
-                    st.session_state["ai"].interaction_manager.interaction_id,
-                )
-                print(f"Active collection: {active_collection}")
-
-            if (
-                active_collection
-                and st.button("Ingest files")
-                and len(uploaded_files) > 0
-            ):
-                ingest_files(uploaded_files, active_collection, collection_id, status)
+                if (
+                    active_collection
+                    and st.button("Ingest files")
+                    and len(uploaded_files) > 0
+                ):
+                    ingest_files(
+                        uploaded_files, active_collection, collection_id, status
+                    )
 
 
 def ingest_files(uploaded_files, active_collection, collection_id, status):
@@ -295,29 +292,29 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
             os.makedirs(temp_dir)
 
         documents_helper = Documents(st.session_state["config"].db_env_location)
-        with documents_helper.session_context(documents_helper.Session()) as session:
-            for uploaded_file in uploaded_files:
-                status.info(f"Processing filename: {uploaded_file.name}")
+        for uploaded_file in uploaded_files:
+            status.info(f"Processing filename: {uploaded_file.name}")
 
-                file_path = os.path.join(temp_dir, uploaded_file.name)
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+            file_path = os.path.join(temp_dir, uploaded_file.name)
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
-                file = documents_helper.create_file(
-                    session,
+            file = documents_helper.create_file(
+                FileModel(
                     collection_id,
                     user_id=st.session_state["user_id"],
                     file_name=uploaded_file.name,
                 )
+            )
 
-                # TODO: Make this configurable
-                documents = load_and_split_documents(file_path, True, 500, 50)
+            # TODO: Make this configurable
+            documents = load_and_split_documents(file_path, True, 500, 50)
 
-                status.info(f"Loading {len(documents)} chunks for {uploaded_file.name}")
+            status.info(f"Loading {len(documents)} chunks for {uploaded_file.name}")
 
-                for document in documents:
-                    documents_helper.store_document(
-                        session=session,
+            for document in documents:
+                documents_helper.store_document(
+                    DocumentModel(
                         collection_id=collection_id,
                         file_id=file.id,
                         user_id=st.session_state["user_id"],
@@ -325,55 +322,82 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
                         document_name=document.metadata["filename"],
                         additional_metadata=document.metadata,
                     )
-
-                # Use up to the first 10 document chunks to classify this document
-                classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
-                for d in documents[:10]:
-                    classify_string += f"{d.page_content}\n\n"
-
-                classify_string += "\n\n--- END TEXT CHUNK ---\n\nSure! Here is the summary I extracted from the text:\n"
-
-                ai_instance: RequestRouter = st.session_state["ai"]
-
-                file.file_summary = ai_instance.llm.predict(classify_string)
-
-                file.file_classification = ai_instance.llm.predict(
-                    f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: "
                 )
 
-                print(
-                    f"File summary: {file.file_summary}, classification: {file.file_classification}"
-                )
+            # Use up to the first 10 document chunks to classify this document
+            classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
+            for d in documents[:10]:
+                classify_string += f"{d.page_content}\n\n"
 
-            status.info("Complete")
-            status.update(
-                label=f"Document ingestion complete!",
-                state="complete",
-                expanded=False,
+            classify_string += "\n\n--- END TEXT CHUNK ---\n\nSure! Here is the summary I extracted from the text:\n"
+
+            ai_instance: RequestRouter = st.session_state["ai"]
+
+            file.file_summary = ai_instance.llm.predict(classify_string)
+
+            file.file_classification = ai_instance.llm.predict(
+                f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: "
             )
+
+            print(
+                f"File summary: {file.file_summary}, classification: {file.file_classification}"
+            )
+
+        status.info("Complete")
+        status.update(
+            label=f"Document ingestion complete!",
+            state="complete",
+            expanded=False,
+        )
 
         status.success("Done!", icon="✅")
         uploaded_files.clear()
 
-def show_old_messages(ai_instance):
-    #Add old messages
-    print(f"length of old messages: {str(len(ai_instance.interaction_manager.postgres_chat_message_history.messages))}")
-    for (
-        m
-    ) in (
-        ai_instance.interaction_manager.postgres_chat_message_history.messages
-    ):
-        if m.type == "human":
-            with st.chat_message("user", avatar="👤"):
-                st.markdown(m.content)
+
+def refresh_messages_session_state(ai_instance):
+    """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
+
+    buffer_messages = (
+        ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+    )
+
+    print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
+
+    st.session_state["messages"] = []
+
+    for message in buffer_messages:
+        if message.type == "human":
+            st.session_state["messages"].append(
+                {"role": "user", "content": message.content, "avatar": "🗣️"}
+            )
         else:
-            with st.chat_message("assistant", avatar="🤖"):
-                st.markdown(m.content)
+            st.session_state["messages"].append(
+                {"role": "assistant", "content": message.content, "avatar": "🤖"}
+            )
+
+    # with st.chat_message("user", avatar="👤"):
+    #             st.markdown(m.content)
+
+    #  = ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+
+    # for (
+    #     m
+    # ) in (
+    #     ai_instance.interaction_manager.postgres_chat_message_history.messages
+    # ):
+
+
+def show_old_messages(ai_instance):
+    refresh_messages_session_state(ai_instance)
+
+    for message in st.session_state["messages"]:
+        with st.chat_message(message["role"], avatar=message["avatar"]):
+            st.markdown(message["content"])
+
 
 # TODO: Replace the DB backed chat history with a cached one here!
 def handle_chat(main_window_container):
     with main_window_container.container():
-
         # Get the AI instance from session state
         if "ai" not in st.session_state:
             st.warning("No AI instance found in session state")
@@ -389,50 +413,51 @@ def handle_chat(main_window_container):
     if prompt:
         with main_window_container.container():
             st.chat_message("user", avatar="👤").markdown(prompt)
-            
+
             with st.chat_message("assistant", avatar="🤖"):
                 llm_callbacks = []
                 llm_callbacks.append(StreamHandler(st.container().empty()))
 
                 agent_callbacks = []
-                if st.session_state['show_llm_thoughts']:
+                if st.session_state["show_llm_thoughts"]:
                     print("showing agent thoughts")
-                    agent_callback = StreamlitAgentCallbackHandler(st.container(), expand_new_thoughts=True, collapse_completed_thoughts=True)
+                    agent_callback = StreamlitAgentCallbackHandler(
+                        st.container(),
+                        expand_new_thoughts=True,
+                        collapse_completed_thoughts=True,
+                    )
                     agent_callbacks.append(agent_callback)
-            
+
                 collection_id = collection_id_from_option(
                     st.session_state["active_collection"],
                     ai_instance.interaction_manager.interaction_id,
                 )
-                
+
                 result = ai_instance.query(
-                    prompt, collection_id=collection_id, llm_callbacks=llm_callbacks, agent_callbacks=agent_callbacks
+                    prompt,
+                    collection_id=collection_id,
+                    llm_callbacks=llm_callbacks,
+                    agent_callbacks=agent_callbacks,
                 )
 
                 print(f"Result: {result}")
 
-            show_old_messages(ai_instance)
-
 
 def set_user_id_from_email(email):
     users_helper = Users(st.session_state["config"].db_env_location)
-    with users_helper.session_context(users_helper.Session()) as session:
-        user = users_helper.get_user_by_email(session, email)
-        st.session_state["user_id"] = user.id
+
+    user = users_helper.get_user_by_email(email)
+    st.session_state["user_id"] = user.id
 
 
 def create_interaction(interaction_summary):
     interactions_helper = Interactions(st.session_state["config"].db_env_location)
 
-    with interactions_helper.session_context(interactions_helper.Session()) as session:
-        interactions_helper.create_interaction(
-            session,
-            id=str(uuid.uuid4()),
-            interaction_summary=interaction_summary,
-            user_id=st.session_state["user_id"],
-        )
-
-        session.commit()
+    interactions_helper.create_interaction(
+        id=str(uuid.uuid4()),
+        interaction_summary=interaction_summary,
+        user_id=st.session_state["user_id"],
+    )
 
 
 def ensure_interaction():

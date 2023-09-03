@@ -23,7 +23,7 @@ class VectorDatabase:
         try:
             connection_string = VectorDatabase.get_connection_string(db_env_location)
 
-            engine = create_engine(connection_string)
+            engine = create_engine(connection_string, pool_size=20, max_overflow=0)
 
             self.Session = sessionmaker(bind=engine)
 

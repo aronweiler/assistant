@@ -139,7 +139,7 @@ class RequestRouter(AbstractAI):
         if destination is None:
             destination = self.routes[0]
 
-        destination.instance.run(input=query, collection_id=self.interaction_manager.collection_id, callbacks=callbacks)
+        destination.instance.run(input=query, collection_id=self.interaction_manager.collection_id, llm_callbacks=llm_callbacks, agent_callbacks=agent_callbacks)
 
     def _create_router_chain(self):
         """Creates the router chain for this router."""

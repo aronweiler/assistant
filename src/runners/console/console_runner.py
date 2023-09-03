@@ -28,19 +28,15 @@ class ConsoleRunner(Runner):
 
         documents_helper = Documents(self.db_env_location)     
 
-        with documents_helper.session_context(documents_helper.Session()) as session:
-            collection = documents_helper.get_collection_by_name(session, self.collection_name, self.interaction_id)            
+        collection = documents_helper.get_collection_by_name(self.collection_name, self.interaction_id)            
 
-            if collection is None:
-                collection = documents_helper.create_collection(
-                    session,
-                    collection_name=self.collection_name,
-                    interaction_id=self.interaction_id,
-                )        
-                
-                session.commit() 
+        if collection is None:
+            collection = documents_helper.create_collection(
+                collection_name=self.collection_name,
+                interaction_id=self.interaction_id,
+            )        
 
-            return collection.id
+        return collection.id
 
     def ensure_interaction_exists(self):
         """Ensures that an interaction exists for the current user"""
@@ -48,18 +44,15 @@ class ConsoleRunner(Runner):
         interactions_helper = Interactions(self.db_env_location)   
         users_helper = Users(self.db_env_location)     
     
-        with interactions_helper.session_context(interactions_helper.Session()) as session:
-            interaction = interactions_helper.get_interaction(session, self.interaction_id)
+        interaction = interactions_helper.get_interaction(self.interaction_id)
+        user_id = users_helper.get_user_by_email(self.user_email).id
 
-            if interaction is None:
-                interactions_helper.create_interaction(
-                    session,
-                    id=self.interaction_id,
-                    interaction_summary="Console interaction",
-                    user_id=users_helper.get_user_by_email(session, self.user_email).id,            
-                )        
-                
-                session.commit()
+        if interaction is None:
+            interactions_helper.create_interaction(                
+                id=self.interaction_id,
+                interaction_summary="Console interaction",
+                user_id=user_id
+            )                    
 
     def configure(self):
         pass
