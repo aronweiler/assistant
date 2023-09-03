@@ -119,16 +119,11 @@ class InteractionManager:
                 "There is no document collection selected, so I can't see what documents are loaded."
             ]
 
-        with self.documents_helper.session_context(
-            self.documents_helper.Session()
-        ) as session:
-            return [
-                f"Document name: '{file.file_name}' Type: {file.file_classification}"
-                for file in self.documents_helper.get_collection_files(
-                    session, self.collection_id
-                )
-            ]
-        
+        return [
+            f"{file.file_name} ({file.file_classification})"
+            for file in self.documents_helper.get_collection_files(self.collection_id)
+        ]
+
     def get_loaded_documents_for_reference(self):
         """Gets the loaded documents for the specified collection."""
 
@@ -140,15 +135,10 @@ class InteractionManager:
                 "There is no document collection selected, so I can't see what documents are loaded."
             ]
 
-        with self.documents_helper.session_context(
-            self.documents_helper.Session()
-        ) as session:
-            return [
-                f"file_id='{file.id}' ({file.file_name}, {file.file_classification})"
-                for file in self.documents_helper.get_collection_files(
-                    session, self.collection_id
-                )
-            ]
+        return [
+            f"file_id='{file.id}' ({file.file_name}, {file.file_classification})"
+            for file in self.documents_helper.get_collection_files(self.collection_id)
+        ]
 
     def _ensure_interaction_exists(self, user_id: int):
         """Ensures the interaction exists, and creates it if it doesn't."""
@@ -201,7 +191,9 @@ class InteractionManager:
             max_token_limit=max_token_limit,
         )
 
-        self.conversation_token_buffer_memory.human_prefix = f"{self.user_name} ({self.user_email})"
+        self.conversation_token_buffer_memory.human_prefix = (
+            f"{self.user_name} ({self.user_email})"
+        )
 
         # Required because when pulling the database memory in the first time, there might be too many messages.
         self.conversation_token_buffer_memory.prune_buffer()

@@ -128,10 +128,9 @@ class DocumentsAI(DestinationBase):
             #     callbacks=[self.agent_callback],
             # ),
             StructuredTool.from_function(
-                name="list_documents",
                 func=self.list_documents,
-                description="Useful for discovering which documents or files are loaded or otherwise available to you.  Always use this tool to get the target_file_id before calling anything else that requires it.",
                 callbacks=[self.agent_callback],
+                return_direct=True,
             ),
             StructuredTool.from_function(
                 func=self.code_structure, callbacks=[self.agent_callback]
@@ -195,7 +194,10 @@ class DocumentsAI(DestinationBase):
         return results
 
     def list_documents(self):
-        return "\n".join(self.interaction_manager.get_loaded_documents_for_reference())
+        """Useful for discovering which documents or files are loaded or otherwise available to you.  
+        Always use this tool to get the file ID (if you don't already know it) before calling anything else that requires it."""
+
+        return "The loaded documents I have access to are:\n-" + "\n-".join(self.interaction_manager.get_loaded_documents_for_display())
 
     def search_loaded_documents(
         self,

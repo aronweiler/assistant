@@ -28,19 +28,15 @@ class ConsoleRunner(Runner):
 
         documents_helper = Documents(self.db_env_location)     
 
-        with documents_helper.session_context(documents_helper.Session()) as session:
-            collection = documents_helper.get_collection_by_name(session, self.collection_name, self.interaction_id)            
+        collection = documents_helper.get_collection_by_name(self.collection_name, self.interaction_id)            
 
-            if collection is None:
-                collection = documents_helper.create_collection(
-                    session,
-                    collection_name=self.collection_name,
-                    interaction_id=self.interaction_id,
-                )        
-                
-                session.commit() 
+        if collection is None:
+            collection = documents_helper.create_collection(
+                collection_name=self.collection_name,
+                interaction_id=self.interaction_id,
+            )        
 
-            return collection.id
+        return collection.id
 
     def ensure_interaction_exists(self):
         """Ensures that an interaction exists for the current user"""
