@@ -1,5 +1,6 @@
 import logging
 import uuid
+import shutil
 import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 from streamlit_extras.grid import grid
@@ -246,46 +247,49 @@ def select_conversation():
 
 def select_documents():
     with st.sidebar.container():
-        st.toggle("Show LLM thoughts", key="show_llm_thoughts", value=True)
+        st.toggle("Show LLM thoughts", key="show_llm_thoughts", value=True) 
+
+        active_collection = st.session_state.get("active_collection")
+
+        uploaded_files = st.file_uploader(
+                "Choose your files", accept_multiple_files=True, disabled=(active_collection == None)
+            )
+        
         status = st.status(f"File status", expanded=False, state="complete")
 
-        with st.expander("Documents", expanded=False):
-            uploaded_files = st.file_uploader(
-                "Choose your files", accept_multiple_files=True
-            )
+        if uploaded_files and active_collection:
+            
+            collection_id = None
 
-            active_collection = st.session_state.get("active_collection")
+            if active_collection:
+                collection_id = collection_id_from_option(
+                    active_collection,
+                    st.session_state["ai"].interaction_manager.interaction_id,
+                )
+                print(f"Active collection: {active_collection}")
 
-            if uploaded_files and active_collection:
-                # docs_expanded.expanded = True
+            st.toggle("Overwrite existing files", key="overwrite_existing_files", value=True)
+            st.text_input("Chunk size", key="file_chunk_size", value=500)
+            st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)
 
-                collection_id = None
-
-                if active_collection:
-                    collection_id = collection_id_from_option(
-                        active_collection,
-                        st.session_state["ai"].interaction_manager.interaction_id,
-                    )
-                    print(f"Active collection: {active_collection}")
-
-                if (
-                    active_collection
-                    and st.button("Ingest files")
-                    and len(uploaded_files) > 0
-                ):
-                    ingest_files(
-                        uploaded_files, active_collection, collection_id, status
-                    )
+            if (
+                active_collection
+                and st.button("Ingest files")
+                and len(uploaded_files) > 0
+            ):
+                ingest_files(
+                    uploaded_files, active_collection, collection_id, status, st.session_state["overwrite_existing_files"], int(st.session_state.get("file_chunk_size", 500)), int(st.session_state.get("file_chunk_overlap", 50))
+                )
 
 
-def ingest_files(uploaded_files, active_collection, collection_id, status):
-    with st.spinner("Loading..."):
-        status.update(
-            label=f"Ingesting files and adding to {active_collection}",
-            expanded=True,
-            state="running",
-        )
+def ingest_files(uploaded_files, active_collection, collection_id, status, overwrite_existing_files, chunk_size, chunk_overlap):
+    
+    status.update(
+        label=f"Ingesting files and adding to {active_collection}",
+        state="running",
+    )
 
+    try:
         temp_dir = os.path.join("temp", str(uuid.uuid4()))
 
         if not os.path.exists(temp_dir):
@@ -293,24 +297,29 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
 
         documents_helper = Documents(st.session_state["config"].db_env_location)
         for uploaded_file in uploaded_files:
-            status.info(f"Processing filename: {uploaded_file.name}")
+            with status.empty():
+                with st.container():
+                    st.info(f"Processing filename: {uploaded_file.name}")
+                    print(f"Processing filename: {uploaded_file.name}")
 
-            file_path = os.path.join(temp_dir, uploaded_file.name)
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
+                    file_path = os.path.join(temp_dir, uploaded_file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
 
-            file = documents_helper.create_file(
-                FileModel(
-                    collection_id,
-                    user_id=st.session_state["user_id"],
-                    file_name=uploaded_file.name,
-                )
-            )
+                    # TODO: Make this configurable
+                    
+                    documents = load_and_split_documents(file_path, True, chunk_size, chunk_overlap)
 
-            # TODO: Make this configurable
-            documents = load_and_split_documents(file_path, True, 500, 50)
+                    file = documents_helper.create_file(
+                        FileModel(
+                            collection_id,
+                            user_id=st.session_state["user_id"],
+                            file_name=uploaded_file.name,                        
+                        ),
+                        overwrite_existing_files
+                    )
 
-            status.info(f"Loading {len(documents)} chunks for {uploaded_file.name}")
+                    st.info(f"Loading {len(documents)} chunks for {uploaded_file.name}")                                
 
             for document in documents:
                 documents_helper.store_document(
@@ -324,34 +333,56 @@ def ingest_files(uploaded_files, active_collection, collection_id, status):
                     )
                 )
 
-            # Use up to the first 10 document chunks to classify this document
-            classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
-            for d in documents[:10]:
-                classify_string += f"{d.page_content}\n\n"
+            classify_file(documents_helper, documents, file, uploaded_file)            
 
-            classify_string += "\n\n--- END TEXT CHUNK ---\n\nSure! Here is the summary I extracted from the text:\n"
-
-            ai_instance: RequestRouter = st.session_state["ai"]
-
-            file.file_summary = ai_instance.llm.predict(classify_string)
-
-            file.file_classification = ai_instance.llm.predict(
-                f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: "
-            )
-
-            print(
-                f"File summary: {file.file_summary}, classification: {file.file_classification}"
-            )
-
-        status.info("Complete")
+        status.empty()
         status.update(
-            label=f"Document ingestion complete!",
+            label=f"✅ Document ingestion complete!",
             state="complete",
             expanded=False,
         )
 
-        status.success("Done!", icon="✅")
         uploaded_files.clear()
+
+    except Exception as e:
+        # debugging streamlit
+        # raise e
+        logging.error(e)
+        print(e)
+        status.error(f"Error: {e}", icon="❌")
+        status.update(
+            label=f"Document ingestion failed!",
+            state="error",
+            expanded=False,
+        )
+        
+        try:
+            shutil.rmtree(temp_dir)
+            print(f"Deleted: {temp_dir}")
+        except Exception as e:
+            print(f"Error deleting {temp_dir}: {e}")
+
+def classify_file(documents_helper:Documents, documents, file, uploaded_file):
+    # Use up to the first 10 document chunks to classify this document
+    classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
+    for d in documents[:10]:
+        classify_string += f"{d.page_content}\n\n"
+
+    classify_string += "\n\n--- END TEXT CHUNK ---\n\nSure! Here is the summary I extracted from the text:\n"
+
+    ai_instance: RequestRouter = st.session_state["ai"]
+
+    file.file_summary = ai_instance.llm.predict(classify_string)
+
+    file.file_classification = ai_instance.llm.predict(
+        f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: "
+    )
+
+    print(
+        f"File summary: {file.file_summary}, classification: {file.file_classification}"
+    )
+
+    documents_helper.update_file_summary_and_class(file.id, file.file_summary, file.file_classification)
 
 
 def refresh_messages_session_state(ai_instance):

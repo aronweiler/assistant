@@ -69,12 +69,54 @@ class Documents(VectorDatabase):
 
     def create_file(
         self,
-        file:FileModel
+        file:FileModel,
+        overwrite_existing: bool = False,
     ) -> FileModel:
         with self.session_context(self.Session()) as session:
+            if overwrite_existing:
+                print(f"Overwriting file: {file.file_name} in collection: {file.collection_id}")
+                existing_file = (
+                    session.query(File)
+                    .filter(File.file_name == file.file_name)
+                    .filter(File.collection_id == file.collection_id)
+                    .first()
+                )
+
+                if existing_file is not None:
+                    # Find all of the documents associated with this file
+                    documents = (
+                        session.query(Document)
+                        .filter(Document.file_id == existing_file.id)
+                        .all()
+                    )
+
+                    # Delete all of the documents associated with this file, and the file itself
+                    for document in documents:
+                        session.delete(document)
+                    
+                    session.delete(existing_file)
+
+                    session.commit()
+
             file = file.to_database_model()
             session.add(file)
             session.commit()
+
+            return FileModel.from_database_model(file)
+        
+    def update_file_summary_and_class(
+        self,
+        file_id:int,
+        summary:str, 
+        classification:str,
+    ) -> FileModel:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+            file.file_summary = summary
+            file.file_classification = classification
+            session.commit()
+
+            file = file.to_database_model()            
 
             return FileModel.from_database_model(file)
 
@@ -142,7 +184,7 @@ class Documents(VectorDatabase):
 
     def store_document(
         self,
-        document: DocumentModel,
+        document: DocumentModel        
     ) -> DocumentModel:
         with self.session_context(self.Session()) as session:
             embedding=self.get_embedding(document.document_text)

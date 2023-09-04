@@ -120,13 +120,12 @@ class DocumentsAI(DestinationBase):
             StructuredTool.from_function(
                 func=self.search_loaded_documents, callbacks=[self.agent_callback], return_direct=True
             ),
-            # TODO: Make this less expensive for large documents
-            # StructuredTool.from_function(
-            #     name="summarize_document",
-            #     func=self.summarize_document,
-            #     description="Useful for summarizing a specific document or file. Only use this if the user is asking you to summarize something.",
-            #     callbacks=[self.agent_callback],
-            # ),
+            # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
+            StructuredTool.from_function(                
+                func=self.summarize_document,
+                callbacks=[self.agent_callback],
+                return_direct=True,
+            ),
             StructuredTool.from_function(
                 func=self.list_documents,
                 callbacks=[self.agent_callback],
@@ -251,43 +250,18 @@ class DocumentsAI(DestinationBase):
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_document(
         self,
-        target_document: str,
-        query: str,
+        target_file_id: int
     ):
+        """Useful for getting a summary of a specific loaded document.  Use this tool when the user is referring to any loaded document or file in their search for information.  The target_file_id argument is required, and can be used to search a specific file.
+        
+        Args:
+        
+            target_file_id (int): The file_id you got from the list of loaded files"""
         # Create the documents class for the retriever
         documents = Documents(self.interaction_manager.db_env_location)
+        file = documents.get_file(target_file_id)
 
-        with documents.session_context(documents.Session()) as session:
-            document_chunks = documents.get_document_chunks_by_file_id(
-                session, self.interaction_manager.collection_id, target_document
-            )
-
-            # Loop through the found documents, and join them until they fill up as much context as we can
-            docs = []
-            doc_str = ""
-            for doc in document_chunks:
-                doc_str += doc.document_text + "\n"
-                if (
-                    simple_get_tokens_for_message(doc_str) > 2000
-                ):  # TODO: Get rid of this magic number
-                    docs.append(
-                        Document(
-                            page_content=doc_str,
-                            metadata=json.loads(
-                                doc.additional_metadata
-                            ),  # Only use the last metadata
-                        )
-                    )
-                    doc_str = ""
-
-            if len(docs) <= 0:
-                result = "Sorry, I couldn't find any documents to summarize."
-            elif len(docs) == 1:
-                result = self.summarize(self.llm, docs)
-            else:
-                result = self.refine_summarize(self.llm, docs)
-
-            return result
+        return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"         
 
     def refine_summarize(self, llm, docs):
         chain = load_summarize_chain(
