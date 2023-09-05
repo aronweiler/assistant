@@ -95,8 +95,8 @@
     "class_name": "ConsoleRunner",    
     "arguments": {
       "user_email": "aronweiler@gmail.com",
-      "collection_name": "temp",
-      "interaction_id": "b9efb247-913e-467b-8aac-1f5342418475",
+      "collection_name": "test",
+      "interaction_id": "e80b07fb-6d56-4390-b609-8ec2c48aa5e2",
       "db_env_location": "src/db/database/db.env"
     }
   }
