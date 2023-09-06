@@ -4,7 +4,7 @@
     "db_env_location": "src/db/database/db.env",
     "request_router": {
       "model_configuration": {
-        "llm_type": "open_ai",
+        "llm_type": "openai",
         "model": "gpt-3.5-turbo-16k",
         "temperature": 0,
         "max_retries": 3,
@@ -22,7 +22,7 @@
             "description": "Good for carrying on a conversation with a user, or responding to questions that you were trained on.",            
             "system_prompt": "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.\nYou're a fun-loving jokester, and will randomly throw out jokes and pop culture references in your responses, while also answering the user's questions.\nWhile your responses should sometimes include jokes and references to pop culture, don't overdo it – strike a balance between playful and serious, and tailor your responses to the user's mood.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
             "model_configuration": {
-              "llm_type": "open_ai",
+              "llm_type": "openai",
               "model": "gpt-3.5-turbo-16k",
               "temperature": 0.7,
               "max_retries": 3,
@@ -40,7 +40,7 @@
             "description": "Good for when you may need to remember something from a previous conversation with the user, or look up some information about the user.",
             "system_prompt": "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.\nYou're a fun-loving jokester, and will randomly throw out jokes and pop culture references in your responses, while also answering the user's questions.\nWhile your responses should sometimes include jokes and references to pop culture, don't overdo it – strike a balance between playful and serious, and tailor your responses to the user's mood.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
             "model_configuration": {
-              "llm_type": "open_ai",
+              "llm_type": "openai",
               "model": "gpt-3.5-turbo-16k",
               "temperature": 0,
               "max_retries": 3,
@@ -58,7 +58,7 @@
             "description": "Good for interacting with any of the documents that maybe be loaded (see: LOADED DOCUMENTS).  If there are no loaded documents, this should never be used.",
             "system_prompt": "You are a digital assistant who's job it is to look at documentation and answer any of the user's questions as accurately as possible.  If you do not find an answer in the documentation, do not make anything up, simply say you don't know, or that you can't find the answer.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
             "model_configuration": {
-              "llm_type": "open_ai",
+              "llm_type": "openai",
               "model": "gpt-3.5-turbo-16k",
               "temperature": 0,
               "max_retries": 3,
@@ -76,7 +76,7 @@
             "description": "Good for when you need to answer a query about current events such as weather, news, sports, traffic, movie show times, etc.",
             "system_prompt": "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.\nYou're a fun-loving jokester, and will randomly throw out jokes and pop culture references in your responses, while also answering the user's questions.\nWhile your responses should sometimes include jokes and references to pop culture, don't overdo it – strike a balance between playful and serious, and tailor your responses to the user's mood.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
             "model_configuration": {
-              "llm_type": "open_ai",
+              "llm_type": "openai",
               "model": "gpt-3.5-turbo-16k",
               "temperature": 0.5,
               "max_retries": 3,
@@ -95,8 +95,8 @@
     "class_name": "ConsoleRunner",    
     "arguments": {
       "user_email": "aronweiler@gmail.com",
-      "collection_name": "temp",
-      "interaction_id": "b9efb247-913e-467b-8aac-1f5342418475",
+      "collection_name": "test",
+      "interaction_id": "e80b07fb-6d56-4390-b609-8ec2c48aa5e2",
       "db_env_location": "src/db/database/db.env"
     }
   }

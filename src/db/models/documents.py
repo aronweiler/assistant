@@ -114,9 +114,7 @@ class Documents(VectorDatabase):
             file = session.query(File).filter(File.id == file_id).first()
             file.file_summary = summary
             file.file_classification = classification
-            session.commit()
-
-            file = file.to_database_model()            
+            session.commit()       
 
             return FileModel.from_database_model(file)
 

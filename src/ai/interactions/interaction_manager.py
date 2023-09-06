@@ -166,8 +166,7 @@ class InteractionManager:
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
             self.interaction_id,
-            conversations=self.conversations_helper,
-            max_token_limit=max_token_limit,
+            conversations=self.conversations_helper
         )
 
         self.postgres_chat_message_history.user_id = self.user_id
@@ -183,9 +182,6 @@ class InteractionManager:
         self.conversation_token_buffer_memory.human_prefix = (
             f"{self.user_name} ({self.user_email})"
         )
-
-        # Required because when pulling the database memory in the first time, there might be too many messages.
-        self.conversation_token_buffer_memory.prune_buffer()
 
         logging.info(
             f"Conversation memory created for interaction {self.interaction_id}, with max token limit {max_token_limit}"

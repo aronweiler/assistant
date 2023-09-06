@@ -10,9 +10,8 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 from configuration.assistant_configuration import AssistantConfiguration, Destination
 
 from ai.abstract_ai import AbstractAI
-from ai.prompts import MULTI_PROMPT_ROUTER_TEMPLATE, SUMMARIZE_FOR_LABEL_TEMPLATE
 from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm
+from ai.llm_helper import get_llm, get_prompt
 from ai.system_info import get_system_information
 from ai.destinations.destination_base import DestinationBase
 from ai.destination_route import DestinationRoute
@@ -65,7 +64,13 @@ class RequestRouter(AbstractAI):
 
         self._create_router_chain()
 
-    def query(self, query: str, collection_id: int = None, llm_callbacks: list = [], agent_callbacks: list = []):
+    def query(
+        self,
+        query: str,
+        collection_id: int = None,
+        llm_callbacks: list = [],
+        agent_callbacks: list = [],
+    ):
         """Routes the query to the appropriate AI, and returns the response."""
 
         # Set the document collection id on the interaction manager
@@ -73,7 +78,10 @@ class RequestRouter(AbstractAI):
 
         if self.interaction_manager.interaction_needs_summary:
             interaction_summary = self.llm.predict(
-                SUMMARIZE_FOR_LABEL_TEMPLATE.format(query=query)
+                get_prompt(
+                    self.assistant_configuration.request_router.model_configuration.llm_type,
+                    "SUMMARIZE_FOR_LABEL_TEMPLATE",
+                ).format(query=query)
             )
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
@@ -82,14 +90,6 @@ class RequestRouter(AbstractAI):
         router_result = self.router_chain(
             {
                 "input": query,
-                # "chat_history": "\n".join(
-                #     [
-                #         f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
-                #         for m in self.interaction_manager.postgres_chat_message_history.messages[
-                #             -8:
-                #         ]
-                #     ]
-                # ),
                 "system_information": get_system_information(
                     self.interaction_manager.user_location
                 ),
@@ -99,7 +99,9 @@ class RequestRouter(AbstractAI):
             }
         )
 
-        return self._route_response(router_result, query, llm_callbacks, agent_callbacks)
+        return self._route_response(
+            router_result, query, llm_callbacks, agent_callbacks
+        )
 
     def _route_response(self, router_result, query, llm_callbacks, agent_callbacks):
         """Routes the response from the router chain to the appropriate AI, and returns the response."""
@@ -117,8 +119,8 @@ class RequestRouter(AbstractAI):
                 response = destination.instance.run(
                     input=query,
                     collection_id=self.interaction_manager.collection_id,
-                    llm_callbacks=llm_callbacks, 
-                    agent_callbacks=agent_callbacks
+                    llm_callbacks=llm_callbacks,
+                    agent_callbacks=agent_callbacks,
                 )  # router_result['next_inputs']['input']) # Use the original query for now
 
                 logging.debug(f"Response from LLM: {response}")
@@ -139,7 +141,12 @@ class RequestRouter(AbstractAI):
         if destination is None:
             destination = self.routes[0]
 
-        destination.instance.run(input=query, collection_id=self.interaction_manager.collection_id, llm_callbacks=llm_callbacks, agent_callbacks=agent_callbacks)
+        destination.instance.run(
+            input=query,
+            collection_id=self.interaction_manager.collection_id,
+            llm_callbacks=llm_callbacks,
+            agent_callbacks=agent_callbacks,
+        )
 
     def _create_router_chain(self):
         """Creates the router chain for this router."""
@@ -148,9 +155,10 @@ class RequestRouter(AbstractAI):
 
         destinations_str = "\n".join(destinations)
 
-        router_template = MULTI_PROMPT_ROUTER_TEMPLATE.format(
-            destinations=destinations_str
-        )
+        router_template = get_prompt(
+            self.assistant_configuration.request_router.model_configuration.llm_type,
+            "MULTI_PROMPT_ROUTER_TEMPLATE",
+        ).format(destinations=destinations_str)
 
         router_prompt = PromptTemplate(
             template=router_template,

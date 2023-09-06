@@ -1,5 +1,5 @@
-## Taken from langchain... had to modify this to allow me to pre-prune stored messages,
-# not just have the pruning occur on savecontext only. Should probably create a PR or something.
+## Taken from langchain... had to modify this to allow me to prune stored messages on retrieval,
+# not have the pruning occur on savecontext. Should probably create a PR or something.
 
 from typing import Any, Dict, List
 
@@ -26,15 +26,15 @@ class ConversationTokenBufferMemory(BaseChatMemory):
     def buffer_as_str(self) -> str:
         """Exposes the buffer as a string in case return_messages is True."""
         return get_buffer_string(
-            self.chat_memory.messages,
+            self.get_messages(),
             human_prefix=self.human_prefix,
             ai_prefix=self.ai_prefix,
         )
 
     @property
-    def buffer_as_messages(self) -> List[BaseMessage]:
+    def buffer_as_messages(self) -> List[BaseMessage]:        
         """Exposes the buffer as a list of messages in case return_messages is False."""
-        return self.chat_memory.messages
+        return self.get_messages()
 
     @property
     def memory_variables(self) -> List[str]:
@@ -52,9 +52,7 @@ class ConversationTokenBufferMemory(BaseChatMemory):
         """Save context from this conversation to buffer. Pruned."""
         super().save_context(inputs, outputs)
 
-        self.prune_buffer()
-
-    def prune_buffer(self):
+    def get_messages(self):
         # Prune buffer if it exceeds max token limit
         buffer = self.chat_memory.messages
         curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
@@ -63,3 +61,5 @@ class ConversationTokenBufferMemory(BaseChatMemory):
             while curr_buffer_length > self.max_token_limit:
                 pruned_memory.append(buffer.pop(0))
                 curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+
+        return buffer

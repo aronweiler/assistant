@@ -48,10 +48,6 @@ class StreamHandler(BaseCallbackHandler):
 
 
 def get_configuration_path():
-    os.environ[
-        "ASSISTANT_CONFIG_PATH"
-    ] = "configurations/console_configs/console_ai.json"
-
     return os.environ.get(
         "ASSISTANT_CONFIG_PATH",
         "configurations/console_configs/console_ai.json",
@@ -247,18 +243,19 @@ def select_conversation():
 
 def select_documents():
     with st.sidebar.container():
-        st.toggle("Show LLM thoughts", key="show_llm_thoughts", value=True) 
+        st.toggle("Show LLM thoughts", key="show_llm_thoughts", value=True)
 
         active_collection = st.session_state.get("active_collection")
 
         uploaded_files = st.file_uploader(
-                "Choose your files", accept_multiple_files=True, disabled=(active_collection == None)
-            )
-        
+            "Choose your files",
+            accept_multiple_files=True,
+            disabled=(active_collection == None),
+        )
+
         status = st.status(f"File status", expanded=False, state="complete")
 
         if uploaded_files and active_collection:
-            
             collection_id = None
 
             if active_collection:
@@ -268,7 +265,9 @@ def select_documents():
                 )
                 print(f"Active collection: {active_collection}")
 
-            st.toggle("Overwrite existing files", key="overwrite_existing_files", value=True)
+            st.toggle(
+                "Overwrite existing files", key="overwrite_existing_files", value=True
+            )
             st.text_input("Chunk size", key="file_chunk_size", value=500)
             st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)
 
@@ -278,12 +277,25 @@ def select_documents():
                 and len(uploaded_files) > 0
             ):
                 ingest_files(
-                    uploaded_files, active_collection, collection_id, status, st.session_state["overwrite_existing_files"], int(st.session_state.get("file_chunk_size", 500)), int(st.session_state.get("file_chunk_overlap", 50))
+                    uploaded_files,
+                    active_collection,
+                    collection_id,
+                    status,
+                    st.session_state["overwrite_existing_files"],
+                    int(st.session_state.get("file_chunk_size", 500)),
+                    int(st.session_state.get("file_chunk_overlap", 50)),
                 )
 
 
-def ingest_files(uploaded_files, active_collection, collection_id, status, overwrite_existing_files, chunk_size, chunk_overlap):
-    
+def ingest_files(
+    uploaded_files,
+    active_collection,
+    collection_id,
+    status,
+    overwrite_existing_files,
+    chunk_size,
+    chunk_overlap,
+):
     status.update(
         label=f"Ingesting files and adding to {active_collection}",
         state="running",
@@ -307,19 +319,21 @@ def ingest_files(uploaded_files, active_collection, collection_id, status, overw
                         f.write(uploaded_file.getbuffer())
 
                     # TODO: Make this configurable
-                    
-                    documents = load_and_split_documents(file_path, True, chunk_size, chunk_overlap)
+
+                    documents = load_and_split_documents(
+                        file_path, True, chunk_size, chunk_overlap
+                    )
 
                     file = documents_helper.create_file(
                         FileModel(
                             collection_id,
                             user_id=st.session_state["user_id"],
-                            file_name=uploaded_file.name,                        
+                            file_name=uploaded_file.name,
                         ),
-                        overwrite_existing_files
+                        overwrite_existing_files,
                     )
 
-                    st.info(f"Loading {len(documents)} chunks for {uploaded_file.name}")                                
+                    st.info(f"Loading {len(documents)} chunks for {uploaded_file.name}")
 
             for document in documents:
                 documents_helper.store_document(
@@ -333,7 +347,7 @@ def ingest_files(uploaded_files, active_collection, collection_id, status, overw
                     )
                 )
 
-            classify_file(documents_helper, documents, file, uploaded_file)            
+            classify_file(documents_helper, documents, file, uploaded_file)
 
         status.empty()
         status.update(
@@ -355,14 +369,15 @@ def ingest_files(uploaded_files, active_collection, collection_id, status, overw
             state="error",
             expanded=False,
         )
-        
+
         try:
             shutil.rmtree(temp_dir)
             print(f"Deleted: {temp_dir}")
         except Exception as e:
             print(f"Error deleting {temp_dir}: {e}")
 
-def classify_file(documents_helper:Documents, documents, file, uploaded_file):
+
+def classify_file(documents_helper: Documents, documents, file, uploaded_file):
     # Use up to the first 10 document chunks to classify this document
     classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
     for d in documents[:10]:
@@ -382,7 +397,9 @@ def classify_file(documents_helper:Documents, documents, file, uploaded_file):
         f"File summary: {file.file_summary}, classification: {file.file_classification}"
     )
 
-    documents_helper.update_file_summary_and_class(file.id, file.file_summary, file.file_classification)
+    documents_helper.update_file_summary_and_class(
+        file.id, file.file_summary, file.file_classification
+    )
 
 
 def refresh_messages_session_state(ai_instance):

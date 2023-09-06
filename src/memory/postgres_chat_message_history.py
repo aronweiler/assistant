@@ -15,7 +15,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
     conversations: Conversations
     user_id: int
 
-    def __init__(self, interaction_id: UUID, conversations: Conversations, max_token_limit: int = 500):
+    def __init__(self, interaction_id: UUID, conversations: Conversations):
         """Initialize the PostgresChatMessageHistory.
 
         Args:
@@ -24,7 +24,6 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         """
         self.interaction_id = interaction_id
         self.conversations = conversations
-        self.max_token_limit = max_token_limit
 
     @property
     def messages(self) -> List[BaseMessage]:

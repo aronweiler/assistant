@@ -11,14 +11,12 @@ from configuration.assistant_configuration import Destination
 from db.models.conversations import SearchType
 
 from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm
+from ai.llm_helper import get_llm, get_prompt
 from ai.system_info import get_system_information
 from ai.destination_route import DestinationRoute
 from ai.system_info import get_system_information
 from ai.destinations.destination_base import DestinationBase
 from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
-
-from ai.prompts import MEMORY_PROMPT
 
 
 class MemoryAI(DestinationBase):
@@ -53,7 +51,7 @@ class MemoryAI(DestinationBase):
 
         self.chain = LLMChain(
             llm=self.llm,
-            prompt=MEMORY_PROMPT,
+            prompt=get_prompt(self.destination.model_configuration.llm_type, "MEMORY_PROMPT"),
             memory=self.interaction_manager.conversation_token_buffer_memory,
         )
 

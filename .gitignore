@@ -2,7 +2,7 @@
 _old*
 data/ChromaDB_*/
 *_venv/
-.vscode/
+.vscode/settings.json
 .chroma
 docker.env
 db.env

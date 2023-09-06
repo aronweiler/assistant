@@ -2,17 +2,18 @@
 An intelligent assistant.  This is a work in progress.
 
 ### Features
-- ✅ Runner / AI Framework
-- ✅ Tool Framework
+- ✅ AI Framework Using [LangChain](https://www.langchain.com/)
 - ✅ Configuration Framework
-- ✅ Console Runner
+- ✅ Console Runner (Run the LLM in a console window)
+- ✅ Streamlit UI Runner (Run the LLM in a Web-UI)
 - ✅ OpenAI LLM Integration
-- ✅ Memory Retrieval
-- ✅ Conversation Manager
-- ✅ Memory Storage (This is really exciting!)
-- ✅ Voice Runner
-- ✅ Streamlit UI
-- ✅ Chat with Documents (UI/Console only)
+- ✅ Local LLM Integration (Llama 2- *Note: Some features may not work here yet*)
+- ✅ Interaction Management (Conversations, Memory, Files, etc.)
+- ✅ Chat with Documents (Upload documents on the Streamlit UI)
+- ✅ Postgres Conversation / File Storage
+- ✅ Voice Runner (For interactions via voice- back burner for now)
+
+## TODO:
 - ☑️ Google API Integration
 - ☑️ Generic Tooling (a.k.a. on-demand tools)
 - ☑️ API Discovery and Calling
@@ -23,7 +24,7 @@ An intelligent assistant.  This is a work in progress.
 
 `pip install -r requirements.txt`
 
-### Install Whisper and Torch
+### Install Whisper and Torch (for Voice Interactions)
 I'm using their github, but feel free to use the python packages.
 
 `pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git`
@@ -31,7 +32,7 @@ I'm using their github, but feel free to use the python packages.
 `pip3 install --force-reinstall --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121`
 
 ## 2. Set up the database
-*The database is required for some of the more advanced features, like conversations, and eventually things like documents, advanced tooling, etc.*
+*The database is required for conversations, file upload, user management, etc.*
 ### - Run the PGVector (postgres) docker image:
 
 Pull and run the PGVector docker file, following instructions here: [PGVector GitHub](https://github.com/pgvector/pgvector/tree/master#docker)
@@ -78,20 +79,17 @@ Modify the [console_ai_assistant](configurations\console_configs\console_ai_assi
 Run the run.py file, with your choice of configuration.
 
 **Example:**
-`python run.py --config=configurations/console_configs/console_ai.json --logging_level=INFO`
+`python run.py --config=configurations/console_configs/openai_config.json --logging_level=INFO`
 
-This should allow you to interact with the AI assistant through the console.  
+This will allow you to interact with the AI assistant through the console.  
 
 ## Run the Streamlit UI Assistant
 This is a chat bot interface that has memory, tools, and other fun stuff. 
 
 ![Streamlit UI](documentation/streamlit.png)
 
+You need to set the `ASSISTANT_CONFIG_PATH` environment variable before running this command.  See the [launch.json](.vscode/launch.json) file for examples.
+
 Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
 
-**Example:**
-`streamlit run src/runners/ui/streamlit_ui.py`
-
-*Note- this approach currently relies on the `OPENAI_API_KEY` and `ASSISTANT_CONFIG_PATH` environment variables.  Make sure they are set.
-
-Use any config that has an `ai` section, such as: `configurations/ui_configs/ui_ai.json`*
+Use any config that has an `ai` section, such as: `configurations/console_configs/openai_config.json`*
