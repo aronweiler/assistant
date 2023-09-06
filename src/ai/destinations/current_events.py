@@ -25,7 +25,7 @@ from configuration.assistant_configuration import Destination
 from db.models.conversations import SearchType
 
 from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm
+from ai.llm_helper import get_llm, get_prompt
 from ai.system_info import get_system_information
 from ai.destination_route import DestinationRoute
 from ai.system_info import get_system_information
@@ -36,11 +36,6 @@ from ai.callbacks.agent_callback import AgentCallback
 from tools.general.time_tool import TimeTool
 from tools.weather.weather_tool import WeatherTool
 from tools.news.g_news_tool import GNewsTool
-
-from ai.prompts import (
-    AGENT_TEMPLATE,
-    TOOLS_SUFFIX,
-)
 
 
 class CurrentEventsAI(DestinationBase):
@@ -54,7 +49,7 @@ class CurrentEventsAI(DestinationBase):
         db_env_location: str,
         streaming: bool = False,
     ):
-        self.destination = destination        
+        self.destination = destination
 
         self.token_management_handler = TokenManagementCallbackHandler()
         self.agent_callback = AgentCallback()
@@ -81,9 +76,13 @@ class CurrentEventsAI(DestinationBase):
             self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=AGENT_TEMPLATE,
+            human_message_template=get_prompt(
+                self.destination.model_configuration.llm_type, "AGENT_TEMPLATE"
+            ),
             agent_kwargs={
-                "suffix": TOOLS_SUFFIX,
+                "suffix": get_prompt(
+                    self.destination.model_configuration.llm_type, "TOOLS_SUFFIX"
+                ),
                 "input_variables": [
                     "input",
                     "agent_chat_history",
@@ -116,7 +115,13 @@ class CurrentEventsAI(DestinationBase):
             ),
         ]
 
-    def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
+    def run(
+        self,
+        input: str,
+        collection_id: str = None,
+        llm_callbacks: list = [],
+        agent_callbacks: list = [],
+    ):
         self.interaction_manager.collection_id = collection_id
         results = self.agent.run(
             input=input,

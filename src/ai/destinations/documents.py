@@ -32,27 +32,13 @@ from db.models.pgvector_retriever import PGVectorRetriever
 
 from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
 from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm
+from ai.llm_helper import get_llm, get_prompt
 from ai.system_info import get_system_information
 from ai.destination_route import DestinationRoute
 from ai.system_info import get_system_information
 from ai.destinations.destination_base import DestinationBase
 from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 from ai.callbacks.agent_callback import AgentCallback
-from ai.prompts import (
-    AGENT_TEMPLATE,
-    SIMPLE_SUMMARIZE_PROMPT,
-    SIMPLE_REFINE_PROMPT,
-    SINGLE_LINE_SUMMARIZE_PROMPT,
-    REPHRASE_TO_KEYWORDS_TEMPLATE,
-    TOOLS_SUFFIX,
-    REPHRASE_TEMPLATE,
-    TOOLS_FORMAT_INSTRUCTIONS,
-    QUESTION_PROMPT,
-    COMBINE_PROMPT,
-    DOCUMENT_PROMPT,
-)
-
 from utilities.token_helper import simple_get_tokens_for_message
 
 
@@ -94,10 +80,10 @@ class DocumentsAI(DestinationBase):
             llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=AGENT_TEMPLATE,
+            human_message_template=get_prompt(self.destination.model_configuration.llm_type, "AGENT_TEMPLATE"),
             agent_kwargs={
-                "suffix": TOOLS_SUFFIX,
-                "format_instructions": TOOLS_FORMAT_INSTRUCTIONS,
+                "suffix": get_prompt(self.destination.model_configuration.llm_type, "TOOLS_SUFFIX"),
+                "format_instructions": get_prompt(self.destination.model_configuration.llm_type, "TOOLS_FORMAT_INSTRUCTIONS"),
                 "output_parser": CustomStructuredChatOutputParserWithRetries(),
                 "input_variables": [
                     "input",
@@ -237,18 +223,18 @@ class DocumentsAI(DestinationBase):
             search_kwargs=search_kwargs,
         )
 
-        qa_chain = LLMChain(llm=self.llm, prompt=QUESTION_PROMPT, verbose=True)
+        qa_chain = LLMChain(llm=self.llm, prompt=get_prompt(self.destination.model_configuration.llm_type, "QUESTION_PROMPT"), verbose=True)
 
         qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
             retriever=self.pgvector_retriever,
-            chain_type_kwargs={"prompt": QUESTION_PROMPT},
+            chain_type_kwargs={"prompt": get_prompt(self.destination.model_configuration.llm_type, "QUESTION_PROMPT")},
         )
 
         combine_chain = StuffDocumentsChain(
             llm_chain=qa_chain,
-            document_prompt=DOCUMENT_PROMPT,
+            document_prompt=get_prompt(self.destination.model_configuration.llm_type, "DOCUMENT_PROMPT"),
             document_variable_name="summaries",
         )
 
@@ -276,8 +262,8 @@ class DocumentsAI(DestinationBase):
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=SIMPLE_SUMMARIZE_PROMPT,
-            refine_prompt=SIMPLE_REFINE_PROMPT,
+            question_prompt=get_prompt(self.destination.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"),
+            refine_prompt=get_prompt(self.destination.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"),
             return_intermediate_steps=True,
             input_key="input_documents",
             output_key="output_text",
@@ -288,7 +274,7 @@ class DocumentsAI(DestinationBase):
         return result["output_text"]
 
     def summarize(self, llm, docs):
-        llm_chain = LLMChain(llm=llm, prompt=SINGLE_LINE_SUMMARIZE_PROMPT)
+        llm_chain = LLMChain(llm=llm, prompt=get_prompt(self.destination.model_configuration.llm_type, "SINGLE_LINE_SUMMARIZE_PROMPT"))
 
         stuff_chain = StuffDocumentsChain(
             llm_chain=llm_chain, document_variable_name="text"
@@ -300,7 +286,7 @@ class DocumentsAI(DestinationBase):
         # Rephrase the query so that it is stand-alone
         # Use the llm to rephrase, adding in the conversation memory for context
         rephrase_results = self.llm.predict(
-            REPHRASE_TEMPLATE.format(
+            get_prompt(self.destination.model_configuration.llm_type, "REPHRASE_TEMPLATE").format(
                 input=query,
                 chat_history="\n".join(
                     [
