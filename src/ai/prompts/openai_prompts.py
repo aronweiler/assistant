@@ -266,7 +266,7 @@ CONCISE SUMMARY:
 
 SIMPLE_SUMMARIZE_PROMPT = PromptTemplate.from_template(CONCISE_SUMMARIZE_TEMPLATE)
 
-SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the following text. We have provided an existing summary up to a certain point: 
+SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the following text with the goal of answering a user's query. Below is provided an existing summary up to a certain point: 
 
 ----- BEGIN EXISTING SUMMARY -----
 {existing_answer}
@@ -278,7 +278,11 @@ Now you have the opportunity to refine the existing summary (only if needed) wit
 {text}
 ----- END ADDITIONAL CONTEXT -----
 
-Given the new context, refine the original summary.  If the context isn't useful, just return the original summary.
+----- BEGIN USER QUERY -----
+{query}
+----- END USER QUERY -----
+
+Given the new context, refine the original summary with the goal of answering the user's query.  If the context isn't useful, just return the original summary.
 """
 
 SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)

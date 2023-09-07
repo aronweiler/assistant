@@ -80,10 +80,17 @@ class DocumentsAI(DestinationBase):
             llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=get_prompt(self.destination.model_configuration.llm_type, "AGENT_TEMPLATE"),
+            human_message_template=get_prompt(
+                self.destination.model_configuration.llm_type, "AGENT_TEMPLATE"
+            ),
             agent_kwargs={
-                "suffix": get_prompt(self.destination.model_configuration.llm_type, "TOOLS_SUFFIX"),
-                "format_instructions": get_prompt(self.destination.model_configuration.llm_type, "TOOLS_FORMAT_INSTRUCTIONS"),
+                "suffix": get_prompt(
+                    self.destination.model_configuration.llm_type, "TOOLS_SUFFIX"
+                ),
+                "format_instructions": get_prompt(
+                    self.destination.model_configuration.llm_type,
+                    "TOOLS_FORMAT_INSTRUCTIONS",
+                ),
                 "output_parser": CustomStructuredChatOutputParserWithRetries(),
                 "input_variables": [
                     "input",
@@ -110,7 +117,12 @@ class DocumentsAI(DestinationBase):
             ),
             # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
             StructuredTool.from_function(
-                func=self.summarize_document,
+                func=self.summarize_entire_document,
+                callbacks=[self.agent_callback],
+                return_direct=True,
+            ),
+            StructuredTool.from_function(
+                func=self.summarize_topic,
                 callbacks=[self.agent_callback],
                 return_direct=True,
             ),
@@ -120,8 +132,9 @@ class DocumentsAI(DestinationBase):
                 return_direct=True,
             ),
             StructuredTool.from_function(
-                func=self.code_structure, callbacks=[self.agent_callback],
-                return_direct=True
+                func=self.code_structure,
+                callbacks=[self.agent_callback],
+                return_direct=True,
             ),
             StructuredTool.from_function(
                 func=self.code_details, callbacks=[self.agent_callback]
@@ -223,18 +236,30 @@ class DocumentsAI(DestinationBase):
             search_kwargs=search_kwargs,
         )
 
-        qa_chain = LLMChain(llm=self.llm, prompt=get_prompt(self.destination.model_configuration.llm_type, "QUESTION_PROMPT"), verbose=True)
+        qa_chain = LLMChain(
+            llm=self.llm,
+            prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "QUESTION_PROMPT"
+            ),
+            verbose=True,
+        )
 
         qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
             retriever=self.pgvector_retriever,
-            chain_type_kwargs={"prompt": get_prompt(self.destination.model_configuration.llm_type, "QUESTION_PROMPT")},
+            chain_type_kwargs={
+                "prompt": get_prompt(
+                    self.destination.model_configuration.llm_type, "QUESTION_PROMPT"
+                )
+            },
         )
 
         combine_chain = StuffDocumentsChain(
             llm_chain=qa_chain,
-            document_prompt=get_prompt(self.destination.model_configuration.llm_type, "DOCUMENT_PROMPT"),
+            document_prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "DOCUMENT_PROMPT"
+            ),
             document_variable_name="summaries",
         )
 
@@ -246,8 +271,8 @@ class DocumentsAI(DestinationBase):
         return results["answer"]
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
-    def summarize_document(self, target_file_id: int):
-        """Useful for getting a summary of a specific loaded document.  Use this tool when the user is referring to any loaded document or file in their search for information.  The target_file_id argument is required, and can be used to search a specific file.
+    def summarize_entire_document(self, target_file_id: int):
+        """Useful for getting a summary of an entire specific document.  The target_file_id argument is required.
 
         Args:
 
@@ -258,23 +283,64 @@ class DocumentsAI(DestinationBase):
 
         return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
 
-    def refine_summarize(self, llm, docs):
+    def summarize_topic(self, query: str):
+        """Useful for getting a summary of a topic or query from the user.  This look at all loaded documents for the topic specified by the query and return a summary of that topic.
+
+        Args:
+
+            query (str): The original query from the user.
+        """
+        # Create the documents class for the retriever
+        documents = Documents(self.interaction_manager.db_env_location)
+
+
+
+        document_models = documents.search_document_embeddings(
+            search_query=query,
+            search_type=SearchType.similarity,
+            collection_id=self.interaction_manager.collection_id,
+            target_file_id=None,
+            top_k=10
+        )
+
+        # Convert the document models to Document classes
+        docs = []
+        for doc in document_models:
+            docs.append(Document(page_content=doc.document_text, metadata=doc.additional_metadata))
+
+        summary =  self.refine_summarize(llm=self.llm, query=query, docs=docs)
+
+        response = self.llm.predict(f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n")
+
+        return response
+
+    def refine_summarize(self, query, llm, docs):
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=get_prompt(self.destination.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"),
-            refine_prompt=get_prompt(self.destination.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"),
+            question_prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
+            ),
+            refine_prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+            ),
             return_intermediate_steps=True,
             input_key="input_documents",
             output_key="output_text",
         )
 
-        result = chain({"input_documents": docs}, return_only_outputs=True)
+        result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
 
         return result["output_text"]
 
     def summarize(self, llm, docs):
-        llm_chain = LLMChain(llm=llm, prompt=get_prompt(self.destination.model_configuration.llm_type, "SINGLE_LINE_SUMMARIZE_PROMPT"))
+        llm_chain = LLMChain(
+            llm=llm,
+            prompt=get_prompt(
+                self.destination.model_configuration.llm_type,
+                "SINGLE_LINE_SUMMARIZE_PROMPT",
+            ),
+        )
 
         stuff_chain = StuffDocumentsChain(
             llm_chain=llm_chain, document_variable_name="text"
@@ -286,7 +352,9 @@ class DocumentsAI(DestinationBase):
         # Rephrase the query so that it is stand-alone
         # Use the llm to rephrase, adding in the conversation memory for context
         rephrase_results = self.llm.predict(
-            get_prompt(self.destination.model_configuration.llm_type, "REPHRASE_TEMPLATE").format(
+            get_prompt(
+                self.destination.model_configuration.llm_type, "REPHRASE_TEMPLATE"
+            ).format(
                 input=query,
                 chat_history="\n".join(
                     [
@@ -336,81 +404,91 @@ class DocumentsAI(DestinationBase):
         self,
         query: str,
         target_file_id: int,
-        code_type: str = None,        
+        code_type: str = None,
     ):
         """Useful for understanding the high-level structure of a specific loaded code file.  Use this tool before using the 'code_detail' tool.
         This tool will give you a list of module names, function signatures, and class method signatures.
         You can use the signature of any of these to get more details about that specific piece of code when calling code_detail.
 
-        Don't use this on anything that isn't classified as 'Code'.
+        Don't use this tool on anything that isn't classified as 'Code'.
 
         Args:
-            query (str): The query to ask of the code structure.  Input should be a fully formed question.
-            target_file_id (int): The file ID you would like to get the code structure for.
-            code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'.
+            query (str): The original query from the user.
+            target_file_id (int): REQUIRED! The file ID you would like to get the code structure for.
+            code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'. When left empty, the code structure will be returned in its entirety.
         """
         documents = Documents(self.interaction_manager.db_env_location)
 
-        document_chunks = documents.get_document_chunks_by_file_id(
-            self.interaction_manager.collection_id, target_file_id
-        )
-
-        code_structure = ""
-
-        # Create a list of unique metadata entries from the document chunks
-        full_metadata_list = []
-        modules = []
-        functions = []
-        class_methods = []
-        others = []
-
-        self.get_metadata(
-            full_metadata_list,
-            modules,
-            functions,
-            class_methods,
-            others,
-            document_chunks,
-        )
-
-        # Custom sorting key function
-        def custom_sorting_key(item):
-            # Assign a higher value (e.g., 0) to "MODULE" type, lower value (e.g., 1) to others
-            return 0 if item["type"] == "MODULE" else 1
-
-        code_structure = "The code structure is:\n\n"
-
-        if(code_type is not None):
-            if code_type == "MODULE":
-                code_structure += (
-                    "Modules: " + ", ".join([m["filename"] for m in modules]) + "\n\n"
-                )
-            elif code_type == "FUNCTION_DECLARATION":
-                code_structure += (
-                    "Functions: " + ", ".join([f["signature"] for f in functions]) + "\n\n"
-                )
-            elif code_type == "CLASS_METHOD":
-                code_structure += (
-                    "Class Methods: "
-                    + ", ".join([c["signature"] for c in class_methods])
-                    + "\n\n"
-                )
-            elif code_type == "OTHER":
-                code_structure += (
-                    "Other: " + ", ".join([o["signature"] for o in others]) + "\n\n"
-                )
-        else:            
-            # Sort the list using the custom sorting key
-            sorted_data = sorted(full_metadata_list, key=custom_sorting_key)
-
-            # Iterate through everything and put it into the prompt
-            code_structure += (
-                "\n".join([f"{m['type']}: {m['signature']}" for m in sorted_data])
+        try:
+            document_chunks = documents.get_document_chunks_by_file_id(
+                self.interaction_manager.collection_id, target_file_id
             )
 
-        result = self.llm.predict(f"{code_structure}\n\nUsing the code structure above, please answer this query:\n\n{query}\n\nAI: I have examined the code structure and have determined the following:\n")
+            code_structure = ""
 
-        return result
+            # Create a list of unique metadata entries from the document chunks
+            full_metadata_list = []
+            modules = []
+            functions = []
+            class_methods = []
+            others = []
+
+            self.get_metadata(
+                full_metadata_list,
+                modules,
+                functions,
+                class_methods,
+                others,
+                document_chunks,
+            )
+
+            # Custom sorting key function
+            def custom_sorting_key(item):
+                # Assign a higher value (e.g., 0) to "MODULE" type, lower value (e.g., 1) to others
+                return 0 if item["type"] == "MODULE" else 1
+
+            code_structure = "The code structure is:\n\n"
+
+            if code_type is not None:
+                if code_type == "MODULE":
+                    code_structure += (
+                        "Modules: "
+                        + ", ".join([m["filename"] for m in modules])
+                        + "\n\n"
+                    )
+                elif code_type == "FUNCTION_DECLARATION":
+                    code_structure += (
+                        "Functions: "
+                        + ", ".join([f["signature"] for f in functions])
+                        + "\n\n"
+                    )
+                elif code_type == "CLASS_METHOD":
+                    code_structure += (
+                        "Class Methods: "
+                        + ", ".join([c["signature"] for c in class_methods])
+                        + "\n\n"
+                    )
+                elif code_type == "OTHER":
+                    code_structure += (
+                        "Other: " + ", ".join([o["signature"] for o in others]) + "\n\n"
+                    )
+            else:
+                # Sort the list using the custom sorting key
+                sorted_data = sorted(full_metadata_list, key=custom_sorting_key)
+
+                # Iterate through everything and put it into the prompt
+                code_structure += "\n".join(
+                    [f"{m['type']}: {m['signature']}" for m in sorted_data]
+                )
+
+            result = self.llm.predict(
+                f"{code_structure}\n\nUsing the code structure above, answer this query:\n\n{query}\n\nAI: I have examined the code structure above and have determined the following (my response in Markdown):\n"
+            )
+
+            return result
+        except Exception as e:
+            logging.error(f"Error getting code structure: {e}")
+            return f"There was an error getting the code structure: {e}"
 
     def get_metadata(
         self,
@@ -450,61 +528,66 @@ class DocumentsAI(DestinationBase):
         """
         documents = Documents(self.interaction_manager.db_env_location)
 
-        document_chunks = documents.get_document_chunks_by_file_id(
-            self.interaction_manager.collection_id, target_file_id
-        )
-
-        code_details = f"The code details for {target_signature} is:\n\n"
-
-        # Find the document chunk that matches the target signature
-        target_document_chunk = None
-        for doc in document_chunks:
-            if doc.additional_metadata is not None:
-                metadata = json.loads(doc.additional_metadata)
-                if metadata["signature"] == target_signature:
-                    target_document_chunk = doc
-                    break
-
-        if target_document_chunk is None:
-            # Sometimes the AI is stupid and gets in here before it has a signature.  Let's try to help it out.
-            # Fall back to searching the code file for the signature the AI passed in
-            related_documents = documents.search_document_embeddings(
-                target_signature,
-                SearchType.similarity,
-                self.interaction_manager.collection_id,
-                target_file_id,
-                top_k=20,  # TODO: ... magic number
+        try:
+            document_chunks = documents.get_document_chunks_by_file_id(
+                self.interaction_manager.collection_id, target_file_id
             )
 
-            full_metadata_list = []
-            modules = []
-            functions = []
-            class_methods = []
-            others = []
+            code_details = f"The code details for {target_signature} is:\n\n"
 
-            self.get_metadata(
-                full_metadata_list,
-                modules,
-                functions,
-                class_methods,
-                others,
-                related_documents,
-            )
+            # Find the document chunk that matches the target signature
+            target_document_chunk = None
+            for doc in document_chunks:
+                if doc.additional_metadata is not None:
+                    metadata = doc.additional_metadata
+                    if target_signature in metadata["signature"]:
+                        target_document_chunk = doc
+                        break
 
-            # Loop through the full metadata list and add it to the output, checking to see if we're over the token limit of 1000
-            for doc in related_documents:
-                if simple_get_tokens_for_message(code_details) > 1000:
-                    break
-                metadata = json.loads(doc.additional_metadata)
-                if metadata["type"] != "MODULE":
-                    code_details += metadata["text"] + "\n\n"
+            if target_document_chunk is None:
+                # Sometimes the AI is stupid and gets in here before it has a signature.  Let's try to help it out.
+                # Fall back to searching the code file for the signature the AI passed in
+                related_documents = documents.search_document_embeddings(
+                    target_signature,
+                    SearchType.similarity,
+                    self.interaction_manager.collection_id,
+                    target_file_id,
+                    top_k=20,  # TODO: ... magic number
+                )
 
-            # If we still can't find anything, tell the AI it's behaving badly
-            return (
-                "I found the following code, but no code exists with that signature!  You were probably being a bad AI and NOT following the instructions where I told you to use the code_structure tool first!  BAD AI!\n\n"
-                + code_details
-            )
-        else:
-            code_details += target_document_chunk.document_text
+                full_metadata_list = []
+                modules = []
+                functions = []
+                class_methods = []
+                others = []
 
-            return code_details
+                self.get_metadata(
+                    full_metadata_list,
+                    modules,
+                    functions,
+                    class_methods,
+                    others,
+                    related_documents,
+                )
+
+                # TODO: ... magic number
+                # Loop through the full metadata list and add it to the output, checking to see if we're over the arbitrary token limit of 1000
+                for doc in related_documents:
+                    if simple_get_tokens_for_message(code_details) > 1000:
+                        break
+                    metadata = doc.additional_metadata
+                    if metadata["type"] != "MODULE":
+                        code_details += metadata["text"] + "\n\n"
+
+                # If we still can't find anything, tell the AI it's behaving badly
+                return (
+                    "I found the following code, but no code exists with that signature!  You were probably being a bad AI and NOT following the instructions where I told you to use the code_structure tool first!  BAD AI!\n\n"
+                    + code_details
+                )
+            else:
+                code_details += target_document_chunk.document_text
+
+                return code_details
+        except Exception as e:
+            logging.error(f"Error getting code details: {e}")
+            return f"There was an error getting the code details: {e}"
