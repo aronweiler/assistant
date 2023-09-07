@@ -460,17 +460,18 @@ def handle_chat(main_window_container):
 
     if prompt:
         with main_window_container.container():
-            st.chat_message("user", avatar="👤").markdown(prompt)
+            st.chat_message("user", avatar="👤").markdown(prompt)            
 
             with st.chat_message("assistant", avatar="🤖"):
                 llm_callbacks = []
-                llm_callbacks.append(StreamHandler(st.container().empty()))
+                llm_callbacks.append(StreamHandler(st.container().empty()))                
 
                 agent_callbacks = []
                 if st.session_state["show_llm_thoughts"]:
                     print("showing agent thoughts")
+                    agent_callback_container = st.container().empty()
                     agent_callback = StreamlitAgentCallbackHandler(
-                        st.container(),
+                        agent_callback_container,
                         expand_new_thoughts=True,
                         collapse_completed_thoughts=True,
                     )
