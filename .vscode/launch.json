@@ -20,6 +20,21 @@
       }
     },
     {
+      "name": "Run Aron LLM Streamlit App",
+      "type": "python",
+      "request": "launch",
+      "program": "assistant_venv/Scripts/streamlit.exe",
+      "args": [
+        "run",
+        "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
+      ], 
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/aron_llm_config.json"
+      }
+    },
+    {
         "name": "Run Luna AI LLM Streamlit App",
         "type": "python",
         "request": "launch",
