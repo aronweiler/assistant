@@ -42,9 +42,11 @@ from ai.callbacks.agent_callback import AgentCallback
 from utilities.token_helper import simple_get_tokens_for_message
 
 from tools.documents.document_tool import DocumentTool
+from tools.documents.code_tool import CodeTool
 
-class DocumentsAI(DestinationBase):
-    """A document-using AI that uses an LLM to generate responses"""
+
+class CodeAI(DestinationBase):
+    """A document-using AI that contains logic and tools specific to working with code"""
 
     def __init__(
         self,
@@ -62,7 +64,7 @@ class DocumentsAI(DestinationBase):
         self.llm = get_llm(
             destination.model_configuration,
             callbacks=[self.token_management_handler],
-            tags=["documents"],
+            tags=["code"],
             streaming=streaming,
         )
 
@@ -75,8 +77,9 @@ class DocumentsAI(DestinationBase):
         )
 
         self.document_tool = DocumentTool(destination=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
+        self.code_tool = CodeTool(destination=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
 
-        self.create_document_tools(self.document_tool)
+        self.create_code_tools(self.document_tool, self.code_tool)
 
         self.agent = initialize_agent(
             tools=self.document_tools,
@@ -111,7 +114,7 @@ class DocumentsAI(DestinationBase):
         # Set the memory on the agent tools callback so that it can manually add entries
         # self.agent_tools_callback.memory = agent_memory.memory
 
-    def create_document_tools(self, document_tool:DocumentTool):
+    def create_code_tools(self, document_tool:DocumentTool, code_tool:CodeTool):
         self.document_tools = [
             StructuredTool.from_function(
                 func=document_tool.search_loaded_documents,
@@ -133,7 +136,15 @@ class DocumentsAI(DestinationBase):
                 func=document_tool.list_documents,
                 callbacks=[self.agent_callback],
                 return_direct=True,
-            )
+            ),
+            StructuredTool.from_function(
+                func=self.code_tool.code_details,
+                callbacks=[self.agent_callback],
+                return_direct=True,
+            ),
+            StructuredTool.from_function(
+                func=self.code_tool.code_structure, callbacks=[self.agent_callback]
+            ),
         ]
 
     def run(
@@ -248,3 +259,5 @@ class DocumentsAI(DestinationBase):
     #     )
 
     #     return rephrase_results
+
+    
