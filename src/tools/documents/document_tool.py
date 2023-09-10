@@ -34,12 +34,12 @@ from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRe
 from ai.interactions.interaction_manager import InteractionManager
 from ai.llm_helper import get_llm, get_prompt
 from ai.system_info import get_system_information
-from ai.destination_route import DestinationRoute
-from ai.system_info import get_system_information
-from ai.destinations.destination_base import DestinationBase
-from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
-from ai.callbacks.agent_callback import AgentCallback
-from utilities.token_helper import simple_get_tokens_for_message
+from src.ai.destination_route import DestinationRoute
+from src.ai.system_info import get_system_information
+from src.ai.destinations.destination_base import DestinationBase
+from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.callbacks.agent_callback import AgentCallback
+from src.utilities.token_helper import simple_get_tokens_for_message
 
 class DocumentTool:
     def __init__(self, destination: Destination, interaction_manager: InteractionManager, llm: BaseLanguageModel):
@@ -68,7 +68,7 @@ class DocumentTool:
 
         # Create the documents class for the retriever
         self.pgvector_retriever = PGVectorRetriever(
-            vectorstore=Documents(self.interaction_manager.db_env_location),
+            vectorstore=Documents(),
             search_kwargs=search_kwargs,
         )
 
@@ -114,7 +114,7 @@ class DocumentTool:
 
             target_file_id (int): The file_id you got from the list of loaded files"""
         # Create the documents class for the retriever
-        documents = Documents(self.interaction_manager.db_env_location)
+        documents = Documents()
         file = documents.get_file(target_file_id)
 
         return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
@@ -127,7 +127,7 @@ class DocumentTool:
             query (str): The original query from the user.
         """
         # Create the documents class for the retriever
-        documents = Documents(self.interaction_manager.db_env_location)
+        documents = Documents()
 
         document_models = documents.search_document_embeddings(
             search_query=query,

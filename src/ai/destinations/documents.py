@@ -25,23 +25,23 @@ from langchain.agents import (
 
 from configuration.assistant_configuration import Destination
 
-from db.models.conversations import SearchType
-from db.models.documents import Documents
-from db.models.users import User
-from db.models.pgvector_retriever import PGVectorRetriever
+from src.db.models.conversations import SearchType
+from src.db.models.documents import Documents
+from src.db.models.users import User
+from src.db.models.pgvector_retriever import PGVectorRetriever
 
-from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
-from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm, get_prompt
-from ai.system_info import get_system_information
-from ai.destination_route import DestinationRoute
-from ai.system_info import get_system_information
-from ai.destinations.destination_base import DestinationBase
-from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
-from ai.callbacks.agent_callback import AgentCallback
-from utilities.token_helper import simple_get_tokens_for_message
+from src.ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
+from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.system_info import get_system_information
+from src.ai.destination_route import DestinationRoute
+from src.ai.system_info import get_system_information
+from src.ai.destinations.destination_base import DestinationBase
+from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.callbacks.agent_callback import AgentCallback
+from src.utilities.token_helper import simple_get_tokens_for_message
 
-from tools.documents.document_tool import DocumentTool
+from src.tools.documents.document_tool import DocumentTool
 
 class DocumentsAI(DestinationBase):
     """A document-using AI that uses an LLM to generate responses"""
@@ -51,7 +51,6 @@ class DocumentsAI(DestinationBase):
         destination: Destination,
         interaction_id: int,
         user_email: str,
-        db_env_location: str,
         streaming: bool = False,
     ):
         self.destination = destination
@@ -70,7 +69,6 @@ class DocumentsAI(DestinationBase):
             interaction_id,
             user_email,
             self.llm,
-            db_env_location,
             destination.model_configuration.max_conversation_history_tokens,
         )
 

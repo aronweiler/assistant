@@ -1,4 +1,4 @@
-from db.database.models import DocumentCollection
+from src.db.database.models import DocumentCollection
 
 class DocumentCollectionModel:
     def __init__(self, id, collection_name, interaction_id, record_created=None, documents=None, files=None):

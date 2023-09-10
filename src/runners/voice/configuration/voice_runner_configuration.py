@@ -40,7 +40,6 @@ class VoiceRunnerConfiguration:
         self.max_audio_queue_size = json_args.get("max_audio_queue_size", 1024)
         self.input_gain = json_args.get("input_gain", 1.0)
         self.sts_model = json_args.get("sts_model", "base")
-        self.db_env_location = json_args.get("db_env_location", None)
         self.top_k = json_args.get("top_k", 5)        
 
     def get_wake_word_models(self, json_args) -> list[WakeWordModel]:

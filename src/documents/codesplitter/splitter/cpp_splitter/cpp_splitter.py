@@ -1,15 +1,12 @@
 
-import glob
-import json
 import os
 
-from documents.codesplitter.node_types import NodeType
+from src.documents.codesplitter.node_types import NodeType
 
-from documents.codesplitter.splitter.splitter_base import SplitterBase
+from src.documents.codesplitter.splitter.splitter_base import SplitterBase
 
 import clang.cindex
 from clang.cindex import CursorKind
-
 
 class CppSplitter(SplitterBase):
 
@@ -21,6 +18,21 @@ class CppSplitter(SplitterBase):
         '.hh',
         '.hpp'
     )
+
+    _FUNCTION_TYPES = (
+        CursorKind.CXX_METHOD,
+        CursorKind.FUNCTION_DECL
+    )
+
+    _GENERIC_NODE_TYPE_MAP = {
+        CursorKind.CXX_METHOD: NodeType.CLASS_METHOD,
+        CursorKind.FUNCTION_DECL: NodeType.FUNCTION_DEFINITION,
+        CursorKind.TRANSLATION_UNIT: NodeType.MODULE,
+        CursorKind.CLASS_DECL: NodeType.CLASS,
+        CursorKind.STRUCT_DECL: NodeType.CLASS,
+        CursorKind.PREPROCESSING_DIRECTIVE: NodeType.PREPROCESSING_DIRECTIVE,
+        CursorKind.INCLUSION_DIRECTIVE: NodeType.INCLUDE,
+    }
 
     def __init__(self):
         super().__init__()
@@ -60,24 +72,12 @@ class CppSplitter(SplitterBase):
 
             text = "".join(text).strip()
 
-            type_map = {
-                CursorKind.CXX_METHOD: NodeType.CLASS_METHOD,
-                CursorKind.FUNCTION_DECL: NodeType.FUNCTION_DEFINITION,
-                CursorKind.TRANSLATION_UNIT: NodeType.MODULE,
-                CursorKind.CLASS_DECL: NodeType.CLASS_DEFINITION,
-                CursorKind.STRUCT_DECL: NodeType.STRUCT_DEFINITION,
-                CursorKind.PREPROCESSING_DIRECTIVE: NodeType.PREPROCESSING_DIRECTIVE,
-            }
-
-            try:
-                node_type = type_map[node.kind]
-            except:
-                node_type = NodeType.UNKNOWN
-                raise Exception(f"Node type {node.kind.name} is unmapped")
+            node_type = self._mapped_node_type(node_type=node.kind)
+            if node_type is None:
+                continue
 
             expanded_node = {
                 'type': node_type.name,
-                'signature': signature,
                 'text': text,
                 'file_loc': file_loc,
                 'includes': self._get_includes(node),      
@@ -88,34 +88,22 @@ class CppSplitter(SplitterBase):
                 expanded_node['access_specifier'] = access_specifier
                 expanded_node['class'] = class_name
 
+            if node.kind in (CursorKind.CXX_METHOD, CursorKind.FUNCTION_DECL):
+                expanded_node['func_name'] = node.spelling
+
             expanded_nodes.append(expanded_node)
 
         return expanded_nodes
 
-    @staticmethod
-    def _get_includes(node):
+
+    def _get_includes(self, node):
         include_files = []
         for include_obj in node.translation_unit.get_includes():
             include_files.append(include_obj.include.name)
         return include_files
 
 
-    @staticmethod
-    def _find_nodes(path) -> list:
-
-        NODE_KINDS_OF_INTEREST = (  
-            CursorKind.CXX_METHOD,
-            CursorKind.FUNCTION_DECL,
-            CursorKind.TRANSLATION_UNIT,
-            CursorKind.CLASS_DECL,
-            CursorKind.STRUCT_DECL,
-            CursorKind.PREPROCESSING_DIRECTIVE
-        )
-
-        FUNCTION_KINDS = (
-            CursorKind.CXX_METHOD,
-            CursorKind.FUNCTION_DECL
-        )
+    def _load_nodes_from_file(self, path) -> list:
 
         nodes = []
    
@@ -124,16 +112,15 @@ class CppSplitter(SplitterBase):
             for child in node.get_children():
                 traverse(child)
 
-            if node.kind in NODE_KINDS_OF_INTEREST: 
+            if self._mapped_node_type(node.kind) is None:
+                return
+            
+            if self._is_function_type(node.kind) and (node.is_definition() is False):
+                # Don't save off function declarations
+                # Only keep definitions
+                return
 
-                if node.kind in FUNCTION_KINDS:
-
-                    # Don't save off function declarations
-                    # Only keep definitions
-                    if node.is_definition() == False:
-                        return
-
-                nodes.append(node)
+            nodes.append(node)
 
 
         #clang.cindex.Config.set_library_path()
@@ -146,3 +133,8 @@ class CppSplitter(SplitterBase):
 
         return nodes
 
+
+    def _parse_nodes_from_file(self, path) -> list:
+        nodes = self._load_nodes_from_file(path=path)
+        parsed_nodes = self._parse_nodes(nodes=nodes)
+        return parsed_nodes

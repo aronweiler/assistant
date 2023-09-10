@@ -2,16 +2,14 @@ from typing import Union, List, Any
 from uuid import UUID
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from db.database.models import Conversation
-from db.models.vector_database import VectorDatabase, SearchType
+from src.db.database.models import Conversation
+from src.db.models.vector_database import VectorDatabase, SearchType
 
-from db.models.domain.conversation_model import ConversationModel
+from src.db.models.domain.conversation_model import ConversationModel
 
 
 class Conversations(VectorDatabase):
-    def __init__(self, db_env_location):
-        super().__init__(db_env_location)
-
+   
     def add_conversation(self, conversation: ConversationModel) -> ConversationModel:
         with self.session_context(self.Session()) as session:
             conversation.conversation_text = conversation.conversation_text.strip()

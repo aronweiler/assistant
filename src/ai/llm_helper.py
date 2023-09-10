@@ -6,8 +6,8 @@ from enum import Enum
 from langchain.chat_models import ChatOpenAI
 from langchain.llms.llamacpp import LlamaCpp
 
-from utilities.openai_utilities import get_openai_api_key
-from configuration.assistant_configuration import ModelConfiguration
+from src.utilities.openai_utilities import get_openai_api_key
+from src.configuration.assistant_configuration import ModelConfiguration
 
 llama2_llm = None
 

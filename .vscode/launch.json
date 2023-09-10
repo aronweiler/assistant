@@ -13,7 +13,7 @@
         "run",
         "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
       ], 
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/src",
       "console": "integratedTerminal",
       "env": {
         "ASSISTANT_CONFIG_PATH": "configurations/console_configs/llama2_config.json"
@@ -28,7 +28,7 @@
         "run",
         "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
       ], 
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/src",
       "console": "integratedTerminal",
       "env": {
         "ASSISTANT_CONFIG_PATH": "configurations/console_configs/aron_llm_config.json"
@@ -43,7 +43,7 @@
           "run",
           "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
         ], 
-        "cwd": "${workspaceFolder}",
+        "cwd": "${workspaceFolder}/src",
         "console": "integratedTerminal",
         "env": {
           "ASSISTANT_CONFIG_PATH": "configurations/console_configs/luna_config.json"
@@ -56,7 +56,7 @@
         "program": "assistant_venv/Scripts/streamlit.exe",
         "args": [
           "run",
-          "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
+          "streamlit_ui.py"
         ], 
         "cwd": "${workspaceFolder}",
         "console": "integratedTerminal",

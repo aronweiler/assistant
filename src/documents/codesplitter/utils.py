@@ -6,7 +6,7 @@ import logging
 import os
 
 
-from documents.codesplitter.node_types import NodeType
+from src.documents.codesplitter.node_types import NodeType
 
 
 logger = logging.getLogger(__name__)

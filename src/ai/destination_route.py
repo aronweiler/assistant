@@ -1,4 +1,4 @@
-from ai.destinations.destination_base import DestinationBase
+from src.ai.destinations.destination_base import DestinationBase
 
 class DestinationRoute:
     def __init__(self, name, description, is_default, instance):

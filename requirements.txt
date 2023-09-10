@@ -1,7 +1,7 @@
 # Basic stuff
 keyboard
 python-dotenv
-termcolor
+termcolor   
 tenacity
 pydantic
 
@@ -15,24 +15,24 @@ sqlalchemy
 # AI
 llama-cpp-python
 openai
-openai-functions
+#openai-functions
 langchain
 
 # Audio related
-openwakeword
-pyaudiowpatch
-pyaudio
-webrtcvad
-# Install whisper from github:
-# pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
-# openai-whisper
-more-itertools
-sound
-TTS
-# Required for AWS Polly
-boto3
-pydub
-SpeechRecognition
+# openwakeword
+# pyaudiowpatch
+# pyaudio
+# webrtcvad
+# # Install whisper from github:
+# # pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
+# # openai-whisper
+# more-itertools
+# sound
+# TTS
+# # Required for AWS Polly
+# boto3
+# pydub
+# SpeechRecognition
 
 # Maffs
 # torch
@@ -41,8 +41,8 @@ SpeechRecognition
 # ^^ The force reinstall is needed because the version of torch that gets installed as a dependency in other places is not correct
 # NOTE: The pip install of ffmpeg-python is broken, so you need to install ffmpeg manually
 # After you install ffmpeg (download from the website), you need to add the bin folder to your path
-ffmpeg 
-ffmpeg-python
+# ffmpeg 
+# ffmpeg-python
 
 # REST
 requests

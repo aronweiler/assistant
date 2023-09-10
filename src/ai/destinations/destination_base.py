@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ai.interactions.interaction_manager import InteractionManager
+from src.ai.interactions.interaction_manager import InteractionManager
 
 
 # Abstract class for destinations

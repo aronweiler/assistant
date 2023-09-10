@@ -1,7 +1,6 @@
 {
     "assistant_configuration": {
       "user_email": "aronweiler@gmail.com",
-      "db_env_location": "src/db/database/db.env",
       "request_router": {
         "model_configuration": {
           "llm_type": "llama2",
@@ -42,8 +41,7 @@
       "arguments": {
         "user_email": "aronweiler@gmail.com",
         "collection_name": "temp",
-        "interaction_id": "b9efb247-913e-467b-8aac-1f5342418475",
-        "db_env_location": "src/db/database/db.env"
+        "interaction_id": "b9efb247-913e-467b-8aac-1f5342418475"
       }
     }
   }

@@ -1,4 +1,4 @@
-from db.database.models import UserSetting
+from src.db.database.models import UserSetting
 
 class UserSettingModel:
     def __init__(self, id, user_id, setting_name, setting_value, user=None):

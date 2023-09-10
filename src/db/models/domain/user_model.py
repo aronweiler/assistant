@@ -1,4 +1,4 @@
-from db.database.models import User
+from src.db.database.models import User
 
 
 class UserModel:

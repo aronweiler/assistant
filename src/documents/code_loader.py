@@ -1,5 +1,5 @@
 from langchain.schema import Document
-from documents.codesplitter.main import run
+from src.documents.codesplitter.main import run
 
 class CodeLoader:
     def __init__(self, file_path=None):

@@ -1,21 +1,20 @@
 import logging
 import time
-from ai.abstract_ai import AbstractAI
-from runners.runner import Runner
-from db.database.models import User
-from db.models.users import Users
-from db.models.documents import Documents
-from db.models.interactions import Interactions
+from src.ai.abstract_ai import AbstractAI
+from src.runners.runner import Runner
+from src.db.database.models import User
+from src.db.models.users import Users
+from src.db.models.documents import Documents
+from src.db.models.interactions import Interactions
 
 
-from utilities.pretty_print import pretty_print_conversation
+from src.utilities.pretty_print import pretty_print_conversation
 
 
 class ConsoleRunner(Runner):
-    def __init__(self, interaction_id, collection_name, db_env_location, user_email):
+    def __init__(self, interaction_id, collection_name, user_email):
         self.interaction_id = interaction_id
         self.collection_name = collection_name
-        self.db_env_location = db_env_location
         self.user_email = user_email        
 
         # Ensure the interaction exists
@@ -26,7 +25,7 @@ class ConsoleRunner(Runner):
     def ensure_collection_exists(self):
         """Ensures that a collection exists for the current user"""
 
-        documents_helper = Documents(self.db_env_location)     
+        documents_helper = Documents()     
 
         collection = documents_helper.get_collection_by_name(self.collection_name, self.interaction_id)            
 
@@ -41,8 +40,8 @@ class ConsoleRunner(Runner):
     def ensure_interaction_exists(self):
         """Ensures that an interaction exists for the current user"""
 
-        interactions_helper = Interactions(self.db_env_location)   
-        users_helper = Users(self.db_env_location)     
+        interactions_helper = Interactions()   
+        users_helper = Users()     
     
         interaction = interactions_helper.get_interaction(self.interaction_id)
         user_id = users_helper.get_user_by_email(self.user_email).id

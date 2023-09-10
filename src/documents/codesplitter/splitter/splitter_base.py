@@ -5,6 +5,8 @@ import glob
 import logging
 import os
 
+from src.documents.codesplitter.node_types import NodeType
+
 
 class SplitterBase(abc.ABC):
 
@@ -34,24 +36,28 @@ class SplitterBase(abc.ABC):
         return tuple()
         
 
-    @abc.abstractstaticmethod
-    def _find_nodes(path) -> list:
+    @abc.abstractmethod
+    def _parse_nodes_from_file(self, path) -> list:
         return []
     
 
-    @abc.abstractmethod
-    def _parse_nodes(self, nodes) -> list:
-        return []
-
+    def _is_function_type(self, node_type) -> bool:
+        if node_type in self._FUNCTION_TYPES:
+            return True
+        
+        return False
+    
+    def _mapped_node_type(self, node_type) -> NodeType:
+        return self._GENERIC_NODE_TYPE_MAP.get(node_type, None)
+    
 
     def parse(self, path) -> list[dict]:
         files = self._get_supported_files(path=path)
 
-        transformed_nodes_list = []
+        combined_nodes = []
         for file in files:
             self._logger.info(f"Parsing {file}")
-            nodes = self._find_nodes(file)
-            transformed_nodes = self._parse_nodes(nodes)
-            transformed_nodes_list.extend(transformed_nodes)
+            nodes = self._parse_nodes_from_file(path=file)
+            combined_nodes.extend(nodes)
 
-        return transformed_nodes_list
+        return combined_nodes

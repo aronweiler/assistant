@@ -1,7 +1,6 @@
 {
   "assistant_configuration": {
     "user_email": "aronweiler@gmail.com",
-    "db_env_location": "src/db/database/db.env",
     "request_router": {
       "model_configuration": {
         "llm_type": "openai",
@@ -114,8 +113,7 @@
     "arguments": {
       "user_email": "aronweiler@gmail.com",
       "collection_name": "test",
-      "interaction_id": "e80b07fb-6d56-4390-b609-8ec2c48aa5e2",
-      "db_env_location": "src/db/database/db.env"
+      "interaction_id": "e80b07fb-6d56-4390-b609-8ec2c48aa5e2"
     }
   }
 }

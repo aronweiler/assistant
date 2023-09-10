@@ -19,9 +19,9 @@ class SearchType(Enum):
 
 
 class VectorDatabase:
-    def __init__(self, db_env_location):
+    def __init__(self):
         try:
-            connection_string = VectorDatabase.get_connection_string(db_env_location)
+            connection_string = VectorDatabase.get_connection_string()
 
             engine = create_engine(connection_string, pool_size=20, max_overflow=0)
 
@@ -31,19 +31,12 @@ class VectorDatabase:
             raise ConnectionError("Error while connecting to PostgreSQL") from error
 
     @staticmethod
-    def get_connection_string(db_env_location):
-        config = dotenv_values(db_env_location)
-
-        if not config:
-            raise ValueError(
-                "Could not load environment variables from db.env, database will not work."
-            )
-
-        host = "localhost"
-        port = int(config.get("POSTGRES_PORT", 5432))
-        database = config.get("POSTGRES_DB", "postgres")
-        user = config.get("POSTGRES_USER", "postgres")
-        password = config.get("POSTGRES_PASSWORD", "postgres")
+    def get_connection_string():
+        host = os.environ.get("POSTGRES_HOST", "localhost")
+        port = int(os.environ.get("POSTGRES_PORT", 5432))
+        database = os.environ.get("POSTGRES_DB", "postgres")
+        user = os.environ.get("POSTGRES_USER", "postgres")
+        password = os.environ.get("POSTGRES_PASSWORD", "postgres")
 
         connection_string = f"postgresql://{user}:{password}@{host}:{port}/{database}"
         return connection_string

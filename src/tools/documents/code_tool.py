@@ -23,29 +23,65 @@ from langchain.agents import (
     AgentOutputParser,
 )
 
-from configuration.assistant_configuration import Destination
+from src.configuration.assistant_configuration import Destination
 
-from db.models.conversations import SearchType
-from db.models.documents import Documents
-from db.models.users import User
-from db.models.pgvector_retriever import PGVectorRetriever
+from src.db.models.conversations import SearchType
+from src.db.models.documents import Documents
+from src.db.models.users import User
+from src.db.models.pgvector_retriever import PGVectorRetriever
 
-from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
-from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm, get_prompt
-from ai.system_info import get_system_information
-from ai.destination_route import DestinationRoute
-from ai.system_info import get_system_information
-from ai.destinations.destination_base import DestinationBase
-from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
-from ai.callbacks.agent_callback import AgentCallback
-from utilities.token_helper import simple_get_tokens_for_message
+from src.ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
+from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.system_info import get_system_information
+from src.ai.destination_route import DestinationRoute
+from src.ai.system_info import get_system_information
+from src.ai.destinations.destination_base import DestinationBase
+from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.callbacks.agent_callback import AgentCallback
+from src.utilities.token_helper import simple_get_tokens_for_message
+
 
 class CodeTool:
-    def __init__(self, destination: Destination, interaction_manager: InteractionManager, llm: BaseLanguageModel):
+    def __init__(
+        self,
+        destination: Destination,
+        interaction_manager: InteractionManager,
+        llm: BaseLanguageModel,
+    ):
         self.destination = destination
         self.interaction_manager = interaction_manager
         self.llm = llm
+
+    def code_dependencies(self, target_file_id: int):
+        """Useful for getting the dependencies of a specific loaded code file.  This tool will give you a list of all the dependencies for the code file you specify.
+
+        Don't use this on anything that isn't classified as 'Code'.
+
+        Args:
+            target_file_id (int): The file ID you would like to get the dependencies for.
+        """
+        documents = Documents()
+
+        # Get the list of documents        
+        document_chunks = documents.get_document_chunks_by_file_id(
+            collection_id=self.interaction_manager.collection_id,
+            target_file_id=target_file_id,
+        )
+
+        # Get the list of includes
+        includes = []
+        for doc in document_chunks:
+            # strip the filename from the path
+            if doc.additional_metadata["type"] == "MODULE":
+                for include in doc.additional_metadata["includes"]:
+                    filename = include.split("/")[-1]
+                    if filename not in includes:
+                        includes.append(filename)
+
+        # return the list of includes
+        #"The dependencies for this file are:\n\n" + 
+        return "\n".join(includes)
 
     def code_structure(
         self,
@@ -64,7 +100,7 @@ class CodeTool:
             target_file_id (int): REQUIRED! The file ID you would like to get the code structure for.
             code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'. When left empty, the code structure will be returned in its entirety.
         """
-        documents = Documents(self.interaction_manager.db_env_location)
+        documents = Documents()
 
         try:
             document_chunks = documents.get_document_chunks_by_file_id(
@@ -173,7 +209,7 @@ class CodeTool:
             target_file_id (int): The file ID you would like to get the code details for.
             target_signature (str): The signature of the piece of code you would like to get the details for. Valid values for this argument are the signatures returned by the 'code_structure' tool.
         """
-        documents = Documents(self.interaction_manager.db_env_location)
+        documents = Documents()
 
         try:
             document_chunks = documents.get_document_chunks_by_file_id(

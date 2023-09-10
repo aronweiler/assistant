@@ -23,26 +23,26 @@ from langchain.agents import (
     AgentOutputParser,
 )
 
-from configuration.assistant_configuration import Destination
+from src.configuration.assistant_configuration import Destination
 
-from db.models.conversations import SearchType
-from db.models.documents import Documents
-from db.models.users import User
-from db.models.pgvector_retriever import PGVectorRetriever
+from src.db.models.conversations import SearchType
+from src.db.models.documents import Documents
+from src.db.models.users import User
+from src.db.models.pgvector_retriever import PGVectorRetriever
 
-from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
-from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm, get_prompt
-from ai.system_info import get_system_information
-from ai.destination_route import DestinationRoute
-from ai.system_info import get_system_information
-from ai.destinations.destination_base import DestinationBase
-from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
-from ai.callbacks.agent_callback import AgentCallback
-from utilities.token_helper import simple_get_tokens_for_message
+from src.ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
+from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.system_info import get_system_information
+from src.ai.destination_route import DestinationRoute
+from src.ai.system_info import get_system_information
+from src.ai.destinations.destination_base import DestinationBase
+from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.callbacks.agent_callback import AgentCallback
+from src.utilities.token_helper import simple_get_tokens_for_message
 
-from tools.documents.document_tool import DocumentTool
-from tools.documents.code_tool import CodeTool
+from src.tools.documents.document_tool import DocumentTool
+from src.tools.documents.code_tool import CodeTool
 
 
 class CodeAI(DestinationBase):
@@ -53,7 +53,6 @@ class CodeAI(DestinationBase):
         destination: Destination,
         interaction_id: int,
         user_email: str,
-        db_env_location: str,
         streaming: bool = False,
     ):
         self.destination = destination
@@ -72,12 +71,19 @@ class CodeAI(DestinationBase):
             interaction_id,
             user_email,
             self.llm,
-            db_env_location,
             destination.model_configuration.max_conversation_history_tokens,
         )
 
-        self.document_tool = DocumentTool(destination=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
-        self.code_tool = CodeTool(destination=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
+        self.document_tool = DocumentTool(
+            destination=self.destination,
+            interaction_manager=self.interaction_manager,
+            llm=self.llm,
+        )
+        self.code_tool = CodeTool(
+            destination=self.destination,
+            interaction_manager=self.interaction_manager,
+            llm=self.llm,
+        )
 
         self.create_code_tools(self.document_tool, self.code_tool)
 
@@ -114,7 +120,7 @@ class CodeAI(DestinationBase):
         # Set the memory on the agent tools callback so that it can manually add entries
         # self.agent_tools_callback.memory = agent_memory.memory
 
-    def create_code_tools(self, document_tool:DocumentTool, code_tool:CodeTool):
+    def create_code_tools(self, document_tool: DocumentTool, code_tool: CodeTool):
         self.document_tools = [
             StructuredTool.from_function(
                 func=document_tool.search_loaded_documents,
@@ -144,6 +150,9 @@ class CodeAI(DestinationBase):
             ),
             StructuredTool.from_function(
                 func=self.code_tool.code_structure, callbacks=[self.agent_callback]
+            ),
+            StructuredTool.from_function(
+                func=self.code_tool.code_dependencies, callbacks=[self.agent_callback]
             ),
         ]
 
@@ -259,5 +268,3 @@ class CodeAI(DestinationBase):
     #     )
 
     #     return rephrase_results
-
-    

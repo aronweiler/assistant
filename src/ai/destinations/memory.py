@@ -6,17 +6,17 @@ from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.prompts import PromptTemplate
 
-from configuration.assistant_configuration import Destination
+from src.configuration.assistant_configuration import Destination
 
-from db.models.conversations import SearchType
+from src.db.models.conversations import SearchType
 
-from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm, get_prompt
-from ai.system_info import get_system_information
-from ai.destination_route import DestinationRoute
-from ai.system_info import get_system_information
-from ai.destinations.destination_base import DestinationBase
-from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.system_info import get_system_information
+from src.ai.destination_route import DestinationRoute
+from src.ai.system_info import get_system_information
+from src.ai.destinations.destination_base import DestinationBase
+from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 
 
 class MemoryAI(DestinationBase):
@@ -27,7 +27,6 @@ class MemoryAI(DestinationBase):
         destination: Destination,
         interaction_id: int,
         user_email: str,
-        db_env_location: str,
         streaming: bool = False,
     ):
         self.destination = destination        
@@ -45,7 +44,6 @@ class MemoryAI(DestinationBase):
             interaction_id,
             user_email,
             self.llm,
-            db_env_location,
             destination.model_configuration.max_conversation_history_tokens,
         )
 

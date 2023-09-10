@@ -2,13 +2,13 @@ import logging
 
 from langchain.base_language import BaseLanguageModel
 
-from db.models.conversations import Conversations, SearchType, ConversationModel
-from db.models.users import Users
-from db.models.documents import Documents
-from db.models.interactions import Interactions
+from src.db.models.conversations import Conversations, SearchType, ConversationModel
+from src.db.models.users import Users
+from src.db.models.documents import Documents
+from src.db.models.interactions import Interactions
 
-from memory.postgres_chat_message_history import PostgresChatMessageHistory
-from memory.token_buffer import ConversationTokenBufferMemory
+from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
+from src.memory.token_buffer import ConversationTokenBufferMemory
 
 
 class InteractionManager:
@@ -21,8 +21,6 @@ class InteractionManager:
     user_email: str
     user_name: str
     user_location: str
-
-    db_env_location: str
 
     interaction_needs_summary: bool = True
 
@@ -47,7 +45,6 @@ class InteractionManager:
         interaction_id: int,
         user_email: str,
         llm: BaseLanguageModel,
-        db_env_location: str,
         max_token_limit: int = 1000,
     ):
         """Creates a new InteractionManager, and loads the conversation memory from the database.
@@ -65,18 +62,14 @@ class InteractionManager:
         if llm is None:
             raise Exception("llm cannot be None")
 
-        if db_env_location is None:
-            raise Exception("db_env_location cannot be None")
-
         # Set our internal interaction id
         self.interaction_id = interaction_id
 
-        self.db_env_location = db_env_location
 
-        self.interactions_helper = Interactions(db_env_location)
-        self.conversations_helper = Conversations(db_env_location)
-        self.users_helper = Users(db_env_location)
-        self.documents_helper = Documents(db_env_location)
+        self.interactions_helper = Interactions()
+        self.conversations_helper = Conversations()
+        self.users_helper = Users()
+        self.documents_helper = Documents()
 
         # Get the user
         user = self.users_helper.get_user_by_email(user_email)

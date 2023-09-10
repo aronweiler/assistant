@@ -11,7 +11,7 @@ import sys
 other_directory_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(other_directory_path)
 
-from runners.voice.player import  play_mp3_stream
+from src.runners.voice.player import  play_mp3_stream
 
 class TextToSpeech():
 

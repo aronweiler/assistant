@@ -8,8 +8,8 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from memory.postgres_entity_store import PostgreSQLEntityStore
-from db.models.vector_database import VectorDatabase
+from src.memory.postgres_entity_store import PostgreSQLEntityStore
+from src.db.models.vector_database import VectorDatabase
 
 
 # This is a simple utility that kicks off the clean up of the stored entity memory.
