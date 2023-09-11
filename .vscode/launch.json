@@ -57,6 +57,22 @@
       }
     },
     {
+      "name": "Run Susan's Jarvis",
+      "type": "python",
+      "request": "launch",
+      "program": "assistant_venv/Scripts/streamlit.exe",
+      "args": ["run", "streamlit_ui.py"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceRoot}",
+        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/openai_config.json",
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT":"6969",
+        "USER_EMAIL":"susanmae1129@gmail.com"
+      }
+    },
+    {
       "name": "Run OpenAI Assistant Console",
       "type": "python",
       "request": "launch",
