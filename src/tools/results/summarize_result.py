@@ -1,4 +1,3 @@
-import openai
 from openai.embeddings_utils import get_embedding, cosine_similarity
 from typing import List
 

@@ -1,7 +1,5 @@
 {
   "assistant_configuration": {
-    "user_email": "aronweiler@gmail.com",
-    "db_env_location": "src/db/database/db.env",
     "request_router": {
       "model_configuration": {
         "llm_type": "openai",
@@ -55,7 +53,25 @@
             "name": "documents",
             "module": "ai.destinations.documents",
             "class_name": "DocumentsAI",
-            "description": "Good for interacting with any of the documents that maybe be loaded (see: LOADED DOCUMENTS).  If there are no loaded documents, this should never be used.",
+            "description": "Good for interacting with any of the 'Document' documents that maybe be loaded (see: LOADED DOCUMENTS).  If there are no loaded 'Document' documents, this should never be used.",
+            "system_prompt": "You are a digital assistant who's job it is to look at documentation and answer any of the user's questions as accurately as possible.  If you do not find an answer in the documentation, do not make anything up, simply say you don't know, or that you can't find the answer.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
+            "model_configuration": {
+              "llm_type": "openai",
+              "model": "gpt-3.5-turbo-16k",
+              "temperature": 0,
+              "max_retries": 3,
+              "max_model_supported_tokens": 16384,
+              "max_conversation_history_tokens": 2048,
+              "max_completion_tokens": 8192
+            }
+          }
+        },
+        {
+          "destination": {
+            "name": "code",
+            "module": "ai.destinations.code",
+            "class_name": "CodeAI",
+            "description": "Good for interacting with any of the 'Code' documents that maybe be loaded (see: LOADED DOCUMENTS).  If there are no loaded 'Code' documents, this should never be used.",
             "system_prompt": "You are a digital assistant who's job it is to look at documentation and answer any of the user's questions as accurately as possible.  If you do not find an answer in the documentation, do not make anything up, simply say you don't know, or that you can't find the answer.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
             "model_configuration": {
               "llm_type": "openai",
@@ -96,8 +112,7 @@
     "arguments": {
       "user_email": "aronweiler@gmail.com",
       "collection_name": "test",
-      "interaction_id": "e80b07fb-6d56-4390-b609-8ec2c48aa5e2",
-      "db_env_location": "src/db/database/db.env"
+      "interaction_id": "e80b07fb-6d56-4390-b609-8ec2c48aa5e2"
     }
   }
 }

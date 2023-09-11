@@ -6,9 +6,9 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-import documents.codesplitter.utils as utils
+import src.documents.codesplitter.utils as utils
 
-import documents.codesplitter.splitter.splitter_utils as splitter_utils
+import src.documents.codesplitter.splitter.splitter_utils as splitter_utils
 
 
 #logging.basicConfig(level=logging.DEBUG)

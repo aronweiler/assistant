@@ -7,17 +7,17 @@ from langchain.prompts import PromptTemplate
 from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
 from langchain.memory.readonly import ReadOnlySharedMemory
 
-from configuration.assistant_configuration import AssistantConfiguration, Destination
+from src.configuration.assistant_configuration import AssistantConfiguration, Destination
 
-from ai.abstract_ai import AbstractAI
-from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm, get_prompt
-from ai.system_info import get_system_information
-from ai.destinations.destination_base import DestinationBase
-from ai.destination_route import DestinationRoute
-from ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.abstract_ai import AbstractAI
+from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.system_info import get_system_information
+from src.ai.destinations.destination_base import DestinationBase
+from src.ai.destination_route import DestinationRoute
+from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 
-from utilities.instance_utility import create_instance_from_module_and_class
+from src.utilities.instance_utility import create_instance_from_module_and_class
 
 
 class RequestRouter(AbstractAI):
@@ -30,8 +30,9 @@ class RequestRouter(AbstractAI):
     def __init__(
         self,
         assistant_configuration: AssistantConfiguration,
+        user_email: str,
         interaction_id: UUID,
-        streaming: bool = False,
+        streaming: bool = False,        
     ):
         """Creates a new RequestRouter
 
@@ -54,9 +55,8 @@ class RequestRouter(AbstractAI):
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
             interaction_id,
-            assistant_configuration.user_email,
+            user_email,
             self.llm,
-            assistant_configuration.db_env_location,
             assistant_configuration.request_router.model_configuration.max_conversation_history_tokens,
         )
 
@@ -203,7 +203,6 @@ class RequestRouter(AbstractAI):
                 "destination": destination,
                 "interaction_id": self.interaction_manager.interaction_id,
                 "user_email": self.interaction_manager.user_email,
-                "db_env_location": self.assistant_configuration.db_env_location,
                 "streaming": self.streaming,
             },
         )

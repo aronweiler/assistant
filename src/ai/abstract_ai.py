@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List
-from db.models.users import Users
-from utilities.instance_utility import create_instance_from_module_and_class
+
+from src.db.models.users import Users
+from src.utilities.instance_utility import create_instance_from_module_and_class
 
 
 class AbstractAI(ABC):

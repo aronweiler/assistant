@@ -2,17 +2,12 @@ from typing import List, Any
 from uuid import UUID
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from db.database.models import Interaction
-from db.models.vector_database import VectorDatabase
-from db.models.domain.interaction_model import InteractionModel
+from src.db.database.models import Interaction
+from src.db.models.vector_database import VectorDatabase
+from src.db.models.domain.interaction_model import InteractionModel
 
 
-class Interactions(VectorDatabase):
-    def __init__(self, db_env_location):
-        super().__init__(db_env_location)
-
-        self.db_env_location = db_env_location
-
+class Interactions(VectorDatabase): 
     def create_interaction(
         self, id: UUID, interaction_summary: str, user_id: int
     ) -> InteractionModel:

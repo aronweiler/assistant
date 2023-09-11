@@ -22,11 +22,10 @@ class RunnerConfig:
             return RunnerConfig.load_from_dict(config_dict['runner_config'])
 
 class RunnerArguments:
-    def __init__(self, collection_name, interaction_id, user_email, db_env_location):
+    def __init__(self, collection_name, interaction_id, user_email):
         self.collection_name = collection_name
         self.interaction_id = interaction_id
         self.user_email = user_email
-        self.db_env_location = db_env_location
 
 if __name__ == "__main__":
     # Example usage

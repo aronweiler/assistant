@@ -6,7 +6,7 @@ from pydantic import Field
 from langchain.schema import BaseRetriever, Document
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 
-from db.models.documents import Documents, SearchType
+from src.db.models.documents import Documents, SearchType
 
 class PGVectorRetriever(BaseRetriever):
     """Retrieve from a set of multiple embeddings for the same document."""

@@ -1,5 +1,5 @@
-from db.database.models import Conversation
-from db.models.domain.conversation_role_type import ConversationRoleType
+from src.db.database.models import Conversation
+from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 
 class ConversationModel:

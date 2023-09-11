@@ -4,8 +4,8 @@ import queue
 import logging
 import threading
 
-from runners.voice.speech_to_text import SpeechToText
-from runners.voice.player import play_wav_file
+from src.runners.voice.speech_to_text import SpeechToText
+from src.runners.voice.player import play_wav_file
 
 class AudioTranscriber:
     def __init__(self, transcription_model_name = "base"):

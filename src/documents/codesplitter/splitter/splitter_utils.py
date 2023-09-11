@@ -2,17 +2,20 @@
 import logging
 import os
 
-from documents.codesplitter.splitter.splitter_base import SplitterBase
-from documents.codesplitter.splitter.cpp_splitter.cpp_splitter import CppSplitter
+from src.documents.codesplitter.splitter.splitter_base import SplitterBase
+from src.documents.codesplitter.splitter.cpp_splitter.cpp_splitter import CppSplitter
+from src.documents.codesplitter.splitter.python_splitter.python_splitter import PythonSplitter
 
 logger = logging.getLogger(__name__)
 
+
 SPLITTERS = {
-    'cpp': CppSplitter
+    'cpp': CppSplitter,
+    'python': PythonSplitter
 }
 
-def get_splitter(source_path: str, hint: str) -> SplitterBase | None:
-    
+
+def get_splitter(source_path: str, hint: str) -> SplitterBase | None:   
 
     splitter = None
 

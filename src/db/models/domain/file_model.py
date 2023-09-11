@@ -1,4 +1,4 @@
-from db.database.models import File
+from src.db.database.models import File
 
 class FileModel:
     def __init__(self, collection_id, user_id, file_name, id = None, file_classification=None,

@@ -1,12 +1,12 @@
 from typing import List
 from uuid import UUID
 
-from langchain.schema.memory import BaseChatMessageHistory
+from langchain.schema.chat_history import BaseChatMessageHistory
 from langchain.schema.messages import BaseMessage
 from langchain.schema.messages import HumanMessage, AIMessage, SystemMessage, FunctionMessage
 
-from db.models.conversations import Conversations, ConversationModel
-from db.models.domain.conversation_role_type import ConversationRoleType
+from src.db.models.conversations import Conversations, ConversationModel
+from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 class PostgresChatMessageHistory(BaseChatMessageHistory):
     """Chat message history stored in Postgres."""

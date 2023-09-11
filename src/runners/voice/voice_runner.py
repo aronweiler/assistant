@@ -11,27 +11,27 @@ import logging
 import json
 import uuid
 
-from ai.abstract_ai import AbstractAI
+from src.ai.abstract_ai import AbstractAI
 
-from runners.runner import Runner
-from runners.voice.configuration.voice_runner_configuration import (
+from src.runners.runner import Runner
+from src.runners.voice.configuration.voice_runner_configuration import (
     VoiceRunnerConfiguration,
     UserInformation,
     WakeWordModel,
 )
-from runners.voice.player import play_wav_file
-from runners.voice.sound import Sound
-from runners.voice.prompts import FINAL_REPHRASE_PROMPT
-from runners.voice.audio_transcriber import AudioTranscriber
-from runners.voice.wake_word import WakeWord
-from runners.voice.text_to_speech import TextToSpeech
+from src.runners.voice.player import play_wav_file
+from src.runners.voice.sound import Sound
+from src.runners.voice.prompts import FINAL_REPHRASE_PROMPT
+from src.runners.voice.audio_transcriber import AudioTranscriber
+from src.runners.voice.wake_word import WakeWord
+from src.runners.voice.text_to_speech import TextToSpeech
 
-from db.models.users import Users
+from src.db.models.users import Users
 
 
 # from conversation.models.user_settings import UserSettings
 
-from db.database.models import User, UserSetting
+from src.db.database.models import User, UserSetting
 
 
 from TTS.api import TTS
@@ -68,10 +68,7 @@ class VoiceRunner(Runner):
         # initialize the text to speech engine
         self.text_to_speech = TextToSpeech()
 
-        self.users = Users(self.args.db_env_location)
-        # self.conversations = Conversations(self.args.db_env_location)
-        # self.conversations = Conversations(self.args.db_env_location)
-        # self.user_settings = UserSettings(self.args.db_env_location)
+        self.users = Users()
 
         self.initialize_users()
 

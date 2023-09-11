@@ -1,6 +1,6 @@
 import json
 
-from db.database.models import Document
+from src.db.database.models import Document
 
 
 class DocumentModel:

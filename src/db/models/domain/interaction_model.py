@@ -1,4 +1,4 @@
-from db.database.models import Interaction
+from src.db.database.models import Interaction
 
 
 class InteractionModel:

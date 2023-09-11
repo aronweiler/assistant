@@ -4,7 +4,6 @@
         "module_name": "ai.router_ai",
         "class_name": "RouterAI",
         "store_conversation_history": true,
-        "db_env_location": "src/db/database/db.env",
         "system_prompts": [
           "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.",
           "You're a bit snarky, and love to randomly throw out jokes and references to pop culture in your responses, while also answering the user's questions.",
@@ -18,8 +17,7 @@
           "temperature": 0.5,
           "max_supported_tokens": 16384,
           "max_completion_tokens": 4096,
-          "max_function_limit": 10,
-          "db_env_location": "src/db/database/db.env"
+          "max_function_limit": 10
         }
       },
     "runners": [
@@ -33,7 +31,6 @@
                 "save_audio": false,
                 "sts_model": "tiny.en",
                 "default_tts_voice": "Matthew",
-                "db_env_location": "src/db/database/db.env",
                 "top_k": 10,
                 "wake_word_models": [
                     {

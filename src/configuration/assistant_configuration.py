@@ -41,9 +41,7 @@ class RequestRouter:
             self.destination_routes.append(route)
 
 class AssistantConfiguration:
-    def __init__(self, user_email, db_env_location, request_router):
-        self.user_email = user_email
-        self.db_env_location = db_env_location
+    def __init__(self, request_router):
         self.request_router = request_router
 
 
@@ -73,8 +71,6 @@ class ConfigurationLoader:
             destination_routes.append(destination)
 
         assistant_configuration = AssistantConfiguration(
-            user_email=assistant_config_data.get("user_email", ""),
-            db_env_location=assistant_config_data.get("db_env_location", ""),
             request_router=RequestRouter(model_configuration, destination_routes)
         )
 
@@ -89,9 +85,6 @@ if __name__ == "__main__":
 
     config = ConfigurationLoader.from_file(json_file_path)
     # config = ConfigurationLoader.from_string(json_string)
-
-    print(config.user_email)
-    print(config.db_env_location)
 
     print(config.request_router.model_configuration.llm_type)    
     print(config.request_router.model_configuration.model)

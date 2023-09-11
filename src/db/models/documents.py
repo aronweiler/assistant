@@ -4,21 +4,19 @@ from typing import List, Any
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from db.database.models import (
+from src.db.database.models import (
     Document,
     DocumentCollection,
     File,
 )
 
-from db.models.vector_database import VectorDatabase, SearchType
-from db.models.domain.document_collection_model import DocumentCollectionModel
-from db.models.domain.document_model import DocumentModel
-from db.models.domain.file_model import FileModel
+from src.db.models.vector_database import VectorDatabase, SearchType
+from src.db.models.domain.document_collection_model import DocumentCollectionModel
+from src.db.models.domain.document_model import DocumentModel
+from src.db.models.domain.file_model import FileModel
 
 
-class Documents(VectorDatabase):
-    def __init__(self, db_env_location):
-        super().__init__(db_env_location)
+class Documents(VectorDatabase):  
 
     def create_collection(
         self, collection_name, interaction_id
@@ -69,12 +67,14 @@ class Documents(VectorDatabase):
 
     def create_file(
         self,
-        file:FileModel,
+        file: FileModel,
         overwrite_existing: bool = False,
     ) -> FileModel:
         with self.session_context(self.Session()) as session:
             if overwrite_existing:
-                print(f"Overwriting file: {file.file_name} in collection: {file.collection_id}")
+                print(
+                    f"Overwriting file: {file.file_name} in collection: {file.collection_id}"
+                )
                 existing_file = (
                     session.query(File)
                     .filter(File.file_name == file.file_name)
@@ -93,7 +93,7 @@ class Documents(VectorDatabase):
                     # Delete all of the documents associated with this file, and the file itself
                     for document in documents:
                         session.delete(document)
-                    
+
                     session.delete(existing_file)
 
                     session.commit()
@@ -103,18 +103,18 @@ class Documents(VectorDatabase):
             session.commit()
 
             return FileModel.from_database_model(file)
-        
+
     def update_file_summary_and_class(
         self,
-        file_id:int,
-        summary:str, 
-        classification:str,
+        file_id: int,
+        summary: str,
+        classification: str,
     ) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = session.query(File).filter(File.id == file_id).first()
             file.file_summary = summary
             file.file_classification = classification
-            session.commit()       
+            session.commit()
 
             return FileModel.from_database_model(file)
 
@@ -130,7 +130,7 @@ class Documents(VectorDatabase):
             return [FileModel.from_database_model(f) for f in files]
 
     def get_file(self, file_id) -> FileModel:
-        with self.session_context(self.Session()) as session:            
+        with self.session_context(self.Session()) as session:
             file = session.query(File).filter(File.id == file_id).first()
 
             return FileModel.from_database_model(file)
@@ -152,7 +152,9 @@ class Documents(VectorDatabase):
         with self.session_context(self.Session()) as session:
             file = (
                 session.query(File)
-                .filter(File.id == target_file_id and File.collection_id == collection_id)
+                .filter(
+                    File.id == target_file_id and File.collection_id == collection_id
+                )
                 .first()
             )
 
@@ -164,13 +166,13 @@ class Documents(VectorDatabase):
             documents = (
                 session.query(Document)
                 .filter(
-                    Document.collection_id == collection_id and Document.file_id == file.id
+                    Document.collection_id == collection_id
+                    and Document.file_id == file.id
                 )
                 .all()
             )
 
-            return [DocumentModel.from_database_model(d) for d in documents]
-    
+            return [DocumentModel.from_database_model(d) for d in documents]    
 
     def get_collection_files(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
@@ -180,12 +182,9 @@ class Documents(VectorDatabase):
 
             return [FileModel.from_database_model(f) for f in files]
 
-    def store_document(
-        self,
-        document: DocumentModel        
-    ) -> DocumentModel:
+    def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
-            embedding=self.get_embedding(document.document_text)
+            embedding = self.get_embedding(document.document_text)
             document = document.to_database_model()
             document.embedding = embedding
 
@@ -219,10 +218,14 @@ class Documents(VectorDatabase):
 
             if search_type == SearchType.key_word:
                 # TODO: Do better key word search
-                query = query.filter(Document.document_text.contains(search_query)).limit(top_k)
+                query = query.filter(
+                    Document.document_text.contains(search_query)
+                ).limit(top_k)
             elif search_type == SearchType.similarity:
                 embedding = self.get_embedding(search_query)
-                query = self._get_nearest_neighbors(session, query, embedding, top_k=top_k)
+                query = self._get_nearest_neighbors(
+                    session, query, embedding, top_k=top_k
+                )
             else:
                 raise ValueError(f"Unknown search type: {search_type}")
 
