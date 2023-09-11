@@ -23,17 +23,17 @@ from langchain.agents import (
     AgentOutputParser,
 )
 
-from configuration.assistant_configuration import Destination
+from src.configuration.assistant_configuration import Destination
 
-from db.models.conversations import SearchType
-from db.models.documents import Documents
-from db.models.users import User
-from db.models.pgvector_retriever import PGVectorRetriever
+from src.db.models.conversations import SearchType
+from src.db.models.documents import Documents
+from src.db.models.users import User
+from src.db.models.pgvector_retriever import PGVectorRetriever
 
-from ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
-from ai.interactions.interaction_manager import InteractionManager
-from ai.llm_helper import get_llm, get_prompt
-from ai.system_info import get_system_information
+from src.ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
+from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.system_info import get_system_information
 from src.ai.destination_route import DestinationRoute
 from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
@@ -66,9 +66,11 @@ class DocumentTool:
             "target_file_id": target_file_id,
         }
 
+        documents_helper = Documents()
+
         # Create the documents class for the retriever
         self.pgvector_retriever = PGVectorRetriever(
-            vectorstore=Documents(),
+            vectorstore=documents_helper,
             search_kwargs=search_kwargs,
         )
 
