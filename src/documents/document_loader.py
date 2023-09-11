@@ -17,6 +17,8 @@ from src.documents.code_loader import CodeLoader
 # TODO: Add loaders for PPT, and other document types
 from langchain.document_loaders import CSVLoader, TextLoader, Docx2txtLoader, BSHTMLLoader, PDFPlumberLoader, UnstructuredExcelLoader
 
+from src.utilities.token_helper import num_tokens_from_string
+
 # TODO: Add loaders for PPT, and other document types
 DOCUMENT_TYPES = {
     ".txt": TextLoader,
@@ -27,6 +29,7 @@ DOCUMENT_TYPES = {
     ".c": CodeLoader,
     ".cc": CodeLoader,
     ".h": CodeLoader,
+    ".py": CodeLoader,
     "xls": UnstructuredExcelLoader,
     "xlsx": UnstructuredExcelLoader,
 }
@@ -135,7 +138,7 @@ def load_and_split_documents(
 
     if split_documents:
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap, length_function=num_tokens_from_string
         )
         texts = text_splitter.split_documents(documents)
 

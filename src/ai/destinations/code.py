@@ -39,7 +39,6 @@ from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 from src.ai.callbacks.agent_callback import AgentCallback
-from src.utilities.token_helper import simple_get_tokens_for_message
 
 from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.code_tool import CodeTool

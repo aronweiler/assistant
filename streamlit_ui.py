@@ -261,6 +261,9 @@ def select_documents():
             st.toggle(
                 "Overwrite existing files", key="overwrite_existing_files", value=True
             )
+            st.toggle(
+                "Split documents", key="split_documents", value=True
+            )
             st.text_input("Chunk size", key="file_chunk_size", value=500)
             st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)
 
@@ -275,6 +278,7 @@ def select_documents():
                     collection_id,
                     status,
                     st.session_state["overwrite_existing_files"],
+                    st.session_state["split_documents"],
                     int(st.session_state.get("file_chunk_size", 500)),
                     int(st.session_state.get("file_chunk_overlap", 50)),
                 )
@@ -286,6 +290,7 @@ def ingest_files(
     collection_id,
     status,
     overwrite_existing_files,
+    split_documents,
     chunk_size,
     chunk_overlap,
 ):
@@ -314,7 +319,7 @@ def ingest_files(
                     # TODO: Make this configurable
 
                     documents = load_and_split_documents(
-                        file_path, True, chunk_size, chunk_overlap
+                        file_path, split_documents, chunk_size, chunk_overlap
                     )
 
                     file = documents_helper.create_file(

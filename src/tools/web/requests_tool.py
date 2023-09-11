@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from utilities.token_helper import simple_get_tokens_for_message
+from src.utilities.token_helper import num_tokens_from_string
 from tools.results.summarize_result import SummarizeResult
 
 # A simple wrapper around the requests library
@@ -41,7 +41,7 @@ class RequestsTool:
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=256,
             chunk_overlap=25,
-            length_function=simple_get_tokens_for_message,
+            length_function=num_tokens_from_string,
         )
 
         split_text = splitter.split_text(raw_text)
