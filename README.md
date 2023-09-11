@@ -18,7 +18,17 @@ An intelligent assistant.  This is a work in progress.
 - ☑️ Generic Tooling (a.k.a. on-demand tools)
 - ☑️ API Discovery and Calling
 
-# Prerequisits
+# Running the UI in Docker
+All you really need to run this in docker is the [docker-compose.yml](docker-compose.yml), and a [.env](.env.template) (with the values filled in) in some directory on a computer with Docker.
+
+Then, just run `docker-compose up -d` and let docker work it's magic.  
+
+After you've done that, just navigate to [http://localhost:8500](http://localhost:8500) and you're off!
+
+---
+Here's a lot of info on running this in Python!
+
+# Python Prerequisits
 
 ## 1. Install the python requirements:
 
@@ -33,6 +43,21 @@ I'm using their github, but feel free to use the python packages.
 
 ## 2. Set up the database
 *The database is required for conversations, file upload, user management, etc.*
+
+### Databse-related Environment Variables
+
+Set the following environment variables for database access:
+
+```
+POSTGRES_DB=<your desired database name>
+POSTGRES_USER=<user>
+POSTGRES_PASSWORD=<password>
+POSTGRES_HOST=<database location>
+POSTGRES_PORT=5432
+```
+
+*Note: When setting the database up, the create/migration scripts have their own settings - so you may need to adjust these.*
+
 ### - Run the PGVector (postgres) docker image:
 
 Pull and run the PGVector docker file, following instructions here: [PGVector GitHub](https://github.com/pgvector/pgvector/tree/master#docker)

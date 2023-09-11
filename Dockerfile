@@ -10,11 +10,15 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy your local files
-COPY . /app
-COPY ./src/runners/ui/streamlit_ui.py streamlit_ui.py
+# Install the requirements
+COPY requirements.txt /app
 
 RUN pip3 install -r requirements.txt
+
+# Copy the local files to the image
+# This copies everything over after the pip install so that we don't have to
+# reinstall the dependencies every time we make a change to the code
+COPY . /app
 
 EXPOSE 8500
 

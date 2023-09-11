@@ -30,8 +30,9 @@ class RequestRouter(AbstractAI):
     def __init__(
         self,
         assistant_configuration: AssistantConfiguration,
+        user_email: str,
         interaction_id: UUID,
-        streaming: bool = False,
+        streaming: bool = False,        
     ):
         """Creates a new RequestRouter
 
@@ -54,7 +55,7 @@ class RequestRouter(AbstractAI):
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
             interaction_id,
-            assistant_configuration.user_email,
+            user_email,
             self.llm,
             assistant_configuration.request_router.model_configuration.max_conversation_history_tokens,
         )

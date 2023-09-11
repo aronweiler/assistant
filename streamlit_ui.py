@@ -1,3 +1,5 @@
+## Because of how streamlit works, this file must be run from the root of the project, not from the src directory
+
 import logging
 import uuid
 import shutil
@@ -14,17 +16,18 @@ from src.ai.request_router import RequestRouter
 
 from src.configuration.assistant_configuration import ConfigurationLoader
 
+from src.db.database.creation_utilities import CreationUtilities
+
 from src.db.models.interactions import Interactions
 from src.db.models.documents import Documents
 from src.db.models.users import Users
 from src.db.models.domain.file_model import FileModel
 from src.db.models.domain.document_model import DocumentModel
+from src.db.models.vector_database import VectorDatabase
 
 from src.documents.document_loader import load_and_split_documents
 
 from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
-
-USER_EMAIL = "aronweiler@gmail.com"
 
 
 class StreamHandler(BaseCallbackHandler):
@@ -200,7 +203,7 @@ def get_selected_interaction_id():
     return selected_interaction_id
 
 
-def load_ai():
+def load_ai(user_email):
     """Loads the AI instance for the selected interaction id"""
     selected_interaction_id = get_selected_interaction_id()
 
@@ -208,7 +211,7 @@ def load_ai():
         # First time loading the page
         print("load_ai: ai not in session state")
         ai_instance = RequestRouter(
-            st.session_state["config"], selected_interaction_id, streaming=True
+            st.session_state["config"], user_email, selected_interaction_id, streaming=True
         )
         st.session_state["ai"] = ai_instance
 
@@ -218,7 +221,7 @@ def load_ai():
         # We have an AI instance, but we need to change the interaction id
         print("load_ai: interaction id is not none and not equal to ai interaction id")
         ai_instance = RequestRouter(
-            st.session_state["config"], selected_interaction_id, streaming=True
+            st.session_state["config"], user_email, selected_interaction_id, streaming=True
         )
         st.session_state["ai"] = ai_instance
 
@@ -482,6 +485,29 @@ def handle_chat(main_window_container):
                 print(f"Result: {result}")
 
 
+def ensure_user(email):
+    users_helper = Users()
+
+    user = users_helper.get_user_by_email(email)
+
+    if not user:
+        st.markdown(f"Welcome to Jarvis, {email}!  Let's get you set up.")
+
+        # Create the user by showing them a prompt to enter their name, location, age
+        name = st.text_input('Enter your name')
+        location = st.text_input('Enter your location')
+        age = st.text_input('Enter your age')
+
+        if st.button('Create Your User!'):
+            user = users_helper.create_user(
+                email=email,
+                name=name,
+                location=location,
+                age=age
+            )
+        else:            
+            st.stop()        
+
 def set_user_id_from_email(email):
     users_helper = Users()
 
@@ -515,7 +541,7 @@ def ensure_interaction():
 
 def load_configuration():
     # Load environment variables from the .env file
-    load_dotenv("/Repos/assistant/.env")
+    # load_dotenv("/Repos/assistant/.env")
 
     assistant_config_path = get_configuration_path()
     if "config" not in st.session_state:
@@ -534,6 +560,22 @@ def set_page_config():
 
     st.title("Hey Jarvis 🤖...")
 
+def verify_database():
+    """Verifies that the database is set up correctly"""    
+    
+    # Make sure the pgvector extension is enabled
+    CreationUtilities.create_pgvector_extension()
+
+    # Creates the latest migration scripts
+    # Don't use this in production!
+    # CreationUtilities.create_migration_scripts()
+
+    # Run the migrations (these should be a part of the docker container)
+    CreationUtilities.run_migration_scripts()
+    
+    # Ensure any default or standard data is populated
+    # Conversation role types
+    VectorDatabase().ensure_conversation_role_types()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -543,7 +585,17 @@ if __name__ == "__main__":
 
     set_page_config()
 
-    set_user_id_from_email(USER_EMAIL)
+    verify_database()
+
+    # Get the user from the environment variables
+    user_email = os.environ.get("USER_EMAIL", None)
+
+    if not user_email:
+            raise ValueError("USER_EMAIL environment variable not set")
+    
+    ensure_user(user_email)
+    
+    set_user_id_from_email(user_email)
 
     ensure_interaction()
 
@@ -553,7 +605,7 @@ if __name__ == "__main__":
     col1, col2 = st.columns([0.65, 0.35])
 
     print("loading ai")
-    load_ai()
+    load_ai(user_email)
 
     print("selecting conversation")
     select_conversation()

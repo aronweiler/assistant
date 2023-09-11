@@ -1,6 +1,5 @@
 {
   "assistant_configuration": {
-    "user_email": "aronweiler@gmail.com",
     "request_router": {
       "model_configuration": {
         "llm_type": "openai",

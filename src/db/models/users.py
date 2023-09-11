@@ -13,3 +13,14 @@ class Users(VectorDatabase):
             query = super().eager_load(query, eager_load)
 
             return UserModel.from_database_model(query.first())
+
+    def create_user(self, email, name, location, age):
+        if self.get_user_by_email(email):
+            raise Exception(f"User with email {email} already exists")
+
+        with self.session_context(self.Session()) as session:            
+            user = User(email=email, name=name, location=location, age=age)
+            session.add(user)
+            session.commit()
+
+            return UserModel.from_database_model(user)

@@ -4,66 +4,58 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+    // Refactor these to work with the new docker / streamlit setup
+    // {
+    //   "name": "Run Llama2 LLM Streamlit App",
+    //   "type": "python",
+    //   "request": "launch",
+    //   "program": "assistant_venv/Scripts/streamlit.exe",
+    //   "args": ["run", "${workspaceFolder}/src/runners/ui/streamlit_ui.py"],
+    //   "cwd": "${workspaceFolder}/src",
+    //   "console": "integratedTerminal",
+    //   "env": {
+    //     "ASSISTANT_CONFIG_PATH": "configurations/console_configs/llama2_config.json"
+    //   }
+    // },
+    // {
+    //   "name": "Run Aron LLM Streamlit App",
+    //   "type": "python",
+    //   "request": "launch",
+    //   "program": "assistant_venv/Scripts/streamlit.exe",
+    //   "args": ["run", "${workspaceFolder}/src/runners/ui/streamlit_ui.py"],
+    //   "cwd": "${workspaceFolder}/src",
+    //   "console": "integratedTerminal",
+    //   "env": {
+    //     "ASSISTANT_CONFIG_PATH": "configurations/console_configs/aron_llm_config.json"
+    //   }
+    // },
+    // {
+    //   "name": "Run Luna AI LLM Streamlit App",
+    //   "type": "python",
+    //   "request": "launch",
+    //   "program": "assistant_venv/Scripts/streamlit.exe",
+    //   "args": ["run", "${workspaceFolder}/src/runners/ui/streamlit_ui.py"],
+    //   "cwd": "${workspaceFolder}/src",
+    //   "console": "integratedTerminal",
+    //   "env": {
+    //     "ASSISTANT_CONFIG_PATH": "configurations/console_configs/luna_config.json"
+    //   }
+    // },
     {
-      "name": "Run Llama2 LLM Streamlit App",
+      "name": "Run OpenAI LLM Streamlit App",
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": [
-        "run",
-        "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
-      ], 
-      "cwd": "${workspaceFolder}/src",
+      "args": ["run", "streamlit_ui.py"],
+      "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
-        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/llama2_config.json"
+        "PYTHONPATH": "${workspaceRoot}",
+        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/openai_config.json",
+        "POSTGRES_HOST": "localhost",
+        "USER_EMAIL":"aronweiler@gmail.com"
       }
     },
-    {
-      "name": "Run Aron LLM Streamlit App",
-      "type": "python",
-      "request": "launch",
-      "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": [
-        "run",
-        "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
-      ], 
-      "cwd": "${workspaceFolder}/src",
-      "console": "integratedTerminal",
-      "env": {
-        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/aron_llm_config.json"
-      }
-    },
-    {
-        "name": "Run Luna AI LLM Streamlit App",
-        "type": "python",
-        "request": "launch",
-        "program": "assistant_venv/Scripts/streamlit.exe",
-        "args": [
-          "run",
-          "${workspaceFolder}/src/runners/ui/streamlit_ui.py"
-        ], 
-        "cwd": "${workspaceFolder}/src",
-        "console": "integratedTerminal",
-        "env": {
-          "ASSISTANT_CONFIG_PATH": "configurations/console_configs/luna_config.json"
-        }
-      },
-    {
-        "name": "Run OpenAI LLM Streamlit App",
-        "type": "python",
-        "request": "launch",
-        "program": "assistant_venv/Scripts/streamlit.exe",
-        "args": [
-          "run",
-          "streamlit_ui.py"
-        ], 
-        "cwd": "${workspaceFolder}",
-        "console": "integratedTerminal",
-        "env": {
-          "ASSISTANT_CONFIG_PATH": "configurations/console_configs/openai_config.json"
-        }
-      },
     {
       "name": "Run OpenAI Assistant Console",
       "type": "python",
@@ -87,7 +79,7 @@
       ],
       "console": "integratedTerminal",
       "justMyCode": false
-    },
+    }
     // Need to get this working again
     // {
     //   "name": "Run Voice LLM",
