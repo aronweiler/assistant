@@ -100,6 +100,8 @@ class DocumentsAI(DestinationBase):
                     "system_information",
                 ],
             },
+            max_execution_time=120, # 2 minute timeout
+            early_stopping_method="generate" # try to generate a response if it times out
         )
 
         # Agents should have their own memory (containing past tool runs or other info) that is combined with the conversation memory
@@ -117,11 +119,11 @@ class DocumentsAI(DestinationBase):
                 return_direct=True,
             ),
             # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
-            StructuredTool.from_function(
-                func=document_tool.summarize_entire_document,
-                callbacks=[self.agent_callback],
-                return_direct=True,
-            ),
+            # StructuredTool.from_function(
+            #     func=document_tool.summarize_entire_document,
+            #     callbacks=[self.agent_callback],
+            #     return_direct=True,
+            # ),
             StructuredTool.from_function(
                 func=document_tool.summarize_topic,
                 callbacks=[self.agent_callback],

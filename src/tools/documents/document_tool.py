@@ -165,22 +165,7 @@ class DocumentTool:
 
         result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
 
-        return result["output_text"]
-
-    def summarize(self, llm, docs):
-        llm_chain = LLMChain(
-            llm=llm,
-            prompt=get_prompt(
-                self.destination.model_configuration.llm_type,
-                "SINGLE_LINE_SUMMARIZE_PROMPT",
-            ),
-        )
-
-        stuff_chain = StuffDocumentsChain(
-            llm_chain=llm_chain, document_variable_name="text"
-        )
-
-        return stuff_chain.run(docs)
+        return result["output_text"]    
     
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.
@@ -190,3 +175,20 @@ class DocumentTool:
         return "The loaded documents I have access to are:\n-" + "\n-".join(
             self.interaction_manager.get_loaded_documents_for_display()
         )
+    
+
+    # def create_single_line_summary(self, llm, docs):        
+
+    #     llm_chain = LLMChain(
+    #         llm=llm,
+    #         prompt=get_prompt(
+    #             self.destination.model_configuration.llm_type,
+    #             "SINGLE_LINE_SUMMARIZE_PROMPT",
+    #         ),
+    #     )
+
+    #     stuff_chain = StuffDocumentsChain(
+    #         llm_chain=llm_chain, document_variable_name="text"
+    #     )
+
+    #     return stuff_chain.run(docs)
