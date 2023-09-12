@@ -81,7 +81,7 @@ class DocumentTool:
 
         results = qa_with_sources({"question": query})
 
-        return results["answer"]
+        return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources used are: {results['sources']}--- END RESULTS ---"
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_entire_document(self, target_file_id: int):
@@ -97,7 +97,7 @@ class DocumentTool:
         return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
 
     def summarize_topic(self, query: str):
-        """Useful for getting a summary of a topic or query from the user.  This look at all loaded documents for the topic specified by the query and return a summary of that topic.
+        """Useful for getting a summary of a topic or query from the user.  This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
 
         Args:
 

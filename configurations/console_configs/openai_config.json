@@ -79,7 +79,7 @@
               "temperature": 0,
               "max_retries": 3,
               "max_model_supported_tokens": 16384,
-              "max_conversation_history_tokens": 2048,
+              "max_conversation_history_tokens": 500,
               "max_completion_tokens": 8192
             }
           }

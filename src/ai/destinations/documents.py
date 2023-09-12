@@ -114,8 +114,7 @@ class DocumentsAI(DestinationBase):
         self.document_tools = [
             StructuredTool.from_function(
                 func=document_tool.search_loaded_documents,
-                callbacks=[self.agent_callback],
-                return_direct=True,
+                callbacks=[self.agent_callback]
             ),
             # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
             # StructuredTool.from_function(

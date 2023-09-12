@@ -30,7 +30,9 @@ from src.db.models.documents import Documents
 from src.db.models.users import User
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
-from src.ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
+from src.ai.destinations.output_parser import (
+    CustomStructuredChatOutputParserWithRetries,
+)
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
@@ -122,16 +124,15 @@ class CodeAI(DestinationBase):
     def create_code_tools(self, document_tool: DocumentTool, code_tool: CodeTool):
         self.document_tools = [
             StructuredTool.from_function(
-                func=document_tool.search_loaded_documents,
-                callbacks=[self.agent_callback],
-                return_direct=True,
+                func=code_tool.search_loaded_documents,
+                callbacks=[self.agent_callback]
             ),
-            # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
-            StructuredTool.from_function(
-                func=document_tool.summarize_entire_document,
-                callbacks=[self.agent_callback],
-                return_direct=True,
-            ),
+            # # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
+            # StructuredTool.from_function(
+            #     func=document_tool.summarize_entire_document,
+            #     callbacks=[self.agent_callback],
+            #     return_direct=True,
+            # ),
             StructuredTool.from_function(
                 func=document_tool.summarize_topic,
                 callbacks=[self.agent_callback],
@@ -143,9 +144,7 @@ class CodeAI(DestinationBase):
                 return_direct=True,
             ),
             StructuredTool.from_function(
-                func=self.code_tool.code_details,
-                callbacks=[self.agent_callback],
-                return_direct=True,
+                func=self.code_tool.code_details, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
                 func=self.code_tool.code_structure, callbacks=[self.agent_callback]

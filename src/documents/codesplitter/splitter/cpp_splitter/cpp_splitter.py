@@ -77,19 +77,23 @@ class CppSplitter(SplitterBase):
                 continue
 
             expanded_node = {
-                'type': node_type.name,
-                'text': text,
-                'file_loc': file_loc,
+                'type': node_type.name, # Standard
+                'text': text, # Standard
+                'file_loc': file_loc, # Standard
                 'includes': self._get_includes(node),      
-                'source': f"{os.path.basename(file_loc)} (line: {start_line}): {signature}",          
+                'start_line': start_line, # Standard
+                'end_line': end_line, 
+                'signature': signature, # Standard
+                'source': f"{os.path.basename(file_loc)} (line: {start_line}): {signature}", # Standard
             }
 
             if node.kind == CursorKind.CXX_METHOD:
                 expanded_node['access_specifier'] = access_specifier
                 expanded_node['class'] = class_name
 
-            if node.kind in (CursorKind.CXX_METHOD, CursorKind.FUNCTION_DECL):
-                expanded_node['func_name'] = node.spelling
+            # This is accomplished by the 'signature' field
+            # if node.kind in (CursorKind.CXX_METHOD, CursorKind.FUNCTION_DECL):
+            #     expanded_node['func_name'] = signature
 
             expanded_nodes.append(expanded_node)
 

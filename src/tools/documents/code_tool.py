@@ -1,5 +1,10 @@
 import logging
+from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
+from langchain.chains import (
+    RetrievalQAWithSourcesChain,
+    StuffDocumentsChain,
+)
 
 from src.configuration.assistant_configuration import Destination
 
@@ -8,6 +13,10 @@ from src.db.models.documents import Documents
 from src.ai.interactions.interaction_manager import InteractionManager
 
 from src.utilities.token_helper import num_tokens_from_string
+
+from src.db.models.pgvector_retriever import PGVectorRetriever
+
+from src.ai.llm_helper import get_prompt
 
 
 class CodeTool:
@@ -31,7 +40,7 @@ class CodeTool:
         """
         documents = Documents()
 
-        # Get the list of documents        
+        # Get the list of documents
         document_chunks = documents.get_document_chunks_by_file_id(
             collection_id=self.interaction_manager.collection_id,
             target_file_id=target_file_id,
@@ -48,12 +57,14 @@ class CodeTool:
                         includes.append(filename)
 
         # return the list of includes
-        #"The dependencies for this file are:\n\n" + 
+        # "The dependencies for this file are:\n\n" +
         return "\n".join(includes)
 
+    # NOTE!
+    ## TODO: This can return enormous amounts of data, depending on the size of the file- 
+    # need to chunk the results up and then run a chain over them to answer
     def code_structure(
         self,
-        query: str,
         target_file_id: int,
         code_type: str = None,
     ):
@@ -63,8 +74,7 @@ class CodeTool:
 
         Don't use this tool on anything that isn't classified as 'Code'.
 
-        Args:
-            query (str): The original query from the user.
+        Args:            
             target_file_id (int): REQUIRED! The file ID you would like to get the code structure for.
             code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'. When left empty, the code structure will be returned in its entirety.
         """
@@ -74,8 +84,6 @@ class CodeTool:
             document_chunks = documents.get_document_chunks_by_file_id(
                 self.interaction_manager.collection_id, target_file_id
             )
-
-            code_structure = ""
 
             # Create a list of unique metadata entries from the document chunks
             full_metadata_list = []
@@ -98,45 +106,40 @@ class CodeTool:
                 # Assign a higher value (e.g., 0) to "MODULE" type, lower value (e.g., 1) to others
                 return 0 if item["type"] == "MODULE" else 1
 
-            code_structure = "The code structure is:\n\n"
-
             if code_type is not None:
                 if code_type == "MODULE":
-                    code_structure += (
-                        "Modules: "
-                        + ", ".join([m["filename"] for m in modules])
+                    code_structure = (
+                        "Modules:\n\t"
+                        + "\n\t".join([m["filename"] for m in modules])
                         + "\n\n"
                     )
                 elif code_type == "FUNCTION_DECLARATION":
-                    code_structure += (
-                        "Functions: "
-                        + ", ".join([f["signature"] for f in functions])
+                    code_structure = (
+                        "Functions:\n\t"
+                        + "\n\t".join([f["signature"] for f in functions])
                         + "\n\n"
                     )
                 elif code_type == "CLASS_METHOD":
-                    code_structure += (
-                        "Class Methods: "
-                        + ", ".join([c["signature"] for c in class_methods])
+                    code_structure = (
+                        "Class Methods:\n\t"
+                        + "\n\t".join([c["signature"] for c in class_methods])
                         + "\n\n"
                     )
                 elif code_type == "OTHER":
-                    code_structure += (
-                        "Other: " + ", ".join([o["signature"] for o in others]) + "\n\n"
+                    code_structure = (
+                        "Other:\n\t" + "\n\t".join([o["signature"] for o in others]) + "\n\n"
                     )
             else:
                 # Sort the list using the custom sorting key
                 sorted_data = sorted(full_metadata_list, key=custom_sorting_key)
 
                 # Iterate through everything and put it into the prompt
-                code_structure += "\n".join(
+                code_structure = "\n\t".join(
                     [f"{m['type']}: {m['signature']}" for m in sorted_data]
                 )
 
-            result = self.llm.predict(
-                f"{code_structure}\n\nUsing the code structure above, answer this query:\n\n{query}\n\nAI: I have examined the code structure above and have determined the following (my response in Markdown):\n"
-            )
-
-            return result
+            return f"--- BEGIN CODE STRUCTURE ---\n{code_structure}\n--- END CODE STRUCTURE ---"
+        
         except Exception as e:
             logging.error(f"Error getting code structure: {e}")
             return f"There was an error getting the code structure: {e}"
@@ -238,7 +241,68 @@ class CodeTool:
             else:
                 code_details += target_document_chunk.document_text
 
-                return code_details
+                return target_document_chunk.document_text #code_details
         except Exception as e:
             logging.error(f"Error getting code details: {e}")
             return f"There was an error getting the code details: {e}"
+
+    def search_loaded_documents(
+        self,
+        query: str,
+        target_file_id: int = None,
+    ):
+        """Searches the loaded documents for the given query.  Use this tool when the user is referring to any loaded document or file in their search for information. The target_file_id argument is optional, and can be used to search a specific file.
+
+        Args:
+            query (str): The query you would like to search for.  Input should be a fully formed question.
+            target_file_id (int, optional): The file_id you got from the list_documents tool, if you want to search a specific file. Defaults to None which searches all files.
+        """
+        search_kwargs = {
+            "top_k": 10,
+            "search_type": SearchType.similarity,
+            "interaction_id": self.interaction_manager.interaction_id,
+            "collection_id": self.interaction_manager.collection_id,
+            "target_file_id": target_file_id,
+        }
+
+        documents_helper = Documents()
+
+        # Create the documents class for the retriever
+        self.pgvector_retriever = PGVectorRetriever(
+            vectorstore=documents_helper,
+            search_kwargs=search_kwargs,
+        )
+
+        qa_chain = LLMChain(
+            llm=self.llm,
+            prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "CODE_QUESTION_PROMPT"
+            ),
+            verbose=True,
+        )
+
+        qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=self.pgvector_retriever,
+            chain_type_kwargs={
+                "prompt": get_prompt(
+                    self.destination.model_configuration.llm_type, "CODE_QUESTION_PROMPT"
+                )
+            },
+        )
+
+        combine_chain = StuffDocumentsChain(
+            llm_chain=qa_chain,
+            document_prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "CODE_PROMPT"
+            ),
+            document_variable_name="summaries",
+        )
+
+        qa_with_sources.combine_documents_chain = combine_chain
+        qa_with_sources.return_source_documents = True
+
+        results = qa_with_sources({"question": query})
+
+        return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources are: {results['sources']}--- END RESULTS ---"
