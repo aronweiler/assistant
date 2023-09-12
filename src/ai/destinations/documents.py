@@ -124,8 +124,7 @@ class DocumentsAI(DestinationBase):
             # ),
             StructuredTool.from_function(
                 func=document_tool.summarize_topic,
-                callbacks=[self.agent_callback],
-                return_direct=True,
+                callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
                 func=document_tool.list_documents,

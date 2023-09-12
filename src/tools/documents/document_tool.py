@@ -149,7 +149,7 @@ class DocumentTool:
         Always use this tool to get the file ID (if you don't already know it) before calling anything else that requires it.
         """
 
-        return "The loaded documents I have access to are:\n-" + "\n-".join(
+        return "The loaded documents I have access to are:\n\n-" + "\n-".join(
             self.interaction_manager.get_loaded_documents_for_display()
         )
     
