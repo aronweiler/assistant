@@ -61,3 +61,24 @@ class SplitterBase(abc.ABC):
             combined_nodes.extend(nodes)
 
         return combined_nodes
+    
+    @staticmethod
+    def create_standard_node(
+        type: NodeType,
+        signature: str,
+        text: str,
+        file_loc: str,
+        includes: list[str],
+        start_line: int,
+        source: str
+    ) -> dict:
+        return {
+            'type': type,
+            'signature': signature,
+            'text': text,
+            'file_loc': file_loc,
+            'includes': includes,
+            'start_line': start_line,
+            'source': source
+        }
+        

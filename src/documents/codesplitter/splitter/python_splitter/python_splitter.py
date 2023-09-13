@@ -1,6 +1,8 @@
 
 import ast
+import os
 import re
+
 
 from src.documents.codesplitter.node_types import NodeType
 
@@ -37,7 +39,7 @@ class PythonSplitter(SplitterBase):
         expanded_nodes = []
         
         extractions = {
-            'func_name': r'^\s*def\s+(?P<func_name>\w+)\(.*\).*:',
+            # 'func_name': r'^\s*def\s+(?P<func_name>\w+)\(.*\).*:',
             'signature': r'^\s*def\s+(?P<signature>.+):'
         }
         
@@ -45,6 +47,8 @@ class PythonSplitter(SplitterBase):
         for node in nodes:
 
             file_loc = node['metadata']['source_path']
+            start_line = node['node'].lineno
+            end_line = node['node'].end_lineno #['end_lineno']
 
             node_type = self._mapped_node_type(type(node['node']))
 
@@ -61,24 +65,31 @@ class PythonSplitter(SplitterBase):
                     )
 
                     for extraction_name, extraction_exp in extractions.items():
-                        match_obj = re.match(extraction_exp, text)
+                        match_obj = re.match(extraction_exp, text, flags=re.MULTILINE)
+                        if match_obj is None:
+                            self._logger.error(f"No {extraction_name} found for {text}")
+                            continue
+
                         details = match_obj.groupdict()
                         node['metadata'][extraction_name] = details[extraction_name]
             
-            expanded_node = {
-                'type': node_type.name,
-                'text': text,
-                'file_loc': file_loc
-            }
+            if node_type in (ast.FunctionDef,):
+                signature = node['metadata']['signature']
+            else:
+                signature = node['node'].name
+            
 
-            if 'signature' in node['metadata']:
-                expanded_node['signature'] = node['metadata']['signature']
+            expanded_node = self.create_standard_node(
+                type=node_type.name,
+                signature=signature,
+                text=text,
+                file_loc=file_loc,
+                includes=node['metadata']['includes'],
+                start_line=start_line,
+                source=f"{os.path.basename(file_loc)} (line: {start_line}): {signature}"
+            )
 
-            if 'func_name' in node['metadata']:
-                expanded_node['func_name'] = node['metadata']['func_name']
-
-            if 'includes' in node['metadata']:
-                expanded_node['includes'] = node['metadata']['includes']
+            expanded_node['end_line'] = end_line
 
             if 'class' in node['metadata']:
                 expanded_node['class'] = node['metadata']['class']
