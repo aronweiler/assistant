@@ -32,8 +32,10 @@ class VectorDatabase:
         with self.session_context(self.Session()) as session:
             role_types = ["system", "assistant", "user", "function", "error"]
 
+            existing_role = None
             for role_type in role_types:
-                existing_role = session.query(ConversationRoleType).filter_by(role_type=role_type).first()
+                if session.query(ConversationRoleType).count() > 0:
+                    existing_role = session.query(ConversationRoleType).filter_by(role_type=role_type).first()
 
                 if existing_role is None:
                     session.add(ConversationRoleType(role_type=role_type))

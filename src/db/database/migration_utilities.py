@@ -1,7 +1,14 @@
+import sys
+import os
 import logging
 from alembic.config import Config
 from alembic import command
 from datetime import datetime
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+from src.db.database.connection_utilities import get_connection_string
 
 
 def create_migration(connection_string):
@@ -28,3 +35,7 @@ def run_migration(connection_string):
 
     # Run the Alembic upgrade command
     command.upgrade(alembic_cfg, "head")
+
+
+if __name__ == "__main__":
+    create_migration(get_connection_string())

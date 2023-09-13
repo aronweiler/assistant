@@ -147,27 +147,26 @@ class Documents(VectorDatabase):
             return FileModel.from_database_model(file)
 
     def get_document_chunks_by_file_id(
-        self, collection_id, target_file_id
+        self, target_file_id
     ) -> List[DocumentModel]:
         with self.session_context(self.Session()) as session:
             file = (
                 session.query(File)
                 .filter(
-                    File.id == target_file_id and File.collection_id == collection_id
+                    File.id == target_file_id
                 )
                 .first()
             )
 
             if file is None:
                 raise ValueError(
-                    f"File with ID '{target_file_id}' does not exist in collection '{collection_id}'"
+                    f"File with ID '{target_file_id}' does not exist"
                 )
 
             documents = (
                 session.query(Document)
                 .filter(
-                    Document.collection_id == collection_id
-                    and Document.file_id == file.id
+                    Document.file_id == file.id
                 )
                 .all()
             )
