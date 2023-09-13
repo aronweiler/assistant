@@ -23,7 +23,7 @@ from langchain.agents import (
     AgentOutputParser,
 )
 
-from configuration.assistant_configuration import Destination
+from src.configuration.assistant_configuration import Destination
 
 from src.db.models.conversations import SearchType
 from src.db.models.documents import Documents

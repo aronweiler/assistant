@@ -7,8 +7,7 @@ from typing import List
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 # Custom loaders
 from src.documents.code_loader import CodeLoader
@@ -163,6 +162,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Test loading and splitting documents
-    source = "C:\\Repos\\sample_docs\\Work\\RC_510k\\016_Attachment 1 - Product Risk Assessment, PB980 Ventilator System.pdf"
+    source = "/Repos/assistant/streamlit_ui.py"
     documents = load_and_split_documents(source, True, 1000, 100)
     print(len(documents))

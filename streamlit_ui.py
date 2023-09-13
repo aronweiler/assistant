@@ -7,7 +7,6 @@ import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 from streamlit_extras.grid import grid
 import os
-from dotenv import load_dotenv
 
 # from langchain.callbacks import StreamlitCallbackHandler
 from langchain.callbacks.base import BaseCallbackHandler
@@ -125,7 +124,9 @@ class StreamlitUI:
                             st.session_state.get("new_collection_name")
                             and new_collection
                         ):
-                            self.create_collection(st.session_state["new_collection_name"])
+                            self.create_collection(
+                                st.session_state["new_collection_name"]
+                            )
 
                     if "ai" in st.session_state:
                         option = st.session_state["active_collection"]
@@ -393,7 +394,9 @@ class StreamlitUI:
             except Exception as e:
                 print(f"Error deleting {temp_dir}: {e}")
 
-    def classify_file(self, documents_helper: Documents, documents, file, uploaded_file):
+    def classify_file(
+        self, documents_helper: Documents, documents, file, uploaded_file
+    ):
         # Use up to the first 10 document chunks to classify this document
         classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
         for d in documents[:10]:
@@ -449,7 +452,7 @@ class StreamlitUI:
         #     ai_instance.interaction_manager.postgres_chat_message_history.messages
         # ):
 
-    def show_old_messages(self,ai_instance):
+    def show_old_messages(self, ai_instance):
         self.refresh_messages_session_state(ai_instance)
 
         for message in st.session_state["messages"]:
@@ -457,7 +460,7 @@ class StreamlitUI:
                 st.markdown(message["content"])
 
     # TODO: Replace the DB backed chat history with a cached one here!
-    def handle_chat(self,main_window_container):
+    def handle_chat(self, main_window_container):
         with main_window_container.container():
             # Get the AI instance from session state
             if "ai" not in st.session_state:
@@ -504,7 +507,7 @@ class StreamlitUI:
 
                     print(f"Result: {result}")
 
-    def ensure_user(self,email):
+    def ensure_user(self, email):
         self.user_email = email
 
         users_helper = Users()
@@ -536,7 +539,7 @@ class StreamlitUI:
 
         return user.id
 
-    def create_interaction(self,interaction_summary):
+    def create_interaction(self, interaction_summary):
         interactions_helper = Interactions()
 
         interactions_helper.create_interaction(
@@ -554,7 +557,7 @@ class StreamlitUI:
             or not st.session_state["interaction_ensured"]
         ):
             if not self.get_interaction_pairs():
-               self.create_interaction("Empty Chat")
+                self.create_interaction("Empty Chat")
 
             st.session_state["interaction_ensured"] = True
 

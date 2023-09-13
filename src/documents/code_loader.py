@@ -13,7 +13,7 @@ class CodeLoader:
         # Fields: 'type', 'signature', 'text', 'file_loc', 'includes', 'access_specifier', 'class'
         for node in nodes:
             data.append(Document(
-                page_content=node['text'],
+                page_content=node['text'] if 'text' in node and node['text'] else '',
                 metadata=node
             ))
 

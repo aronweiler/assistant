@@ -23,10 +23,10 @@ def get_prompt(prompt_type: LLMType, prompt_name: str):
     # ai/prompts/{prompt_type}_prompts.py
 
     # Get the path to the prompts folder
-    prompts_path = os.path.join(os.path.dirname(__file__), "prompts")
+    #prompts_path = os.path.join(os.path.dirname(__file__), "prompts")
 
     # Construct the module name
-    module_name = f"ai.prompts.{prompt_type}_prompts"
+    module_name = f"src.ai.prompts.{prompt_type}_prompts"
 
     # Import the module using importlib
     prompt_module = importlib.import_module(module_name)
