@@ -36,24 +36,6 @@ def get_prompt(prompt_type: LLMType, prompt_name: str):
 
     return prompt
 
-# def get_prompt(prompt_type:LLMType, prompt_name:str):
-#     # Get the prompt from the right file- the folder structure looks like this:
-#     # ai/prompts/{prompt_type}_prompts.py
-
-#     # Get the path to the prompts folder
-#     prompts_path = os.path.join(os.path.dirname(__file__), "prompts")
-
-#     # Get the path to the prompt file
-#     prompt_file_path = os.path.join(prompts_path, f"{prompt_type}_prompts.py")
-
-#     # Import the prompt file
-#     prompt_file = __import__(prompt_file_path)
-
-#     # Get the prompt from the prompt file
-#     prompt = getattr(prompt_file, prompt_name)
-
-#     return prompt
-
 def get_llm(model_configuration: ModelConfiguration, **kwargs):
     """Returns the LLM for the specified model configuration."""
 
@@ -61,7 +43,6 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs):
         return _get_openai_llm(model_configuration, **kwargs)
     elif model_configuration.llm_type == LLMType.LLAMA2.value or model_configuration.llm_type == LLMType.LUNA.value:
         return _get_llama2_llm(model_configuration, **kwargs)
-
 
 def _get_openai_llm(model_configuration, **kwargs):
     llm = ChatOpenAI(
