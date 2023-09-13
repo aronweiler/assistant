@@ -11,7 +11,6 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Custom loaders
-from src.documents.pdf_loader import PDFLoader
 from src.documents.code_loader import CodeLoader
 
 # TODO: Add loaders for PPT, and other document types

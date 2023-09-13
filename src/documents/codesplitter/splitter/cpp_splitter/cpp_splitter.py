@@ -1,4 +1,4 @@
-
+import re
 import os
 
 from src.documents.codesplitter.node_types import NodeType
@@ -44,6 +44,11 @@ class CppSplitter(SplitterBase):
 
     def _parse_nodes(self, nodes) -> list:
         expanded_nodes = []
+
+        extractions = {
+            'signature': r'^\s*(?P<signature>.+)\s*{'
+        }
+
         for node in nodes:
             signature = node.displayname
 
@@ -75,14 +80,18 @@ class CppSplitter(SplitterBase):
             if node_type is None:
                 continue
 
-            # Add the return type if applicable
-            result_type =  node.result_type.spelling
-            if result_type != '':
-                signature = f"{result_type} {signature}"
+            if self._is_function_type(node.kind) or (node.kind == CursorKind.CLASS_DECL):
+                for extraction_name, extraction_exp in extractions.items():
+                    match_obj = re.match(extraction_exp, text, flags=re.MULTILINE)
+                    if match_obj is None:
+                        self._logger.error(f"No {extraction_name} found for {text}")
+                        continue
 
-            # Add the storage class if applicable
-            if node.storage_class.name not in ("INVALID", "NONE"):
-                signature = f"{node.storage_class.name.lower()} {signature}"
+                    details = match_obj.groupdict()
+                    if extraction_name == 'signature':
+                        signature = details['signature']
+            else:
+                signature = node.displayname
 
             expanded_node = self.create_standard_node(
                 type=node_type.name,
