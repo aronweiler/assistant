@@ -98,7 +98,7 @@ class CodeAI(DestinationBase):
         self.create_code_tools(self.document_tool, self.code_tool, self.stubber)
 
         self.agent = initialize_agent(
-            tools=self.document_tools,
+            tools=self.code_tools,
             llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
@@ -179,7 +179,7 @@ class CodeAI(DestinationBase):
         self.interaction_manager.collection_id = collection_id
         rephrased_input = self.rephrase_query_to_standalone(input)
 
-        results = self.agent_executor.run(
+        results = self.agent.run(
             input=rephrased_input,
             system_information=get_system_information(
                 self.interaction_manager.user_location

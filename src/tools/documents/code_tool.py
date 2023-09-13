@@ -247,15 +247,19 @@ class CodeTool:
 
     def search_loaded_documents(
         self,
-        query: str,
+        search_query: str,
+        original_user_query: str,
         target_file_id: int = None,
     ):
         """Searches the loaded code files for the given query.  Use this tool when the user is looking for code that isn't in a value returned by code_structure. 
         
         The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.
 
+        IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
+
         Args:
-            query (str): The query you would like to search for.  Input should be a fully formed question.
+            search_query (str): The query to search the files for.
+            original_user_query (str): The original unmodified query input from the user.
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
@@ -305,7 +309,7 @@ class CodeTool:
         qa_with_sources.combine_documents_chain = combine_chain
         qa_with_sources.return_source_documents = True
 
-        results = qa_with_sources({"question": query})
+        results = qa_with_sources({"question": original_user_query})
 
         return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources are: {results['sources']}--- END RESULTS ---"
 
