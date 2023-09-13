@@ -45,6 +45,9 @@ from src.ai.callbacks.agent_callback import AgentCallback
 from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.code_tool import CodeTool
 
+from src.ai.agents.code.stubbing_agent import Stubber
+from src.ai.agents.code.structured_chat_agent import BetterStructuredChatAgent
+
 
 class CodeAI(DestinationBase):
     """A document-using AI that contains logic and tools specific to working with code"""
@@ -85,8 +88,14 @@ class CodeAI(DestinationBase):
             interaction_manager=self.interaction_manager,
             llm=self.llm,
         )
+        self.stubber = Stubber(
+            code_tool=self.code_tool,
+            document_tool=self.document_tool,
+            agent_callback=self.agent_callback,
+            interaction_manager=self.interaction_manager,
+        )
 
-        self.create_code_tools(self.document_tool, self.code_tool)
+        self.create_code_tools(self.document_tool, self.code_tool, self.stubber)
 
         self.agent = initialize_agent(
             tools=self.document_tools,
@@ -121,11 +130,12 @@ class CodeAI(DestinationBase):
         # Set the memory on the agent tools callback so that it can manually add entries
         # self.agent_tools_callback.memory = agent_memory.memory
 
-    def create_code_tools(self, document_tool: DocumentTool, code_tool: CodeTool):
-        self.document_tools = [
+    def create_code_tools(
+        self, document_tool: DocumentTool, code_tool: CodeTool, stubber: Stubber
+    ):
+        self.code_tools = [
             StructuredTool.from_function(
-                func=code_tool.search_loaded_documents,
-                callbacks=[self.agent_callback]
+                func=code_tool.search_loaded_documents, callbacks=[self.agent_callback]
             ),
             # # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
             # StructuredTool.from_function(
@@ -144,13 +154,18 @@ class CodeAI(DestinationBase):
                 return_direct=True,
             ),
             StructuredTool.from_function(
-                func=self.code_tool.code_details, callbacks=[self.agent_callback]
+                func=code_tool.code_details, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
-                func=self.code_tool.code_structure, callbacks=[self.agent_callback]
+                func=code_tool.code_structure, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
-                func=self.code_tool.code_dependencies, callbacks=[self.agent_callback]
+                func=code_tool.code_dependencies, callbacks=[self.agent_callback]
+            ),
+            StructuredTool.from_function(
+                func=stubber.create_stubs,
+                callbacks=[self.agent_callback],
+                return_direct=True,
             ),
         ]
 
@@ -164,7 +179,7 @@ class CodeAI(DestinationBase):
         self.interaction_manager.collection_id = collection_id
         rephrased_input = self.rephrase_query_to_standalone(input)
 
-        results = self.agent.run(
+        results = self.agent_executor.run(
             input=rephrased_input,
             system_information=get_system_information(
                 self.interaction_manager.user_location
@@ -192,7 +207,7 @@ class CodeAI(DestinationBase):
             results = json.loads(results)
 
             # Find the tool
-            for tool in self.document_tools:
+            for tool in self.code_tools:
                 if tool.name.lower() == results["action"].lower():
                     # Run the tool
                     try:
