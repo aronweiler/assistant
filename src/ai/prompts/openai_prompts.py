@@ -414,3 +414,26 @@ CODE_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}'
 CODE_PROMPT = PromptTemplate(
     template=CODE_PROMPT_TEMPLATE, input_variables=["page_content", "filename", "file_id", "start_line"]
 )
+
+STUBBING_TEMPLATE = """Please take the following code and create a stub for it.  The goal is to have the stub you create be able to be used in place of the original code, and have the same behavior as the original code, only with a fake implementation.
+
+--- BEGIN CODE TO STUB ---
+{code}
+--- END CODE TO STUB ---
+{stub_dependencies_template}
+Return only the stubbed code, nothing else.
+
+Also, make sure to include STUB in the name of the stubbed code.  For example, if the file is a C++ header and originally contained `#define MY_FILE_H`, the stubbed file should use `#define MY_FILE_STUB_H` instead.  The purpose of this is to make it clear what is a stub and what is not.
+
+Include comment placeholders where stub functionality is needed. For instance, where a value must be returned by a stubbed function, insert a comment such as "Your value here".
+
+AI: Sure, here is the stubbed code (and only the code):
+"""
+
+STUB_DEPENDENCIES_TEMPLATE = """
+Since there are child dependencies in the code you will be stubbing, I have stubbed out those child dependencies for you.  You can use the following stubbed dependencies in your stubbed code.
+
+Child Dependencies:
+{stub_dependencies}
+
+"""
