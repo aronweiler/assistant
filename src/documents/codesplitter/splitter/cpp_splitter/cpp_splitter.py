@@ -31,7 +31,6 @@ class CppSplitter(SplitterBase):
         CursorKind.CLASS_DECL: NodeType.CLASS,
         CursorKind.STRUCT_DECL: NodeType.CLASS,
         CursorKind.PREPROCESSING_DIRECTIVE: NodeType.PREPROCESSING_DIRECTIVE,
-        CursorKind.INCLUSION_DIRECTIVE: NodeType.INCLUDE,
     }
 
     def __init__(self):
@@ -76,24 +75,30 @@ class CppSplitter(SplitterBase):
             if node_type is None:
                 continue
 
-            expanded_node = {
-                'type': node_type.name, # Standard
-                'text': text, # Standard
-                'file_loc': file_loc, # Standard
-                'includes': self._get_includes(node),      
-                'start_line': start_line, # Standard
-                'end_line': end_line, 
-                'signature': signature, # Standard
-                'source': f"{os.path.basename(file_loc)} (line: {start_line}): {signature}", # Standard
-            }
+            # Add the return type if applicable
+            result_type =  node.result_type.spelling
+            if result_type != '':
+                signature = f"{result_type} {signature}"
+
+            # Add the storage class if applicable
+            if node.storage_class.name not in ("INVALID", "NONE"):
+                signature = f"{node.storage_class.name.lower()} {signature}"
+
+            expanded_node = self.create_standard_node(
+                type=node_type.name,
+                signature=signature,
+                text=text,
+                file_loc=file_loc,
+                includes=self._get_includes(node),
+                start_line=start_line,
+                source=f"{os.path.basename(file_loc)} (line: {start_line}): {signature}"
+            )
+
+            expanded_node['end_line'] = end_line
 
             if node.kind == CursorKind.CXX_METHOD:
                 expanded_node['access_specifier'] = access_specifier
                 expanded_node['class'] = class_name
-
-            # This is accomplished by the 'signature' field
-            # if node.kind in (CursorKind.CXX_METHOD, CursorKind.FUNCTION_DECL):
-            #     expanded_node['func_name'] = signature
 
             expanded_nodes.append(expanded_node)
 

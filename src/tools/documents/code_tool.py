@@ -1,4 +1,6 @@
 import logging
+from typing import List
+
 from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.chains import (
@@ -42,7 +44,6 @@ class CodeTool:
 
         # Get the list of documents
         document_chunks = documents.get_document_chunks_by_file_id(
-            collection_id=self.interaction_manager.collection_id,
             target_file_id=target_file_id,
         )
 
@@ -61,7 +62,7 @@ class CodeTool:
         return "\n".join(includes)
 
     # NOTE!
-    ## TODO: This can return enormous amounts of data, depending on the size of the file- 
+    ## TODO: This can return enormous amounts of data, depending on the size of the file-
     # need to chunk the results up and then run a chain over them to answer
     def code_structure(
         self,
@@ -74,16 +75,14 @@ class CodeTool:
 
         Don't use this tool on anything that isn't classified as 'Code'.
 
-        Args:            
+        Args:
             target_file_id (int): REQUIRED! The file ID you would like to get the code structure for.
             code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'. When left empty, the code structure will be returned in its entirety.
         """
         documents = Documents()
 
         try:
-            document_chunks = documents.get_document_chunks_by_file_id(
-                self.interaction_manager.collection_id, target_file_id
-            )
+            document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
 
             # Create a list of unique metadata entries from the document chunks
             full_metadata_list = []
@@ -127,7 +126,9 @@ class CodeTool:
                     )
                 elif code_type == "OTHER":
                     code_structure = (
-                        "Other:\n\t" + "\n\t".join([o["signature"] for o in others]) + "\n\n"
+                        "Other:\n\t"
+                        + "\n\t".join([o["signature"] for o in others])
+                        + "\n\n"
                     )
             else:
                 # Sort the list using the custom sorting key
@@ -139,7 +140,7 @@ class CodeTool:
                 )
 
             return f"--- BEGIN CODE STRUCTURE ---\n{code_structure}\n--- END CODE STRUCTURE ---"
-        
+
         except Exception as e:
             logging.error(f"Error getting code structure: {e}")
             return f"There was an error getting the code structure: {e}"
@@ -183,9 +184,7 @@ class CodeTool:
         documents = Documents()
 
         try:
-            document_chunks = documents.get_document_chunks_by_file_id(
-                self.interaction_manager.collection_id, target_file_id
-            )
+            document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
 
             code_details = f"The code details for {target_signature} is:\n\n"
 
@@ -241,21 +240,27 @@ class CodeTool:
             else:
                 code_details += target_document_chunk.document_text
 
-                return target_document_chunk.document_text #code_details
+                return target_document_chunk.document_text  # code_details
         except Exception as e:
             logging.error(f"Error getting code details: {e}")
-            return f"There was an error getting the code details: {e}"
+            return f"There was an error getting the code details: {e}"           
 
     def search_loaded_documents(
         self,
-        query: str,
+        search_query: str,
+        original_user_query: str,
         target_file_id: int = None,
     ):
-        """Searches the loaded documents for the given query.  Use this tool when the user is referring to any loaded document or file in their search for information. The target_file_id argument is optional, and can be used to search a specific file.
+        """Searches the loaded code files for the given query.  Use this tool when the user is looking for code that isn't in a value returned by code_structure. 
+        
+        The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.
+
+        IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
 
         Args:
-            query (str): The query you would like to search for.  Input should be a fully formed question.
-            target_file_id (int, optional): The file_id you got from the list_documents tool, if you want to search a specific file. Defaults to None which searches all files.
+            search_query (str): The query to search the files for.
+            original_user_query (str): The original unmodified query input from the user.
+            target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
             "top_k": 10,
@@ -287,7 +292,8 @@ class CodeTool:
             retriever=self.pgvector_retriever,
             chain_type_kwargs={
                 "prompt": get_prompt(
-                    self.destination.model_configuration.llm_type, "CODE_QUESTION_PROMPT"
+                    self.destination.model_configuration.llm_type,
+                    "CODE_QUESTION_PROMPT",
                 )
             },
         )
@@ -303,6 +309,61 @@ class CodeTool:
         qa_with_sources.combine_documents_chain = combine_chain
         qa_with_sources.return_source_documents = True
 
-        results = qa_with_sources({"question": query})
+        results = qa_with_sources({"question": original_user_query})
 
         return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources are: {results['sources']}--- END RESULTS ---"
+
+    def create_stub_code(self, file_id: int, available_dependencies:List[str] = None):
+        """Create a mock / stub version of the given code file.
+
+        Args:
+            file_id: The id of the file to create stubs for.
+            available_dependencies: The list of available dependencies for the file.
+        """
+
+        documents_helper = Documents()
+
+        documents = documents_helper.get_document_chunks_by_file_id(file_id)
+
+        stubbing_template = get_prompt(
+            self.destination.model_configuration.llm_type, "STUBBING_TEMPLATE"
+        )
+
+        stub_dependencies_template = get_prompt(
+            self.destination.model_configuration.llm_type, "STUB_DEPENDENCIES_TEMPLATE"
+        )
+
+        # Loop over all of the document chunks and have the LLM create a fake version of each for us
+
+        if available_dependencies is None:
+            stub_dependencies = ""
+        else:
+            stub_dependencies = stub_dependencies_template.format(
+                    stub_dependencies="\n".join(available_dependencies)
+                )
+
+        # Might want to split this up into chunks??
+        # stubbed_code = []
+        # for doc in documents:
+        #     prompt = stubbing_template.format(
+        #         code=doc.document_text,
+        #         stub_dependencies_template=stub_dependencies,
+        #     )
+        #     stubbed_code.append(self.llm.predict(prompt))
+        # full_stubbed_code = "\n\n".join(stubbed_code)
+
+        stubbed_code = "Could not stub code, no MODULE type found!"
+
+        for doc in documents:
+            if doc.additional_metadata["type"] == "MODULE":
+                prompt = stubbing_template.format(
+                    code=doc.document_text,
+                    stub_dependencies_template=stub_dependencies,
+                )
+                stubbed_code = self.llm.predict(prompt)
+                break
+
+        return {
+            "file": doc.document_name,
+            "code": f"Stubbed code for {doc.document_name}:\n```{stubbed_code}\n```",
+        }

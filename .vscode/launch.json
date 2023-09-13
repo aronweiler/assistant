@@ -42,11 +42,11 @@
     //   }
     // },
     {
-      "name": "Run OpenAI LLM Streamlit App",
+      "name": "OpenAI Jarvis",
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": ["run", "streamlit_ui.py"],
+      "args": ["run", "streamlit_ui.py", "--server.port=${input:randomPort}"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
@@ -54,10 +54,12 @@
         "ASSISTANT_CONFIG_PATH": "configurations/console_configs/openai_config.json",
         "POSTGRES_HOST": "localhost",
         "USER_EMAIL":"aronweiler@gmail.com"
-      }
+
+      },
+      "justMyCode": true
     },
     {
-      "name": "Run Susan's Jarvis",
+      "name": "Susan's Jarvis",
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
@@ -109,5 +111,24 @@
     //   "console": "integratedTerminal",
     //   "justMyCode": true
     // }
+  ],
+  "inputs": [
+    {
+      "id": "randomPort",
+      "type": "command",
+      "command": "extension.commandvariable.number", // Requires Command Variable extension
+      "args": {
+        "name": "randomPort",
+        "range": [1500, 60000],
+        "random": true,
+        "uniqueCount": 10
+      }
+    },
+    {
+      "id": "rememberRandomPort",
+      "type": "command",
+      "command": "extension.commandvariable.remember",
+      "args": { "key": "number-randomPort" }
+    }
   ]
 }

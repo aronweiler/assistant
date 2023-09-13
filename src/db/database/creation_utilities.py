@@ -1,13 +1,10 @@
 import os
 from sqlalchemy import create_engine, text
 
-from src.db.database.migration_utilities import create_migration, run_migration
+from src.db.database.migration_utilities import run_migration
 from src.db.database.connection_utilities import get_connection_string
 
-class CreationUtilities:
-    @staticmethod
-    def create_migration_scripts():
-        create_migration(get_connection_string())
+class CreationUtilities:   
 
     @staticmethod
     def run_migration_scripts():

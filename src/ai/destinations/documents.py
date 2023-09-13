@@ -141,10 +141,9 @@ class DocumentsAI(DestinationBase):
         agent_callbacks: list = [],
     ):
         self.interaction_manager.collection_id = collection_id
-        rephrased_input = self.rephrase_query_to_standalone(input)
 
         results = self.agent.run(
-            input=rephrased_input,
+            input=input,
             system_information=get_system_information(
                 self.interaction_manager.user_location
             ),
