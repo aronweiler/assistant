@@ -158,9 +158,10 @@ def get_interaction_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions_helper = Interactions()
 
-    interactions = interactions_helper.get_interactions_by_user_id(
-        st.session_state["user_id"]
-    )
+    if st.session_state["user_id"]:
+        interactions = interactions_helper.get_interactions_by_user_id(
+            st.session_state["user_id"]
+        )
 
     if not interactions:
         return None
@@ -305,16 +306,23 @@ def ingest_files(
         if not os.path.exists(temp_dir):
             os.makedirs(temp_dir)
 
-        documents_helper = Documents()
+        # First upload all of the files- this needs to be done before we process them, in case there are inter-dependencies
         for uploaded_file in uploaded_files:
             with status.empty():
                 with st.container():
-                    st.info(f"Processing filename: {uploaded_file.name}")
-                    print(f"Processing filename: {uploaded_file.name}")
+                    st.info(f"Uploading file: {uploaded_file.name}")                    
 
                     file_path = os.path.join(temp_dir, uploaded_file.name)
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
+
+        documents_helper = Documents()
+        for uploaded_file in uploaded_files:
+            with status.empty():
+                with st.container():
+                    st.info(f"Processing file: {uploaded_file.name}")
+
+                    file_path = os.path.join(temp_dir, uploaded_file.name)
 
                     # TODO: Make this configurable
 
@@ -509,9 +517,11 @@ def ensure_user(email):
                 name=name,
                 location=location,
                 age=age
-            )
-        else:            
-            st.stop()        
+            )            
+        else:          
+            return False
+    else:
+        return True
 
 def set_user_id_from_email(email):
     users_helper = Users()
@@ -571,26 +581,27 @@ def verify_database():
     # Make sure the pgvector extension is enabled
     CreationUtilities.create_pgvector_extension()
 
-    # Creates the latest migration scripts
-    # Don't use this in production!
-    # CreationUtilities.create_migration_scripts()
-
     # Run the migrations (these should be a part of the docker container)
     CreationUtilities.run_migration_scripts()
     
     # Ensure any default or standard data is populated
     # Conversation role types
-    VectorDatabase().ensure_conversation_role_types()
+    try:
+        VectorDatabase().ensure_conversation_role_types()
+    except Exception as e:
+        print(f"Error ensuring conversation role types: {e}.  You probably didn't run the `migration_utilities.create_migration()`")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Always comes first!
-    load_configuration()
-
+    load_configuration()    
+    
     set_page_config()
 
     verify_database()
+
+    
 
     # Get the user from the environment variables
     user_email = os.environ.get("USER_EMAIL", None)
@@ -598,28 +609,28 @@ if __name__ == "__main__":
     if not user_email:
             raise ValueError("USER_EMAIL environment variable not set")
     
-    ensure_user(user_email)
+    if ensure_user(user_email):
     
-    set_user_id_from_email(user_email)
+        set_user_id_from_email(user_email)
 
-    ensure_interaction()
+        ensure_interaction()
 
-    load_interaction_selectbox()
+        load_interaction_selectbox()
 
-    # Set up columns for chat and collections
-    col1, col2 = st.columns([0.65, 0.35])
+        # Set up columns for chat and collections
+        col1, col2 = st.columns([0.65, 0.35])
 
-    print("loading ai")
-    load_ai(user_email)
+        print("loading ai")
+        load_ai(user_email)
 
-    print("selecting conversation")
-    select_conversation()
+        print("selecting conversation")
+        select_conversation()
 
-    print("creating collections container")
-    create_collections_container(col2)
+        print("creating collections container")
+        create_collections_container(col2)
 
-    print("selecting documents")
-    select_documents()
+        print("selecting documents")
+        select_documents()
 
-    print("handling chat")
-    handle_chat(col1)
+        print("handling chat")
+        handle_chat(col1)
