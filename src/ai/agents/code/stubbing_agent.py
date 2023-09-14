@@ -12,6 +12,7 @@ sys.path.append(
 
 from src.tools.documents.code_tool import CodeTool
 from src.tools.documents.document_tool import DocumentTool
+from src.tools.documents.code_dependency import CodeDependency
 
 from src.db.models.documents import Documents
 
@@ -34,16 +35,13 @@ class Stubber:
 
         tools = [
             StructuredTool.from_function(
-                func=code_tool.code_dependencies, callbacks=[agent_callback]
-            ),
-            StructuredTool.from_function(
                 func=code_tool.code_structure, callbacks=[agent_callback]
             ),
             StructuredTool.from_function(
                 func=code_tool.create_stub_code, callbacks=[agent_callback]
             ),
             StructuredTool.from_function(
-                func=self.get_dependency_list, callbacks=[agent_callback]
+                func=code_tool.get_dependency_graph, callbacks=[agent_callback]
             ),
             StructuredTool.from_function(
                 func=document_tool.list_documents, callbacks=[agent_callback]
@@ -55,7 +53,9 @@ class Stubber:
         )
 
     def create_stubs(self, file_id: int):
-        """Create mocks / stubs for the dependencies of a given code file.  Use this when the user asks you to mock or stub out the dependencies for a given file.
+        """Create mocks / stubs for the dependencies of a given code file.  
+        
+        Use this when the user asks you to mock or stub out the dependencies for a given file.
 
         Args:
             file_id: The id of the file to create stubs for.
@@ -64,50 +64,6 @@ class Stubber:
         return self.agent_executor.run(
             file_id=file_id, collection_id=self.interaction_manager.collection_id
         )
-
-    def get_dependency_list(self, target_file_id, collection_id):
-        """Get a list of the dependencies for a given file.
-
-        Args:
-            target_file_id: The id of the file to get the dependencies for.
-            collection_id: The id of the collection the file is in.
-        """
-        documents = Documents()
-
-        # Get the list of documents
-        document_chunks = documents.get_document_chunks_by_file_id(
-            target_file_id=target_file_id,
-        )
-
-        # Get the list of top-level includes
-        top_level_dependencies = []
-        for doc in document_chunks:
-            if doc.additional_metadata["type"] == "MODULE":
-                # This might need to be something other than "includes" at some point
-                for include in doc.additional_metadata["includes"]:
-                    # strip the filename from the path
-                    filename = include.split("/")[-1]
-                    if filename not in top_level_dependencies:
-                        top_level_dependencies.append(filename)
-
-        # Now recursively get the dependencies of the dependencies
-        for dependency in top_level_dependencies:
-            file = documents.get_file_by_name(dependency, collection_id)
-            if file:
-                # Get the dependencies for the dependency
-                dependencies = self.get_dependency_list(file.id, collection_id)
-                # dependencies could be a single item, or a list of items
-                # if it's a single item, don't iterate, just add it to the list
-                if isinstance(dependencies, str):
-                    if dependencies not in top_level_dependencies:
-                        top_level_dependencies.append(dependencies)
-                else:
-                    for child_dependency in dependencies:
-                        if child_dependency not in top_level_dependencies:
-                            top_level_dependencies.append(child_dependency)
-
-        return ",".join(top_level_dependencies)
-
 
 class StubbingAgent(BaseMultiActionAgent):
     @property
@@ -130,25 +86,26 @@ class StubbingAgent(BaseMultiActionAgent):
 
         if not intermediate_steps:
             # Get the dependency chain for the given file
-            # dependencies = self.get_dependency_list(kwargs["file_id"], kwargs["collection_id"])
 
             return AgentAction(
-                tool="get_dependency_list",
+                tool="get_dependency_graph",
                 tool_input={
                     "target_file_id": kwargs["file_id"],
                     "collection_id": kwargs["collection_id"],
                 },
-                log=f"Getting dependency list for file: {kwargs['file_id']}",
+                log=f"Getting dependency graph for file: {kwargs['file_id']}",
             )
 
-        elif intermediate_steps[-1][0].tool == "get_dependency_list":
+        elif intermediate_steps[-1][0].tool == "get_dependency_graph":
             # If the prior step was to get the list of dependencies, then we need to create stubs for each of them
-            dependencies = set(intermediate_steps[-1][1].split(","))
+            code_dependency:CodeDependency = intermediate_steps[-1][1]
+
+            dependency_names = self.get_unique_dependency_names(code_dependency)
 
             # Create a list of available stubs by iterating through each dependency, hacking off the file extension, and adding "stub" to the end, and then re-adding the file extension
             available_stubs = []
-            for dependency in dependencies:
-                if dependency != "":
+            for dependency in dependency_names:
+                if dependency != "" and dependency != code_dependency.name:
                     dependency_split = dependency.split(".")
                     dependency_split[-2] = dependency_split[-2] + "Stub"
                     available_stubs.append(
@@ -157,8 +114,8 @@ class StubbingAgent(BaseMultiActionAgent):
 
             # Find the file_id for each dependency
             actions = []
-            for dependency in dependencies:
-                if dependency != "":
+            for dependency in dependency_names:
+                if dependency != "" and dependency != code_dependency.name:
                     file = self.get_file_by_name(dependency, kwargs["collection_id"])
                     actions.append(
                         AgentAction(
@@ -179,6 +136,17 @@ class StubbingAgent(BaseMultiActionAgent):
             return AgentFinish(
                 {"output": final_result}, log="Finished stubbing"
             )
+        
+    def get_unique_dependency_names(self, code_dependency: CodeDependency):
+        unique_names = set()
+        
+        def traverse_dependency(dependency:CodeDependency):
+            unique_names.add(dependency.name)
+            for sub_dependency in dependency.dependencies:
+                traverse_dependency(sub_dependency)
+        
+        traverse_dependency(code_dependency)
+        return list(unique_names)
 
     async def aplan(
         self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any

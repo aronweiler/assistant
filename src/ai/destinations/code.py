@@ -160,7 +160,10 @@ class CodeAI(DestinationBase):
                 func=code_tool.code_structure, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
-                func=code_tool.code_dependencies, callbacks=[self.agent_callback]
+                func=code_tool.create_stub_code, callbacks=[self.agent_callback], return_direct=True
+            ),
+            StructuredTool.from_function(
+                func=code_tool.get_pretty_dependency_graph, callbacks=[self.agent_callback], return_direct=True
             ),
             StructuredTool.from_function(
                 func=stubber.create_stubs,

@@ -1,3 +1,5 @@
+import sys
+import os
 import logging
 from typing import List
 
@@ -7,6 +9,8 @@ from langchain.chains import (
     RetrievalQAWithSourcesChain,
     StuffDocumentsChain,
 )
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.configuration.assistant_configuration import Destination
 
@@ -20,6 +24,8 @@ from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.llm_helper import get_prompt
 
+from src.tools.documents.code_dependency import CodeDependency
+
 
 class CodeTool:
     def __init__(
@@ -32,13 +38,29 @@ class CodeTool:
         self.interaction_manager = interaction_manager
         self.llm = llm
 
-    def code_dependencies(self, target_file_id: int):
-        """Useful for getting the dependencies of a specific loaded code file.  This tool will give you a list of all the dependencies for the code file you specify.
-
-        Don't use this on anything that isn't classified as 'Code'.
+    def get_pretty_dependency_graph(self, target_file_id) -> CodeDependency:
+        """Get a graph of the dependencies for a given file.
 
         Args:
-            target_file_id (int): The file ID you would like to get the dependencies for.
+            target_file_id: The id of the file to get the dependencies for.
+            collection_id: The id of the collection the file is in.
+        """
+
+        dependency_graph = self.get_dependency_graph(target_file_id)
+
+        if len(dependency_graph.dependencies) == 0:
+            return f"{dependency_graph.name} has no dependencies"
+
+        pretty_dependencies = self.pretty_print_dependency_graph(dependency_graph)
+
+        return pretty_dependencies
+
+    def get_dependency_graph(self, target_file_id) -> CodeDependency:
+        """Get a graph of the dependencies for a given file.
+
+        Args:
+            target_file_id: The id of the file to get the dependencies for.
+            collection_id: The id of the collection the file is in.
         """
         documents = Documents()
 
@@ -47,19 +69,37 @@ class CodeTool:
             target_file_id=target_file_id,
         )
 
-        # Get the list of includes
-        includes = []
+        # Get the list of top-level includes
+        code_dependency = CodeDependency(name=document_chunks[0].document_name, dependencies=[])
         for doc in document_chunks:
-            # strip the filename from the path
             if doc.additional_metadata["type"] == "MODULE":
+                # This might need to be something other than "includes" at some point
                 for include in doc.additional_metadata["includes"]:
+                    # strip the filename from the path
                     filename = include.split("/")[-1]
-                    if filename not in includes:
-                        includes.append(filename)
+                    if not [d for d in code_dependency.dependencies if d.name == filename] and not filename == code_dependency.name:
+                        file = documents.get_file_by_name(filename, self.interaction_manager.collection_id)
+                        if file:
+                            # Get the dependencies
+                            code_dependency.dependencies.append(self.get_dependency_graph(file.id))                            
 
-        # return the list of includes
-        # "The dependencies for this file are:\n\n" +
-        return "\n".join(includes)
+        return code_dependency
+    
+    def pretty_print_dependency_graph(self, code_dependency: CodeDependency, indent: int = 0):
+        """
+        Pretty print the dependency graph in Markdown format.
+
+        Args:
+            code_dependency: The dependency graph to print.
+            indent: The indent level to use for the print.
+        """        
+        output = (" " * indent + f"- {code_dependency.name}")
+        for dependency in code_dependency.dependencies:
+            output += "\n" + self.pretty_print_dependency_graph(dependency, indent + 2)
+
+        return output
+
+
 
     # NOTE!
     ## TODO: This can return enormous amounts of data, depending on the size of the file-
@@ -325,8 +365,8 @@ class CodeTool:
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
-        stubbing_template = get_prompt(
-            self.destination.model_configuration.llm_type, "STUBBING_TEMPLATE"
+        C_STUBBING_TEMPLATE = get_prompt(
+            self.destination.model_configuration.llm_type, "C_STUBBING_TEMPLATE"
         )
 
         stub_dependencies_template = get_prompt(
@@ -345,7 +385,7 @@ class CodeTool:
         # Might want to split this up into chunks??
         # stubbed_code = []
         # for doc in documents:
-        #     prompt = stubbing_template.format(
+        #     prompt = C_STUBBING_TEMPLATE.format(
         #         code=doc.document_text,
         #         stub_dependencies_template=stub_dependencies,
         #     )
@@ -356,7 +396,7 @@ class CodeTool:
 
         for doc in documents:
             if doc.additional_metadata["type"] == "MODULE":
-                prompt = stubbing_template.format(
+                prompt = C_STUBBING_TEMPLATE.format(
                     code=doc.document_text,
                     stub_dependencies_template=stub_dependencies,
                 )
@@ -365,5 +405,14 @@ class CodeTool:
 
         return {
             "file": doc.document_name,
-            "code": f"Stubbed code for {doc.document_name}:\n```{stubbed_code}\n```",
+            "code": f"Stubbed code for {doc.document_name}:\n```\n{stubbed_code}\n```",
         }
+
+
+# Testing
+if __name__ == "__main__":
+    code_tool = CodeTool(None, None, None)
+
+    dependency = code_tool.get_dependency_graph(4, 1)
+
+    code_tool.pretty_print_dependency_graph(dependency)
