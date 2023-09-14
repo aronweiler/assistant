@@ -84,15 +84,15 @@ class StreamlitUI:
     def create_collections_container(self, main_window_container):
         css_style = """{
     position: fixed;  /* Keeps the element fixed on the screen */
-    top: 100px;        /* Adjust the top position as needed */
-    right: 100px;      /* Adjust the right position as needed */
+    top: 10px;        /* Adjust the top position as needed */
+    right: 10px;      /* Adjust the right position as needed */
     width: 300px;     /* Adjust the width as needed */
     max-width: 100%;  /* Ensures the element width doesn't exceed area */
     z-index: 9999;    /* Ensures the element is on top of other content */
     max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
     overflow: auto;     /* Adds a scrollbar when the content overflows */
     overflow-x: hidden;   /* Hides horizontal scrollbar */
-    }"""
+}"""
 
         selected_interaction_id = self.get_selected_interaction_id()
 
@@ -143,6 +143,9 @@ class StreamlitUI:
                                 "ai"
                             ].interaction_manager.get_loaded_documents_for_display()
 
+                            with st.expander("File Search Options", expanded=False):
+                                st.text_input("Top K", key="search_top_k", value=10)
+
                             with st.expander(
                                 label=f"({len(loaded_docs)}) documents in {option}",
                                 expanded=False,
@@ -181,13 +184,16 @@ class StreamlitUI:
     def load_interaction_selectbox(self):
         """Loads the interaction selectbox"""
 
-        st.sidebar.selectbox(
-            "Select Conversation",
-            self.get_interaction_pairs(),
-            key="interaction_summary_selectbox",
-            format_func=lambda x: x.split(":")[1],
-            on_change=self.load_ai,
-        )
+        try:
+            st.sidebar.selectbox(
+                "Select Conversation",
+                self.get_interaction_pairs(),
+                key="interaction_summary_selectbox",
+                format_func=lambda x: x.split(":")[1],
+                on_change=self.load_ai,
+            )
+        except Exception as e:
+            print(f"Error loading interaction selectbox: {e}")
 
     def get_selected_interaction_id(self):
         """Gets the selected interaction id from the selectbox"""
@@ -269,14 +275,15 @@ class StreamlitUI:
                     )
                     print(f"Active collection: {active_collection}")
 
-                st.toggle(
-                    "Overwrite existing files",
-                    key="overwrite_existing_files",
-                    value=True,
-                )
-                st.toggle("Split documents", key="split_documents", value=True)
-                st.text_input("Chunk size", key="file_chunk_size", value=500)
-                st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)
+                with st.expander("File Ingestion Options", expanded=False):
+                    st.toggle(
+                        "Overwrite existing files",
+                        key="overwrite_existing_files",
+                        value=True,
+                    )
+                    st.toggle("Split documents", key="split_documents", value=True)
+                    st.text_input("Chunk size", key="file_chunk_size", value=500)
+                    st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)                
 
                 if (
                     active_collection
@@ -498,15 +505,40 @@ class StreamlitUI:
                         ai_instance.interaction_manager.interaction_id,
                     )
 
+                    kwargs={"search_top_k": int(st.session_state["search_top_k"]) if "search_top_k" in st.session_state else 10}
+
                     result = ai_instance.query(
                         prompt,
                         collection_id=collection_id,
                         llm_callbacks=llm_callbacks,
                         agent_callbacks=agent_callbacks,
+                        kwargs=kwargs,
                     )
 
                     print(f"Result: {result}")
 
+    # def ensure_user(self, email):
+    #     self.user_email = email
+
+    #     users_helper = Users()
+
+    #     user = users_helper.get_user_by_email(self.user_email)
+
+    #     if not user:
+    #         st.markdown(f"Welcome to Jarvis, {self.user_email}!  Let's get you set up.")
+
+    #         # Create the user by showing them a prompt to enter their name, location, age
+    #         name = st.text_input("Enter your name")
+    #         location = st.text_input("Enter your location")
+
+    #         if st.button("Create Your User!"):
+    #             user = users_helper.create_user(
+    #                 email=self.user_email, name=name, location=location, age=999
+    #             )
+    #         else:
+    #             return False
+    #     else:
+    #         return True
     def ensure_user(self, email):
         self.user_email = email
 
@@ -515,17 +547,21 @@ class StreamlitUI:
         user = users_helper.get_user_by_email(self.user_email)
 
         if not user:
-            st.markdown(f"Welcome to Jarvis, {self.user_email}!  Let's get you set up.")
+            st.markdown(f"Welcome to Jarvis, {self.user_email}! Let's get you set up.")
 
             # Create the user by showing them a prompt to enter their name, location, age
             name = st.text_input("Enter your name")
             location = st.text_input("Enter your location")
-            age = st.text_input("Enter your age")
 
-            if st.button("Create Your User!"):
-                user = users_helper.create_user(
-                    email=self.user_email, name=name, location=location, age=age
-                )
+            if (
+                name and location
+            ):  # Check if both name and location inputs are not empty
+                if st.button("Create Your User!"):
+                    user = users_helper.create_user(
+                        email=self.user_email, name=name, location=location, age=999
+                    )
+                else:
+                    return False
             else:
                 return False
         else:
