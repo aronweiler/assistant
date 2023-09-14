@@ -28,8 +28,8 @@ DOCUMENT_TYPES = {
     ".cc": CodeLoader,
     ".h": CodeLoader,
     ".py": CodeLoader,
-    "xls": UnstructuredExcelLoader,
-    "xlsx": UnstructuredExcelLoader,
+    ".xls": UnstructuredExcelLoader,
+    ".xlsx": UnstructuredExcelLoader,
 }
 
 WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}
@@ -83,6 +83,8 @@ def load_single_document(file_path: str) -> List[Document]:
         for doc in documents:
             # get the file name
             doc.metadata["filename"] = os.path.basename(file_path)
+            if "page" not in doc.metadata:
+                doc.metadata["page"] = 'N/A'
 
         return documents
     except Exception as e:
