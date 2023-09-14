@@ -70,6 +70,7 @@ class RequestRouter(AbstractAI):
         collection_id: int = None,
         llm_callbacks: list = [],
         agent_callbacks: list = [],
+        kwargs: dict = {},
     ):
         """Routes the query to the appropriate AI, and returns the response."""
 
@@ -100,10 +101,10 @@ class RequestRouter(AbstractAI):
         )
 
         return self._route_response(
-            router_result, query, llm_callbacks, agent_callbacks
+            router_result, query, llm_callbacks, agent_callbacks, kwargs
         )
 
-    def _route_response(self, router_result, query, llm_callbacks, agent_callbacks):
+    def _route_response(self, router_result, query, llm_callbacks, agent_callbacks, kwargs):
         """Routes the response from the router chain to the appropriate AI, and returns the response."""
 
         if "destination" in router_result and router_result["destination"] is not None:
@@ -121,6 +122,7 @@ class RequestRouter(AbstractAI):
                     collection_id=self.interaction_manager.collection_id,
                     llm_callbacks=llm_callbacks,
                     agent_callbacks=agent_callbacks,
+                    kwargs=kwargs,
                 )  # router_result['next_inputs']['input']) # Use the original query for now
 
                 logging.debug(f"Response from LLM: {response}")

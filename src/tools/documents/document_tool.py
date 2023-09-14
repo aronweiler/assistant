@@ -34,7 +34,7 @@ class DocumentTool:
             target_file_id (int, optional): The file_id you got from the list_documents tool, if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
-            "top_k": 10,
+            "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 10),
             "search_type": SearchType.similarity,
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,

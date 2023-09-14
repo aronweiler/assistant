@@ -119,8 +119,11 @@ class CurrentEventsAI(DestinationBase):
         collection_id: str = None,
         llm_callbacks: list = [],
         agent_callbacks: list = [],
+        kwargs: dict = {},
     ):
         self.interaction_manager.collection_id = collection_id
+        self.interaction_manager.tool_kwargs = kwargs
+        
         results = self.agent.run(
             input=input,
             system_information=get_system_information(

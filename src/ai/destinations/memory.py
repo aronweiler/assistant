@@ -29,7 +29,7 @@ class MemoryAI(DestinationBase):
         user_email: str,
         streaming: bool = False,
     ):
-        self.destination = destination        
+        self.destination = destination
 
         self.token_management_handler = TokenManagementCallbackHandler()
 
@@ -49,13 +49,23 @@ class MemoryAI(DestinationBase):
 
         self.chain = LLMChain(
             llm=self.llm,
-            prompt=get_prompt(self.destination.model_configuration.llm_type, "MEMORY_PROMPT"),
+            prompt=get_prompt(
+                self.destination.model_configuration.llm_type, "MEMORY_PROMPT"
+            ),
             memory=self.interaction_manager.conversation_token_buffer_memory,
         )
 
-    def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
+    def run(
+        self,
+        input: str,
+        collection_id: str = None,
+        llm_callbacks: list = [],
+        agent_callbacks: list = [],
+        kwargs: dict = {},
+    ):
         """Runs the memory AI with the given input"""
         self.interaction_manager.collection_id = collection_id
+        self.interaction_manager.tool_kwargs = kwargs
 
         with self.interaction_manager.conversations_helper.session_context(
             self.interaction_manager.conversations_helper.Session()

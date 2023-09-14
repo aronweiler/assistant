@@ -61,6 +61,7 @@ class ConversationalAI(DestinationBase):
         collection_id: str = None,
         llm_callbacks: list = [],
         agent_callbacks: list = [],
+        kwargs: dict = {},
     ):
         """Runs the conversational AI with the given input"""
         self.interaction_manager.collection_id = collection_id

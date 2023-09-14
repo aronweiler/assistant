@@ -17,6 +17,8 @@ class InteractionManager:
     interaction_id: int
     collection_id: int = None
 
+    tool_kwargs: dict = {}
+
     user_id: int
     user_email: str
     user_name: str

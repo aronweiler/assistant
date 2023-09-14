@@ -175,8 +175,10 @@ class CodeAI(DestinationBase):
         collection_id: str = None,
         llm_callbacks: list = [],
         agent_callbacks: list = [],
+        kwargs: dict = {},
     ):
         self.interaction_manager.collection_id = collection_id
+        self.interaction_manager.tool_kwargs = kwargs
         rephrased_input = self.rephrase_query_to_standalone(input)
 
         results = self.agent.run(
