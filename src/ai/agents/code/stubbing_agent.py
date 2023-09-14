@@ -31,7 +31,7 @@ class Stubber:
         interaction_manager: InteractionManager,
     ) -> None:
         self.interaction_manager = interaction_manager
-        self.agent = StubbingAgent()        
+        self.agent = StubbingAgent()
 
         tools = [
             StructuredTool.from_function(
@@ -53,8 +53,8 @@ class Stubber:
         )
 
     def create_stubs(self, file_id: int):
-        """Create mocks / stubs for the dependencies of a given code file.  
-        
+        """Create mocks / stubs for the dependencies of a given code file.
+
         Use this when the user asks you to mock or stub out the dependencies for a given file.
 
         Args:
@@ -64,6 +64,7 @@ class Stubber:
         return self.agent_executor.run(
             file_id=file_id, collection_id=self.interaction_manager.collection_id
         )
+
 
 class StubbingAgent(BaseMultiActionAgent):
     @property
@@ -98,23 +99,19 @@ class StubbingAgent(BaseMultiActionAgent):
 
         elif intermediate_steps[-1][0].tool == "get_dependency_graph":
             # If the prior step was to get the list of dependencies, then we need to create stubs for each of them
-            code_dependency:CodeDependency = intermediate_steps[-1][1]
+            code_dependency: CodeDependency = intermediate_steps[-1][1]
 
-            dependency_names = self.get_unique_dependency_names(code_dependency)
+            stub_names = self.get_stub_names(code_dependency)
 
-            # Create a list of available stubs by iterating through each dependency, hacking off the file extension, and adding "stub" to the end, and then re-adding the file extension
             available_stubs = []
-            for dependency in dependency_names:
-                if dependency != "" and dependency != code_dependency.name:
-                    dependency_split = dependency.split(".")
-                    dependency_split[-2] = dependency_split[-2] + "Stub"
-                    available_stubs.append(
-                        f"For {dependency} use: {'.'.join(dependency_split)}"
-                    )
+            for stub in stub_names.items():
+                available_stubs.append(
+                    f"For {stub[0]} use: {stub[1]}"
+                )
 
             # Find the file_id for each dependency
             actions = []
-            for dependency in dependency_names:
+            for dependency in stub_names.keys():
                 if dependency != "" and dependency != code_dependency.name:
                     file = self.get_file_by_name(dependency, kwargs["collection_id"])
                     actions.append(
@@ -130,21 +127,38 @@ class StubbingAgent(BaseMultiActionAgent):
 
             return actions
 
-        else:            
-            final_result = '\n\n'.join([result[1]['code'] for result in intermediate_steps[1:]])
+        else:
+            stub_names = self.get_stub_names(intermediate_steps[0][1])
 
-            return AgentFinish(
-                {"output": final_result}, log="Finished stubbing"
+            final_result = (
+                "\n\n".join([result[1]["code"] for result in intermediate_steps[1:]])
+                + "\n\nHere's a helpful file to include these stubs: \n\n```\n"
+                + '\n'.join([f"#include \"{stub}\"" for stub in stub_names.values()])
+                + "\n```"
             )
+
+            return AgentFinish({"output": final_result}, log="Finished stubbing")
         
+    def get_stub_names(self, code_dependency: CodeDependency):
+        dependency_names = self.get_unique_dependency_names(code_dependency)
+        # Create a list of available stubs by iterating through each dependency, hacking off the file extension, and adding "stub" to the end, and then re-adding the file extension
+        stub_names = {}
+        for dependency in dependency_names:
+            if dependency != "" and dependency != code_dependency.name:
+                dependency_split = dependency.split(".")
+                dependency_split[-2] = dependency_split[-2] + "_STUB"
+                stub_names[dependency] = ".".join(dependency_split)
+
+        return stub_names
+
     def get_unique_dependency_names(self, code_dependency: CodeDependency):
         unique_names = set()
-        
-        def traverse_dependency(dependency:CodeDependency):
+
+        def traverse_dependency(dependency: CodeDependency):
             unique_names.add(dependency.name)
             for sub_dependency in dependency.dependencies:
                 traverse_dependency(sub_dependency)
-        
+
         traverse_dependency(code_dependency)
         return list(unique_names)
 
