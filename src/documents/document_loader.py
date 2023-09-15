@@ -42,8 +42,25 @@ WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}
 EXCEL_DOC_TYPES = {".xls": UnstructuredExcelLoader, ".xlsx": UnstructuredExcelLoader}
 
 # Default LibreOffice installation location
-LIBRE_OFFICE = "/Program Files/LibreOffice/program/soffice.exe"
+LIBRE_OFFICE_DEFAULT = "/Program Files/LibreOffice/program/soffice.exe"
 
+def get_libre_office_path() -> str:
+    """Gets the LibreOffice installation path
+
+    Returns:
+        str: The path to the LibreOffice installation
+    """
+    # Check if the LIBRE_OFFICE_PATH environment variable is set
+    if "LIBRE_OFFICE_PATH" in os.environ:
+        return os.environ["LIBRE_OFFICE_PATH"]
+    else:
+        # Check if the default path exists
+        if os.path.exists(LIBRE_OFFICE_DEFAULT):
+            return LIBRE_OFFICE_DEFAULT
+        else:
+            raise ValueError(
+                f"Could not find LibreOffice installation.  Please set the LIBRE_OFFICE_PATH environment variable to the installation path."
+            )
 
 def convert_word_doc_to_pdf(input_doc, out_folder):
     """Convert a single word document to a PDF using LibreOffice
@@ -58,7 +75,7 @@ def convert_word_doc_to_pdf(input_doc, out_folder):
 
     p = Popen(
         [
-            LIBRE_OFFICE,
+            get_libre_office_path(),
             "--headless",
             "--convert-to",
             "pdf",
@@ -67,7 +84,7 @@ def convert_word_doc_to_pdf(input_doc, out_folder):
             input_doc,
         ],
     )
-    logging.debug([LIBRE_OFFICE, "--convert-to", "pdf", input_doc])
+    logging.debug([get_libre_office_path(), "--convert-to", "pdf", input_doc])
     p.communicate()
 
 
@@ -85,7 +102,7 @@ def convert_excel_to_csv(input_doc, out_folder):
 
     p = Popen(
         [
-            LIBRE_OFFICE,
+            get_libre_office_path(),
             "--headless",
             "--convert-to",
             'csv:Text - txt - csv (StarCalc):44,34,UTF8,1,,0,false,true,false,false,false,-1',
@@ -93,7 +110,7 @@ def convert_excel_to_csv(input_doc, out_folder):
         ],
         cwd=cwd,
     )
-    logging.debug([LIBRE_OFFICE, "--convert-to", "csv", input_doc])
+    logging.debug([get_libre_office_path(), "--convert-to", "csv", input_doc])
     p.communicate()
 
 

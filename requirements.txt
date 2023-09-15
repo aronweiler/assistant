@@ -13,6 +13,7 @@ plotly
 sqlalchemy
 
 # AI
+# Note: You need a C++ compiler to install llama-cpp-python if you are building this outside of the docker container
 llama-cpp-python
 openai
 #openai-functions
