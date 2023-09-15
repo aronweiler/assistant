@@ -286,9 +286,9 @@ class CodeTool:
             return f"There was an error getting the code details: {e}"           
 
     def search_loaded_documents(
-        self,
-        search_query: str,
+        self,        
         original_user_query: str,
+        search_query: str = None,
         target_file_id: int = None,
     ):
         """Searches the loaded code files for the given query.  Use this tool when the user is looking for code that isn't in a value returned by code_structure. 
@@ -297,13 +297,13 @@ class CodeTool:
 
         IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
 
-        Args:
-            search_query (str): The query to search the files for.
-            original_user_query (str): The original unmodified query input from the user.
+        Args:            
+            original_user_query (str, required): The original unmodified query input from the user.
+            search_query (str, optional): The query, possibly rephrased by you, to search the files for.
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
-            "top_k": 10,
+            "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 10),
             "search_type": SearchType.similarity,
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,

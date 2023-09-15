@@ -23,15 +23,21 @@ class DocumentTool:
         self.llm = llm
 
     def search_loaded_documents(
-        self,
-        query: str,
+        self,        
+        original_user_query: str,
+        search_query: str = None,
         target_file_id: int = None,
     ):
-        """Searches the loaded documents for the given query.  Use this tool when the user is referring to any loaded document or file in their search for information. The target_file_id argument is optional, and can be used to search a specific file.
+        """Searches the loaded files for the given query.  
 
-        Args:
-            query (str): The query you would like to search for.  Input should be a fully formed question.
-            target_file_id (int, optional): The file_id you got from the list_documents tool, if you want to search a specific file. Defaults to None which searches all files.
+        The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.
+
+        IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
+
+        Args:            
+            original_user_query (str, required): The original unmodified query input from the user.
+            search_query (str, optional): The query, possibly rephrased by you, to search the files for.
+            target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
             "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 10),
@@ -79,7 +85,7 @@ class DocumentTool:
         qa_with_sources.combine_documents_chain = combine_chain
         qa_with_sources.return_source_documents = True
 
-        results = qa_with_sources({"question": query})
+        results = qa_with_sources({"question": original_user_query})
 
         return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources used are: {results['sources']}--- END RESULTS ---"
 
