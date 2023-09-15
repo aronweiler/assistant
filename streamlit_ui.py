@@ -334,45 +334,45 @@ class StreamlitUI:
                             f.write(uploaded_file.getbuffer())
 
             documents_helper = Documents()
-            for uploaded_file in uploaded_files:
-                with status.empty():
-                    with st.container():
-                        st.info(f"Processing file: {uploaded_file.name}")
+            
+            with status.empty():
+                with st.container():
+                    st.info(f"Processing files... please wait.")                    
 
-                        file_path = os.path.join(temp_dir, uploaded_file.name)
+                    documents = load_and_split_documents(
+                        temp_dir, split_documents, chunk_size, chunk_overlap
+                    )
 
-                        # TODO: Make this configurable
+                    # Get a distinct list of file names from the documents
+                    file_names = list(set([d.metadata["filename"] for d in documents]))
 
-                        documents = load_and_split_documents(
-                            file_path, split_documents, chunk_size, chunk_overlap
-                        )
-
+                    for file_name in file_names:                        
                         file = documents_helper.create_file(
                             FileModel(
                                 collection_id,
                                 user_id=st.session_state["user_id"],
-                                file_name=uploaded_file.name,
+                                file_name=file_name,
                             ),
                             overwrite_existing_files,
                         )
 
                         st.info(
-                            f"Loading {len(documents)} chunks for {uploaded_file.name}"
+                            f"Loading {len(documents)} chunks for {file_name}"
                         )
 
-                for document in documents:
-                    documents_helper.store_document(
-                        DocumentModel(
-                            collection_id=collection_id,
-                            file_id=file.id,
-                            user_id=st.session_state["user_id"],
-                            document_text=document.page_content,
-                            document_name=document.metadata["filename"],
-                            additional_metadata=document.metadata,
-                        )
+            for document in documents:
+                documents_helper.store_document(
+                    DocumentModel(
+                        collection_id=collection_id,
+                        file_id=file.id,
+                        user_id=st.session_state["user_id"],
+                        document_text=document.page_content,
+                        document_name=document.metadata["filename"],
+                        additional_metadata=document.metadata,
                     )
+                )
 
-                self.classify_file(documents_helper, documents, file, uploaded_file)
+            self.classify_file(documents_helper, documents, file, uploaded_file)
 
             status.empty()
             status.update(

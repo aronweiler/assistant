@@ -1,8 +1,12 @@
+import sys
+import os
 import json
 
 from typing import List, Any
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.db.database.models import (
     Document,
@@ -16,8 +20,7 @@ from src.db.models.domain.document_model import DocumentModel
 from src.db.models.domain.file_model import FileModel
 
 
-class Documents(VectorDatabase):  
-
+class Documents(VectorDatabase):
     def create_collection(
         self, collection_name, interaction_id
     ) -> DocumentCollectionModel:
@@ -146,32 +149,18 @@ class Documents(VectorDatabase):
 
             return FileModel.from_database_model(file)
 
-    def get_document_chunks_by_file_id(
-        self, target_file_id
-    ) -> List[DocumentModel]:
+    def get_document_chunks_by_file_id(self, target_file_id) -> List[DocumentModel]:
         with self.session_context(self.Session()) as session:
-            file = (
-                session.query(File)
-                .filter(
-                    File.id == target_file_id
-                )
-                .first()
-            )
+            file = session.query(File).filter(File.id == target_file_id).first()
 
             if file is None:
-                raise ValueError(
-                    f"File with ID '{target_file_id}' does not exist"
-                )
+                raise ValueError(f"File with ID '{target_file_id}' does not exist")
 
             documents = (
-                session.query(Document)
-                .filter(
-                    Document.file_id == file.id
-                )
-                .all()
+                session.query(Document).filter(Document.file_id == file.id).all()
             )
 
-            return [DocumentModel.from_database_model(d) for d in documents]    
+            return [DocumentModel.from_database_model(d) for d in documents]
 
     def get_collection_files(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
@@ -234,3 +223,19 @@ class Documents(VectorDatabase):
         return session.scalars(
             query.order_by(Document.embedding.l2_distance(embedding)).limit(top_k)
         )
+
+
+# Testing
+if __name__ == "__main__":
+    document_helper = Documents()
+
+    documents = document_helper.search_document_embeddings(
+        search_query="comfort stations",
+        search_type=SearchType.similarity,
+        collection_id=5,
+        top_k=100,
+    )
+
+    for doc in documents:
+        print(doc.document_text)
+        print("---------------")
