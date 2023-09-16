@@ -37,6 +37,18 @@ DOCUMENT_TYPES = {
     ".py": CodeLoader,
 }
 
+DOCUMENT_CLASSIFICATIONS = {
+    ".txt": "Document",
+    ".pdf": "Document",
+    ".csv": "Spreadsheet",
+    ".html": "Webpage",
+    ".cpp": "code",
+    ".c": "code",
+    ".cc": "code",
+    ".h": "code",
+    ".py": "code",
+}
+
 WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}
 
 EXCEL_DOC_TYPES = {".xls": UnstructuredExcelLoader, ".xlsx": UnstructuredExcelLoader}
@@ -130,8 +142,12 @@ def load_single_document(file_path: str) -> List[Document]:
             for doc in documents:
                 # get the file name
                 doc.metadata["filename"] = os.path.basename(file_path)
+                
                 if "page" not in doc.metadata:
                     doc.metadata["page"] = "N/A"
+                
+                if "classification" not in doc.metadata:
+                    doc.metadata["classification"] = DOCUMENT_CLASSIFICATIONS.get(file_extension.lower(), "Document")                
 
             return documents
         except Exception as e:
