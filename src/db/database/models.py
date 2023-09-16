@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     UniqueConstraint,
     Boolean,
+    LargeBinary,
 )
 
 from pgvector.sqlalchemy import Vector
@@ -171,6 +172,8 @@ class File(ModelBase):
     file_name = Column(String, nullable=False)
     file_classification = Column(String, nullable=True)
     file_summary = Column(String, nullable=True)
+    file_hash = Column(String, nullable=False)
+    file_data = Column(LargeBinary, nullable=False)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table

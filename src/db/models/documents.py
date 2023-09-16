@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import logging
 
 from typing import List, Any
 
@@ -70,37 +71,9 @@ class Documents(VectorDatabase):
 
     def create_file(
         self,
-        file: FileModel,
-        overwrite_existing: bool = False,
+        file: FileModel
     ) -> FileModel:
         with self.session_context(self.Session()) as session:
-            if overwrite_existing:
-                print(
-                    f"Overwriting file: {file.file_name} in collection: {file.collection_id}"
-                )
-                existing_file = (
-                    session.query(File)
-                    .filter(File.file_name == file.file_name)
-                    .filter(File.collection_id == file.collection_id)
-                    .first()
-                )
-
-                if existing_file is not None:
-                    # Find all of the documents associated with this file
-                    documents = (
-                        session.query(Document)
-                        .filter(Document.file_id == existing_file.id)
-                        .all()
-                    )
-
-                    # Delete all of the documents associated with this file, and the file itself
-                    for document in documents:
-                        session.delete(document)
-
-                    session.delete(existing_file)
-
-                    session.commit()
-
             file = file.to_database_model()
             session.add(file)
             session.commit()
@@ -137,6 +110,13 @@ class Documents(VectorDatabase):
             file = session.query(File).filter(File.id == file_id).first()
 
             return FileModel.from_database_model(file)
+        
+    def delete_file(self, file_id) -> None:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+
+            session.delete(file)
+            session.commit()
 
     def get_file_by_name(self, file_name, collection_id) -> FileModel:
         with self.session_context(self.Session()) as session:
@@ -161,6 +141,26 @@ class Documents(VectorDatabase):
             )
 
             return [DocumentModel.from_database_model(d) for d in documents]
+        
+    def delete_document_chunks_by_file_id(self, target_file_id) -> None:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == target_file_id).first()
+
+            if file is None:
+                raise ValueError(f"File with ID '{target_file_id}' does not exist")
+
+            # Find all of the documents associated with this file
+            documents = (
+                session.query(Document)
+                .filter(Document.file_id == file.id)
+                .all()
+            )
+
+            # Delete all of the documents associated with this file, and the file itself
+            for document in documents:
+                session.delete(document)
+
+            session.commit()
 
     def get_collection_files(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
