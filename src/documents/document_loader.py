@@ -29,6 +29,9 @@ DOCUMENT_TYPES = {
     ".txt": TextLoader,
     ".pdf": PDFPlumberLoader,  # PDFLoader,
     ".csv": CSVLoader,
+    ".ods": UnstructuredExcelLoader,
+    ".xls": UnstructuredExcelLoader,
+    ".xlsx": UnstructuredExcelLoader,
     ".html": BSHTMLLoader,
     ".cpp": CodeLoader,
     ".c": CodeLoader,
@@ -41,6 +44,9 @@ DOCUMENT_CLASSIFICATIONS = {
     ".txt": "Document",
     ".pdf": "Document",
     ".csv": "Spreadsheet",
+    ".xls": "Spreadsheet",
+    ".xlsx": "Spreadsheet",
+    ".ods": "Spreadsheet",
     ".html": "Webpage",
     ".cpp": "code",
     ".c": "code",
@@ -51,7 +57,7 @@ DOCUMENT_CLASSIFICATIONS = {
 
 WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}
 
-EXCEL_DOC_TYPES = {".xls": UnstructuredExcelLoader, ".xlsx": UnstructuredExcelLoader}
+EXCEL_DOC_TYPES = {".xls": UnstructuredExcelLoader, ".xlsx": UnstructuredExcelLoader, ".ods": UnstructuredExcelLoader}
 
 # Default LibreOffice installation location
 LIBRE_OFFICE_DEFAULT = "/Program Files/LibreOffice/program/soffice.exe"
@@ -133,7 +139,11 @@ def load_single_document(file_path: str) -> List[Document]:
     loader_class = DOCUMENT_TYPES.get(file_extension.lower())
 
     if loader_class:
-        loader = loader_class(file_path)
+        if type(loader_class) == UnstructuredExcelLoader:
+            # Special... thanks a lot crap design
+            loader = loader_class(file_path, mode="elements")
+        else:
+            loader = loader_class(file_path)
 
         # Should return a list[Document] from within the current file.  For PDFs this looks like a document per page.
         try:
@@ -202,8 +212,8 @@ def convert_documents(source_dir: str):
 
         if file_extension in WORD_DOC_TYPES.keys():
             convert_word_doc_to_pdf(source_file_path, source_dir)
-        elif file_extension in EXCEL_DOC_TYPES.keys():
-            convert_excel_to_csv(source_file_path, source_dir)
+        # elif file_extension in EXCEL_DOC_TYPES.keys():
+        #     convert_excel_to_csv(source_file_path, source_dir)
 
 
 def load_and_split_documents(

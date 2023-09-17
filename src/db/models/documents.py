@@ -97,10 +97,9 @@ class Documents(VectorDatabase):
     def get_files_in_collection(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
             files = (
-                session.query(File.file_name)
-                .distinct()
-                .filter(File.collection_id == collection_id)
-                .all()
+                session.query(File)
+                    .filter(File.collection_id == collection_id)
+                    .all()
             )
 
             return [FileModel.from_database_model(f) for f in files]

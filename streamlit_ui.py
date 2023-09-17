@@ -606,28 +606,8 @@ class StreamlitUI:
 
                     print(f"Result: {result}")
 
-    # def ensure_user(self, email):
-    #     self.user_email = email
+                    st.markdown(result)
 
-    #     users_helper = Users()
-
-    #     user = users_helper.get_user_by_email(self.user_email)
-
-    #     if not user:
-    #         st.markdown(f"Welcome to Jarvis, {self.user_email}!  Let's get you set up.")
-
-    #         # Create the user by showing them a prompt to enter their name, location, age
-    #         name = st.text_input("Enter your name")
-    #         location = st.text_input("Enter your location")
-
-    #         if st.button("Create Your User!"):
-    #             user = users_helper.create_user(
-    #                 email=self.user_email, name=name, location=location, age=999
-    #             )
-    #         else:
-    #             return False
-    #     else:
-    #         return True
     def ensure_user(self, email):
         self.user_email = email
 
