@@ -28,6 +28,9 @@ from src.documents.document_loader import load_and_split_documents
 
 from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
 
+from src.ai.llm_helper import get_prompt
+from src.utilities.hash_utilities import calculate_sha256
+
 
 class StreamHandler(BaseCallbackHandler):
     def __init__(self, container, initial_text=""):
@@ -261,6 +264,7 @@ class StreamlitUI:
                 "Choose your files",
                 accept_multiple_files=True,
                 disabled=(active_collection == None),
+                key="file_uploader",
             )
 
             status = st.status(f"File status", expanded=False, state="complete")
@@ -283,7 +287,7 @@ class StreamlitUI:
                     )
                     st.toggle("Split documents", key="split_documents", value=True)
                     st.text_input("Chunk size", key="file_chunk_size", value=500)
-                    st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)                
+                    st.text_input("Chunk overlap", key="file_chunk_overlap", value=50)
 
                 if (
                     active_collection
@@ -300,6 +304,72 @@ class StreamlitUI:
                         int(st.session_state.get("file_chunk_size", 500)),
                         int(st.session_state.get("file_chunk_overlap", 50)),
                     )
+
+    def clear_to_create_file_and_docs(self, file_name, file_hash, collection_id, overwrite_existing_files) -> bool:
+        documents_helper = Documents()
+
+        existing_file = documents_helper.get_file_by_name(file_name, collection_id)        
+            
+        if existing_file is not None:
+            # File already exists
+
+            if overwrite_existing_files:
+                logging.info(
+                    f"Attempting to overwrite file: {file_name} in collection: {collection_id}"
+                )
+
+                # Did we find a file, and does it have a different hash?
+                if existing_file.file_hash != file_hash:
+                    # Delete all of the document chunks associated with this file
+                    documents_helper.delete_document_chunks_by_file_id(existing_file.id)
+
+                    # Delete the file itself
+                    documents_helper.delete_file(existing_file.id)
+                else:
+                    logging.info(
+                        f"Skipping overwrite- File: {file_name} in collection: {collection_id} already exists, and has the same hash"
+                    )
+                    st.info(f"Skipping overwrite- File: {file_name} in collection: {collection_id} already exists, and has the same hash")
+
+                    # Returning false indicates that no file was created, so we shouldn't load documents
+                    return False
+            else:
+                if existing_file.file_hash != file_hash:
+                    raise ValueError(
+                        f"File with name: {file_name} already exists in collection: {collection_id}, but has a different hash"
+                    )
+                else:
+                    logging.info(
+                        f"File: {file_name} in collection: {collection_id} already exists, and has the same hash"
+                    )
+                    st.info(f"Skipping load: File: {file_name} in collection: {collection_id} already exists, and has the same hash")                    
+
+                    # Returning false indicates that no file was created, so we shouldn't load documents
+                    return False
+        
+        return True
+    
+    def upload_files(self, uploaded_files, status):
+        root_temp_dir = "temp"
+
+        if not os.path.exists(root_temp_dir):
+            os.makedirs(root_temp_dir)
+
+        # First upload all of the files- this needs to be done before we process them, in case there are inter-dependencies
+        uploaded_file_paths = []
+        for uploaded_file in uploaded_files:
+            with status.empty():
+                with st.container():
+                    st.info(f"Uploading file: {uploaded_file.name}")
+                    # Create a unique path for each file- because files can and will get split into multiples (e.g. Split into CSVs for excel files)
+                    file_path = os.path.join(root_temp_dir, str(uuid.uuid4()), uploaded_file.name)                                                
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    uploaded_file_paths.append(file_path)
+
+        return uploaded_file_paths
 
     def ingest_files(
         self,
@@ -318,70 +388,84 @@ class StreamlitUI:
         )
 
         try:
-            temp_dir = os.path.join("temp", str(uuid.uuid4()))
-
-            if not os.path.exists(temp_dir):
-                os.makedirs(temp_dir)
-
-            # First upload all of the files- this needs to be done before we process them, in case there are inter-dependencies
-            for uploaded_file in uploaded_files:
-                with status.empty():
-                    with st.container():
-                        st.info(f"Uploading file: {uploaded_file.name}")
-
-                        file_path = os.path.join(temp_dir, uploaded_file.name)
-                        with open(file_path, "wb") as f:
-                            f.write(uploaded_file.getbuffer())
+            # First upload the files to our temp directory
+            uploaded_file_paths = self.upload_files(uploaded_files, status)
 
             documents_helper = Documents()
-            for uploaded_file in uploaded_files:
-                with status.empty():
-                    with st.container():
-                        st.info(f"Processing file: {uploaded_file.name}")
 
-                        file_path = os.path.join(temp_dir, uploaded_file.name)
+            with status.empty():
+                with st.container():
+                    st.info(f"Processing files... please wait.")
 
-                        # TODO: Make this configurable
+                    # Go through each file and see if it already exists, then split and upload the chunks
+                    
+                    for uploaded_file_path in uploaded_file_paths:
+                        file_name = os.path.basename(uploaded_file_path)
+                        file_directory = os.path.dirname(uploaded_file_path)
+                        
+                        with open(uploaded_file_path, 'rb') as file:
+                            file_data = file.read()
 
-                        documents = load_and_split_documents(
-                            file_path, split_documents, chunk_size, chunk_overlap
-                        )
+                        file_hash = calculate_sha256(uploaded_file_path)                        
+                        
+                        clear_to_create = self.clear_to_create_file_and_docs(file_name, file_hash, collection_id, overwrite_existing_files)
 
-                        file = documents_helper.create_file(
-                            FileModel(
-                                collection_id,
-                                user_id=st.session_state["user_id"],
-                                file_name=uploaded_file.name,
-                            ),
-                            overwrite_existing_files,
-                        )
+                        if clear_to_create:
+                            documents = load_and_split_documents(
+                                file_directory, split_documents, chunk_size, chunk_overlap
+                            )
 
-                        st.info(
-                            f"Loading {len(documents)} chunks for {uploaded_file.name}"
-                        )
+                            # Since files can be split into multiples, we need to get a new list of file names
+                            file_names = list(set([d.metadata["filename"] for d in documents]))
 
-                for document in documents:
-                    documents_helper.store_document(
-                        DocumentModel(
-                            collection_id=collection_id,
-                            file_id=file.id,
-                            user_id=st.session_state["user_id"],
-                            document_text=document.page_content,
-                            document_name=document.metadata["filename"],
-                            additional_metadata=document.metadata,
-                        )
+                            for file_name in file_names:
+
+                                if len(file_names) > 1:
+                                    # That means we also have to re-run the clear check
+                                    # This whole step should be refactored so it takes place at a higher level or something where we 
+                                    # don't have to split the documents up first
+                                    file_hash = calculate_sha256(uploaded_file_path)                            
+                                    if not self.clear_to_create_file_and_docs(file_name, file_hash, collection_id, overwrite_existing_files):                                        
+                                        continue
+
+                                    st.info(f"The file {file_name} was split into multiple files ({len(file_names)}), so we're creating a new file for each one")
+                                
+                                file = documents_helper.create_file(
+                                    FileModel(
+                                        collection_id,
+                                        user_id=st.session_state["user_id"],
+                                        file_name=file_name,
+                                        file_hash=calculate_sha256(os.path.join(file_directory, file_name)),
+                                        file_data=file_data
+                                    )
+                                )
+
+                                st.info(f"Loading {len(documents)} chunks for {file_name}")
+                            
+                                for document in documents:
+                                    documents_helper.store_document(
+                                        DocumentModel(
+                                            collection_id=collection_id,
+                                            file_id=file.id,
+                                            user_id=st.session_state["user_id"],
+                                            document_text=document.page_content,
+                                            document_name=document.metadata["filename"],
+                                            additional_metadata=document.metadata,
+                                        )
+                                    )
+
+                                self.classify_file(documents_helper, documents, file)                        
+
+                        
+
+                    status.empty()
+                    status.update(
+                        label=f"✅ Document ingestion complete!",
+                        state="complete",
+                        expanded=False,
                     )
 
-                self.classify_file(documents_helper, documents, file, uploaded_file)
-
-            status.empty()
-            status.update(
-                label=f"✅ Document ingestion complete!",
-                state="complete",
-                expanded=False,
-            )
-
-            uploaded_files.clear()
+                    uploaded_files.clear()
 
         except Exception as e:
             # debugging streamlit
@@ -396,35 +480,36 @@ class StreamlitUI:
             )
 
             try:
-                shutil.rmtree(temp_dir)
-                print(f"Deleted: {temp_dir}")
+                shutil.rmtree("temp")
+                print(f"Deleted temporary directory")
             except Exception as e:
-                print(f"Error deleting {temp_dir}: {e}")
+                print(f"Error deleting temporary directory: {e}")
 
     def classify_file(
-        self, documents_helper: Documents, documents, file, uploaded_file
+        self, documents_helper: Documents, documents, file
     ):
         # Use up to the first 10 document chunks to classify this document
-        classify_string = f"Please attempt to classify this text, and provide any relevant summary that you can extract from this (probably partial) text.\n\nFile name: {uploaded_file.name}\n\n--- TEXT CHUNK ---\n"
-        for d in documents[:10]:
-            classify_string += f"{d.page_content}\n\n"
 
-        classify_string += "\n\n--- END TEXT CHUNK ---\n\nSure! Here is the summary I extracted from the text:\n"
+        text = "\n".join([d.page_content for d in documents[:10]])
+        file.file_classification = documents[0].metadata.get(
+            "classification", "Document"
+        )
 
         ai_instance: RequestRouter = st.session_state["ai"]
 
-        file.file_summary = ai_instance.llm.predict(classify_string)
+        summarize_string = get_prompt(
+            ai_instance.assistant_configuration.request_router.model_configuration.llm_type,
+            "CONCISE_SUMMARIZE_TEMPLATE",
+        ).format(text=text)
 
-        file.file_classification = ai_instance.llm.predict(
-            f"Using the following short summary of a file, please classify it as one of the following:\n\nDocument\nCode\nSpreadsheet\nEmail\nUnknown\n\n{file.file_summary}\n\nSure! I classified this file as: "
+        file.file_summary = ai_instance.llm.predict(summarize_string)        
+
+        documents_helper.update_file_summary_and_class(
+            file.id, file.file_summary, file.file_classification
         )
 
         print(
             f"File summary: {file.file_summary}, classification: {file.file_classification}"
-        )
-
-        documents_helper.update_file_summary_and_class(
-            file.id, file.file_summary, file.file_classification
         )
 
     def refresh_messages_session_state(self, ai_instance):
@@ -505,7 +590,11 @@ class StreamlitUI:
                         ai_instance.interaction_manager.interaction_id,
                     )
 
-                    kwargs={"search_top_k": int(st.session_state["search_top_k"]) if "search_top_k" in st.session_state else 10}
+                    kwargs = {
+                        "search_top_k": int(st.session_state["search_top_k"])
+                        if "search_top_k" in st.session_state
+                        else 10
+                    }
 
                     result = ai_instance.query(
                         prompt,
@@ -517,28 +606,8 @@ class StreamlitUI:
 
                     print(f"Result: {result}")
 
-    # def ensure_user(self, email):
-    #     self.user_email = email
+                    st.markdown(result)
 
-    #     users_helper = Users()
-
-    #     user = users_helper.get_user_by_email(self.user_email)
-
-    #     if not user:
-    #         st.markdown(f"Welcome to Jarvis, {self.user_email}!  Let's get you set up.")
-
-    #         # Create the user by showing them a prompt to enter their name, location, age
-    #         name = st.text_input("Enter your name")
-    #         location = st.text_input("Enter your location")
-
-    #         if st.button("Create Your User!"):
-    #             user = users_helper.create_user(
-    #                 email=self.user_email, name=name, location=location, age=999
-    #             )
-    #         else:
-    #             return False
-    #     else:
-    #         return True
     def ensure_user(self, email):
         self.user_email = email
 

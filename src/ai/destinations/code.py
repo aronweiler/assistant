@@ -46,7 +46,7 @@ from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.code_tool import CodeTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
-from src.ai.agents.code.structured_chat_agent import BetterStructuredChatAgent
+#from src.ai.agents.code.structured_chat_agent import BetterStructuredChatAgent
 
 
 class CodeAI(DestinationBase):

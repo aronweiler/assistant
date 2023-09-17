@@ -1,8 +1,13 @@
+import sys
+import os
 import json
+import logging
 
 from typing import List, Any
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.db.database.models import (
     Document,
@@ -16,8 +21,7 @@ from src.db.models.domain.document_model import DocumentModel
 from src.db.models.domain.file_model import FileModel
 
 
-class Documents(VectorDatabase):  
-
+class Documents(VectorDatabase):
     def create_collection(
         self, collection_name, interaction_id
     ) -> DocumentCollectionModel:
@@ -67,37 +71,9 @@ class Documents(VectorDatabase):
 
     def create_file(
         self,
-        file: FileModel,
-        overwrite_existing: bool = False,
+        file: FileModel
     ) -> FileModel:
         with self.session_context(self.Session()) as session:
-            if overwrite_existing:
-                print(
-                    f"Overwriting file: {file.file_name} in collection: {file.collection_id}"
-                )
-                existing_file = (
-                    session.query(File)
-                    .filter(File.file_name == file.file_name)
-                    .filter(File.collection_id == file.collection_id)
-                    .first()
-                )
-
-                if existing_file is not None:
-                    # Find all of the documents associated with this file
-                    documents = (
-                        session.query(Document)
-                        .filter(Document.file_id == existing_file.id)
-                        .all()
-                    )
-
-                    # Delete all of the documents associated with this file, and the file itself
-                    for document in documents:
-                        session.delete(document)
-
-                    session.delete(existing_file)
-
-                    session.commit()
-
             file = file.to_database_model()
             session.add(file)
             session.commit()
@@ -121,10 +97,9 @@ class Documents(VectorDatabase):
     def get_files_in_collection(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
             files = (
-                session.query(File.file_name)
-                .distinct()
-                .filter(File.collection_id == collection_id)
-                .all()
+                session.query(File)
+                    .filter(File.collection_id == collection_id)
+                    .all()
             )
 
             return [FileModel.from_database_model(f) for f in files]
@@ -134,6 +109,13 @@ class Documents(VectorDatabase):
             file = session.query(File).filter(File.id == file_id).first()
 
             return FileModel.from_database_model(file)
+        
+    def delete_file(self, file_id) -> None:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+
+            session.delete(file)
+            session.commit()
 
     def get_file_by_name(self, file_name, collection_id) -> FileModel:
         with self.session_context(self.Session()) as session:
@@ -146,32 +128,38 @@ class Documents(VectorDatabase):
 
             return FileModel.from_database_model(file)
 
-    def get_document_chunks_by_file_id(
-        self, target_file_id
-    ) -> List[DocumentModel]:
+    def get_document_chunks_by_file_id(self, target_file_id) -> List[DocumentModel]:
         with self.session_context(self.Session()) as session:
-            file = (
-                session.query(File)
-                .filter(
-                    File.id == target_file_id
-                )
-                .first()
-            )
+            file = session.query(File).filter(File.id == target_file_id).first()
 
             if file is None:
-                raise ValueError(
-                    f"File with ID '{target_file_id}' does not exist"
-                )
+                raise ValueError(f"File with ID '{target_file_id}' does not exist")
 
             documents = (
+                session.query(Document).filter(Document.file_id == file.id).all()
+            )
+
+            return [DocumentModel.from_database_model(d) for d in documents]
+        
+    def delete_document_chunks_by_file_id(self, target_file_id) -> None:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == target_file_id).first()
+
+            if file is None:
+                raise ValueError(f"File with ID '{target_file_id}' does not exist")
+
+            # Find all of the documents associated with this file
+            documents = (
                 session.query(Document)
-                .filter(
-                    Document.file_id == file.id
-                )
+                .filter(Document.file_id == file.id)
                 .all()
             )
 
-            return [DocumentModel.from_database_model(d) for d in documents]    
+            # Delete all of the documents associated with this file, and the file itself
+            for document in documents:
+                session.delete(document)
+
+            session.commit()
 
     def get_collection_files(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
@@ -234,3 +222,19 @@ class Documents(VectorDatabase):
         return session.scalars(
             query.order_by(Document.embedding.l2_distance(embedding)).limit(top_k)
         )
+
+
+# Testing
+if __name__ == "__main__":
+    document_helper = Documents()
+
+    documents = document_helper.search_document_embeddings(
+        search_query="comfort stations",
+        search_type=SearchType.similarity,
+        collection_id=5,
+        top_k=100,
+    )
+
+    for doc in documents:
+        print(doc.document_text)
+        print("---------------")

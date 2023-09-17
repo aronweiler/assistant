@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 
-MULTI_PROMPT_ROUTER_TEMPLATE = """<< SYSTEM INFORMATION >>
+MULTI_PROMPT_ROUTER_TEMPLATE = """SYSTEM INFORMATION:
 {{system_information}}
 
 Given a raw text input to a language model, select the model best suited for processing \
@@ -10,13 +10,15 @@ what the model is best suited for.
 Use the provided chat history to help rephrase the input so that it is a stand-alone question \
 by doing things like resolving coreferences in the input (e.g. assigning names to things like "him", or places like "here", or dates like "tomorrow", etc).
 
-<< CHAT HISTORY >>
+--- BEGIN CHAT HISTORY ---
 {{chat_history}}
+--- END CHAT HISTORY ---
 
-<< LOADED DOCUMENTS >>
+--- BEGIN LOADED DOCUMENTS ---
 {{loaded_documents}}
+--- END LOADED DOCUMENTS ---
 
-<< FORMATTING >>
+--- BEGIN FORMATTING ---
 Return a markdown code snippet with a JSON object formatted to look like:
 ```json
 {{{{
@@ -24,17 +26,20 @@ Return a markdown code snippet with a JSON object formatted to look like:
     "next_inputs": string \\ a potentially modified version of the original input
 }}}}
 ```
+--- END FORMATTING ---
 
 REMEMBER: "destination" MUST be one of the candidate model names specified below.
 REMEMBER: "next_inputs" can just be the original input if you don't think any modifications are needed.
 
-<< CANDIDATE MODELS >>
+--- BEGIN CANDIDATE MODELS ---
 {destinations}
+--- END CANDIDATE MODELS ---
 
-<< INPUT >>
+--- BEGIN INPUT ---
 {{input}}
+--- END INPUT ---
 
-<< OUTPUT >>
+OUTPUT:
 """
 
 #AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
