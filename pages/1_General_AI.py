@@ -11,7 +11,7 @@ from langchain.callbacks.base import BaseCallbackHandler
 
 from src.ai.request_router import RequestRouter
 
-from src.configuration.assistant_configuration import ConfigurationLoader
+from src.configuration.assistant_configuration import AssistantConfigurationLoader
 
 
 
@@ -669,7 +669,7 @@ class GeneralUI:
 
         assistant_config_path = self.get_configuration_path()
         if "config" not in st.session_state:
-            st.session_state["config"] = ConfigurationLoader.from_file(
+            st.session_state["config"] = AssistantConfigurationLoader.from_file(
                 assistant_config_path
             )
 

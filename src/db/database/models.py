@@ -286,6 +286,17 @@ class Project(ModelBase):
     project_name = Column(String, nullable=False, unique=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)    
     
+class DesignDecisions(ModelBase):
+    __tablename__ = "design_decisions"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    category = Column(String)
+    decision = Column(String, nullable=False)
+    details = Column(String, nullable=False)
+
+    project = relationship("Project", backref="design_decisions")
+
 class UserNeeds(ModelBase):
     __tablename__ = "user_needs"
 

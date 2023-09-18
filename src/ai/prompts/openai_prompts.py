@@ -463,3 +463,47 @@ Child Dependencies:
 {stub_dependencies}
 
 """
+
+
+SINGLE_SHOT_DESIGN_DECISION_TEMPLATE = """Imagine you're crafting the blueprint for a groundbreaking project that will revolutionize the industry! Your design decisions will be the cornerstone of this innovation. Each choice you make is a step towards excellence, ensuring the final product exceeds all expectations. Let your creativity and expertise shine as you transform requirements into a masterpiece of engineering brilliance!
+
+You are designing a new system for a {project_name}. We have identified the following user needs:
+
+{user_needs}
+
+From those user needs, we have extracted the following (subset of the overall) requirements:
+
+ID: {requirement_id}, Requirement: {requirement}
+
+I need you to make a design decision for this requirement, taking into account the following design decisions that have already been made:
+
+{existing_design_decisions}
+
+You should follow these steps when making your design decision:
+    
+    1. Understand the Requirement:
+        Read and analyze the requirement document thoroughly.
+        Identify the key objectives, functionalities, and constraints.
+    
+    2. Define Functional Components:
+        Break down the requirement into smaller functional components or modules.
+        Each component should represent a specific aspect of the overall requirement.
+
+    3. Document Design Decisions:
+        Clearly document the rationale behind each design decision.
+        Include considerations, trade-offs, and any potential risks associated with the decision.
+
+Your output should follow this JSON format:
+
+{{
+  "requirement_id": "requirement id", "Components": [{{"name": "component name", "decision": "your recommendation", "details": "explanation of your recommendation"}}, ...]
+}}
+
+For example:
+
+{{
+  "requirement_id": "17", "Components": [{{"name": "Database", "decision" : "SQLite", "details": "SQLite is a lightweight option suitable for single-user applications."}}, {{"name": "Language", "decision": "C# (WPF)", "details": "C# with WPF provides a quick and easy way to create Windows-based applications."}}, ]
+}}
+
+AI: Sure, here is the design decision in JSON format:
+"""

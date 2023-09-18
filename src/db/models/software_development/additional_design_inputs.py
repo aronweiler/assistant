@@ -19,6 +19,11 @@ class AdditionalDesignInputs(VectorDatabase):
         with self.session_context(self.Session()) as session:
             design_inputs = session.query(DBAdditionalDesignInputs).filter(DBAdditionalDesignInputs.project_id == project_id).all()
             return [AdditionalDesignInputsModel.from_database_model(design_input) for design_input in design_inputs]
+        
+    def get_design_inputs_for_requirement(self, requirement_id) -> list[AdditionalDesignInputsModel]:
+        with self.session_context(self.Session()) as session:
+            design_inputs = session.query(DBAdditionalDesignInputs).filter(DBAdditionalDesignInputs.requirement_id == requirement_id).all()
+            return [AdditionalDesignInputsModel.from_database_model(design_input) for design_input in design_inputs]
 
     def update_design_input(self, design_input_id, requirement_id, new_file_id, new_description) -> AdditionalDesignInputsModel:
         with self.session_context(self.Session()) as session:

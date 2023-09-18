@@ -20,6 +20,21 @@ class ModelConfiguration:
         self.max_conversation_history_tokens = max_conversation_history_tokens
         self.max_completion_tokens = max_completion_tokens
 
+    # @classmethod
+    # def from_file(cls, file_path):
+    #     with open(file_path, 'r') as file:
+    #         config_data = json.load(file)
+
+    #     return cls(
+    #         llm_type=config_data["llm_type"],
+    #         model=config_data["model"],
+    #         temperature=config_data["temperature"],
+    #         max_retries=config_data["max_retries"],
+    #         max_model_supported_tokens=config_data["max_model_supported_tokens"],
+    #         max_conversation_history_tokens=config_data["max_conversation_history_tokens"],
+    #         max_completion_tokens=config_data["max_completion_tokens"]
+    #     )
+
 
 class Destination:
     def __init__(
@@ -40,22 +55,34 @@ class RequestRouter:
         for route in destination_routes:
             self.destination_routes.append(route)
 
+class DesignDecisionGenerator:
+    def __init__(self, design_decision_configuration):
+        self.model_configuration = ModelConfiguration(**design_decision_configuration['model_configuration'])
+
+class RequirementBreakdown:
+    def __init__(self, requirement_breakdown_configuration):
+        self.model_configuration = ModelConfiguration(**requirement_breakdown_configuration['model_configuration'])
+
 class AssistantConfiguration:
     def __init__(self, request_router):
         self.request_router = request_router
 
+class SoftwareDevelopmentConfiguration:
+    def __init__(self, design_decision_generator, requirement_breakdown):
+        self.design_decision_generator = design_decision_generator
+        self.requirement_breakdown = requirement_breakdown
 
-class ConfigurationLoader:
+class AssistantConfigurationLoader:
     @staticmethod
     def from_file(file_path):
         with open(file_path, "r") as file:
             config_data = json.load(file)
-            return ConfigurationLoader.from_dict(config_data)
+            return AssistantConfigurationLoader.from_dict(config_data)
 
     @staticmethod
     def from_string(json_string):
         config_data = json.loads(json_string)
-        return ConfigurationLoader.from_dict(config_data)
+        return AssistantConfigurationLoader.from_dict(config_data)
 
     @staticmethod
     def from_dict(config_dict):
@@ -75,6 +102,31 @@ class ConfigurationLoader:
         )
 
         return assistant_configuration
+    
+class SoftwareDevelopmentConfigurationLoader:
+    @staticmethod
+    def from_file(file_path):
+        with open(file_path, "r") as file:
+            config_data = json.load(file)
+            return SoftwareDevelopmentConfigurationLoader.from_dict(config_data)
+
+    @staticmethod
+    def from_string(json_string):
+        config_data = json.loads(json_string)
+        return SoftwareDevelopmentConfigurationLoader.from_dict(config_data)
+
+    @staticmethod
+    def from_dict(config_dict):
+        software_development_data = config_dict.get("software_development_configuration", {})
+        design_decisions_data = software_development_data.get("design_decisions", {})
+        requirement_breakdown_data = software_development_data.get("requirement_breakdown", [])
+
+        software_development_configuration = SoftwareDevelopmentConfiguration(
+            design_decision_generator=DesignDecisionGenerator(design_decisions_data),
+            requirement_breakdown=RequirementBreakdown(requirement_breakdown_data)
+        )
+
+        return software_development_configuration
 
 
 # Example usage
@@ -83,8 +135,8 @@ if __name__ == "__main__":
     with open(json_file_path, "r") as file:
         json_string = file.read()
 
-    config = ConfigurationLoader.from_file(json_file_path)
-    # config = ConfigurationLoader.from_string(json_string)
+    config = AssistantConfigurationLoader.from_file(json_file_path)
+    # config = AssistantConfigurationLoader.from_string(json_string)
 
     print(config.request_router.model_configuration.llm_type)    
     print(config.request_router.model_configuration.model)
