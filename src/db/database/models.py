@@ -278,3 +278,47 @@ class DocumentCollection(ModelBase):
 
     # define the unique constraint on both the interaction_id and collection_name
     __table_args__ = (UniqueConstraint("interaction_id", "collection_name"),)
+
+class Project(ModelBase):
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True)
+    project_name = Column(String, nullable=False, unique=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)    
+    
+class UserNeeds(ModelBase):
+    __tablename__ = "user_needs"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    category = Column(String)
+    text = Column(String, nullable=False)
+
+    project = relationship("Project", backref="user_needs")
+
+
+class Requirements(ModelBase):
+    __tablename__ = "requirements"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    user_need_id = Column(Integer, ForeignKey('user_needs.id'), nullable=False)
+    category = Column(String)
+    text = Column(String, nullable=False)
+
+    project = relationship("Project", backref="requirements")
+    user_need = relationship("UserNeeds", backref="requirements")
+
+
+class AdditionalDesignInputs(ModelBase):
+    __tablename__ = "additional_design_inputs"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    requirement_id = Column(Integer, ForeignKey('requirements.id'), nullable=False)
+    file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
+    description = Column(String, nullable=False)
+
+    project = relationship("Project", backref="additional_design_inputs")
+    requirements = relationship("Requirements", backref="additional_design_inputs")
+    file = relationship("File", backref="additional_design_inputs")

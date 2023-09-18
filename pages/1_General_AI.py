@@ -13,14 +13,13 @@ from src.ai.request_router import RequestRouter
 
 from src.configuration.assistant_configuration import ConfigurationLoader
 
-from src.db.database.creation_utilities import CreationUtilities
+
 
 from src.db.models.interactions import Interactions
 from src.db.models.documents import Documents
 from src.db.models.users import Users
 from src.db.models.domain.file_model import FileModel
 from src.db.models.domain.document_model import DocumentModel
-from src.db.models.vector_database import VectorDatabase
 
 from src.documents.document_loader import load_and_split_documents
 
@@ -40,7 +39,7 @@ class StreamHandler(BaseCallbackHandler):
         self.container.markdown(self.text)
 
 
-class StreamlitUI:
+class GeneralUI:
     def get_configuration_path(self):
         return os.environ.get(
             "ASSISTANT_CONFIG_PATH",
@@ -676,7 +675,7 @@ class StreamlitUI:
 
     def set_page_config(self):
         st.set_page_config(
-            page_title="Jarvis",
+            page_title="Jarvis - General",
             page_icon="🤖",
             layout="wide",
             initial_sidebar_state="expanded",
@@ -684,36 +683,15 @@ class StreamlitUI:
 
         st.title("Hey Jarvis 🤖...")
 
-    def verify_database(self):
-        """Verifies that the database is set up correctly"""
-
-        # Make sure the pgvector extension is enabled
-        CreationUtilities.create_pgvector_extension()
-
-        # Run the migrations (these should be a part of the docker container)
-        CreationUtilities.run_migration_scripts()
-
-        # Ensure any default or standard data is populated
-        # Conversation role types
-        try:
-            VectorDatabase().ensure_conversation_role_types()
-        except Exception as e:
-            print(
-                f"Error ensuring conversation role types: {e}.  You probably didn't run the `migration_utilities.create_migration()`"
-            )
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    streamlit_ui = StreamlitUI()
+    streamlit_ui = GeneralUI()
 
     # Always comes first!
     streamlit_ui.load_configuration()
 
     streamlit_ui.set_page_config()
-
-    streamlit_ui.verify_database()
 
     # Get the user from the environment variables
     user_email = os.environ.get("USER_EMAIL", None)
