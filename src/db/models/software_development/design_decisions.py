@@ -5,11 +5,11 @@ from src.db.models.software_development.domain.design_decisions_model import Des
 from src.db.models.vector_database import VectorDatabase
 
 class DesignDecisions(VectorDatabase):
-    def create_design_decision(self, project_id, category, decision, details) -> DesignDecisionsModel:
+    def create_design_decision(self, project_id, component, decision, details) -> DesignDecisionsModel:
         with self.session_context(self.Session()) as session:
             design_decision = DBDesignDecisions(
                 project_id=project_id,
-                category=category,
+                component=component,
                 decision=decision,
                 details=details
             )
@@ -27,10 +27,10 @@ class DesignDecisions(VectorDatabase):
             design_decisions = session.query(DBDesignDecisions).filter(DBDesignDecisions.project_id == project_id).all()            
             return [DesignDecisionsModel.from_database_model(d) for d in design_decisions]
 
-    def update_design_decision(self, design_decision_id, new_category, new_decision, new_details) -> DesignDecisionsModel:
+    def update_design_decision(self, design_decision_id, new_component, new_decision, new_details) -> DesignDecisionsModel:
         with self.session_context(self.Session()) as session:
             design_decision = session.query(DBDesignDecisions).filter(DBDesignDecisions.id == design_decision_id).first()
-            design_decision.category = new_category
+            design_decision.component = new_component
             design_decision.decision = new_decision
             design_decision.details = new_details
             session.commit()

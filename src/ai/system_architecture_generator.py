@@ -17,6 +17,7 @@ from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.destination_route import DestinationRoute
 from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
+from src.ai.agents.software_development.system_architecture import SystemArchitecture
 
 from src.db.models.software_development.projects import Projects
 from src.db.models.software_development.user_needs import UserNeeds
@@ -27,8 +28,8 @@ from src.db.models.software_development.additional_design_inputs import Addition
 
 from src.utilities.instance_utility import create_instance_from_module_and_class
 
-class DesignDecisionGenerator:
-    """A design decision generator"""
+class SystemArchitectureGenerator:
+    """A system architecture generator"""
 
     llm: BaseLanguageModel = None
     configuration: DesignDecisionGeneratorConfiguration
@@ -38,8 +39,6 @@ class DesignDecisionGenerator:
         configuration: DesignDecisionGeneratorConfiguration,
         streaming: bool = False,        
     ):
-        """Creates a new DesignDecisionGenerator instance."""
-
         self.model_configuration = configuration.model_configuration
         self.token_management_handler = TokenManagementCallbackHandler()
         self.streaming = streaming
@@ -47,7 +46,7 @@ class DesignDecisionGenerator:
         self.llm = get_llm(
             self.model_configuration,
             callbacks=[self.token_management_handler],
-            tags=["design-decision-generator"],
+            tags=["system-architecture-generator"],
             streaming=streaming,
         )
 
@@ -59,7 +58,7 @@ class DesignDecisionGenerator:
         agent_callbacks: list = [],
         kwargs: dict = {},
     ):
-        """Generates design decisions for the specified project ID"""
+        """Generates architecture for the specified project ID"""
 
         # Set up the helpers
         projects_helper = Projects()
@@ -72,47 +71,15 @@ class DesignDecisionGenerator:
         # Pull all of the project data from the database
         project = projects_helper.get_project(project_id)        
         user_needs = user_needs_helper.get_user_needs_in_project(project_id)
-        requirements = requirements_helper.get_requirements_for_project(project_id)
+        requirements = requirements_helper.get_requirements_for_project(project_id)        
+        design_decisions = design_decisions_helper.get_design_decisions_in_project(project_id)
         
-        
-        # Create a design decision for each requirement        
-        for requirement in requirements:
-            # Get the design decisions (do this every time because we're adding new ones)
-            design_decisions = design_decisions_helper.get_design_decisions_in_project(project_id)
+        # Create the agent
+        system_architecture = SystemArchitecture(agent_callbacks, self.model_configuration.llm_type, self.llm)
 
-            # Get any additional inputs for this requirement (TBD)
-            additional_inputs = additional_inputs_helper.get_design_inputs_for_requirement(
-                requirement.id
-            )            
+        result = system_architecture.run(project, user_needs, requirements, design_decisions)
 
-            prompt = get_prompt(
-                self.model_configuration.llm_type,
-                "SINGLE_SHOT_DESIGN_DECISION_TEMPLATE"
-            )
+        # TODO: Store the results in the database
 
-            # Format the prompt
-            prompt = prompt.format(
-                project_name=project.project_name,
-                user_needs="-" + "\n-".join([user_need.text for user_need in user_needs]),
-                requirement_id=requirement.id,
-                requirement=requirement.text,
-                # TODO: Make additional inputs smart- if it's code, use the code structure here.  If it's a document, possibly search and embed the document text here.
-                # additional_inputs=[additional_input.description for additional_input in additional_inputs],
-                existing_design_decisions="\n".join([f"- {design_decision.category} - {design_decision.decision}" for design_decision in design_decisions]),
-            )
-
-            # Generate the design decision
-            design_decision = self.llm.predict(prompt)
-            print(design_decision)
-
-            json_design_decisions = json.loads(design_decision)
-
-            for decision in json_design_decisions['Components']:
-                # Save the design decision to the database
-                design_decisions_helper.create_design_decision(
-                    project_id=project_id,
-                    category=decision["name"],
-                    decision=decision["decision"],
-                    details=decision["details"],
-                )   
+        return result
 

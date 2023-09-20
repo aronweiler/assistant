@@ -7,7 +7,8 @@ import streamlit as st
 from streamlit_extras.no_default_selectbox import selectbox
 from streamlit_tree_select import tree_select
 
-from src.ai.design_decision_generator import DesignDecisionGenerator
+from src.ai.single_shot_design_decision_generator import SingleShotDesignDecisionGenerator
+from src.ai.system_architecture_generator import SystemArchitectureGenerator
 
 from src.configuration.assistant_configuration import SoftwareDevelopmentConfigurationLoader
 from src.db.database.creation_utilities import CreationUtilities
@@ -128,7 +129,7 @@ class SoftwareDevelopmentUI:
 
             with st.expander(f"Design Decisions ({len(design_decisions)})"):
                 st.session_state.design_decisions_df = pd.DataFrame(
-                    [vars(u) for u in design_decisions], columns=["id", "category", "decision", "details"]
+                    [vars(u) for u in design_decisions], columns=["id", "component", "decision", "details"]
                 )
                 st.data_editor(
                     st.session_state.design_decisions_df,
@@ -136,7 +137,7 @@ class SoftwareDevelopmentUI:
                     num_rows="dynamic",
                     column_config={
                         "id": "Design Decision ID",
-                        "category": "Category",
+                        "component": "Component",
                         "decision": "Decision",
                         "details": "Details",
                     },
@@ -159,7 +160,7 @@ class SoftwareDevelopmentUI:
                             if len(row) > 0:
                                 # Add it to the database
                                 design_decisions_helper.create_design_decision(
-                                    project_id, row["category"], row["decision"], row["details"]
+                                    project_id, row["component"], row["decision"], row["details"]
                                 )
 
                         for row in st.session_state.design_decisions_table["edited_rows"]:
@@ -170,9 +171,9 @@ class SoftwareDevelopmentUI:
                             design_decision = design_decisions_helper.get_design_decision(int(id))
 
                             # Then update the values
-                            design_decision.category = st.session_state.design_decisions_table[
+                            design_decision.component = st.session_state.design_decisions_table[
                                 "edited_rows"
-                            ][row].get("category", design_decision.category)
+                            ][row].get("component", design_decision.component)
                             design_decision.decision = st.session_state.design_decisions_table[
                                 "edited_rows"
                             ][row].get("decision", design_decision.decision)
@@ -181,7 +182,7 @@ class SoftwareDevelopmentUI:
                             ][row].get("details", design_decision.details)
 
                             design_decisions_helper.update_design_decision(
-                                int(id), design_decision.category, design_decision.decision, design_decision.details
+                                int(id), design_decision.component, design_decision.decision, design_decision.details
                             )
 
     def load_user_needs(self):
@@ -263,12 +264,22 @@ class SoftwareDevelopmentUI:
                     key="requirements_table",
                     num_rows="dynamic",
                     column_config={
-                        "id": "Requirement ID",
+                        "id": st.column_config.NumberColumn(
+                            "ID",
+                            width=None,
+                            disabled=True,
+
+                        ),
                         "user_need_id": "User need ID",
                         "category": "Category",
-                        "text": "Requirement Text",                        
+                        "text": st.column_config.TextColumn(
+                            "Requirement Text",
+                            help="Requirement text goes here",
+                            width="large",
+                        )                      
                     },
                     disabled=["id"],
+                    width=2000
                 )
 
                 if st.button("Save requirements"):
@@ -323,6 +334,9 @@ class SoftwareDevelopmentUI:
 
                 if st.button("Generate design decisions"):
                     self.generate_design_decisions()
+
+                if st.button("Generate system architecture"):
+                    self.generate_system_architecture()
 
     def load_additional_inputs(self):
     
@@ -431,10 +445,18 @@ class SoftwareDevelopmentUI:
         st.write("Generating for: " + requirement.text)
 
     def generate_design_decisions(self):
-        design_generator = DesignDecisionGenerator(st.session_state.config.design_decision_generator)
+        design_generator = SingleShotDesignDecisionGenerator(st.session_state.config.design_decision_generator)
         design_generator.generate(
             st.session_state.project_selectbox.split(":")[1]
         )
+
+    def generate_system_architecture(self):
+        system_architecture_generator = SystemArchitectureGenerator(st.session_state.config.design_decision_generator)
+        result = system_architecture_generator.generate(
+            st.session_state.project_selectbox.split(":")[1]
+        )
+
+        st.container().write(result)
         
 
 if __name__ == "__main__":

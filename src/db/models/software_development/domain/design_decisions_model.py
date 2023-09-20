@@ -2,10 +2,10 @@ from src.db.database.models import DesignDecisions as DBDesignDecisions
 
 class DesignDecisionsModel:
 
-    def __init__(self, id, project_id, category, decision, details):
+    def __init__(self, id, project_id, component, decision, details):
         self.id = id
         self.project_id = project_id
-        self.category = category
+        self.component = component
         self.decision = decision
         self.details = details
 
@@ -13,7 +13,7 @@ class DesignDecisionsModel:
         return DBDesignDecisions(
             id=self.id,
             project_id=self.project_id,
-            category=self.category,
+            component=self.component,
             decision=self.decision,
             details=self.details,
         )
@@ -29,7 +29,7 @@ class DesignDecisionsModel:
         return cls(
             id=db_user_needs.id,
             project_id=db_user_needs.project_id,
-            category=db_user_needs.category,
+            component=db_user_needs.component,
             decision=db_user_needs.decision,
             details=db_user_needs.details,
         )

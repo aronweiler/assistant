@@ -291,7 +291,7 @@ class DesignDecisions(ModelBase):
 
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
-    category = Column(String)
+    component = Column(String)
     decision = Column(String, nullable=False)
     details = Column(String, nullable=False)
 
