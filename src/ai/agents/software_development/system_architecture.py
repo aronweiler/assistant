@@ -32,24 +32,23 @@ from src.db.models.domain.file_model import FileModel
 class SystemArchitecture:
     def __init__(
         self,
-        agent_callback,
+        callbacks,
         llm_type: str,
         llm: BaseLanguageModel,
     ) -> None:
         self.agent = SystemArchitectureAgent()
+        self.callbacks = callbacks
         self.llm_type = llm_type
         self.llm = llm
 
         tools = [
-            StructuredTool.from_function(
-                func=self.architectural_component_decomposition
-            ),
+            StructuredTool.from_function(func=self.architectural_component_decomposition),
             StructuredTool.from_function(func=self.key_system_interfaces),
             StructuredTool.from_function(func=self.create_design_decisions),
         ]
 
         self.agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=self.agent, tools=tools, verbose=True
+            agent=self.agent, tools=tools, verbose=True, callbacks=self.callbacks
         )
 
     def run(self, project, user_needs, requirements, design_decisions):
@@ -58,17 +57,19 @@ class SystemArchitecture:
             user_needs=user_needs,
             requirements=requirements,
             design_decisions=design_decisions,
+            callbacks=self.callbacks
         )
 
     ## Create a bunch of tools to do the following:
-    # Description of architectural components and their roles
+    # Architectural component decomposition
     # Identification of key system interfaces
-    # Definition of communication protocols and data flow
-    # Overview of hardware and software infrastructure requirements
-    # Consideration of scalability and flexibility in the architecture
-    # Initial performance considerations and constraints
-    # Identification of potential risks or challenges related to the chosen architecture
-    # Alignment with any relevant industry or organizational standards
+    # Make design decisions for each component
+    # Definition of communication protocols and data flow (v2)
+    # Overview of hardware and software infrastructure requirements  (v2)
+    # Consideration of scalability and flexibility in the architecture  (v2)
+    # Initial performance considerations and constraints  (v2)
+    # Identification of potential risks or challenges related to the chosen architecture  (v2)
+    # Alignment with any relevant industry or organizational standards  (v2)
 
     def architectural_component_decomposition(
         self, user_needs, requirements, design_decisions
@@ -165,27 +166,29 @@ class SystemArchitecture:
 
             for decision in design_json["Component Designs"]:
                 # Append it to the existing designs so it feeds forward into the next design
-                design = DesignDecisionsModel(id=None, project_id=project.id, **decision)
+                design = DesignDecisionsModel(
+                    id=None, project_id=project.id, **decision
+                )
 
                 existing_design_decisions.append(design)
                 # TODO: Stop dumping to json for production- this is just here for pretty output and testing
                 designs.append(json.dumps(design.__dict__))
 
         return designs
-    
+
     def get_all_components_ordered(self, components_data):
         sorted_components = []
         visited = set()
 
         def dfs(component):
-            if component['name'] not in visited:
-                visited.add(component['name'])
+            if component["name"] not in visited:
+                visited.add(component["name"])
                 dependencies = component.get("dependencies", [])
                 for dependency in dependencies:
                     matching_dependency = next(
                         (
                             c
-                            for c in components_data['Components']
+                            for c in components_data["Components"]
                             if c["name"] == dependency["dependency_name"]
                         ),
                         None,
@@ -194,7 +197,7 @@ class SystemArchitecture:
                         dfs(matching_dependency)
                 sorted_components.append(component)
 
-        for component in components_data['Components']:
+        for component in components_data["Components"]:
             dfs(component)
 
         sorted_components.reverse()
@@ -213,7 +216,7 @@ class SystemArchitecture:
         matching_interfaces = []
 
         # Iterate through the interfaces
-        for interface in json_data['Interfaces']:
+        for interface in json_data["Interfaces"]:
             if interface["component_name"] == component_name:
                 matching_interfaces.append(interface)
 
@@ -289,7 +292,7 @@ class SystemArchitectureAgent(BaseMultiActionAgent):
                     "existing_design_decisions": kwargs["design_decisions"],
                 },
                 log="Making design decisions...\n",
-            )               
+            )
 
         else:
             # Done handling steps, return the output
@@ -301,7 +304,7 @@ class SystemArchitectureAgent(BaseMultiActionAgent):
             return AgentFinish(
                 {"output": output}, log="Finished the system architecture."
             )
-        
+
     async def aplan(
         self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any
     ) -> Union[List[AgentAction], AgentFinish]:
@@ -320,8 +323,7 @@ class SystemArchitectureAgent(BaseMultiActionAgent):
 
 
 # Testing
-if __name__ == "__main__":   
-
+if __name__ == "__main__":
     components = """{
         "Components": [
                 {
@@ -545,4 +547,8 @@ if __name__ == "__main__":
     system_architecture = SystemArchitecture(None, None, None)
 
     print(system_architecture.get_all_components_ordered(components_json))
-    print(system_architecture.get_interfaces_by_component_name(interfaces_json, "User Interface"))
+    print(
+        system_architecture.get_interfaces_by_component_name(
+            interfaces_json, "User Interface"
+        )
+    )

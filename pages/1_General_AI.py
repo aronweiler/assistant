@@ -27,17 +27,7 @@ from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandle
 
 from src.ai.llm_helper import get_prompt
 from src.utilities.hash_utilities import calculate_sha256
-
-
-class StreamHandler(BaseCallbackHandler):
-    def __init__(self, container, initial_text=""):
-        self.container = container
-        self.text = initial_text
-
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.text += token
-        self.container.markdown(self.text)
-
+from src.ai.callbacks.streamlit_callbacks import StreamlitStreamHandler
 
 class GeneralUI:
     def get_configuration_path(self):
@@ -569,7 +559,7 @@ class GeneralUI:
 
                 with st.chat_message("assistant", avatar="🤖"):
                     llm_callbacks = []
-                    llm_callbacks.append(StreamHandler(st.container().empty()))
+                    llm_callbacks.append(StreamlitStreamHandler(st.container().empty()))
 
                     agent_callbacks = []
                     if st.session_state["show_llm_thoughts"]:

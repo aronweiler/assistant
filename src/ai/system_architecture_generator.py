@@ -37,15 +37,17 @@ class SystemArchitectureGenerator:
     def __init__(
         self,
         configuration: DesignDecisionGeneratorConfiguration,
-        streaming: bool = False,        
+        streaming: bool = False,
+        callbacks: list = [],        
     ):
         self.model_configuration = configuration.model_configuration
         self.token_management_handler = TokenManagementCallbackHandler()
         self.streaming = streaming
+        self.callbacks = callbacks
 
         self.llm = get_llm(
             self.model_configuration,
-            callbacks=[self.token_management_handler],
+            callbacks=[self.token_management_handler] + callbacks,
             tags=["system-architecture-generator"],
             streaming=streaming,
         )
@@ -53,9 +55,7 @@ class SystemArchitectureGenerator:
 
     def generate(
         self,
-        project_id: int,        
-        llm_callbacks: list = [],
-        agent_callbacks: list = [],
+        project_id: int,                
         kwargs: dict = {},
     ):
         """Generates architecture for the specified project ID"""
@@ -73,9 +73,9 @@ class SystemArchitectureGenerator:
         user_needs = user_needs_helper.get_user_needs_in_project(project_id)
         requirements = requirements_helper.get_requirements_for_project(project_id)        
         design_decisions = design_decisions_helper.get_design_decisions_in_project(project_id)
-        
+
         # Create the agent
-        system_architecture = SystemArchitecture(agent_callbacks, self.model_configuration.llm_type, self.llm)
+        system_architecture = SystemArchitecture(callbacks=self.callbacks, llm_type=self.model_configuration.llm_type, llm=self.llm)
 
         result = system_architecture.run(project, user_needs, requirements, design_decisions)
 

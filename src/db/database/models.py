@@ -333,3 +333,36 @@ class AdditionalDesignInputs(ModelBase):
     project = relationship("Project", backref="additional_design_inputs")
     requirements = relationship("Requirements", backref="additional_design_inputs")
     file = relationship("File", backref="additional_design_inputs")
+
+class Component(Base):
+    __tablename__ = "components"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    name = Column(String, nullable=False)
+    purpose = Column(String, nullable=False)
+    
+class ComponentDataHandling(Base):
+    __tablename__ = "component_data_handling"
+
+    id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    data_name = Column(String, nullable=False)
+    data_type = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+   
+class ComponentInteraction(Base):
+    __tablename__ = "component_interactions"
+
+    id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    interacts_with = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+
+class ComponentDependency(Base):
+    __tablename__ = "component_dependencies"
+
+    id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    dependency_name = Column(String, nullable=False)
+    description = Column(String, nullable=False)
