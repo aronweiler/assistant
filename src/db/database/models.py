@@ -278,3 +278,91 @@ class DocumentCollection(ModelBase):
 
     # define the unique constraint on both the interaction_id and collection_name
     __table_args__ = (UniqueConstraint("interaction_id", "collection_name"),)
+
+class Project(ModelBase):
+    __tablename__ = "projects"
+
+    id = Column(Integer, primary_key=True)
+    project_name = Column(String, nullable=False, unique=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)    
+    
+class DesignDecisions(ModelBase):
+    __tablename__ = "design_decisions"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    component = Column(String)
+    decision = Column(String, nullable=False)
+    details = Column(String, nullable=False)
+
+    project = relationship("Project", backref="design_decisions")
+
+class UserNeeds(ModelBase):
+    __tablename__ = "user_needs"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    category = Column(String)
+    text = Column(String, nullable=False)
+
+    project = relationship("Project", backref="user_needs")
+
+
+class Requirements(ModelBase):
+    __tablename__ = "requirements"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    user_need_id = Column(Integer, ForeignKey('user_needs.id'), nullable=False)
+    category = Column(String)
+    text = Column(String, nullable=False)
+
+    project = relationship("Project", backref="requirements")
+    user_need = relationship("UserNeeds", backref="requirements")
+
+
+class AdditionalDesignInputs(ModelBase):
+    __tablename__ = "additional_design_inputs"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    requirement_id = Column(Integer, ForeignKey('requirements.id'), nullable=False)
+    file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
+    description = Column(String, nullable=False)
+
+    project = relationship("Project", backref="additional_design_inputs")
+    requirements = relationship("Requirements", backref="additional_design_inputs")
+    file = relationship("File", backref="additional_design_inputs")
+
+class Component(Base):
+    __tablename__ = "components"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    name = Column(String, nullable=False)
+    purpose = Column(String, nullable=False)
+    
+class ComponentDataHandling(Base):
+    __tablename__ = "component_data_handling"
+
+    id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    data_name = Column(String, nullable=False)
+    data_type = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+   
+class ComponentInteraction(Base):
+    __tablename__ = "component_interactions"
+
+    id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    interacts_with = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+
+class ComponentDependency(Base):
+    __tablename__ = "component_dependencies"
+
+    id = Column(Integer, primary_key=True)
+    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    dependency_name = Column(String, nullable=False)
+    description = Column(String, nullable=False)
