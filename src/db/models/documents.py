@@ -1,7 +1,5 @@
 import sys
 import os
-import json
-import logging
 
 from typing import List, Any
 
@@ -109,6 +107,12 @@ class Documents(VectorDatabase):
             file = session.query(File).filter(File.id == file_id).first()
 
             return FileModel.from_database_model(file)
+        
+    def get_all_files(self) -> List[FileModel]:
+        with self.session_context(self.Session()) as session:
+            files = session.query(File).all()
+
+            return [FileModel.from_database_model(f) for f in files]
         
     def delete_file(self, file_id) -> None:
         with self.session_context(self.Session()) as session:

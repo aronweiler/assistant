@@ -3,7 +3,7 @@ import logging
 
 from src.configuration.assistant_configuration import (
     AssistantConfiguration,
-    ConfigurationLoader,
+    AssistantConfigurationLoader,
 )
 from src.configuration.runner_configuration import RunnerConfig
 from src.utilities.instance_utility import create_instance_from_module_and_class
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     logging.info("Started logging")
 
     runner_config: RunnerConfig = RunnerConfig.load_from_file(args.config)
-    assistant_config: AssistantConfiguration = ConfigurationLoader.from_file(
+    assistant_config: AssistantConfiguration = AssistantConfigurationLoader.from_file(
         args.config
     )
 

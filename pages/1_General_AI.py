@@ -1,5 +1,3 @@
-## Because of how streamlit works, this file must be run from the root of the project, not from the src directory
-
 import logging
 import uuid
 import shutil
@@ -8,41 +6,30 @@ from streamlit_extras.stylable_container import stylable_container
 from streamlit_extras.grid import grid
 import os
 
-# from langchain.callbacks import StreamlitCallbackHandler
+from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from langchain.callbacks.base import BaseCallbackHandler
 
 from src.ai.request_router import RequestRouter
 
-from src.configuration.assistant_configuration import ConfigurationLoader
+from src.configuration.assistant_configuration import AssistantConfigurationLoader
 
-from src.db.database.creation_utilities import CreationUtilities
+
 
 from src.db.models.interactions import Interactions
 from src.db.models.documents import Documents
 from src.db.models.users import Users
 from src.db.models.domain.file_model import FileModel
 from src.db.models.domain.document_model import DocumentModel
-from src.db.models.vector_database import VectorDatabase
 
 from src.documents.document_loader import load_and_split_documents
 
-from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
+#from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
 
 from src.ai.llm_helper import get_prompt
 from src.utilities.hash_utilities import calculate_sha256
+from src.ai.callbacks.streamlit_callbacks import StreamingOnlyCallbackHandler
 
-
-class StreamHandler(BaseCallbackHandler):
-    def __init__(self, container, initial_text=""):
-        self.container = container
-        self.text = initial_text
-
-    def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.text += token
-        self.container.markdown(self.text)
-
-
-class StreamlitUI:
+class GeneralUI:
     def get_configuration_path(self):
         return os.environ.get(
             "ASSISTANT_CONFIG_PATH",
@@ -130,6 +117,7 @@ class StreamlitUI:
                             self.create_collection(
                                 st.session_state["new_collection_name"]
                             )
+                            st.experimental_rerun()
 
                     if "ai" in st.session_state:
                         option = st.session_state["active_collection"]
@@ -253,6 +241,7 @@ class StreamlitUI:
 
             if new_chat_button_clicked:
                 self.create_interaction("Empty Chat")
+                st.experimental_rerun()
 
     def select_documents(self):
         with st.sidebar.container():
@@ -280,6 +269,11 @@ class StreamlitUI:
                     print(f"Active collection: {active_collection}")
 
                 with st.expander("File Ingestion Options", expanded=False):
+                    st.toggle(
+                        "Upload files into same dir (important for code)",
+                        key="use_same_upload_dir",
+                        value=True,
+                    )
                     st.toggle(
                         "Overwrite existing files",
                         key="overwrite_existing_files",
@@ -361,8 +355,13 @@ class StreamlitUI:
             with status.empty():
                 with st.container():
                     st.info(f"Uploading file: {uploaded_file.name}")
-                    # Create a unique path for each file- because files can and will get split into multiples (e.g. Split into CSVs for excel files)
-                    file_path = os.path.join(root_temp_dir, str(uuid.uuid4()), uploaded_file.name)                                                
+                    # if use_same_upload_dir is set, create a unique path for each file- 
+                    # because files can and will get split into multiples (e.g. Split into CSVs for excel files)
+                    if st.session_state["use_same_upload_dir"]:
+                        file_path = os.path.join(root_temp_dir, uploaded_file.name)
+                    else:
+                        file_path = os.path.join(root_temp_dir, str(uuid.uuid4()), uploaded_file.name)
+
                     os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
@@ -401,16 +400,22 @@ class StreamlitUI:
                     
                     for uploaded_file_path in uploaded_file_paths:
                         file_name = os.path.basename(uploaded_file_path)
-                        file_directory = os.path.dirname(uploaded_file_path)
+                        # If we're using the same upload dir for everything, we need to make sure the target path is the file, and not the directory
+                        if st.session_state["use_same_upload_dir"]:
+                            file_directory = uploaded_file_path
+                        else:
+                            file_directory = os.path.dirname(uploaded_file_path)
                         
                         with open(uploaded_file_path, 'rb') as file:
                             file_data = file.read()
 
                         file_hash = calculate_sha256(uploaded_file_path)                        
                         
+                        # If we're overwriting, delete the file and any chunks associated with it.
+                        # This will return false if we are not OK to create the file and document chunks because the file exists or we can't delete the old one.
                         clear_to_create = self.clear_to_create_file_and_docs(file_name, file_hash, collection_id, overwrite_existing_files)
 
-                        if clear_to_create:
+                        if clear_to_create:    
                             documents = load_and_split_documents(
                                 file_directory, split_documents, chunk_size, chunk_overlap
                             )
@@ -571,14 +576,15 @@ class StreamlitUI:
                 st.chat_message("user", avatar="👤").markdown(prompt)
 
                 with st.chat_message("assistant", avatar="🤖"):
+                    llm_container = st.container().empty()
                     llm_callbacks = []
-                    llm_callbacks.append(StreamHandler(st.container().empty()))
+                    llm_callbacks.append(StreamingOnlyCallbackHandler(llm_container))
 
                     agent_callbacks = []
                     if st.session_state["show_llm_thoughts"]:
                         print("showing agent thoughts")
                         agent_callback_container = st.container().empty()
-                        agent_callback = StreamlitAgentCallbackHandler(
+                        agent_callback = StreamlitCallbackHandler(
                             agent_callback_container,
                             expand_new_thoughts=True,
                             collapse_completed_thoughts=True,
@@ -606,7 +612,7 @@ class StreamlitUI:
 
                     print(f"Result: {result}")
 
-                    st.markdown(result)
+                    llm_container.markdown(result)
 
     def ensure_user(self, email):
         self.user_email = email
@@ -672,13 +678,13 @@ class StreamlitUI:
 
         assistant_config_path = self.get_configuration_path()
         if "config" not in st.session_state:
-            st.session_state["config"] = ConfigurationLoader.from_file(
+            st.session_state["config"] = AssistantConfigurationLoader.from_file(
                 assistant_config_path
             )
 
     def set_page_config(self):
         st.set_page_config(
-            page_title="Jarvis",
+            page_title="Jarvis - General",
             page_icon="🤖",
             layout="wide",
             initial_sidebar_state="expanded",
@@ -686,36 +692,15 @@ class StreamlitUI:
 
         st.title("Hey Jarvis 🤖...")
 
-    def verify_database(self):
-        """Verifies that the database is set up correctly"""
-
-        # Make sure the pgvector extension is enabled
-        CreationUtilities.create_pgvector_extension()
-
-        # Run the migrations (these should be a part of the docker container)
-        CreationUtilities.run_migration_scripts()
-
-        # Ensure any default or standard data is populated
-        # Conversation role types
-        try:
-            VectorDatabase().ensure_conversation_role_types()
-        except Exception as e:
-            print(
-                f"Error ensuring conversation role types: {e}.  You probably didn't run the `migration_utilities.create_migration()`"
-            )
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
-    streamlit_ui = StreamlitUI()
+    streamlit_ui = GeneralUI()
 
     # Always comes first!
     streamlit_ui.load_configuration()
 
     streamlit_ui.set_page_config()
-
-    streamlit_ui.verify_database()
 
     # Get the user from the environment variables
     user_email = os.environ.get("USER_EMAIL", None)
