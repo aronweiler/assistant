@@ -21,7 +21,7 @@ class VectorDatabase:
         try:
             self.connection_string = get_connection_string()
 
-            engine = create_engine(self.connection_string, pool_size=20, max_overflow=0)
+            engine = create_engine(self.connection_string, pool_size=100, max_overflow=20)
 
             self.Session = sessionmaker(bind=engine)
 
