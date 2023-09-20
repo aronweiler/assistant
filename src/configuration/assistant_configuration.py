@@ -72,6 +72,10 @@ class SoftwareDevelopmentConfiguration:
         self.design_decision_generator = design_decision_generator
         self.requirement_breakdown = requirement_breakdown
 
+class RetrievalAugmentedGenerationConfiguration:
+    def __init__(self, retrieval_augmented_generation_configuration):
+        self.model_configuration = ModelConfiguration(**retrieval_augmented_generation_configuration['model_configuration'])
+
 class AssistantConfigurationLoader:
     @staticmethod
     def from_file(file_path):
@@ -127,6 +131,28 @@ class SoftwareDevelopmentConfigurationLoader:
         )
 
         return software_development_configuration
+    
+class RetrievalAugmentedGenerationConfigurationLoader:
+    @staticmethod
+    def from_file(file_path):
+        with open(file_path, "r") as file:
+            config_data = json.load(file)
+            return RetrievalAugmentedGenerationConfigurationLoader.from_dict(config_data)
+
+    @staticmethod
+    def from_string(json_string):
+        config_data = json.loads(json_string)
+        return RetrievalAugmentedGenerationConfigurationLoader.from_dict(config_data)
+
+    @staticmethod
+    def from_dict(config_dict):
+        retrieval_augmented_generation_data = config_dict.get("retrieval_augmented_generation_configuration", {})
+        retrieval_augmented_generation_configuration = RetrievalAugmentedGenerationConfiguration(
+            retrieval_augmented_generation_configuration=retrieval_augmented_generation_data
+        )
+
+        return retrieval_augmented_generation_configuration
+
 
 
 # Example usage
