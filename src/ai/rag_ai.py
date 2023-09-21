@@ -42,16 +42,13 @@ class RetrievalAugmentedGenerationAI:
         interaction_id: UUID,
         user_email: str,
         streaming: bool = False,
-        callbacks: list = [],
         agent_timeout: int = 120,
     ):
         self.configuration = configuration
         self.streaming = streaming
-        self.callbacks = callbacks
 
         self.llm = get_llm(
             self.configuration.model_configuration,
-            callbacks=callbacks,
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
         )
@@ -99,6 +96,7 @@ class RetrievalAugmentedGenerationAI:
         self,
         query: str,
         collection_id: int = None,
+        agent_callbacks: List = [],
         kwargs: dict = {},
     ):
         # Set the document collection id on the interaction manager
@@ -129,7 +127,7 @@ class RetrievalAugmentedGenerationAI:
                     ]
                 ]
             ),
-            callbacks=self.callbacks,
+            callbacks=agent_callbacks,
         )
 
         # Adding this after the run so that the agent can't see it in the history
@@ -169,34 +167,34 @@ class RetrievalAugmentedGenerationAI:
         stubber_tool = Stubber(
             code_tool=code_tool,
             document_tool=document_tool,
-            callbacks=self.callbacks,
+            #callbacks=self.callbacks,
             interaction_manager=self.interaction_manager,
         )
 
         tools = [
             StructuredTool.from_function(
-                func=document_tool.search_loaded_documents, callbacks=self.callbacks
+                func=document_tool.search_loaded_documents #, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=document_tool.summarize_topic, callbacks=self.callbacks
+                func=document_tool.summarize_topic #, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=document_tool.list_documents, callbacks=self.callbacks
+                func=document_tool.list_documents #, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.code_details, callbacks=self.callbacks
+                func=code_tool.code_details #, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.code_structure, callbacks=self.callbacks
+                func=code_tool.code_structure #, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
                 func=code_tool.get_pretty_dependency_graph,
-                callbacks=self.callbacks,
+                #callbacks=self.callbacks,
                 return_direct=True,
             ),
             StructuredTool.from_function(
                 func=stubber_tool.create_stubs,
-                callbacks=self.callbacks,
+                #callbacks=self.callbacks,
                 return_direct=True,
             ),
         ]

@@ -19,8 +19,6 @@ from src.db.models.interactions import Interactions
 from src.db.models.documents import Documents
 from src.db.models.documents import FileModel, DocumentModel
 
-from src.ai.callbacks.streamlit_callbacks import StreamingOnlyCallbackHandler
-
 from src.utilities.hash_utilities import calculate_sha256
 
 from src.documents.document_loader import load_and_split_documents
@@ -264,9 +262,8 @@ class RagUI:
         # Note: The styleable container does not work on firefox yet
         css_style = """{
     position: fixed;  /* Keeps the element fixed on the screen */
-    top: 10px;        /* Adjust the top position as needed */
-    right: 10px;      /* Adjust the right position as needed */
-    width: 300px;     /* Adjust the width as needed */
+    top: 100px;        /* Adjust the top position as needed */
+    right: 50px;      /* Adjust the right position as needed */    
     max-width: 100%;  /* Ensures the element width doesn't exceed area */
     z-index: 9999;    /* Ensures the element is on top of other content */
     max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
@@ -321,51 +318,6 @@ class RagUI:
                                 "rag_ai"
                             ].interaction_manager.get_loaded_documents_for_display()
 
-                            uploader = st.session_state.get("file_uploader", None)
-
-                            with st.expander(
-                                "Ingestion Options",
-                                expanded=uploader != None and len(uploader) > 0,
-                            ):
-                                st.radio(
-                                    "File type",
-                                    [
-                                        "Document (Word, PDF, TXT)",
-                                        "Spreadsheet (XLS, CSV)",
-                                        "Code (Python, C++)",
-                                    ],
-                                    key="file_type",
-                                    on_change=self.set_ingestion_settings,
-                                )
-
-                                # Handle the first time
-                                if not "ingestion_settings" in st.session_state:
-                                    st.session_state.ingestion_settings = (
-                                        IngestionSettings()
-                                    )
-
-                                st.toggle(
-                                    "Overwrite existing files",
-                                    key="overwrite_existing_files",
-                                    value=False,
-                                )
-
-                                st.toggle(
-                                    "Split documents",
-                                    key="split_documents",
-                                    value=st.session_state.ingestion_settings.split_documents,
-                                )
-                                st.text_input(
-                                    "Chunk size",
-                                    key="file_chunk_size",
-                                    value=st.session_state.ingestion_settings.chunk_size,
-                                )
-                                st.text_input(
-                                    "Chunk overlap",
-                                    key="file_chunk_overlap",
-                                    value=st.session_state.ingestion_settings.chunk_overlap,
-                                )
-
                             with st.expander("RAG Options", expanded=False):
                                 st.toggle(
                                     "Show LLM thoughts",
@@ -395,6 +347,47 @@ class RagUI:
                 key="file_uploader",
             )
 
+            with st.expander(
+                "Ingestion Options",
+                expanded=uploaded_files != None and len(uploaded_files) > 0,
+            ):
+                st.radio(
+                    "File type",
+                    [
+                        "Document (Word, PDF, TXT)",
+                        "Spreadsheet (XLS, CSV)",
+                        "Code (Python, C++)",
+                    ],
+                    key="file_type",
+                    on_change=self.set_ingestion_settings,
+                )
+
+                # Handle the first time
+                if not "ingestion_settings" in st.session_state:
+                    st.session_state.ingestion_settings = IngestionSettings()
+
+                st.toggle(
+                    "Overwrite existing files",
+                    key="overwrite_existing_files",
+                    value=False,
+                )
+
+                st.toggle(
+                    "Split documents",
+                    key="split_documents",
+                    value=st.session_state.ingestion_settings.split_documents,
+                )
+                st.text_input(
+                    "Chunk size",
+                    key="file_chunk_size",
+                    value=st.session_state.ingestion_settings.chunk_size,
+                )
+                st.text_input(
+                    "Chunk overlap",
+                    key="file_chunk_overlap",
+                    value=st.session_state.ingestion_settings.chunk_overlap,
+                )
+
             status = st.status(f"File status", expanded=False, state="complete")
 
             submit_button = upload_form.form_submit_button("Ingest files")
@@ -419,8 +412,6 @@ class RagUI:
                             int(st.session_state.get("file_chunk_size", 500)),
                             int(st.session_state.get("file_chunk_overlap", 50)),
                         )
-                
-                
 
     def ingest_files(
         self,
@@ -582,7 +573,7 @@ class RagUI:
             st.success(f"Uploaded {len(uploaded_file_paths)} files")
 
         return uploaded_file_paths, root_temp_dir
-    
+
     def refresh_messages_session_state(self, rag_ai_instance):
         """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
 
@@ -630,20 +621,16 @@ class RagUI:
                 st.chat_message("user", avatar="👤").markdown(prompt)
 
                 with st.chat_message("assistant", avatar="🤖"):
+                    thought_container = st.container().empty()
                     llm_container = st.container().empty()
-                    llm_callbacks = []
-                    llm_callbacks.append(StreamingOnlyCallbackHandler(llm_container))
-
-                    agent_callbacks = []
-                    if st.session_state["show_llm_thoughts"]:
-                        print("showing agent thoughts")
-                        agent_callback_container = st.container().empty()
-                        agent_callback = StreamlitCallbackHandler(
-                            agent_callback_container,
+                    callbacks = []
+                    callbacks.append(
+                        StreamlitCallbackHandler(
+                            parent_container=thought_container,
                             expand_new_thoughts=True,
                             collapse_completed_thoughts=True,
                         )
-                        agent_callbacks.append(agent_callback)
+                    )
 
                     collection_id = self.collection_id_from_option(
                         st.session_state["active_collection"],
@@ -657,8 +644,9 @@ class RagUI:
                     }
 
                     result = rag_ai_instance.query(
-                        prompt,
+                        query=prompt,
                         collection_id=collection_id,
+                        agent_callbacks=callbacks,
                         kwargs=kwargs,
                     )
 
