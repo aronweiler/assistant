@@ -279,7 +279,7 @@ SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the follow
 
 ----- BEGIN EXISTING SUMMARY -----
 {existing_answer}
------ BEGIN EXISTING SUMMARY -----
+----- END EXISTING SUMMARY -----
 
 Now you have the opportunity to refine the existing summary (only if needed) with some more context below.
 
@@ -295,6 +295,26 @@ Given the new context, refine the original summary with the goal of answering th
 """
 
 SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)
+
+
+SIMPLE_DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document. You will be provided a summary of all prior chunks, and one additional chunk.
+Use the additional chunk to add to the summary. Do not remove information from the summary unless it is contradicted by information in the current chunk.
+The summary in progress is provided below:
+
+----- BEGIN EXISTING SUMMARY -----
+{existing_answer}
+----- END EXISTING SUMMARY -----
+
+Below is an additional chunk that you should consider for an addition to the ongoing summary:
+
+----- BEGIN ADDITIONAL CONTEXT -----
+{text}
+----- END ADDITIONAL CONTEXT -----
+
+Given the new context, refine the original summary by adding to or modifying the existing summary. If the context isn't useful, just return the original summary.
+"""
+
+SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_DOCUMENT_REFINE_TEMPLATE)
 
 QUESTION_PROMPT_TEMPLATE = """Use the following portion(s) of a long document to see if any of the text is relevant to answer the question. 
 Return any relevant text verbatim, including citations, if any.

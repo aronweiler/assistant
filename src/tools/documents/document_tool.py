@@ -87,6 +87,10 @@ class DocumentTool:
 
         return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources used are: {results['sources']}--- END RESULTS ---"
 
+
+
+
+
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_entire_document(self, target_file_id: int):
         """Useful for getting a summary of an entire specific document.  The target_file_id argument is required.
@@ -98,7 +102,24 @@ class DocumentTool:
         documents = Documents()
         file = documents.get_file(target_file_id)
 
-        return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
+        docs = [Document(page_content=doc_chunk.document_text, metadata=doc_chunk.additional_metadata) for doc_chunk in documents.get_document_chunks_by_file_id(target_file_id=target_file_id)]
+
+        tool_kwargs = self.interaction_manager.tool_kwargs
+        summarization_type = tool_kwargs.get('summarization_type', 'map_reduce')
+        
+        summarization_map = {
+            'refine': self.refine_summarize,
+            'map_reduce': self.map_reduce_summarize
+        }
+
+        summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
+       
+
+        response = self.llm.predict(f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n")
+
+        return response
+        #return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
+
 
     def summarize_topic(self, query: str):
         """Useful for getting a summary of a topic or query from the user.  This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
@@ -128,8 +149,36 @@ class DocumentTool:
         response = self.llm.predict(f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n")
 
         return response
+    
 
-    def refine_summarize(self, query, llm, docs):
+    def map_reduce_summarize(self, query, llm, docs):
+        pass
+        # chain = load_summarize_chain(
+        #     llm=llm,
+        #     chain_type="refine",
+        #     question_prompt=get_prompt(
+        #         self.configuration.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
+        #     ),
+        #     refine_prompt=get_prompt(
+        #         self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+        #     ),
+        #     return_intermediate_steps=True,
+        #     input_key="input_documents",
+        #     output_key="output_text",
+        # )
+
+        # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
+
+        # return result["output_text"]    
+
+
+    def refine_summarize(self, llm, docs, query: str | None = None):
+
+        if query is None:
+            refine_prompt = "SIMPLE_DOCUMENT_REFINE_PROMPT"
+        else:
+            refine_prompt = "SIMPLE_REFINE_PROMPT"
+
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
@@ -137,17 +186,21 @@ class DocumentTool:
                 self.configuration.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
             ),
             refine_prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+                self.configuration.model_configuration.llm_type, refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",
             output_key="output_text",
         )
 
-        result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
+        if query is None:
+            result = chain({"input_documents": docs}, return_only_outputs=True)
+        else:
+            result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
 
         return result["output_text"]    
     
+
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.
         Always use this tool to get the file ID (if you don't already know it) before calling anything else that requires it.
