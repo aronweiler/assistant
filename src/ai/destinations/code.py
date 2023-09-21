@@ -79,7 +79,7 @@ class CodeAI(DestinationBase):
         )
 
         self.document_tool = DocumentTool(
-            destination=self.destination,
+            configuration=self.destination,
             interaction_manager=self.interaction_manager,
             llm=self.llm,
         )
@@ -116,6 +116,7 @@ class CodeAI(DestinationBase):
                 "output_parser": CustomStructuredChatOutputParserWithRetries(),
                 "input_variables": [
                     "input",
+                    "loaded_documents",
                     "agent_chat_history",
                     "agent_scratchpad",
                     "system_information",
@@ -191,6 +192,9 @@ class CodeAI(DestinationBase):
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
+            loaded_documents="\n".join(
+                self.interaction_manager.get_loaded_documents_for_reference()
+            ),
             agent_chat_history="\n".join(
                 [
                     f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"

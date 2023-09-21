@@ -47,9 +47,9 @@ class RagUI:
             "configurations/rag_configs/openai_rag.json",
         )
 
-        if "config" not in st.session_state:
+        if "rag_config" not in st.session_state:
             st.session_state[
-                "config"
+                "rag_config"
             ] = RetrievalAugmentedGenerationConfigurationLoader.from_file(
                 rag_config_path
             )
@@ -172,31 +172,31 @@ class RagUI:
         """Loads the AI instance for the selected interaction id"""
         selected_interaction_id = self.get_selected_interaction_id()
 
-        if "ai" not in st.session_state:
+        if "rag_ai" not in st.session_state:
             # First time loading the page
             logging.debug("load_ai: ai not in session state")
-            ai_instance = RetrievalAugmentedGenerationAI(
-                configuration=st.session_state["config"],
+            rag_ai_instance = RetrievalAugmentedGenerationAI(
+                configuration=st.session_state["rag_config"],
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
             )
-            st.session_state["ai"] = ai_instance
+            st.session_state["rag_ai"] = rag_ai_instance
 
         elif selected_interaction_id and selected_interaction_id != str(
-            st.session_state["ai"].interaction_manager.interaction_id
+            st.session_state["rag_ai"].interaction_manager.interaction_id
         ):
             # We have an AI instance, but we need to change the interaction id
             print(
                 "load_ai: interaction id is not none and not equal to ai interaction id"
             )
-            ai_instance = RetrievalAugmentedGenerationAI(
-                configuration=st.session_state["config"],
+            rag_ai_instance = RetrievalAugmentedGenerationAI(
+                configuration=st.session_state["rag_config"],
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
             )
-            st.session_state["ai"] = ai_instance
+            st.session_state["rag_ai"] = rag_ai_instance
 
     def setup_new_chat_button(self):
         with st.sidebar.container():
@@ -278,7 +278,7 @@ class RagUI:
 
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
-                if "ai" in st.session_state:
+                if "rag_ai" in st.session_state:
                     st.caption("Selected document collection:")
                     # This is a hack, but it works
                     col1, col2 = st.columns([0.80, 0.2])
@@ -306,7 +306,7 @@ class RagUI:
                             )
                             st.experimental_rerun()
 
-                    if "ai" in st.session_state:
+                    if "rag_ai" in st.session_state:
                         option = st.session_state["active_collection"]
                         if option:
                             collection_id = self.collection_id_from_option(
@@ -314,11 +314,11 @@ class RagUI:
                             )
 
                             st.session_state[
-                                "ai"
+                                "rag_ai"
                             ].interaction_manager.collection_id = collection_id
 
                             loaded_docs = st.session_state[
-                                "ai"
+                                "rag_ai"
                             ].interaction_manager.get_loaded_documents_for_display()
 
                             uploader = st.session_state.get("file_uploader", None)
@@ -405,7 +405,7 @@ class RagUI:
                 if active_collection:
                     collection_id = self.collection_id_from_option(
                         active_collection,
-                        st.session_state["ai"].interaction_manager.interaction_id,
+                        st.session_state["rag_ai"].interaction_manager.interaction_id,
                     )
 
                     if submit_button:
@@ -583,11 +583,11 @@ class RagUI:
 
         return uploaded_file_paths, root_temp_dir
     
-    def refresh_messages_session_state(self, ai_instance):
+    def refresh_messages_session_state(self, rag_ai_instance):
         """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
 
         buffer_messages = (
-            ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+            rag_ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
         )
 
         print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
@@ -604,8 +604,8 @@ class RagUI:
                     {"role": "assistant", "content": message.content, "avatar": "🤖"}
                 )
 
-    def show_old_messages(self, ai_instance):
-        self.refresh_messages_session_state(ai_instance)
+    def show_old_messages(self, rag_ai_instance):
+        self.refresh_messages_session_state(rag_ai_instance)
 
         for message in st.session_state["messages"]:
             with st.chat_message(message["role"], avatar=message["avatar"]):
@@ -614,13 +614,13 @@ class RagUI:
     def handle_chat(self, main_window_container):
         with main_window_container.container():
             # Get the AI instance from session state
-            if "ai" not in st.session_state:
+            if "rag_ai" not in st.session_state:
                 st.warning("No AI instance found in session state")
                 st.stop()
             else:
-                ai_instance = st.session_state["ai"]
+                rag_ai_instance = st.session_state["rag_ai"]
 
-            self.show_old_messages(ai_instance)
+            self.show_old_messages(rag_ai_instance)
 
         # Get user input (must be outside of the container)
         prompt = st.chat_input("Enter your message here", key="chat_input")
@@ -647,7 +647,7 @@ class RagUI:
 
                     collection_id = self.collection_id_from_option(
                         st.session_state["active_collection"],
-                        ai_instance.interaction_manager.interaction_id,
+                        rag_ai_instance.interaction_manager.interaction_id,
                     )
 
                     kwargs = {
@@ -656,7 +656,7 @@ class RagUI:
                         else 10
                     }
 
-                    result = ai_instance.query(
+                    result = rag_ai_instance.query(
                         prompt,
                         collection_id=collection_id,
                         kwargs=kwargs,
