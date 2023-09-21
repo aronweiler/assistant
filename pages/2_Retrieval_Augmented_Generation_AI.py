@@ -310,21 +310,39 @@ class RagUI:
                                 option, selected_interaction_id
                             )
 
-                            st.session_state[
-                                "rag_ai"
-                            ].interaction_manager.collection_id = collection_id
+                            st.session_state.rag_ai.interaction_manager.collection_id = collection_id
 
-                            loaded_docs = st.session_state[
-                                "rag_ai"
-                            ].interaction_manager.get_loaded_documents_for_display()
+                            loaded_docs = st.session_state.rag_ai.interaction_manager.get_loaded_documents_for_display()
+                            loaded_docs_delimited = st.session_state.rag_ai.interaction_manager.get_loaded_documents_delimited()                            
 
-                            with st.expander("RAG Options", expanded=False):
-                                st.toggle(
-                                    "Show LLM thoughts",
-                                    key="show_llm_thoughts",
-                                    value=True,
+                            expanded = False
+                            try:
+                                expanded = loaded_docs != None and len(loaded_docs) > 0
+                            except:
+                                pass
+
+                            with st.expander("RAG Options", expanded=expanded):
+                                st.radio("Text search method", ["Similarity", "Keyword"], key="search_method", index=0)
+                                st.number_input("Top K (number of document chunks to use in searches)", key="search_top_k", value=5)
+                                st.toggle("Allow full document summarization *⚠️ Expensive ⚠️*", key="allow_full_document_summarization", value=False)
+                                st.toggle("Use Pandas for Spreadsheets", key="use_pandas", value=True)                                
+                                st.selectbox(
+                                    "Use specific document:",
+                                    ['0:---'] + loaded_docs_delimited,
+                                    key="override_file",
+                                    format_func=lambda x: x.split(":")[1],
                                 )
-                                st.text_input("Top K", key="search_top_k", value=10)
+                                st.number_input("Timeout (seconds)", key="agent_timeout", value=120)
+                            
+                            tools = st.session_state.rag_ai.get_all_tools()
+
+                            def toggle_tool(tool_name):
+                                st.session_state.rag_ai.toggle_tool(tool_name)
+
+                            with st.expander("LLM Tools"):
+                                for tool in tools:
+                                    st.toggle(tool['name'], key=tool['name'], value=tool['enabled'], on_change=toggle_tool, kwargs={'tool_name': tool['name']})
+
 
                             with st.expander(
                                 label=f"({len(loaded_docs)}) documents in {option}",
@@ -640,7 +658,22 @@ class RagUI:
                     kwargs = {
                         "search_top_k": int(st.session_state["search_top_k"])
                         if "search_top_k" in st.session_state
-                        else 10
+                        else 5,
+                        "search_method": st.session_state["search_method"]
+                        if "search_method" in st.session_state
+                        else "Similarity",
+                        "allow_full_document_summarization": st.session_state["allow_full_document_summarization"]
+                        if "allow_full_document_summarization" in st.session_state
+                        else False,
+                        "use_pandas": st.session_state["use_pandas"]
+                        if "use_pandas" in st.session_state
+                        else True,
+                        "override_file": st.session_state["override_file"].split(":")[0]
+                        if "override_file" in st.session_state and st.session_state["override_file"].split(":")[0] != "0"
+                        else None,
+                        "agent_timeout": int(st.session_state["agent_timeout"])
+                        if "agent_timeout" in st.session_state
+                        else 120,
                     }
 
                     result = rag_ai_instance.query(

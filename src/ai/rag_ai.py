@@ -25,6 +25,7 @@ from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
 
 from src.tools.documents.document_tool import DocumentTool
+from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 from src.tools.documents.code_tool import CodeTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
@@ -41,8 +42,7 @@ class RetrievalAugmentedGenerationAI:
         configuration: RetrievalAugmentedGenerationConfiguration,
         interaction_id: UUID,
         user_email: str,
-        streaming: bool = False,
-        agent_timeout: int = 120,
+        streaming: bool = False
     ):
         self.configuration = configuration
         self.streaming = streaming
@@ -61,15 +61,38 @@ class RetrievalAugmentedGenerationAI:
             self.configuration.model_configuration.max_conversation_history_tokens,
         )
 
-        tools = self.create_tools()
+        self.tools = self.create_tools()
 
-        self.agent = initialize_agent(
-            tools=tools,
+    def get_enabled_tools(self):
+        return [
+            tool["tool"]
+            for tool in self.tools
+            if tool["enabled"]            
+        ]
+    
+    def get_all_tools(self):
+        return self.tools
+    
+    def toggle_tool(self, tool_name: str):
+        for tool in self.tools:
+            if tool["name"] == tool_name:
+                if tool["enabled"]:
+                    tool["enabled"] = False
+                else:
+                    tool["enabled"] = True
+                break
+
+    def create_agent(self, agent_timeout: int = 120):
+        agent = initialize_agent(
+            tools=self.get_enabled_tools(),
             llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
             human_message_template=get_prompt(
                 self.configuration.model_configuration.llm_type, "AGENT_TEMPLATE"
+            ),
+            memory=ReadOnlySharedMemory(
+                memory=self.interaction_manager.conversation_token_buffer_memory
             ),
             agent_kwargs={
                 "suffix": get_prompt(
@@ -83,7 +106,7 @@ class RetrievalAugmentedGenerationAI:
                 "input_variables": [
                     "input",
                     "loaded_documents",
-                    "agent_chat_history",
+                    "chat_history",
                     "agent_scratchpad",
                     "system_information",
                 ],
@@ -91,6 +114,8 @@ class RetrievalAugmentedGenerationAI:
             max_execution_time=agent_timeout,
             early_stopping_method="generate",  # try to generate a response if it times out
         )
+
+        return agent
 
     def query(
         self,
@@ -108,8 +133,12 @@ class RetrievalAugmentedGenerationAI:
         # Ensure we have a summary / title for the chat
         self.check_summary(query=query)
 
+        self.spreadsheet_tool.callbacks = agent_callbacks
+
+        agent = self.create_agent(kwargs.get('agent_timeout', 120))
+
         # Run the agent
-        results = self.agent.run(
+        results = agent.run(
             input=query,
             system_information=get_system_information(
                 self.interaction_manager.user_location
@@ -118,14 +147,6 @@ class RetrievalAugmentedGenerationAI:
             user_email=self.interaction_manager.user_email,
             loaded_documents="\n".join(
                 self.interaction_manager.get_loaded_documents_for_reference()
-            ),
-            agent_chat_history="\n".join(
-                [
-                    f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
-                    for m in self.interaction_manager.conversation_token_buffer_memory.chat_memory.messages[
-                        -4:
-                    ]
-                ]
             ),
             callbacks=agent_callbacks,
         )
@@ -154,49 +175,82 @@ class RetrievalAugmentedGenerationAI:
             self.interaction_manager.interaction_needs_summary = False
 
     def create_tools(self):
-        document_tool = DocumentTool(
+        """Used to create the initial tool set.  After creation, this can be modified by enabling/disabling tools."""
+        self.document_tool = DocumentTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
             llm=self.llm,
         )
-        code_tool = CodeTool(
+        self.spreadsheet_tool = SpreadsheetsTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager,
+            llm=self.llm
+        )
+        self.code_tool = CodeTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
             llm=self.llm,
         )
-        stubber_tool = Stubber(
-            code_tool=code_tool,
-            document_tool=document_tool,
-            #callbacks=self.callbacks,
+        self.stubber_tool = Stubber(
+            code_tool=self.code_tool,
+            document_tool=self.document_tool,
+            # callbacks=self.callbacks,
             interaction_manager=self.interaction_manager,
         )
 
         tools = [
-            StructuredTool.from_function(
-                func=document_tool.search_loaded_documents #, callbacks=self.callbacks
-            ),
-            StructuredTool.from_function(
-                func=document_tool.summarize_topic #, callbacks=self.callbacks
-            ),
-            StructuredTool.from_function(
-                func=document_tool.list_documents #, callbacks=self.callbacks
-            ),
-            StructuredTool.from_function(
-                func=code_tool.code_details #, callbacks=self.callbacks
-            ),
-            StructuredTool.from_function(
-                func=code_tool.code_structure #, callbacks=self.callbacks
-            ),
-            StructuredTool.from_function(
-                func=code_tool.get_pretty_dependency_graph,
-                #callbacks=self.callbacks,
-                return_direct=True,
-            ),
-            StructuredTool.from_function(
-                func=stubber_tool.create_stubs,
-                #callbacks=self.callbacks,
-                return_direct=True,
-            ),
+            {
+                "name": "Search Documents",
+                "enabled": True,
+                "tool": StructuredTool.from_function(
+                    func=self.document_tool.search_loaded_documents
+                ),
+            },
+            {
+                "name": "Summarize Topic",
+                "enabled": True,
+                "tool": StructuredTool.from_function(
+                    func=self.document_tool.summarize_topic
+                ),
+            },
+            {
+                "name": "List Documents",
+                "enabled": True,
+                "tool": StructuredTool.from_function(func=self.document_tool.list_documents),
+            },
+            {
+                "name": "Code Details",
+                "enabled": True,
+                "tool": StructuredTool.from_function(func=self.code_tool.code_details),
+            },
+            {
+                "name": "Code Structure",
+                "enabled": True,
+                "tool": StructuredTool.from_function(func=self.code_tool.code_structure),
+            },
+            {
+                "name": "Dependency Graph",
+                "enabled": True,
+                "tool": StructuredTool.from_function(
+                    func=self.code_tool.get_pretty_dependency_graph,
+                    return_direct=True,
+                ),
+            },
+            {
+                "name": "Create Stubs",
+                "enabled": True,
+                "tool": StructuredTool.from_function(
+                    func=self.stubber_tool.create_stubs,
+                    return_direct=True,
+                ),
+            },
+            {
+                "name": "Query Spreadsheet",
+                "enabled": True,
+                "tool": StructuredTool.from_function(
+                    func=self.spreadsheet_tool.query_spreadsheet
+                ),
+            },
         ]
 
         return tools
