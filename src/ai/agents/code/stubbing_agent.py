@@ -27,24 +27,25 @@ class Stubber:
         self,
         code_tool: CodeTool,
         document_tool: DocumentTool,
-        agent_callback,
         interaction_manager: InteractionManager,
+        callbacks: list = [],
     ) -> None:
         self.interaction_manager = interaction_manager
         self.agent = StubbingAgent()
+        self.callbacks = callbacks
 
         tools = [
             StructuredTool.from_function(
-                func=code_tool.code_structure, callbacks=[agent_callback]
+                func=code_tool.code_structure, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.create_stub_code, callbacks=[agent_callback]
+                func=code_tool.create_stub_code, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.get_dependency_graph, callbacks=[agent_callback]
+                func=code_tool.get_dependency_graph, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=document_tool.list_documents, callbacks=[agent_callback]
+                func=document_tool.list_documents, callbacks=self.callbacks
             ),
         ]
 

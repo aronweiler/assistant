@@ -52,7 +52,7 @@ class DocumentsAI(DestinationBase):
             destination.model_configuration.max_conversation_history_tokens,
         )
 
-        self.document_tool = DocumentTool(destination=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
+        self.document_tool = DocumentTool(configuration=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
 
         self.create_document_tools(self.document_tool)
 
@@ -75,6 +75,7 @@ class DocumentsAI(DestinationBase):
                 "output_parser": CustomStructuredChatOutputParserWithRetries(),
                 "input_variables": [
                     "input",
+                    "loaded_documents",
                     "agent_chat_history",
                     "agent_scratchpad",
                     "system_information",
@@ -129,6 +130,9 @@ class DocumentsAI(DestinationBase):
             input=input,
             system_information=get_system_information(
                 self.interaction_manager.user_location
+            ),
+            loaded_documents="\n".join(
+                self.interaction_manager.get_loaded_documents_for_reference()
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,

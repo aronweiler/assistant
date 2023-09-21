@@ -88,7 +88,7 @@ class GeneralUI:
 
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
-                if "ai" in st.session_state:
+                if "general_ai" in st.session_state:
                     st.caption("Selected document collection:")
                     # This is a hack, but it works
                     col1, col2 = st.columns([0.80, 0.2])
@@ -119,7 +119,7 @@ class GeneralUI:
                             )
                             st.experimental_rerun()
 
-                    if "ai" in st.session_state:
+                    if "general_ai" in st.session_state:
                         option = st.session_state["active_collection"]
                         if option:
                             collection_id = self.collection_id_from_option(
@@ -127,11 +127,11 @@ class GeneralUI:
                             )
 
                             st.session_state[
-                                "ai"
+                                "general_ai"
                             ].interaction_manager.collection_id = collection_id
 
                             loaded_docs = st.session_state[
-                                "ai"
+                                "general_ai"
                             ].interaction_manager.get_loaded_documents_for_display()
 
                             with st.expander("File Search Options", expanded=False):
@@ -207,31 +207,31 @@ class GeneralUI:
         """Loads the AI instance for the selected interaction id"""
         selected_interaction_id = self.get_selected_interaction_id()
 
-        if "ai" not in st.session_state:
+        if "general_ai" not in st.session_state:
             # First time loading the page
             print("load_ai: ai not in session state")
-            ai_instance = RequestRouter(
-                st.session_state["config"],
+            general_ai_instance = RequestRouter(
+                st.session_state["general_config"],
                 user_email,
                 selected_interaction_id,
                 streaming=True,
             )
-            st.session_state["ai"] = ai_instance
+            st.session_state["general_ai"] = general_ai_instance
 
         elif selected_interaction_id and selected_interaction_id != str(
-            st.session_state["ai"].interaction_manager.interaction_id
+            st.session_state["general_ai"].interaction_manager.interaction_id
         ):
             # We have an AI instance, but we need to change the interaction id
             print(
                 "load_ai: interaction id is not none and not equal to ai interaction id"
             )
-            ai_instance = RequestRouter(
-                st.session_state["config"],
+            general_ai_instance = RequestRouter(
+                st.session_state["general_config"],
                 user_email,
                 selected_interaction_id,
                 streaming=True,
             )
-            st.session_state["ai"] = ai_instance
+            st.session_state["general_ai"] = general_ai_instance
 
     def select_conversation(self):
         with st.sidebar.container():
@@ -264,7 +264,7 @@ class GeneralUI:
                 if active_collection:
                     collection_id = self.collection_id_from_option(
                         active_collection,
-                        st.session_state["ai"].interaction_manager.interaction_id,
+                        st.session_state["general_ai"].interaction_manager.interaction_id,
                     )
                     print(f"Active collection: {active_collection}")
 
@@ -500,14 +500,14 @@ class GeneralUI:
             "classification", "Document"
         )
 
-        ai_instance: RequestRouter = st.session_state["ai"]
+        general_ai_instance: RequestRouter = st.session_state["general_ai"]
 
         summarize_string = get_prompt(
-            ai_instance.assistant_configuration.request_router.model_configuration.llm_type,
+            general_ai_instance.assistant_configuration.request_router.model_configuration.llm_type,
             "CONCISE_SUMMARIZE_TEMPLATE",
         ).format(text=text)
 
-        file.file_summary = ai_instance.llm.predict(summarize_string)        
+        file.file_summary = general_ai_instance.llm.predict(summarize_string)        
 
         documents_helper.update_file_summary_and_class(
             file.id, file.file_summary, file.file_classification
@@ -517,11 +517,11 @@ class GeneralUI:
             f"File summary: {file.file_summary}, classification: {file.file_classification}"
         )
 
-    def refresh_messages_session_state(self, ai_instance):
+    def refresh_messages_session_state(self, general_ai_instance):
         """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
 
         buffer_messages = (
-            ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+            general_ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
         )
 
         print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
@@ -541,16 +541,16 @@ class GeneralUI:
         # with st.chat_message("user", avatar="👤"):
         #             st.markdown(m.content)
 
-        #  = ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+        #  = general_ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
 
         # for (
         #     m
         # ) in (
-        #     ai_instance.interaction_manager.postgres_chat_message_history.messages
+        #     general_ai_instance.interaction_manager.postgres_chat_message_history.messages
         # ):
 
-    def show_old_messages(self, ai_instance):
-        self.refresh_messages_session_state(ai_instance)
+    def show_old_messages(self, general_ai_instance):
+        self.refresh_messages_session_state(general_ai_instance)
 
         for message in st.session_state["messages"]:
             with st.chat_message(message["role"], avatar=message["avatar"]):
@@ -560,13 +560,13 @@ class GeneralUI:
     def handle_chat(self, main_window_container):
         with main_window_container.container():
             # Get the AI instance from session state
-            if "ai" not in st.session_state:
+            if "general_ai" not in st.session_state:
                 st.warning("No AI instance found in session state")
                 st.stop()
             else:
-                ai_instance = st.session_state["ai"]
+                general_ai_instance = st.session_state["general_ai"]
 
-            self.show_old_messages(ai_instance)
+            self.show_old_messages(general_ai_instance)
 
         # Get user input (must be outside of the container)
         prompt = st.chat_input("Enter your message here", key="chat_input")
@@ -593,7 +593,7 @@ class GeneralUI:
 
                     collection_id = self.collection_id_from_option(
                         st.session_state["active_collection"],
-                        ai_instance.interaction_manager.interaction_id,
+                        general_ai_instance.interaction_manager.interaction_id,
                     )
 
                     kwargs = {
@@ -602,7 +602,7 @@ class GeneralUI:
                         else 10
                     }
 
-                    result = ai_instance.query(
+                    result = general_ai_instance.query(
                         prompt,
                         collection_id=collection_id,
                         llm_callbacks=llm_callbacks,
@@ -677,8 +677,8 @@ class GeneralUI:
         # load_dotenv("/Repos/assistant/.env")
 
         assistant_config_path = self.get_configuration_path()
-        if "config" not in st.session_state:
-            st.session_state["config"] = AssistantConfigurationLoader.from_file(
+        if "general_config" not in st.session_state:
+            st.session_state["general_config"] = AssistantConfigurationLoader.from_file(
                 assistant_config_path
             )
 
