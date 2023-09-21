@@ -83,10 +83,14 @@ When you arrive at the final answer to the query, the format is:
 }}}}
 ```"""
 
-TOOLS_SUFFIX = """Use any context you may need from the chat history (e.g. document names, or other information):
----  CHAT HISTORY ---
+TOOLS_SUFFIX = """Use any context you may need from the items below (e.g. chat history, document names, or other information):
+--- BEGIN CHAT HISTORY ---
 {agent_chat_history}
---- CHAT HISTORY ---
+--- END CHAT HISTORY ---
+
+--- BEGIN LOADED DOCUMENTS ---
+{loaded_documents}
+--- END LOADED DOCUMENTS ---
 
 Helpful system information: {system_information}
 

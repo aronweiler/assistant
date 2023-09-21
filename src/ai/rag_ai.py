@@ -10,10 +10,7 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 
 from langchain.tools import StructuredTool
 
-from langchain.agents import (
-    initialize_agent,
-    AgentType
-)
+from langchain.agents import initialize_agent, AgentType
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfiguration,
@@ -48,9 +45,9 @@ class RetrievalAugmentedGenerationAI:
         callbacks: list = [],
         agent_timeout: int = 120,
     ):
-        self.configuration = configuration        
+        self.configuration = configuration
         self.streaming = streaming
-        self.callbacks = callbacks        
+        self.callbacks = callbacks
 
         self.llm = get_llm(
             self.configuration.model_configuration,
@@ -88,13 +85,14 @@ class RetrievalAugmentedGenerationAI:
                 "output_parser": CustomStructuredChatOutputParserWithRetries(),
                 "input_variables": [
                     "input",
+                    "loaded_documents",
                     "agent_chat_history",
                     "agent_scratchpad",
                     "system_information",
                 ],
             },
-            max_execution_time=agent_timeout, 
-            early_stopping_method="generate" # try to generate a response if it times out
+            max_execution_time=agent_timeout,
+            early_stopping_method="generate",  # try to generate a response if it times out
         )
 
     def query(
@@ -103,8 +101,6 @@ class RetrievalAugmentedGenerationAI:
         collection_id: int = None,
         kwargs: dict = {},
     ):
-        """Routes the query to the appropriate AI, and returns the response."""
-
         # Set the document collection id on the interaction manager
         self.interaction_manager.collection_id = collection_id
 
@@ -113,15 +109,18 @@ class RetrievalAugmentedGenerationAI:
 
         # Ensure we have a summary / title for the chat
         self.check_summary(query=query)
-        
-        # Run the agent        
+
+        # Run the agent
         results = self.agent.run(
-            input=input,
+            input=query,
             system_information=get_system_information(
                 self.interaction_manager.user_location
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
+            loaded_documents="\n".join(
+                self.interaction_manager.get_loaded_documents_for_reference()
+            ),
             agent_chat_history="\n".join(
                 [
                     f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
@@ -130,13 +129,13 @@ class RetrievalAugmentedGenerationAI:
                     ]
                 ]
             ),
-            callbacks=self.callbacks            
+            callbacks=self.callbacks,
         )
 
         # Adding this after the run so that the agent can't see it in the history
         self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_user_message(
-            input
-        )          
+            query
+        )
 
         logging.debug(results)
         self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_ai_message(
@@ -176,17 +175,13 @@ class RetrievalAugmentedGenerationAI:
 
         tools = [
             StructuredTool.from_function(
-                func=document_tool.search_loaded_documents,
-                callbacks=self.callbacks
-            ),            
-            StructuredTool.from_function(
-                func=document_tool.summarize_topic,
-                callbacks=self.callbacks
+                func=document_tool.search_loaded_documents, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=document_tool.list_documents,
-                callbacks=self.callbacks,
-                return_direct=True,
+                func=document_tool.summarize_topic, callbacks=self.callbacks
+            ),
+            StructuredTool.from_function(
+                func=document_tool.list_documents, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
                 func=code_tool.code_details, callbacks=self.callbacks
@@ -195,10 +190,9 @@ class RetrievalAugmentedGenerationAI:
                 func=code_tool.code_structure, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.create_stub_code, callbacks=self.callbacks, return_direct=True
-            ),
-            StructuredTool.from_function(
-                func=code_tool.get_pretty_dependency_graph, callbacks=self.callbacks, return_direct=True
+                func=code_tool.get_pretty_dependency_graph,
+                callbacks=self.callbacks,
+                return_direct=True,
             ),
             StructuredTool.from_function(
                 func=stubber_tool.create_stubs,
