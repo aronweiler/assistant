@@ -130,6 +130,22 @@ class InteractionManager:
             f"file_id='{file.id}' ({file.file_name}, {file.file_classification})"
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
+    
+    def get_loaded_documents_delimited(self):
+        """Gets the loaded documents for the specified collection."""
+
+        if self.collection_id is None:
+            logging.warning(
+                "No document collection ID specified, cannot get loaded documents."
+            )
+            return [
+                "There is no document collection selected, so I can't see what documents are loaded."
+            ]
+
+        return [
+            f"{file.id}:{file.file_name}"
+            for file in self.documents_helper.get_collection_files(self.collection_id)
+        ]
 
     def _ensure_interaction_exists(self, user_id: int):
         """Ensures the interaction exists, and creates it if it doesn't."""

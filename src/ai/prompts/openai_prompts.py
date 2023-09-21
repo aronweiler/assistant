@@ -85,7 +85,7 @@ When you arrive at the final answer to the query, the format is:
 
 TOOLS_SUFFIX = """Use any context you may need from the items below (e.g. chat history, document names, or other information):
 --- BEGIN CHAT HISTORY ---
-{agent_chat_history}
+{chat_history}
 --- END CHAT HISTORY ---
 
 --- BEGIN LOADED DOCUMENTS ---
@@ -94,7 +94,7 @@ TOOLS_SUFFIX = """Use any context you may need from the items below (e.g. chat h
 
 Helpful system information: {system_information}
 
-Let's think this through, and be very careful to use the right tool arguments in the json blob.
+Let's think this through... examine the type of document (Document, Code, Spreadsheet, etc.), and be very careful to use the right tool and arguments in the json blob.  Pay close attention to the tool descriptions!
 
 --- FORMAT --- 
 Action:

@@ -12,7 +12,7 @@ from langchain.callbacks.streamlit.streamlit_callback_handler import (
 )
 
 # from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
-from src.ai.callbacks.streamlit_callbacks import StreamlitStreamHandler
+#from src.ai.callbacks.streamlit_callbacks import StreamlitStreamHandler
 
 from src.ai.single_shot_design_decision_generator import (
     SingleShotDesignDecisionGenerator,
@@ -521,12 +521,12 @@ class SoftwareDevelopmentUI:
         design_generator.generate(st.session_state.project_selectbox.split(":")[1])
 
     def generate_system_architecture(self, main_container):
-        llm_callbacks = []
-        llm_callbacks.append(StreamlitStreamHandler(main_container.empty()))
+        # llm_callbacks = []
+        # llm_callbacks.append(StreamlitStreamHandler(main_container.empty()))
 
         system_architecture_generator = SystemArchitectureGenerator(
             configuration=st.session_state.config.design_decision_generator,
-            callbacks=llm_callbacks,
+            #callbacks=llm_callbacks,
             streaming=True,
         )
         result = system_architecture_generator.generate(
