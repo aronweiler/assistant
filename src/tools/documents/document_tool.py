@@ -7,8 +7,6 @@ from langchain.chains import (
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
 
-from src.configuration.assistant_configuration import Destination
-
 from src.db.models.conversations import SearchType
 from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
@@ -17,8 +15,8 @@ from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_prompt
 
 class DocumentTool:
-    def __init__(self, destination: Destination, interaction_manager: InteractionManager, llm: BaseLanguageModel):
-        self.destination = destination
+    def __init__(self, configuration, interaction_manager: InteractionManager, llm: BaseLanguageModel):
+        self.configuration = configuration
         self.interaction_manager = interaction_manager
         self.llm = llm
 
@@ -58,7 +56,7 @@ class DocumentTool:
         qa_chain = LLMChain(
             llm=self.llm,
             prompt=get_prompt(
-                self.destination.model_configuration.llm_type, "QUESTION_PROMPT"
+                self.configuration.model_configuration.llm_type, "QUESTION_PROMPT"
             ),
             verbose=True,
         )
@@ -69,7 +67,7 @@ class DocumentTool:
             retriever=self.pgvector_retriever,
             chain_type_kwargs={
                 "prompt": get_prompt(
-                    self.destination.model_configuration.llm_type, "QUESTION_PROMPT"
+                    self.configuration.model_configuration.llm_type, "QUESTION_PROMPT"
                 )
             },
         )
@@ -77,7 +75,7 @@ class DocumentTool:
         combine_chain = StuffDocumentsChain(
             llm_chain=qa_chain,
             document_prompt=get_prompt(
-                self.destination.model_configuration.llm_type, "DOCUMENT_PROMPT"
+                self.configuration.model_configuration.llm_type, "DOCUMENT_PROMPT"
             ),
             document_variable_name="summaries",
         )
@@ -136,10 +134,10 @@ class DocumentTool:
             llm=llm,
             chain_type="refine",
             question_prompt=get_prompt(
-                self.destination.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
+                self.configuration.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
             ),
             refine_prompt=get_prompt(
-                self.destination.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+                self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
             ),
             return_intermediate_steps=True,
             input_key="input_documents",
@@ -165,7 +163,7 @@ class DocumentTool:
     #     llm_chain = LLMChain(
     #         llm=llm,
     #         prompt=get_prompt(
-    #             self.destination.model_configuration.llm_type,
+    #             self.configuration.model_configuration.llm_type,
     #             "SINGLE_LINE_SUMMARIZE_PROMPT",
     #         ),
     #     )

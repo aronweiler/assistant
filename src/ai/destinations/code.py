@@ -91,7 +91,7 @@ class CodeAI(DestinationBase):
         self.stubber = Stubber(
             code_tool=self.code_tool,
             document_tool=self.document_tool,
-            agent_callback=self.agent_callback,
+            callbacks=[self.agent_callback],
             interaction_manager=self.interaction_manager,
         )
 

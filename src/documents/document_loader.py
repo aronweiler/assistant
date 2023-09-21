@@ -27,12 +27,12 @@ from src.utilities.token_helper import num_tokens_from_string
 # TODO: Add loaders for PPT, and other document types
 DOCUMENT_TYPES = {
     ".txt": TextLoader,
-    ".pdf": PDFPlumberLoader,  # PDFLoader,
+    ".pdf": PDFPlumberLoader,  
     ".csv": CSVLoader,
     ".ods": UnstructuredExcelLoader,
     ".xls": UnstructuredExcelLoader,
     ".xlsx": UnstructuredExcelLoader,
-    ".html": BSHTMLLoader,
+    #".html": BSHTMLLoader, # Supported, but I don't want to deal with this right now
     ".cpp": CodeLoader,
     ".c": CodeLoader,
     ".cc": CodeLoader,
@@ -47,12 +47,12 @@ DOCUMENT_CLASSIFICATIONS = {
     ".xls": "Spreadsheet",
     ".xlsx": "Spreadsheet",
     ".ods": "Spreadsheet",
-    ".html": "Webpage",
-    ".cpp": "code",
-    ".c": "code",
-    ".cc": "code",
-    ".h": "code",
-    ".py": "code",
+    #".html": "Webpage",
+    ".cpp": "Code",
+    ".c": "Code",
+    ".cc": "Code",
+    ".h": "Code",
+    ".py": "Code",
 }
 
 WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}
@@ -99,13 +99,14 @@ def convert_word_doc_to_pdf(input_doc, out_folder):
             "pdf",
             "--outdir",
             out_folder,
-            input_doc,
+            os.path.abspath(input_doc),
         ],
     )
     logging.debug([get_libre_office_path(), "--convert-to", "pdf", input_doc])
     p.communicate()
 
 
+# Not used at the moment, but if we need to pull data from excel docs into csv, we can use this
 def convert_excel_to_csv(input_doc, out_folder):
     """Convert a single excel document to a multiple CSVs (per sheet) using LibreOffice
 
@@ -124,6 +125,8 @@ def convert_excel_to_csv(input_doc, out_folder):
             "--headless",
             "--convert-to",
             'csv:Text - txt - csv (StarCalc):44,34,UTF8,1,,0,false,true,false,false,false,-1',
+            "--outdir",
+            out_folder,
             input_doc,
         ],
         cwd=cwd,
@@ -132,7 +135,7 @@ def convert_excel_to_csv(input_doc, out_folder):
     p.communicate()
 
 
-def load_single_document(file_path: str) -> List[Document]:
+def load_single_document(file_path: str, converted_file_maps:dict) -> List[Document]:
     # Loads a single document from a file path
     file_extension = os.path.splitext(file_path)[1]
 
@@ -151,7 +154,11 @@ def load_single_document(file_path: str) -> List[Document]:
 
             for doc in documents:
                 # get the file name
-                doc.metadata["filename"] = os.path.basename(file_path)
+                if file_path in converted_file_maps:
+                    # If it's in the converted files, get the original filename
+                    doc.metadata["filename"] = os.path.basename(converted_file_maps[file_path])
+                else:
+                    doc.metadata["filename"] = os.path.basename(file_path)
                 
                 if "page" not in doc.metadata:
                     doc.metadata["page"] = "N/A"
@@ -168,7 +175,7 @@ def load_single_document(file_path: str) -> List[Document]:
         logging.error(f"Unsupported file type: '{file_extension}', {file_path}")
 
 
-def load_documents(source_dir: str) -> List[Document]:
+def load_documents(source_dir: str, converted_file_maps:dict) -> List[Document]:
     """Loads all documents from the source documents directory
 
     Args:
@@ -190,7 +197,7 @@ def load_documents(source_dir: str) -> List[Document]:
     docs = []
     for file_path in paths:
         try:
-            documents = load_single_document(file_path)
+            documents = load_single_document(file_path, converted_file_maps)
             if documents:
                 docs.extend(documents)
         except Exception as e:
@@ -206,15 +213,19 @@ def convert_documents(source_dir: str):
     """   
     all_files = os.listdir(source_dir)
 
+    converted_file_maps = {}
     for file_path in all_files:
         file_extension = os.path.splitext(file_path)[1]
         source_file_path = os.path.join(source_dir, file_path)
 
-        if file_extension in WORD_DOC_TYPES.keys():
+        if file_extension in WORD_DOC_TYPES.keys():            
             convert_word_doc_to_pdf(source_file_path, source_dir)
+            # Kind of a reverse map
+            converted_file_maps[os.path.splitext(source_file_path)[0] + ".pdf"] = source_file_path
         # elif file_extension in EXCEL_DOC_TYPES.keys():
         #     convert_excel_to_csv(source_file_path, source_dir)
 
+    return converted_file_maps
 
 def load_and_split_documents(
     document_directory: str,
@@ -228,9 +239,9 @@ def load_and_split_documents(
         raise ValueError(f"document_directory must be a directory: {document_directory}")
 
     # Pre-convert the word docs to PDFs and the excel docs to csvs
-    convert_documents(document_directory)
+    converted_file_maps = convert_documents(document_directory)
 
-    documents = load_documents(document_directory)
+    documents = load_documents(document_directory, converted_file_maps)
 
     if documents:
         if split_documents:
@@ -263,6 +274,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Test loading and splitting documents
-    source = "/Repos/sample_docs/parks"
+    source = "/Repos/sample_docs"
     documents = load_and_split_documents(source, True, 1000, 100)
     print(len(documents))

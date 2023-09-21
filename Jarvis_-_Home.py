@@ -42,25 +42,24 @@ st.markdown(
     - ✅ Retrieval Augmented Generation (This will eventually be moved to the RAG AI)
     - ✅ Software Development (This will eventually be moved to the Software Development AI)
 
-    Use this AI to chat with Jarvis, ask about the weather, or ask about current events.  
-    You should also use this AI when loading your documents, such as Word, PDF, Excel, or other documents that you may want to chat with Jarvis about.
-
-    ** Note: Currently the General AI is the only AI that can chat with your documents.  This will be moved to the RAG AI as soon as I get to it. **
-
     ### Retrieval Augmented Generation (RAG) AI
     Contains an AI that can chat with your documents.
-    - [x] Load Documents (Word, PDF, Excel, etc.)
-    - [x] Question answering / chat over documents
+    - ✅ Load Documents (Word, PDF, Excel, etc.)
+    - ✅ Limited question answering / chat over documents 
+        - Currently the RAG AI is limited some pretty basic question answering.  This will be improved over time.
+    - [x] Code Understanding
+        - [x] Code Summarization    
+        - [x] Code Review
+        - [x] Code Documentation
+        - [x] Unit Test Generation
     - [x] Summarize documents
     - [x] Specific tools for various document types (e.g. Excel- Summarize a column, count rows, etc.)        
 
     ### Software Development AI
     Contains an AI that can help you with software development.
-    - [x] Code Completion
-    - [x] Code Generation
-    - [x] Code Summarization
-    - [x] Code Understanding
-    - [x] Unit Testing
-    - [x] Code Documentation
+    - ✅ Manual creation of project, user needs, requirements, and design inputs (for prototyping)
+    - ✅ First-pass at performing architectural component breakdown of user needs and requirements    
+    - ✅ First-pass at creating "designs" for software components created by architectural breakdown
+    
 """
 )

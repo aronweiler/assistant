@@ -12,8 +12,6 @@ from langchain.chains import (
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.configuration.assistant_configuration import Destination
-
 from src.db.models.conversations import SearchType
 from src.db.models.documents import Documents
 from src.ai.interactions.interaction_manager import InteractionManager
@@ -30,11 +28,11 @@ from src.tools.documents.code_dependency import CodeDependency
 class CodeTool:
     def __init__(
         self,
-        destination: Destination,
+        configuration,
         interaction_manager: InteractionManager,
         llm: BaseLanguageModel,
     ):
-        self.destination = destination
+        self.configuration = configuration
         self.interaction_manager = interaction_manager
         self.llm = llm
 
@@ -321,7 +319,7 @@ class CodeTool:
         qa_chain = LLMChain(
             llm=self.llm,
             prompt=get_prompt(
-                self.destination.model_configuration.llm_type, "CODE_QUESTION_PROMPT"
+                self.configuration.model_configuration.llm_type, "CODE_QUESTION_PROMPT"
             ),
             verbose=True,
         )
@@ -332,7 +330,7 @@ class CodeTool:
             retriever=self.pgvector_retriever,
             chain_type_kwargs={
                 "prompt": get_prompt(
-                    self.destination.model_configuration.llm_type,
+                    self.configuration.model_configuration.llm_type,
                     "CODE_QUESTION_PROMPT",
                 )
             },
@@ -341,7 +339,7 @@ class CodeTool:
         combine_chain = StuffDocumentsChain(
             llm_chain=qa_chain,
             document_prompt=get_prompt(
-                self.destination.model_configuration.llm_type, "CODE_PROMPT"
+                self.configuration.model_configuration.llm_type, "CODE_PROMPT"
             ),
             document_variable_name="summaries",
         )
@@ -366,11 +364,11 @@ class CodeTool:
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
         C_STUBBING_TEMPLATE = get_prompt(
-            self.destination.model_configuration.llm_type, "C_STUBBING_TEMPLATE"
+            self.configuration.model_configuration.llm_type, "C_STUBBING_TEMPLATE"
         )
 
         stub_dependencies_template = get_prompt(
-            self.destination.model_configuration.llm_type, "STUB_DEPENDENCIES_TEMPLATE"
+            self.configuration.model_configuration.llm_type, "STUB_DEPENDENCIES_TEMPLATE"
         )
 
         # Loop over all of the document chunks and have the LLM create a fake version of each for us
