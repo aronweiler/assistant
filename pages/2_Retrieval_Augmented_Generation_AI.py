@@ -260,98 +260,112 @@ class RagUI:
 
     def create_collections_container(self, main_window_container):
         # Note: The styleable container does not work on firefox yet
-        css_style = """{
-    position: fixed;  /* Keeps the element fixed on the screen */
-    top: 100px;        /* Adjust the top position as needed */
-    right: 50px;      /* Adjust the right position as needed */    
-    max-width: 100%;  /* Ensures the element width doesn't exceed area */
-    z-index: 9999;    /* Ensures the element is on top of other content */
-    max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
-    overflow: auto;     /* Adds a scrollbar when the content overflows */
-    overflow-x: hidden;   /* Hides horizontal scrollbar */
-}"""
+#         css_style = """{
+#     position: fixed;  /* Keeps the element fixed on the screen */
+#     top: 100px;        /* Adjust the top position as needed */
+#     right: 50px;      /* Adjust the right position as needed */    
+#     max-width: 100%;  /* Ensures the element width doesn't exceed area */
+#     z-index: 9999;    /* Ensures the element is on top of other content */
+#     max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
+#     overflow: auto;     /* Adds a scrollbar when the content overflows */
+#     overflow-x: hidden;   /* Hides horizontal scrollbar */
+# }"""
 
         selected_interaction_id = self.get_selected_interaction_id()
 
         with main_window_container:
-            with stylable_container(key="collections_container", css_styles=css_style):
-                if "rag_ai" in st.session_state:
-                    st.caption("Selected document collection:")
-                    # This is a hack, but it works
-                    col1, col2 = st.columns([0.80, 0.2])
-                    col1.selectbox(
-                        "Active document collection",
-                        self.get_available_collections(selected_interaction_id),
-                        key="active_collection",
+            #with stylable_container(key="collections_container", css_styles=css_style):
+            if "rag_ai" in st.session_state:
+                st.caption("Selected document collection:")
+                # This is a hack, but it works
+                col1, col2 = st.columns([0.80, 0.2])
+                col1.selectbox(
+                    "Active document collection",
+                    self.get_available_collections(selected_interaction_id),
+                    key="active_collection",
+                    label_visibility="collapsed",
+                )
+
+                with st.container():
+                    col1, col2 = st.columns(2)
+                    col1.text_input(
+                        "Collection name",
+                        key="new_collection_name",
                         label_visibility="collapsed",
                     )
+                    new_collection = col2.button(
+                        "Create New", key="create_collection"
+                    )
 
-                    with st.container():
-                        col1, col2 = st.columns(2)
-                        col1.text_input(
-                            "Collection name",
-                            key="new_collection_name",
-                            label_visibility="collapsed",
+                    if st.session_state["new_collection_name"] and new_collection:
+                        self.create_collection(
+                            st.session_state["new_collection_name"]
                         )
-                        new_collection = col2.button(
-                            "Create New", key="create_collection"
+                        st.experimental_rerun()
+
+                if "rag_ai" in st.session_state:
+                    option = st.session_state["active_collection"]
+                    if option:
+                        collection_id = self.collection_id_from_option(
+                            option, selected_interaction_id
                         )
 
-                        if st.session_state["new_collection_name"] and new_collection:
-                            self.create_collection(
-                                st.session_state["new_collection_name"]
+                        st.session_state.rag_ai.interaction_manager.collection_id = collection_id
+
+                        loaded_docs = st.session_state.rag_ai.interaction_manager.get_loaded_documents_for_display()
+                        loaded_docs_delimited = st.session_state.rag_ai.interaction_manager.get_loaded_documents_delimited()
+                        
+                        with st.expander(
+                            label=f"({len(loaded_docs)}) documents in {option}",
+                            expanded=False,
+                        ):
+                            for doc in loaded_docs:
+                                st.write(doc)
+
+                        # expanded = False
+                        # try:
+                        #     expanded = loaded_docs != None and len(loaded_docs) > 0
+                        # except:
+                        #     pass
+
+                        st.markdown("### RAG Options")
+
+                        with st.expander("Search"): #, expanded=expanded):
+                            st.radio("Text search method", ["Similarity", "Keyword"], key="search_method", index=0)
+                            st.number_input("Top K (number of document chunks to use in searches)", key="search_top_k", value=5)
+                            st.selectbox(
+                                "Summarization strategy",
+                                ['map_reduce', 'refine'],
+                                key="summarization_strategy"
                             )
-                            st.experimental_rerun()
-
-                    if "rag_ai" in st.session_state:
-                        option = st.session_state["active_collection"]
-                        if option:
-                            collection_id = self.collection_id_from_option(
-                                option, selected_interaction_id
+                        
+                        with st.expander("Spreadsheets"):
+                            st.toggle("Use Pandas for Spreadsheets", key="use_pandas", value=True)     
+                        
+                        with st.expander("General"):                           
+                            st.selectbox(
+                                "Override automatic document selection:",
+                                ['0:---'] + loaded_docs_delimited,
+                                key="override_file",
+                                format_func=lambda x: x.split(":")[1],
                             )
+                            st.number_input("Timeout (seconds)", key="agent_timeout", value=120)
+                        
+                        tools = st.session_state.rag_ai.get_all_tools()
 
-                            st.session_state.rag_ai.interaction_manager.collection_id = collection_id
+                        def toggle_tool(tool_name):
+                            st.session_state.rag_ai.toggle_tool(tool_name)
 
-                            loaded_docs = st.session_state.rag_ai.interaction_manager.get_loaded_documents_for_display()
-                            loaded_docs_delimited = st.session_state.rag_ai.interaction_manager.get_loaded_documents_delimited()                            
+                        with st.expander("Available RAG Tools"):
+                            for tool in tools:
+                                st.toggle(tool['name'], key=tool['name'], help=tool['about'], value=tool['enabled'], on_change=toggle_tool, kwargs={'tool_name': tool['name']})                            
+                    else:
+                        st.warning("No collection selected")
 
-                            expanded = False
-                            try:
-                                expanded = loaded_docs != None and len(loaded_docs) > 0
-                            except:
-                                pass
-
-                            with st.expander("RAG Options", expanded=expanded):
-                                st.radio("Text search method", ["Similarity", "Keyword"], key="search_method", index=0)
-                                st.number_input("Top K (number of document chunks to use in searches)", key="search_top_k", value=5)
-                                st.toggle("Allow full document summarization *⚠️ Expensive ⚠️*", key="allow_full_document_summarization", value=False)
-                                st.toggle("Use Pandas for Spreadsheets", key="use_pandas", value=True)                                
-                                st.selectbox(
-                                    "Use specific document:",
-                                    ['0:---'] + loaded_docs_delimited,
-                                    key="override_file",
-                                    format_func=lambda x: x.split(":")[1],
-                                )
-                                st.number_input("Timeout (seconds)", key="agent_timeout", value=120)
-                            
-                            tools = st.session_state.rag_ai.get_all_tools()
-
-                            def toggle_tool(tool_name):
-                                st.session_state.rag_ai.toggle_tool(tool_name)
-
-                            with st.expander("LLM Tools"):
-                                for tool in tools:
-                                    st.toggle(tool['name'], key=tool['name'], value=tool['enabled'], on_change=toggle_tool, kwargs={'tool_name': tool['name']})
-
-
-                            with st.expander(
-                                label=f"({len(loaded_docs)}) documents in {option}",
-                                expanded=False,
-                            ):
-                                for doc in loaded_docs:
-                                    st.write(doc)
-                        else:
-                            st.warning("No collection selected")
+            st.write("")
+            st.write("")
+            st.write("")
+            st.write("")
 
     def select_documents(self):
         with st.sidebar.container():
@@ -631,8 +645,13 @@ class RagUI:
 
             self.show_old_messages(rag_ai_instance)
 
+            st.write("")
+            st.write("")
+            st.write("")
+            st.write("")
+
         # Get user input (must be outside of the container)
-        prompt = st.chat_input("Enter your message here", key="chat_input")
+        prompt = st.chat_input("Enter your message here", key="chat_input")        
 
         if prompt:
             with main_window_container.container():
@@ -661,10 +680,7 @@ class RagUI:
                         else 5,
                         "search_method": st.session_state["search_method"]
                         if "search_method" in st.session_state
-                        else "Similarity",
-                        "allow_full_document_summarization": st.session_state["allow_full_document_summarization"]
-                        if "allow_full_document_summarization" in st.session_state
-                        else False,
+                        else "Similarity",                        
                         "use_pandas": st.session_state["use_pandas"]
                         if "use_pandas" in st.session_state
                         else True,
@@ -674,6 +690,9 @@ class RagUI:
                         "agent_timeout": int(st.session_state["agent_timeout"])
                         if "agent_timeout" in st.session_state
                         else 120,
+                        "summarization_strategy": st.session_state["summarization_strategy"]
+                        if "summarization_strategy" in st.session_state
+                        else "map_reduce",
                     }
 
                     result = rag_ai_instance.query(
@@ -686,6 +705,8 @@ class RagUI:
                     print(f"Result: {result}")
 
                     llm_container.markdown(result)
+
+                
 
 
 if __name__ == "__main__":
@@ -718,3 +739,17 @@ if __name__ == "__main__":
         rag_ui.select_documents()
 
         rag_ui.handle_chat(col1)
+
+        css = '''
+<style>
+    section.main>div {
+        padding-bottom: 1rem;
+    }
+    [data-testid="column"]>div>div {
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+</style>
+'''
+
+st.markdown(css, unsafe_allow_html=True)

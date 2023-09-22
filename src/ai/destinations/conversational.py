@@ -85,7 +85,7 @@ class ConversationalAI(DestinationBase):
         related_context = self.interaction_manager.conversations_helper.search_conversations_with_user_id(
             search_query=query,
             associated_user_id=self.interaction_manager.user_id,
-            search_type=SearchType.similarity,
+            search_type=SearchType.Similarity,
             top_k=10,
         )
 

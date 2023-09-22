@@ -54,7 +54,7 @@ class PGVectorRetriever(BaseRetriever):
         if "search_type" in self.search_kwargs:
             search_type = self.search_kwargs["search_type"]
         else:
-            search_type = SearchType.similarity
+            search_type = SearchType.Similarity
 
         if "target_file_id" in self.search_kwargs:
             target_file_id = self.search_kwargs["target_file_id"]

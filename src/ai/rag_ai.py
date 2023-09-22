@@ -201,42 +201,49 @@ class RetrievalAugmentedGenerationAI:
         tools = [
             {
                 "name": "Search Documents",
+                "about": "Searches the loaded documents for a query. If the query is directed at a specific document, this will search just that document, otherwise, it will search all loaded documents.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(
                     func=self.document_tool.search_loaded_documents
                 ),
             },
             {
-                "name": "Summarize Topic",
+                "name": "Summarize Topic (All Documents))",
+                "about": "Searches through all documents for the specified topic, and summarizes the results. Don't forget to set the top_k!  If the file override is set, it will use that file.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(
                     func=self.document_tool.summarize_topic
                 ),
             },
             {
-                "name": "Summarize Document",
-                "enabled": True,
+                "name": "Summarize Whole Document (⚠️ Slow / Expensive)",
+                "about": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
+                "enabled": False,
                 "tool": StructuredTool.from_function(
                     func=self.document_tool.summarize_entire_document
                 ),
             },
             {
                 "name": "List Documents",
+                "about": "Lists all loaded documents.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(func=self.document_tool.list_documents),
             },
             {
                 "name": "Code Details",
+                "about": "Gets details about a specific part of a code file.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(func=self.code_tool.code_details),
             },
             {
                 "name": "Code Structure",
+                "about": "Gets the structure of a code file.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(func=self.code_tool.code_structure),
             },
             {
                 "name": "Dependency Graph",
+                "about": "Gets the dependency graph of a code file.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(
                     func=self.code_tool.get_pretty_dependency_graph,
@@ -245,6 +252,7 @@ class RetrievalAugmentedGenerationAI:
             },
             {
                 "name": "Create Stubs",
+                "about": "Creates stubs for a specified code file.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(
                     func=self.stubber_tool.create_stubs,
@@ -253,6 +261,7 @@ class RetrievalAugmentedGenerationAI:
             },
             {
                 "name": "Query Spreadsheet",
+                "about": "Queries a specific spreadsheet.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(
                     func=self.spreadsheet_tool.query_spreadsheet
