@@ -84,7 +84,7 @@ class CodeAI(DestinationBase):
             llm=self.llm,
         )
         self.code_tool = CodeTool(
-            destination=self.destination,
+            configuration=self.destination,
             interaction_manager=self.interaction_manager,
             llm=self.llm,
         )
@@ -117,7 +117,7 @@ class CodeAI(DestinationBase):
                 "input_variables": [
                     "input",
                     "loaded_documents",
-                    "agent_chat_history",
+                    "chat_history",
                     "agent_scratchpad",
                     "system_information",
                 ],
@@ -138,12 +138,6 @@ class CodeAI(DestinationBase):
             StructuredTool.from_function(
                 func=code_tool.search_loaded_documents, callbacks=[self.agent_callback]
             ),
-            # # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
-            # StructuredTool.from_function(
-            #     func=document_tool.summarize_entire_document,
-            #     callbacks=[self.agent_callback],
-            #     return_direct=True,
-            # ),
             StructuredTool.from_function(
                 func=document_tool.summarize_topic,
                 callbacks=[self.agent_callback],
@@ -195,7 +189,7 @@ class CodeAI(DestinationBase):
             loaded_documents="\n".join(
                 self.interaction_manager.get_loaded_documents_for_reference()
             ),
-            agent_chat_history="\n".join(
+            chat_history="\n".join(
                 [
                     f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
                     for m in self.interaction_manager.conversation_token_buffer_memory.chat_memory.messages[

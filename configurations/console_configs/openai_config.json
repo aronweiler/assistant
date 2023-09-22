@@ -86,24 +86,6 @@
         },
         {
           "destination": {
-            "name": "spreadsheets",
-            "module": "src.ai.destinations.spreadsheets",
-            "class_name": "SpreadsheetsAI",
-            "description": "Good for interacting with any of the 'Spreadsheet' documents that maybe be loaded (see: LOADED DOCUMENTS).  NEVER use this model if there are no 'Spreadsheet' documents in LOADED DOCUMENTS.",
-            "system_prompt": "You are a digital assistant who's job it is to look at documentation and answer any of the user's questions as accurately as possible.  If you do not find an answer in the documentation, do not make anything up, simply say you don't know, or that you can't find the answer.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
-            "model_configuration": {
-              "llm_type": "openai",
-              "model": "gpt-3.5-turbo-16k",
-              "temperature": 0,
-              "max_retries": 3,
-              "max_model_supported_tokens": 16384,
-              "max_conversation_history_tokens": 500,
-              "max_completion_tokens": 8192
-            }
-          }
-        },
-        {
-          "destination": {
             "name": "current-events",
             "module": "src.ai.destinations.current_events",
             "class_name": "CurrentEventsAI",

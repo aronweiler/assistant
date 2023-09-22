@@ -76,7 +76,7 @@ class DocumentsAI(DestinationBase):
                 "input_variables": [
                     "input",
                     "loaded_documents",
-                    "agent_chat_history",
+                    "chat_history",
                     "agent_scratchpad",
                     "system_information",
                 ],
@@ -98,12 +98,6 @@ class DocumentsAI(DestinationBase):
                 func=document_tool.search_loaded_documents,
                 callbacks=[self.agent_callback]
             ),
-            # TODO: Make this better... currently only uses the initial summary generated on ~10 pages / splits
-            # StructuredTool.from_function(
-            #     func=document_tool.summarize_entire_document,
-            #     callbacks=[self.agent_callback],
-            #     return_direct=True,
-            # ),
             StructuredTool.from_function(
                 func=document_tool.summarize_topic,
                 callbacks=[self.agent_callback]
@@ -112,7 +106,7 @@ class DocumentsAI(DestinationBase):
                 func=document_tool.list_documents,
                 callbacks=[self.agent_callback],
                 return_direct=True,
-            )
+            )            
         ]
 
     def run(
@@ -136,7 +130,7 @@ class DocumentsAI(DestinationBase):
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
-            agent_chat_history="\n".join(
+            chat_history="\n".join(
                 [
                     f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
                     for m in self.interaction_manager.conversation_token_buffer_memory.chat_memory.messages[
