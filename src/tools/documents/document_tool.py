@@ -105,7 +105,7 @@ class DocumentTool:
         docs = [Document(page_content=doc_chunk.document_text, metadata=doc_chunk.additional_metadata) for doc_chunk in documents.get_document_chunks_by_file_id(target_file_id=target_file_id)]
 
         tool_kwargs = self.interaction_manager.tool_kwargs
-        summarization_type = tool_kwargs.get('summarization_type', 'map_reduce')
+        summarization_type = tool_kwargs.get('summarization_type', 'refine')
         
         summarization_map = {
             'refine': self.refine_summarize,
@@ -113,12 +113,7 @@ class DocumentTool:
         }
 
         summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
-       
-
-        response = self.llm.predict(f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n")
-
-        return response
-        #return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
+        return summary
 
 
     def summarize_topic(self, query: str):
@@ -191,6 +186,7 @@ class DocumentTool:
             return_intermediate_steps=True,
             input_key="input_documents",
             output_key="output_text",
+            verbose=True
         )
 
         if query is None:

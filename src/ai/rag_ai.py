@@ -214,6 +214,13 @@ class RetrievalAugmentedGenerationAI:
                 ),
             },
             {
+                "name": "Summarize Document",
+                "enabled": True,
+                "tool": StructuredTool.from_function(
+                    func=self.document_tool.summarize_entire_document
+                ),
+            },
+            {
                 "name": "List Documents",
                 "enabled": True,
                 "tool": StructuredTool.from_function(func=self.document_tool.list_documents),
