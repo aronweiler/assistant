@@ -13,8 +13,8 @@ from src.db.database.connection_utilities import get_connection_string
 from src.db.database.models import ConversationRoleType
 
 class SearchType(Enum):
-    key_word = "key_word"
-    similarity = "similarity"
+    Keyword = "Keyword"
+    Similarity = "Similarity"
 
 class VectorDatabase:
     def __init__(self):

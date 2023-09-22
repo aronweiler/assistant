@@ -51,10 +51,13 @@ class Conversations(VectorDatabase):
 
             query = super().eager_load(query, eager_load)
 
-            if search_type == SearchType.key_word:
+            if type(search_type) == str:
+                search_type = SearchType(search_type)
+
+            if search_type == SearchType.Keyword:
                 # TODO: Do better key word search
                 query = query.filter(Conversation.conversation_text.contains(search_query)).limit(top_k)
-            elif search_type == SearchType.similarity:
+            elif search_type == SearchType.Similarity:
                 # Calculate the query embedding, then search for the nearest neighbors
                 embedding = self.get_embedding(search_query)
                 query = self._get_nearest_neighbors(session, query, embedding, top_k=top_k)

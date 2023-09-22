@@ -240,7 +240,7 @@ class CodeTool:
                 # Fall back to searching the code file for the signature the AI passed in
                 related_documents = documents.search_document_embeddings(
                     target_signature,
-                    SearchType.similarity,
+                    SearchType.Similarity,
                     self.interaction_manager.collection_id,
                     target_file_id,
                     top_k=20,  # TODO: ... magic number
@@ -302,7 +302,7 @@ class CodeTool:
         """
         search_kwargs = {
             "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 10),
-            "search_type": SearchType.similarity,
+            "search_type": SearchType.Similarity,
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,
             "target_file_id": target_file_id,

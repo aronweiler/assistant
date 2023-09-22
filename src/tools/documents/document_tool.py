@@ -14,35 +14,45 @@ from src.db.models.pgvector_retriever import PGVectorRetriever
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_prompt
 
+
 class DocumentTool:
-    def __init__(self, configuration, interaction_manager: InteractionManager, llm: BaseLanguageModel):
+    def __init__(
+        self,
+        configuration,
+        interaction_manager: InteractionManager,
+        llm: BaseLanguageModel,
+    ):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
         self.llm = llm
 
     def search_loaded_documents(
-        self,        
+        self,
         original_user_query: str,
         search_query: str = None,
         target_file_id: int = None,
     ):
-        """Searches the loaded files for the given query.  
+        """Searches the loaded files for the given query.
 
         The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.
 
         IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
 
-        Args:            
+        Args:
             original_user_query (str, required): The original unmodified query input from the user.
             search_query (str, optional): The query, possibly rephrased by you, to search the files for.
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
-            "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 10),
-            "search_type": SearchType.similarity,
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,
-            "target_file_id": target_file_id,
+            "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+            "search_type": self.interaction_manager.tool_kwargs.get(
+                "search_method", SearchType.Similarity
+            ),
+            "target_file_id": self.interaction_manager.tool_kwargs.get(
+                "override_file", target_file_id
+            ),
         }
 
         documents_helper = Documents()
@@ -83,7 +93,7 @@ class DocumentTool:
         qa_with_sources.combine_documents_chain = combine_chain
         qa_with_sources.return_source_documents = True
 
-        results = qa_with_sources({"question": original_user_query})
+        results = qa_with_sources({"question": search_query or original_user_query})
 
         return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources used are: {results['sources']}--- END RESULTS ---"
 
@@ -98,7 +108,26 @@ class DocumentTool:
         documents = Documents()
         file = documents.get_file(target_file_id)
 
-        return f"The file is classified as: '{file.file_classification}'.  What follows is a brief summary generated from a portion of the document:\n\n{file.file_summary}"
+        docs = [
+            Document(
+                page_content=doc_chunk.document_text,
+                metadata=doc_chunk.additional_metadata,
+            )
+            for doc_chunk in documents.get_document_chunks_by_file_id(
+                target_file_id=target_file_id
+            )
+        ]
+
+        tool_kwargs = self.interaction_manager.tool_kwargs
+        summarization_type = tool_kwargs.get("summarization_type", "refine")
+
+        summarization_map = {
+            "refine": self.refine_summarize,
+            "map_reduce": self.map_reduce_summarize,
+        }
+
+        summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
+        return summary
 
     def summarize_topic(self, query: str):
         """Useful for getting a summary of a topic or query from the user.  This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
@@ -112,42 +141,84 @@ class DocumentTool:
 
         document_models = documents.search_document_embeddings(
             search_query=query,
-            search_type=SearchType.similarity,
             collection_id=self.interaction_manager.collection_id,
-            target_file_id=None,
-            top_k=10
+            search_type=self.interaction_manager.tool_kwargs.get(
+                "search_method", SearchType.Similarity
+            ),
+            target_file_id=self.interaction_manager.tool_kwargs.get(
+                "override_file", None
+            ),
+            top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
         )
 
         # Convert the document models to Document classes
         docs = []
         for doc in document_models:
-            docs.append(Document(page_content=doc.document_text, metadata=doc.additional_metadata))
+            docs.append(
+                Document(
+                    page_content=doc.document_text, metadata=doc.additional_metadata
+                )
+            )
 
-        summary =  self.refine_summarize(llm=self.llm, query=query, docs=docs)
+        summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
 
-        response = self.llm.predict(f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n")
+        response = self.llm.predict(
+            f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+        )
 
         return response
 
-    def refine_summarize(self, query, llm, docs):
+    def map_reduce_summarize(self, query, llm, docs):
+        pass
+        # chain = load_summarize_chain(
+        #     llm=llm,
+        #     chain_type="refine",
+        #     question_prompt=get_prompt(
+        #         self.configuration.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
+        #     ),
+        #     refine_prompt=get_prompt(
+        #         self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+        #     ),
+        #     return_intermediate_steps=True,
+        #     input_key="input_documents",
+        #     output_key="output_text",
+        # )
+
+        # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
+
+        # return result["output_text"]
+
+    def refine_summarize(self, llm, docs, query: str | None = None):
+        if query is None:
+            refine_prompt = "SIMPLE_DOCUMENT_REFINE_PROMPT"
+        else:
+            refine_prompt = "SIMPLE_REFINE_PROMPT"
+
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
             question_prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
+                self.configuration.model_configuration.llm_type,
+                "SIMPLE_SUMMARIZE_PROMPT",
             ),
             refine_prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+                self.configuration.model_configuration.llm_type, refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",
             output_key="output_text",
+            verbose=True,
         )
 
-        result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
+        if query is None:
+            result = chain({"input_documents": docs}, return_only_outputs=True)
+        else:
+            result = chain(
+                {"input_documents": docs, "query": query}, return_only_outputs=True
+            )
 
-        return result["output_text"]    
-    
+        return result["output_text"]
+
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.
         Always use this tool to get the file ID (if you don't already know it) before calling anything else that requires it.
@@ -156,20 +227,3 @@ class DocumentTool:
         return "The loaded documents I have access to are:\n\n-" + "\n-".join(
             self.interaction_manager.get_loaded_documents_for_display()
         )
-    
-
-    # def create_single_line_summary(self, llm, docs):        
-
-    #     llm_chain = LLMChain(
-    #         llm=llm,
-    #         prompt=get_prompt(
-    #             self.configuration.model_configuration.llm_type,
-    #             "SINGLE_LINE_SUMMARIZE_PROMPT",
-    #         ),
-    #     )
-
-    #     stuff_chain = StuffDocumentsChain(
-    #         llm_chain=llm_chain, document_variable_name="text"
-    #     )
-
-    #     return stuff_chain.run(docs)

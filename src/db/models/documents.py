@@ -207,12 +207,15 @@ class Documents(VectorDatabase):
 
             query = super().eager_load(query, eager_load)
 
-            if search_type == SearchType.key_word:
+            if type(search_type) == str:
+                search_type = SearchType(search_type)
+
+            if search_type == SearchType.Keyword:
                 # TODO: Do better key word search
                 query = query.filter(
                     Document.document_text.contains(search_query)
                 ).limit(top_k)
-            elif search_type == SearchType.similarity:
+            elif search_type == SearchType.Similarity:
                 embedding = self.get_embedding(search_query)
                 query = self._get_nearest_neighbors(
                     session, query, embedding, top_k=top_k
@@ -234,7 +237,7 @@ if __name__ == "__main__":
 
     documents = document_helper.search_document_embeddings(
         search_query="comfort stations",
-        search_type=SearchType.similarity,
+        search_type=SearchType.Similarity,
         collection_id=5,
         top_k=100,
     )

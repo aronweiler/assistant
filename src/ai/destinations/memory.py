@@ -73,7 +73,7 @@ class MemoryAI(DestinationBase):
             previous_conversations = self.interaction_manager.conversations_helper.search_conversations_with_user_id(
                 session,
                 conversation_text_search_query=input,
-                search_type=SearchType.similarity,
+                search_type=SearchType.Similarity,
                 top_k=100,
                 associated_user_id=self.interaction_manager.user_id,
             )
