@@ -113,7 +113,7 @@ class CodeAI(DestinationBase):
                     self.destination.model_configuration.llm_type,
                     "TOOLS_FORMAT_INSTRUCTIONS",
                 ),
-                "output_parser": CustomStructuredChatOutputParserWithRetries(),
+                "output_parser": CustomStructuredChatOutputParserWithRetries.from_llm(llm=self.llm), #CustomStructuredChatOutputParserWithRetries(output_fixing_parser=CustomOutputFixingParser),
                 "input_variables": [
                     "input",
                     "loaded_documents",

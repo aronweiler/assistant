@@ -47,7 +47,11 @@ class CustomStructuredChatOutputParser(AgentOutputParser):
     def _type(self) -> str:
         return "structured_chat"
 
+class CustomOutputFixingParser:   
 
+    def parse(self, text):
+        return text
+    
 class CustomStructuredChatOutputParserWithRetries(AgentOutputParser):
     """Output parser with retries for the structured chat agent."""
 
