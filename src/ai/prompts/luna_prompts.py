@@ -115,7 +115,7 @@ When you arrive at the final answer to the query, the format is:
 
 TOOLS_SUFFIX = """Use any context you may need from the chat history (e.g. document names, or other information):
 ---  CHAT HISTORY ---
-{agent_chat_history}
+{chat_history}
 --- CHAT HISTORY ---
 
 Helpful system information: {system_information}

@@ -51,9 +51,13 @@ class StreamingOnlyCallbackHandler(BaseCallbackHandler):
         self.text = ""
 
     def on_llm_new_token(self, token: str, **kwargs) -> None:
-        self.text += token
+        self.text += token            
+        try:
+            self.container.markdown(self.text)
+        except:
+            # Sometimes the control goes away because we switch pages
+            pass
 
-        self.container.markdown(self.text)
 
 
 def _convert_newlines(text: str) -> str:

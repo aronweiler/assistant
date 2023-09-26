@@ -151,86 +151,87 @@ class SoftwareDevelopmentUI:
                 project_id
             )
 
-            with st.expander(f"Design Decisions ({len(design_decisions)})"):
-                st.session_state.design_decisions_df = pd.DataFrame(
-                    [vars(u) for u in design_decisions],
-                    columns=["id", "component", "decision", "details"],
-                )
-                st.data_editor(
-                    st.session_state.design_decisions_df,
-                    key="design_decisions_table",
-                    num_rows="dynamic",
-                    column_config={
-                        "id": "Design Decision ID",
-                        "component": "Component",
-                        "decision": "Decision",
-                        "details": "Details",
-                    },
-                    disabled=["id"],
-                )
+            #with st.expander(f"Design Decisions ({len(design_decisions)})"):
+            st.markdown("## Design Decisions")
+            st.session_state.design_decisions_df = pd.DataFrame(
+                [vars(u) for u in design_decisions],
+                columns=["id", "component", "decision", "details"],
+            )
+            st.data_editor(
+                st.session_state.design_decisions_df,
+                key="design_decisions_table",
+                num_rows="dynamic",
+                column_config={
+                    "id": "Design Decision ID",
+                    "component": "Component",
+                    "decision": "Decision",
+                    "details": "Details",
+                },
+                disabled=["id"],
+            )
 
-                if st.button("Save design decisions"):
-                    if st.session_state.design_decisions_table:
-                        # Handle deleted rows first, because they are done by index
-                        for row in st.session_state.design_decisions_table[
-                            "deleted_rows"
-                        ]:
-                            # Get the id from the deleted row
-                            id = st.session_state.design_decisions_df.iloc[row]["id"]
-                            design_decisions_helper.delete_design_decision(int(id))
-                            st.session_state.design_decisions_df.drop(
-                                index=row, inplace=True
+            if st.button("Save design decisions"):
+                if st.session_state.design_decisions_table:
+                    # Handle deleted rows first, because they are done by index
+                    for row in st.session_state.design_decisions_table[
+                        "deleted_rows"
+                    ]:
+                        # Get the id from the deleted row
+                        id = st.session_state.design_decisions_df.iloc[row]["id"]
+                        design_decisions_helper.delete_design_decision(int(id))
+                        st.session_state.design_decisions_df.drop(
+                            index=row, inplace=True
+                        )
+
+                        st.write(f"Deleted record with id {id}")
+
+                    for row in st.session_state.design_decisions_table[
+                        "added_rows"
+                    ]:
+                        # Ignore empty rows
+                        if len(row) > 0:
+                            # Add it to the database
+                            design_decisions_helper.create_design_decision(
+                                project_id,
+                                row["component"],
+                                row["decision"],
+                                row["details"],
                             )
 
-                            st.write(f"Deleted record with id {id}")
+                    for row in st.session_state.design_decisions_table[
+                        "edited_rows"
+                    ]:
+                        # First get the ID of the row
+                        id = st.session_state.design_decisions_df.iloc[row]["id"]
 
-                        for row in st.session_state.design_decisions_table[
-                            "added_rows"
-                        ]:
-                            # Ignore empty rows
-                            if len(row) > 0:
-                                # Add it to the database
-                                design_decisions_helper.create_design_decision(
-                                    project_id,
-                                    row["component"],
-                                    row["decision"],
-                                    row["details"],
-                                )
+                        # Then get the value from the db
+                        design_decision = (
+                            design_decisions_helper.get_design_decision(int(id))
+                        )
 
-                        for row in st.session_state.design_decisions_table[
-                            "edited_rows"
-                        ]:
-                            # First get the ID of the row
-                            id = st.session_state.design_decisions_df.iloc[row]["id"]
+                        # Then update the values
+                        design_decision.component = (
+                            st.session_state.design_decisions_table["edited_rows"][
+                                row
+                            ].get("component", design_decision.component)
+                        )
+                        design_decision.decision = (
+                            st.session_state.design_decisions_table["edited_rows"][
+                                row
+                            ].get("decision", design_decision.decision)
+                        )
+                        design_decision.details = (
+                            st.session_state.design_decisions_table["edited_rows"][
+                                row
+                            ].get("details", design_decision.details)
+                        )
 
-                            # Then get the value from the db
-                            design_decision = (
-                                design_decisions_helper.get_design_decision(int(id))
-                            )
-
-                            # Then update the values
-                            design_decision.component = (
-                                st.session_state.design_decisions_table["edited_rows"][
-                                    row
-                                ].get("component", design_decision.component)
-                            )
-                            design_decision.decision = (
-                                st.session_state.design_decisions_table["edited_rows"][
-                                    row
-                                ].get("decision", design_decision.decision)
-                            )
-                            design_decision.details = (
-                                st.session_state.design_decisions_table["edited_rows"][
-                                    row
-                                ].get("details", design_decision.details)
-                            )
-
-                            design_decisions_helper.update_design_decision(
-                                int(id),
-                                design_decision.component,
-                                design_decision.decision,
-                                design_decision.details,
-                            )
+                        design_decisions_helper.update_design_decision(
+                            int(id),
+                            design_decision.component,
+                            design_decision.decision,
+                            design_decision.details,
+                        )
 
     def load_user_needs(self):
         if st.session_state.project_selectbox != "---":
@@ -239,59 +240,60 @@ class SoftwareDevelopmentUI:
             user_needs_helper = UserNeeds()
             user_needs = user_needs_helper.get_user_needs_in_project(project_id)
 
-            with st.expander(f"User Needs ({len(user_needs)})"):
-                st.session_state.user_needs_df = pd.DataFrame(
-                    [vars(u) for u in user_needs], columns=["id", "category", "text"]
-                )
-                st.data_editor(
-                    st.session_state.user_needs_df,
-                    key="user_needs_table",
-                    num_rows="dynamic",
-                    column_config={
-                        "id": "User Need ID",
-                        "category": "Category",
-                        "text": "User Need Text",
-                    },
-                    disabled=["id"],
-                )
+            #with st.expander(f"User Needs ({len(user_needs)})"):
+            st.markdown("## User Needs")
+            st.session_state.user_needs_df = pd.DataFrame(
+                [vars(u) for u in user_needs], columns=["id", "category", "text"]
+            )
+            st.data_editor(
+                st.session_state.user_needs_df,
+                key="user_needs_table",
+                num_rows="dynamic",
+                column_config={
+                    "id": "User Need ID",
+                    "category": "Category",
+                    "text": "User Need Text",
+                },
+                disabled=["id"],
+            )
 
-                if st.button("Save user needs"):
-                    if st.session_state.user_needs_table:
-                        # Handle deleted rows first, because they are done by index
-                        for row in st.session_state.user_needs_table["deleted_rows"]:
-                            # Get the id from the deleted row
-                            id = st.session_state.user_needs_df.iloc[row]["id"]
-                            user_needs_helper.delete_user_need(int(id))
-                            st.session_state.user_needs_df.drop(index=row, inplace=True)
+            if st.button("Save user needs"):
+                if st.session_state.user_needs_table:
+                    # Handle deleted rows first, because they are done by index
+                    for row in st.session_state.user_needs_table["deleted_rows"]:
+                        # Get the id from the deleted row
+                        id = st.session_state.user_needs_df.iloc[row]["id"]
+                        user_needs_helper.delete_user_need(int(id))
+                        st.session_state.user_needs_df.drop(index=row, inplace=True)
 
-                            st.write(f"Deleted record with id {id}")
+                        st.write(f"Deleted record with id {id}")
 
-                        for row in st.session_state.user_needs_table["added_rows"]:
-                            # Ignore empty rows
-                            if len(row) > 0:
-                                # Add it to the database
-                                user_needs_helper.create_user_need(
-                                    project_id, row["category"], row["text"]
-                                )
-
-                        for row in st.session_state.user_needs_table["edited_rows"]:
-                            # First get the ID of the row
-                            id = st.session_state.user_needs_df.iloc[row]["id"]
-
-                            # Then get the value from the db
-                            user_need = user_needs_helper.get_user_need(int(id))
-
-                            # Then update the values
-                            user_need.category = st.session_state.user_needs_table[
-                                "edited_rows"
-                            ][row].get("category", user_need.category)
-                            user_need.text = st.session_state.user_needs_table[
-                                "edited_rows"
-                            ][row].get("text", user_need.text)
-
-                            user_needs_helper.update_user_need(
-                                int(id), user_need.category, user_need.text
+                    for row in st.session_state.user_needs_table["added_rows"]:
+                        # Ignore empty rows
+                        if len(row) > 0:
+                            # Add it to the database
+                            user_needs_helper.create_user_need(
+                                project_id, row["category"], row["text"]
                             )
+
+                    for row in st.session_state.user_needs_table["edited_rows"]:
+                        # First get the ID of the row
+                        id = st.session_state.user_needs_df.iloc[row]["id"]
+
+                        # Then get the value from the db
+                        user_need = user_needs_helper.get_user_need(int(id))
+
+                        # Then update the values
+                        user_need.category = st.session_state.user_needs_table[
+                            "edited_rows"
+                        ][row].get("category", user_need.category)
+                        user_need.text = st.session_state.user_needs_table[
+                            "edited_rows"
+                        ][row].get("text", user_need.text)
+
+                        user_needs_helper.update_user_need(
+                            int(id), user_need.category, user_need.text
+                        )
 
     def load_requirements(self, main_container):
         if st.session_state.project_selectbox != "---":
@@ -300,84 +302,85 @@ class SoftwareDevelopmentUI:
             requirements_helper = Requirements()
             requirements = requirements_helper.get_requirements_for_project(project_id)
 
-            with st.expander(f"Requirements ({len(requirements)})"):
-                st.session_state.requirements_df = pd.DataFrame(
-                    [vars(u) for u in requirements],
-                    columns=["id", "user_need_id", "category", "text"],
-                )
-                st.data_editor(
-                    st.session_state.requirements_df,
-                    key="requirements_table",
-                    num_rows="dynamic",
-                    column_config={
-                        "id": st.column_config.NumberColumn(
-                            "ID",
-                            width=None,
-                            disabled=True,
-                        ),
-                        "user_need_id": "User need ID",
-                        "category": "Category",
-                        "text": st.column_config.TextColumn(
-                            "Requirement Text",
-                            help="Requirement text goes here",
-                            width="large",
-                        ),
-                    },
-                    disabled=["id"],
-                    width=2000,
-                )
+            #with st.expander(f"Requirements ({len(requirements)})"):
+            st.markdown("## Requirements")
+            st.session_state.requirements_df = pd.DataFrame(
+                [vars(u) for u in requirements],
+                columns=["id", "user_need_id", "category", "text"],
+            )
+            st.data_editor(
+                st.session_state.requirements_df,
+                key="requirements_table",
+                num_rows="dynamic",
+                column_config={
+                    "id": st.column_config.NumberColumn(
+                        "ID",
+                        width=None,
+                        disabled=True,
+                    ),
+                    "user_need_id": "User need ID",
+                    "category": "Category",
+                    "text": st.column_config.TextColumn(
+                        "Requirement Text",
+                        help="Requirement text goes here",
+                        width="large",
+                    ),
+                },
+                disabled=["id"],
+                width=2000,
+            )
 
-                if st.button("Save requirements"):
-                    if st.session_state.requirements_table:
-                        # Handle deleted rows first, because they are done by index
-                        for row in st.session_state.requirements_table["deleted_rows"]:
-                            # Get the id from the deleted row
-                            id = st.session_state.requirements_df.iloc[row]["id"]
-                            requirements_helper.delete_requirement(int(id))
-                            st.session_state.requirements_df.drop(
-                                index=row, inplace=True
-                            )
+            if st.button("Save requirements"):
+                if st.session_state.requirements_table:
+                    # Handle deleted rows first, because they are done by index
+                    for row in st.session_state.requirements_table["deleted_rows"]:
+                        # Get the id from the deleted row
+                        id = st.session_state.requirements_df.iloc[row]["id"]
+                        requirements_helper.delete_requirement(int(id))
+                        st.session_state.requirements_df.drop(
+                            index=row, inplace=True
+                        )
 
-                            st.write(f"Deleted record with id {id}")
+                        st.write(f"Deleted record with id {id}")
 
-                        for row in st.session_state.requirements_table["added_rows"]:
-                            # Ignore empty rows
-                            if len(row) > 0:
-                                # Add it to the database
-                                requirements_helper.create_requirement(
-                                    project_id,
-                                    row["user_need_id"],
-                                    row["category"],
-                                    row["text"],
-                                )
-
-                        for row in st.session_state.requirements_table["edited_rows"]:
+                    for row in st.session_state.requirements_table["added_rows"]:
+                        # Ignore empty rows
+                        if len(row) > 0:
                             # Add it to the database
-                            # First get the ID of the row
-                            id = st.session_state.requirements_df.iloc[row]["id"]
-
-                            # Then get the value from the db
-                            requirement = requirements_helper.get_requirement(int(id))
-
-                            # Then update the values
-                            requirement.user_need_id = int(
-                                st.session_state.requirements_table["edited_rows"][
-                                    row
-                                ].get("user_need_id", requirement.user_need_id)
+                            requirements_helper.create_requirement(
+                                project_id,
+                                row["user_need_id"],
+                                row["category"],
+                                row["text"],
                             )
-                            requirement.category = st.session_state.requirements_table[
-                                "edited_rows"
-                            ][row].get("category", requirement.category)
-                            requirement.text = st.session_state.requirements_table[
-                                "edited_rows"
-                            ][row].get("text", requirement.text)
 
-                            requirements_helper.update_requirement(
-                                int(id),
-                                requirement.user_need_id,
-                                requirement.category,
-                                requirement.text,
-                            )
+                    for row in st.session_state.requirements_table["edited_rows"]:
+                        # Add it to the database
+                        # First get the ID of the row
+                        id = st.session_state.requirements_df.iloc[row]["id"]
+
+                        # Then get the value from the db
+                        requirement = requirements_helper.get_requirement(int(id))
+
+                        # Then update the values
+                        requirement.user_need_id = int(
+                            st.session_state.requirements_table["edited_rows"][
+                                row
+                            ].get("user_need_id", requirement.user_need_id)
+                        )
+                        requirement.category = st.session_state.requirements_table[
+                            "edited_rows"
+                        ][row].get("category", requirement.category)
+                        requirement.text = st.session_state.requirements_table[
+                            "edited_rows"
+                        ][row].get("text", requirement.text)
+
+                        requirements_helper.update_requirement(
+                            int(id),
+                            requirement.user_need_id,
+                            requirement.category,
+                            requirement.text,
+                        )
 
     def load_components(self):
         if st.session_state.project_selectbox != "---":
@@ -386,20 +389,21 @@ class SoftwareDevelopmentUI:
             components_helper = Components()
             components = components_helper.get_components_by_project_id(project_id)
 
-            with st.expander(f"Components ({len(components)})"):
-                if len(components) > 0:
-                    components_df = pd.DataFrame(
-                        [vars(u) for u in components],
-                        columns=["id", "name", "purpose"],
-                    )
-                    st.dataframe(
-                        components_df,
-                        column_config={
-                            "id": "ID",
-                            "name": "Component Name",
-                            "purpose": "Component Purpose",
-                        },
-                    )
+            #with st.expander(f"Components ({len(components)})"):
+            st.markdown("## Components")
+            
+            components_df = pd.DataFrame(
+                [vars(u) for u in components],
+                columns=["id", "name", "purpose"],
+            )
+            st.dataframe(
+                components_df,
+                column_config={
+                    "id": "ID",
+                    "name": "Component Name",
+                    "purpose": "Component Purpose",
+                },
+            )
 
     def load_additional_inputs(self):
         if st.session_state.project_selectbox != "---":
@@ -411,102 +415,103 @@ class SoftwareDevelopmentUI:
                 project_id
             )
 
-            with st.expander(f"Additional Inputs ({len(additional_inputs)})"):
-                for additional_input in additional_inputs:
-                    additional_input.file_id = documents_helper.get_file(
-                        additional_input.file_id
-                    ).file_name
+            # with st.expander(f"Additional Inputs ({len(additional_inputs)})"):
+            st.markdown("## Additional Inputs")
+            for additional_input in additional_inputs:
+                additional_input.file_id = documents_helper.get_file(
+                    additional_input.file_id
+                ).file_name
 
-                st.session_state.additional_inputs_df = pd.DataFrame(
-                    [vars(u) for u in additional_inputs],
-                    columns=["id", "requirement_id", "file_id", "description"],
-                )
-                st.data_editor(
-                    st.session_state.additional_inputs_df,
-                    key="additional_inputs_table",
-                    num_rows="dynamic",
-                    column_config={
-                        "id": "Additional Input ID",
-                        "requirement_id": "Requirement ID",
-                        "file_id": st.column_config.SelectboxColumn(
-                            "Associated file",
-                            help="The file to use as an additional input",
-                            width="large",
-                            options=[
-                                f"{file.id}:{file.file_name}"
-                                for file in documents_helper.get_all_files()
-                            ],
-                        ),
-                        "description": "Description",
-                    },
-                    disabled=["id"],
-                )
+            st.session_state.additional_inputs_df = pd.DataFrame(
+                [vars(u) for u in additional_inputs],
+                columns=["id", "requirement_id", "file_id", "description"],
+            )
+            st.data_editor(
+                st.session_state.additional_inputs_df,
+                key="additional_inputs_table",
+                num_rows="dynamic",
+                column_config={
+                    "id": "Additional Input ID",
+                    "requirement_id": "Requirement ID",
+                    "file_id": st.column_config.SelectboxColumn(
+                        "Associated file",
+                        help="The file to use as an additional input",
+                        width="large",
+                        options=[
+                            f"{file.id}:{file.file_name}"
+                            for file in documents_helper.get_all_files()
+                        ],
+                    ),
+                    "description": "Description",
+                },
+                disabled=["id"],
+            )
 
-                if st.button("Save additional inputs"):
-                    if st.session_state.additional_inputs_table:
-                        # Handle deleted rows first, because they are done by index
-                        for row in st.session_state.additional_inputs_table[
-                            "deleted_rows"
-                        ]:
-                            # Get the id from the deleted row
-                            id = st.session_state.additional_inputs_df.iloc[row]["id"]
-                            additional_inputs_helper.delete_design_input(int(id))
-                            st.session_state.additional_inputs_df.drop(
-                                index=row, inplace=True
-                            )
+            if st.button("Save additional inputs"):
+                if st.session_state.additional_inputs_table:
+                    # Handle deleted rows first, because they are done by index
+                    for row in st.session_state.additional_inputs_table[
+                        "deleted_rows"
+                    ]:
+                        # Get the id from the deleted row
+                        id = st.session_state.additional_inputs_df.iloc[row]["id"]
+                        additional_inputs_helper.delete_design_input(int(id))
+                        st.session_state.additional_inputs_df.drop(
+                            index=row, inplace=True
+                        )
 
-                            st.write(f"Deleted record with id {id}")
+                        st.write(f"Deleted record with id {id}")
 
-                        for row in st.session_state.additional_inputs_table[
-                            "added_rows"
-                        ]:
-                            # Ignore empty rows
-                            if len(row) > 0:
-                                # Add it to the database
-                                additional_inputs_helper.create_design_input(
-                                    project_id,
-                                    row["requirement_id"],
-                                    row["file_id"].split(":")[0],
-                                    row["description"],
-                                )
-
-                        for row in st.session_state.additional_inputs_table[
-                            "edited_rows"
-                        ]:
+                    for row in st.session_state.additional_inputs_table[
+                        "added_rows"
+                    ]:
+                        # Ignore empty rows
+                        if len(row) > 0:
                             # Add it to the database
-                            # First get the ID of the row
-                            id = st.session_state.additional_inputs_df.iloc[row]["id"]
-
-                            # Then get the value from the db
-                            design_input = additional_inputs_helper.get_design_input(
-                                int(id)
+                            additional_inputs_helper.create_design_input(
+                                project_id,
+                                row["requirement_id"],
+                                row["file_id"].split(":")[0],
+                                row["description"],
                             )
 
-                            # Then update the values
-                            design_input.requirement_id = int(
-                                st.session_state.additional_inputs_table["edited_rows"][
-                                    row
-                                ].get("requirement_id", design_input.user_need_id)
-                            )
+                    for row in st.session_state.additional_inputs_table[
+                        "edited_rows"
+                    ]:
+                        # Add it to the database
+                        # First get the ID of the row
+                        id = st.session_state.additional_inputs_df.iloc[row]["id"]
 
-                            file_name_and_id = st.session_state.additional_inputs_table[
-                                "edited_rows"
-                            ][row].get("file_id", design_input.file_id)
+                        # Then get the value from the db
+                        design_input = additional_inputs_helper.get_design_input(
+                            int(id)
+                        )
 
-                            design_input.file_id = file_name_and_id.split(":")[0]
+                        # Then update the values
+                        design_input.requirement_id = int(
+                            st.session_state.additional_inputs_table["edited_rows"][
+                                row
+                            ].get("requirement_id", design_input.user_need_id)
+                        )
 
-                            design_input.description = (
-                                st.session_state.additional_inputs_table["edited_rows"][
-                                    row
-                                ].get("description", design_input.description)
-                            )
+                        file_name_and_id = st.session_state.additional_inputs_table[
+                            "edited_rows"
+                        ][row].get("file_id", design_input.file_id)
 
-                            additional_inputs_helper.update_design_input(
-                                int(id),
-                                design_input.requirement_id,
-                                design_input.file_id,
-                                design_input.description,
-                            )
+                        design_input.file_id = file_name_and_id.split(":")[0]
+
+                        design_input.description = (
+                            st.session_state.additional_inputs_table["edited_rows"][
+                                row
+                            ].get("description", design_input.description)
+                        )
+
+                        additional_inputs_helper.update_design_input(
+                            int(id),
+                            design_input.requirement_id,
+                            design_input.file_id,
+                            design_input.description,
+                        )
 
     def generate_specifications(self, requirement_id):
         requirements_helper = Requirements()

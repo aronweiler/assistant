@@ -84,7 +84,7 @@ class CurrentEventsAI(DestinationBase):
                 "input_variables": [
                     "input",
                     "loaded_documents",
-                    "agent_chat_history",
+                    "chat_history",
                     "agent_scratchpad",
                     "system_information",
                 ],
@@ -133,7 +133,7 @@ class CurrentEventsAI(DestinationBase):
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
             loaded_documents="",
-            agent_chat_history="\n".join(
+            chat_history="\n".join(
                 [
                     f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
                     for m in self.interaction_manager.conversation_token_buffer_memory.chat_memory.messages[
