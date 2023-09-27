@@ -12,7 +12,7 @@ from langchain.callbacks.streamlit.streamlit_callback_handler import (
 )
 
 # from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
-# from src.ai.callbacks.streamlit_callbacks import StreamlitStreamHandler
+#from src.ai.callbacks.streamlit_callbacks import StreamlitStreamHandler
 
 from src.ai.single_shot_design_decision_generator import (
     SingleShotDesignDecisionGenerator,
@@ -151,7 +151,7 @@ class SoftwareDevelopmentUI:
                 project_id
             )
 
-            # with st.expander(f"Design Decisions ({len(design_decisions)})"):
+            #with st.expander(f"Design Decisions ({len(design_decisions)})"):
             st.markdown("## Design Decisions")
             st.session_state.design_decisions_df = pd.DataFrame(
                 [vars(u) for u in design_decisions],
@@ -173,7 +173,9 @@ class SoftwareDevelopmentUI:
             if st.button("Save design decisions"):
                 if st.session_state.design_decisions_table:
                     # Handle deleted rows first, because they are done by index
-                    for row in st.session_state.design_decisions_table["deleted_rows"]:
+                    for row in st.session_state.design_decisions_table[
+                        "deleted_rows"
+                    ]:
                         # Get the id from the deleted row
                         id = st.session_state.design_decisions_df.iloc[row]["id"]
                         design_decisions_helper.delete_design_decision(int(id))
@@ -183,7 +185,9 @@ class SoftwareDevelopmentUI:
 
                         st.write(f"Deleted record with id {id}")
 
-                    for row in st.session_state.design_decisions_table["added_rows"]:
+                    for row in st.session_state.design_decisions_table[
+                        "added_rows"
+                    ]:
                         # Ignore empty rows
                         if len(row) > 0:
                             # Add it to the database
@@ -194,13 +198,15 @@ class SoftwareDevelopmentUI:
                                 row["details"],
                             )
 
-                    for row in st.session_state.design_decisions_table["edited_rows"]:
+                    for row in st.session_state.design_decisions_table[
+                        "edited_rows"
+                    ]:
                         # First get the ID of the row
                         id = st.session_state.design_decisions_df.iloc[row]["id"]
 
                         # Then get the value from the db
-                        design_decision = design_decisions_helper.get_design_decision(
-                            int(id)
+                        design_decision = (
+                            design_decisions_helper.get_design_decision(int(id))
                         )
 
                         # Then update the values
@@ -234,7 +240,7 @@ class SoftwareDevelopmentUI:
             user_needs_helper = UserNeeds()
             user_needs = user_needs_helper.get_user_needs_in_project(project_id)
 
-            # with st.expander(f"User Needs ({len(user_needs)})"):
+            #with st.expander(f"User Needs ({len(user_needs)})"):
             st.markdown("## User Needs")
             st.session_state.user_needs_df = pd.DataFrame(
                 [vars(u) for u in user_needs], columns=["id", "category", "text"]
@@ -296,7 +302,7 @@ class SoftwareDevelopmentUI:
             requirements_helper = Requirements()
             requirements = requirements_helper.get_requirements_for_project(project_id)
 
-            # with st.expander(f"Requirements ({len(requirements)})"):
+            #with st.expander(f"Requirements ({len(requirements)})"):
             st.markdown("## Requirements")
             st.session_state.requirements_df = pd.DataFrame(
                 [vars(u) for u in requirements],
@@ -312,10 +318,7 @@ class SoftwareDevelopmentUI:
                         width=None,
                         disabled=True,
                     ),
-                    "user_need_id": st.column_config.NumberColumn(
-                        "User Need ID",
-                        width="small",
-                    ),
+                    "user_need_id": "User need ID",
                     "category": "Category",
                     "text": st.column_config.TextColumn(
                         "Requirement Text",
@@ -334,7 +337,9 @@ class SoftwareDevelopmentUI:
                         # Get the id from the deleted row
                         id = st.session_state.requirements_df.iloc[row]["id"]
                         requirements_helper.delete_requirement(int(id))
-                        st.session_state.requirements_df.drop(index=row, inplace=True)
+                        st.session_state.requirements_df.drop(
+                            index=row, inplace=True
+                        )
 
                         st.write(f"Deleted record with id {id}")
 
@@ -359,9 +364,9 @@ class SoftwareDevelopmentUI:
 
                         # Then update the values
                         requirement.user_need_id = int(
-                            st.session_state.requirements_table["edited_rows"][row].get(
-                                "user_need_id", requirement.user_need_id
-                            )
+                            st.session_state.requirements_table["edited_rows"][
+                                row
+                            ].get("user_need_id", requirement.user_need_id)
                         )
                         requirement.category = st.session_state.requirements_table[
                             "edited_rows"
@@ -384,9 +389,9 @@ class SoftwareDevelopmentUI:
             components_helper = Components()
             components = components_helper.get_components_by_project_id(project_id)
 
-            # with st.expander(f"Components ({len(components)})"):
+            #with st.expander(f"Components ({len(components)})"):
             st.markdown("## Components")
-
+            
             components_df = pd.DataFrame(
                 [vars(u) for u in components],
                 columns=["id", "name", "purpose"],
@@ -445,7 +450,9 @@ class SoftwareDevelopmentUI:
             if st.button("Save additional inputs"):
                 if st.session_state.additional_inputs_table:
                     # Handle deleted rows first, because they are done by index
-                    for row in st.session_state.additional_inputs_table["deleted_rows"]:
+                    for row in st.session_state.additional_inputs_table[
+                        "deleted_rows"
+                    ]:
                         # Get the id from the deleted row
                         id = st.session_state.additional_inputs_df.iloc[row]["id"]
                         additional_inputs_helper.delete_design_input(int(id))
@@ -455,7 +462,9 @@ class SoftwareDevelopmentUI:
 
                         st.write(f"Deleted record with id {id}")
 
-                    for row in st.session_state.additional_inputs_table["added_rows"]:
+                    for row in st.session_state.additional_inputs_table[
+                        "added_rows"
+                    ]:
                         # Ignore empty rows
                         if len(row) > 0:
                             # Add it to the database
@@ -466,7 +475,9 @@ class SoftwareDevelopmentUI:
                                 row["description"],
                             )
 
-                    for row in st.session_state.additional_inputs_table["edited_rows"]:
+                    for row in st.session_state.additional_inputs_table[
+                        "edited_rows"
+                    ]:
                         # Add it to the database
                         # First get the ID of the row
                         id = st.session_state.additional_inputs_df.iloc[row]["id"]
@@ -520,7 +531,7 @@ class SoftwareDevelopmentUI:
 
         system_architecture_generator = SystemArchitectureGenerator(
             configuration=st.session_state.config.design_decision_generator,
-            # callbacks=llm_callbacks,
+            #callbacks=llm_callbacks,
             streaming=True,
         )
         result = system_architecture_generator.generate(
