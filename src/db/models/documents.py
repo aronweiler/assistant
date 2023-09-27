@@ -4,6 +4,9 @@ import os
 from typing import List, Any
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy import func, select, column, cast
+
+import pgvector.sqlalchemy
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -13,6 +16,7 @@ from src.db.database.models import (
     File,
 )
 
+from src.db.database.models import EMBEDDING_DIMENSIONS
 from src.db.models.vector_database import VectorDatabase, SearchType
 from src.db.models.domain.document_collection_model import DocumentCollectionModel
 from src.db.models.domain.document_model import DocumentModel
@@ -176,8 +180,10 @@ class Documents(VectorDatabase):
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
             embedding = self.get_embedding(document.document_text)
+            document_text_summary_embedding = self.get_embedding(document.document_text_summary)
             document = document.to_database_model()
             document.embedding = embedding
+            document.document_text_summary_embedding = document_text_summary_embedding
 
             session.add(document)
             session.commit()
@@ -216,19 +222,67 @@ class Documents(VectorDatabase):
                     Document.document_text.contains(search_query)
                 ).limit(top_k)
             elif search_type == SearchType.Similarity:
-                embedding = self.get_embedding(search_query)
-                query = self._get_nearest_neighbors(
-                    session, query, embedding, top_k=top_k
+                query_embedding = self.get_embedding(search_query)
+
+                document_text_embedding_query = self._get_nearest_neighbors(
+                    session=session, 
+                    query=query,
+                    embedding_prop=Document.embedding,
+                    embedding=query_embedding,
+                    top_k=top_k
                 )
+
+                document_text_summary_embedding_query = self._get_nearest_neighbors(
+                    session=session, 
+                    query=query,
+                    embedding_prop=Document.document_text_summary_embedding,
+                    embedding=query_embedding,
+                    top_k=top_k
+                )
+
+                results = self._combine_document_text_embedding_queries(
+                    text_embedding_query=document_text_embedding_query,
+                    text_summary_embedding_query=document_text_summary_embedding_query,
+                    top_k=top_k
+                )
+
             else:
                 raise ValueError(f"Unknown search type: {search_type}")
 
             return [DocumentModel.from_database_model(d) for d in query.all()[:top_k]]
 
-    def _get_nearest_neighbors(self, session, query, embedding, top_k=5):
-        return session.scalars(
-            query.order_by(Document.embedding.l2_distance(embedding)).limit(top_k)
-        )
+
+    def _combine_document_text_embedding_queries(
+        self,
+        text_embedding_query,
+        text_summary_embedding_query,
+        top_k) -> str:
+    
+        text_embeddings = [DocumentModel.from_database_model(d) for d in text_embedding_query.all()[:top_k]]
+        text_summary_embeddings = [DocumentModel.from_database_model(d) for d in text_summary_embedding_query.all()[:top_k]]
+        
+
+    def _get_nearest_neighbors(self, session, query, embedding_prop, embedding, top_k=5):
+        emb_val = cast(embedding, pgvector.sqlalchemy.Vector)
+        cosine_distance = func.cosine_distance(embedding_prop, emb_val)
+        # col = pgvector.sqlalchemy.Vector(dim=EMBEDDING_DIMENSIONS)
+        
+        # col.
+        a = select(
+            Document.document_name,
+            Document.document_text,
+            # Document.
+            cosine_distance).order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
+        
+        res = session.execute(a)
+        return res
+        # return session.scalars(
+        #     # query.add_columns(embedding_prop.cosine_distance(embedding)).order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
+        #     # query.add_columns(vector_cosine_ops(embedding)).order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
+        #     # query.func .order_by(embedding_prop.cosine_distance(embedding)).limit(top_k) 
+        #     query.order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
+        #     # query.order_by(embedding_prop.l2_distance(embedding)).limit(top_k)
+        # )
 
 
 # Testing
@@ -236,9 +290,9 @@ if __name__ == "__main__":
     document_helper = Documents()
 
     documents = document_helper.search_document_embeddings(
-        search_query="comfort stations",
+        search_query="memory",
         search_type=SearchType.Similarity,
-        collection_id=5,
+        collection_id=1,
         top_k=100,
     )
 
