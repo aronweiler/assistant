@@ -37,7 +37,7 @@ class SplitterBase(abc.ABC):
         
 
     @abc.abstractmethod
-    def _parse_nodes_from_file(self, path) -> list:
+    def _parse_nodes_from_file(self, path, allowed_include_paths) -> list:
         return []
     
 
@@ -51,13 +51,13 @@ class SplitterBase(abc.ABC):
         return self._GENERIC_NODE_TYPE_MAP.get(node_type, None)
     
 
-    def parse(self, path) -> list[dict]:
+    def parse(self, path, allowed_include_paths) -> list[dict]:
         files = self._get_supported_files(path=path)
 
         combined_nodes = []
         for file in files:
             self._logger.info(f"Parsing {file}")
-            nodes = self._parse_nodes_from_file(path=file)
+            nodes = self._parse_nodes_from_file(path=file, allowed_include_paths=allowed_include_paths)
             combined_nodes.extend(nodes)
 
         return combined_nodes
