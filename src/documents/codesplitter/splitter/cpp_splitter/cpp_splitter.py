@@ -73,12 +73,13 @@ class CppSplitter(SplitterBase):
                 for extraction_name, extraction_exp in extractions.items():
                     match_obj = re.match(extraction_exp, text, flags=re.MULTILINE)
                     if match_obj is None:
-                        self._logger.error(f"No {extraction_name} found for {text}")
-                        continue
-
-                    details = match_obj.groupdict()
-                    if extraction_name == "signature":
-                        signature = details["signature"]
+                        # self._logger.error(f"No {extraction_name} found for {text}")
+                        signature = node.displayname
+                        # continue
+                    else:
+                        details = match_obj.groupdict()
+                        if extraction_name == 'signature':
+                            signature = details['signature']
             else:
                 signature = node.displayname
 
@@ -142,6 +143,11 @@ class CppSplitter(SplitterBase):
 
             if self._is_function_type(node.kind) and (node.is_definition() is False):
                 # Don't save off function declarations
+                # Only keep definitions
+                return
+            
+            if (node.kind == CursorKind.CLASS_DECL) and (node.is_definition() is False):
+                # Don't save off forward class declarations
                 # Only keep definitions
                 return
 

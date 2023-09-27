@@ -379,12 +379,15 @@ def ingest_files(
 
             st.info("Splitting documents...")
 
+            is_code = st.session_state.ingestion_settings.file_type == "Code"
+
             # Pass the root temp dir to the ingestion function
             documents = load_and_split_documents(
-                root_temp_dir,
-                split_documents,
-                chunk_size,
-                chunk_overlap,
+                document_directory=root_temp_dir,
+                split_documents=split_documents,
+                is_code=is_code,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
             )
 
             st.info(f"Saving {len(documents)} document chunks...")

@@ -230,6 +230,7 @@ def convert_documents(source_dir: str):
 def load_and_split_documents(
     document_directory: str,
     split_documents: bool,
+    is_code: bool,
     chunk_size: int,
     chunk_overlap: int,
 ) -> List[Document]:
@@ -243,8 +244,8 @@ def load_and_split_documents(
 
     documents = load_documents(document_directory, converted_file_maps)
 
-    if documents:
-        if split_documents:
+    if documents: # and not is_code:
+        if split_documents and not is_code:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,

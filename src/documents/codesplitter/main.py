@@ -33,7 +33,7 @@ def main(args):
     run(path=args.path)
 
 
-def run(path, allowed_include_paths):
+def run(path, allowed_include_paths: list = []):
     files = utils.get_file_extensions_in_path(path=path)
 
     file_types = list(files.keys())
@@ -43,6 +43,12 @@ def run(path, allowed_include_paths):
     logger.info(f"File splitter groups:\n{splitter_groups}")
 
     all_nodes = []
+
+    # Default to the current path if no allowed paths are provided
+    if len(allowed_include_paths) == 0:
+        allowed_include_paths = [
+            os.path.dirname(path)
+        ]
 
     for splitter_lang in splitter_groups.keys():
         if splitter_lang == "unsupported_extensions":
