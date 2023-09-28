@@ -356,7 +356,7 @@ if __name__ == "__main__":
             ui_shared.setup_new_chat_button()
             rag_ui.create_collections_container(col2)
 
-            ui_shared.select_documents()
+            ui_shared.select_documents(ai=st.session_state["rag_ai"])
 
             rag_ui.handle_chat(col1)        
     except Exception as e:

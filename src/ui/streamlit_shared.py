@@ -33,6 +33,7 @@ class IngestionSettings:
         self.chunk_overlap = 50
         self.split_documents = True
         self.file_type = "Document"
+        self.summarize_chunks = False
 
 
 def set_user_id_from_email(user_email):
@@ -198,19 +199,22 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 50
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Spreadsheet"
+        st.session_state.ingestion_settings.summarize_chunks = False
     elif "Code" in file_type:
         st.session_state.ingestion_settings.chunk_size = 0
         st.session_state.ingestion_settings.chunk_overlap = 0
         st.session_state.ingestion_settings.split_documents = False
         st.session_state.ingestion_settings.file_type = "Code"
+        st.session_state.ingestion_settings.summarize_chunks = True
     else:  # Document
         st.session_state.ingestion_settings.chunk_size = 600
         st.session_state.ingestion_settings.chunk_overlap = 100
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Document"
+        st.session_state.ingestion_settings.summarize_chunks = False
 
 
-def select_documents():
+def select_documents(ai=None):
     with st.sidebar.container():
         active_collection = st.session_state.get("active_collection")
 
@@ -248,6 +252,12 @@ def select_documents():
             )
 
             st.toggle(
+                "Summarize Chunks",
+                key="summarize_chunks",
+                value=st.session_state.ingestion_settings.summarize_chunks,
+            )
+            
+            st.toggle(
                 "Split documents",
                 key="split_documents",
                 value=st.session_state.ingestion_settings.split_documents,
@@ -284,8 +294,10 @@ def select_documents():
                         status,
                         st.session_state.get("overwrite_existing_files", True),
                         st.session_state.get("split_documents", True),
+                        st.session_state.get("summarize_chunks", False),
                         int(st.session_state.get("file_chunk_size", 500)),
                         int(st.session_state.get("file_chunk_overlap", 50)),
+                        ai,
                     )
 
 
@@ -296,8 +308,10 @@ def ingest_files(
     status,
     overwrite_existing_files,
     split_documents,
+    summarize_chunks,
     chunk_size,
     chunk_overlap,
+    ai=None,
 ):
     """Ingests the uploaded files into the specified collection"""
 
@@ -379,12 +393,15 @@ def ingest_files(
 
             st.info("Splitting documents...")
 
+            is_code = st.session_state.ingestion_settings.file_type == "Code"
+
             # Pass the root temp dir to the ingestion function
             documents = load_and_split_documents(
-                root_temp_dir,
-                split_documents,
-                chunk_size,
-                chunk_overlap,
+                document_directory=root_temp_dir,
+                split_documents=split_documents,
+                is_code=is_code,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
             )
 
             st.info(f"Saving {len(documents)} document chunks...")
@@ -405,6 +422,12 @@ def ingest_files(
                     )
                     break
 
+                summary = ""
+                if summarize_chunks and hasattr(ai, "generate_detailed_document_chunk_summary"):
+                    summary = ai.generate_detailed_document_chunk_summary(
+                        document_text=document.page_content
+                    )
+
                 # Create the document chunks
                 documents_helper.store_document(
                     DocumentModel(
@@ -412,6 +435,7 @@ def ingest_files(
                         file_id=file.id,
                         user_id=st.session_state.user_id,
                         document_text=document.page_content,
+                        document_text_summary=summary,
                         additional_metadata=document.metadata,
                         document_name=document.metadata["filename"],
                     )

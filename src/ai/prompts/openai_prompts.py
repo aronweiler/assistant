@@ -297,6 +297,14 @@ Given the new context, refine the original summary with the goal of answering th
 SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)
 
 
+DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE = """Write a detailed summary of the following piece of a larger document:
+
+{text}
+
+DETAILED SUMMARY:
+"""
+
+
 SIMPLE_DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document. You will be provided a summary of all prior chunks, and one additional chunk.
 Use the additional chunk to add to the summary. Do not remove information from the summary unless it is contradicted by information in the current chunk.
 The summary in progress is provided below:

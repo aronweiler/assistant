@@ -118,6 +118,20 @@ class RetrievalAugmentedGenerationAI:
 
         return agent
 
+
+    def generate_detailed_document_chunk_summary(
+        self,
+        document_text: str,
+    ) -> str:
+        summary = self.llm.predict(
+            get_prompt(
+                self.configuration.model_configuration.llm_type,
+                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+            ).format(text=document_text)
+        )
+        return summary        
+
+
     def query(
         self,
         query: str,

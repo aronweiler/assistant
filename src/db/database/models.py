@@ -215,6 +215,8 @@ class Document(ModelBase):
     additional_metadata = Column(String, nullable=True)
     document_text = Column(String, nullable=False)
     document_name = Column(String, nullable=False)
+    document_text_summary = Column(String, nullable=True)
+    document_text_summary_embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
     embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
