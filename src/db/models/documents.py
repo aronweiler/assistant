@@ -71,10 +71,7 @@ class Documents(VectorDatabase):
 
             return [DocumentCollectionModel.from_database_model(c) for c in collections]
 
-    def create_file(
-        self,
-        file: FileModel
-    ) -> FileModel:
+    def create_file(self, file: FileModel) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = file.to_database_model()
             session.add(file)
@@ -99,9 +96,7 @@ class Documents(VectorDatabase):
     def get_files_in_collection(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
             files = (
-                session.query(File)
-                    .filter(File.collection_id == collection_id)
-                    .all()
+                session.query(File).filter(File.collection_id == collection_id).all()
             )
 
             return [FileModel.from_database_model(f) for f in files]
@@ -111,13 +106,13 @@ class Documents(VectorDatabase):
             file = session.query(File).filter(File.id == file_id).first()
 
             return FileModel.from_database_model(file)
-        
+
     def get_all_files(self) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
             files = session.query(File).all()
 
             return [FileModel.from_database_model(f) for f in files]
-        
+
     def delete_file(self, file_id) -> None:
         with self.session_context(self.Session()) as session:
             file = session.query(File).filter(File.id == file_id).first()
@@ -148,7 +143,7 @@ class Documents(VectorDatabase):
             )
 
             return [DocumentModel.from_database_model(d) for d in documents]
-        
+
     def delete_document_chunks_by_file_id(self, target_file_id) -> None:
         with self.session_context(self.Session()) as session:
             file = session.query(File).filter(File.id == target_file_id).first()
@@ -158,9 +153,7 @@ class Documents(VectorDatabase):
 
             # Find all of the documents associated with this file
             documents = (
-                session.query(Document)
-                .filter(Document.file_id == file.id)
-                .all()
+                session.query(Document).filter(Document.file_id == file.id).all()
             )
 
             # Delete all of the documents associated with this file, and the file itself
@@ -180,7 +173,9 @@ class Documents(VectorDatabase):
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
             embedding = self.get_embedding(document.document_text)
-            document_text_summary_embedding = self.get_embedding(document.document_text_summary)
+            document_text_summary_embedding = self.get_embedding(
+                document.document_text_summary
+            )
             document = document.to_database_model()
             document.embedding = embedding
             document.document_text_summary_embedding = document_text_summary_embedding
@@ -196,7 +191,6 @@ class Documents(VectorDatabase):
         search_type: SearchType,
         collection_id: int,
         target_file_id: int = None,
-        eager_load: List[InstrumentedAttribute[Any]] = [],
         top_k=10,
     ) -> List[DocumentModel]:
         # # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
@@ -211,8 +205,6 @@ class Documents(VectorDatabase):
             if target_file_id is not None:
                 query = query.filter(Document.file_id == target_file_id)
 
-            query = super().eager_load(query, eager_load)
-
             if type(search_type) == str:
                 search_type = SearchType(search_type)
 
@@ -221,68 +213,116 @@ class Documents(VectorDatabase):
                 query = query.filter(
                     Document.document_text.contains(search_query)
                 ).limit(top_k)
+
+                return [
+                    DocumentModel.from_database_model(d) for d in query.all()[:top_k]
+                ]
+
             elif search_type == SearchType.Similarity:
                 query_embedding = self.get_embedding(search_query)
 
-                document_text_embedding_query = self._get_nearest_neighbors(
-                    session=session, 
-                    query=query,
+                document_text_embedding_results = self._get_nearest_neighbors(
+                    session=session,
+                    collection_id=collection_id,
+                    target_file_id=target_file_id,
                     embedding_prop=Document.embedding,
                     embedding=query_embedding,
-                    top_k=top_k
+                    top_k=top_k,
                 )
 
-                document_text_summary_embedding_query = self._get_nearest_neighbors(
-                    session=session, 
-                    query=query,
+                document_text_summary_embedding_results = self._get_nearest_neighbors(
+                    session=session,
+                    collection_id=collection_id,
+                    target_file_id=target_file_id,
                     embedding_prop=Document.document_text_summary_embedding,
                     embedding=query_embedding,
-                    top_k=top_k
+                    top_k=top_k,
                 )
 
                 results = self._combine_document_text_embedding_queries(
-                    text_embedding_query=document_text_embedding_query,
-                    text_summary_embedding_query=document_text_summary_embedding_query,
-                    top_k=top_k
+                    text_embedding_results=document_text_embedding_results,
+                    text_summary_embedding_results=document_text_summary_embedding_results,
+                    top_k=top_k,
                 )
+
+                # TODO: Add an arg to allow passing back the distance, as well.
+                return [doc["document"] for doc in results]
 
             else:
                 raise ValueError(f"Unknown search type: {search_type}")
 
-            return [DocumentModel.from_database_model(d) for d in query.all()[:top_k]]
-
-
     def _combine_document_text_embedding_queries(
-        self,
-        text_embedding_query,
-        text_summary_embedding_query,
-        top_k) -> str:
-    
-        text_embeddings = [DocumentModel.from_database_model(d) for d in text_embedding_query.all()[:top_k]]
-        text_summary_embeddings = [DocumentModel.from_database_model(d) for d in text_summary_embedding_query.all()[:top_k]]
-        
+        self, text_embedding_results, text_summary_embedding_results, top_k
+    ) -> str:
+        def reorder_dict_by_distance(dict_list):
+            sorted_dict_list = sorted(dict_list, key=lambda x: x["distance"])
 
-    def _get_nearest_neighbors(self, session, query, embedding_prop, embedding, top_k=5):
+            return sorted_dict_list
+
+        text_embeddings_dict = [
+            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1]}
+            for d in text_embedding_results
+        ]
+        text_summary_embeddings_dict = [
+            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1]}
+            for d in text_summary_embedding_results
+        ]
+
+        # Now we need to take these two dictionaries, sort them by distance, and then combine them while removing duplicates
+        def combine_and_remove_duplicates(list1, list2):
+            # Combine the two lists and reorder by distance
+            combined_list = reorder_dict_by_distance(
+                list1 + list2
+            )  
+            
+            unique_documents = {}
+            unique_list = []
+
+            for item in combined_list:
+                document_id = item["document"].id
+
+                # Check if the document ID is not already in the dictionary
+                if document_id not in unique_documents:
+                    # Mark as seen
+                    unique_documents[document_id] = True  
+                    # Add the dictionary to the unique list
+                    unique_list.append(item)  
+
+            return unique_list
+
+        combined_list = combine_and_remove_duplicates(
+            text_embeddings_dict, text_summary_embeddings_dict
+        )
+
+        # Now the list contains a sorted and de-duped combination of the two lists, but it may be longer than the top_k
+        # Return the list limited to the original top_k
+        return combined_list[:top_k]
+
+    def _get_nearest_neighbors(
+        self,
+        session,
+        collection_id: int,
+        embedding_prop,
+        embedding,
+        target_file_id: int = None,
+        top_k=5,
+    ):
         emb_val = cast(embedding, pgvector.sqlalchemy.Vector)
         cosine_distance = func.cosine_distance(embedding_prop, emb_val)
-        # col = pgvector.sqlalchemy.Vector(dim=EMBEDDING_DIMENSIONS)
-        
-        # col.
-        a = select(
-            Document.document_name,
-            Document.document_text,
-            # Document.
-            cosine_distance).order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
-        
-        res = session.execute(a)
-        return res
-        # return session.scalars(
-        #     # query.add_columns(embedding_prop.cosine_distance(embedding)).order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
-        #     # query.add_columns(vector_cosine_ops(embedding)).order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
-        #     # query.func .order_by(embedding_prop.cosine_distance(embedding)).limit(top_k) 
-        #     query.order_by(embedding_prop.cosine_distance(embedding)).limit(top_k)
-        #     # query.order_by(embedding_prop.l2_distance(embedding)).limit(top_k)
-        # )
+
+        statement = (
+            select(Document)
+            .filter(
+                Document.collection_id == collection_id,
+                Document.file_id == target_file_id if target_file_id else True,
+            )
+            .order_by(cosine_distance)
+            .limit(top_k)
+            .add_columns(cosine_distance)
+        )
+        result = session.execute(statement)
+
+        return result
 
 
 # Testing
@@ -290,10 +330,10 @@ if __name__ == "__main__":
     document_helper = Documents()
 
     documents = document_helper.search_document_embeddings(
-        search_query="memory",
+        search_query="sets it's speed to 100",
         search_type=SearchType.Similarity,
-        collection_id=1,
-        top_k=100,
+        collection_id=3,
+        top_k=10,
     )
 
     for doc in documents:
