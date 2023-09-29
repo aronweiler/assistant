@@ -4,8 +4,11 @@ from uuid import UUID
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
-from langchain.prompts import PromptTemplate
-from langchain.chains.router.llm_router import LLMRouterChain, RouterOutputParser
+
+from langchain.agents.structured_chat.output_parser import (
+    StructuredChatOutputParserWithRetries,
+)
+
 from langchain.memory.readonly import ReadOnlySharedMemory
 
 from langchain.tools import StructuredTool
@@ -14,11 +17,6 @@ from langchain.agents import initialize_agent, AgentType
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfiguration,
-)
-
-from src.ai.destinations.output_parser import (
-    CustomStructuredChatOutputParserWithRetries,   
-    CustomOutputFixingParser 
 )
 
 from src.ai.interactions.interaction_manager import InteractionManager
@@ -43,7 +41,7 @@ class RetrievalAugmentedGenerationAI:
         configuration: RetrievalAugmentedGenerationConfiguration,
         interaction_id: UUID,
         user_email: str,
-        streaming: bool = False
+        streaming: bool = False,
     ):
         self.configuration = configuration
         self.streaming = streaming
@@ -65,15 +63,11 @@ class RetrievalAugmentedGenerationAI:
         self.tools = self.create_tools()
 
     def get_enabled_tools(self):
-        return [
-            tool["tool"]
-            for tool in self.tools
-            if tool["enabled"]            
-        ]
-    
+        return [tool["tool"] for tool in self.tools if tool["enabled"]]
+
     def get_all_tools(self):
         return self.tools
-    
+
     def toggle_tool(self, tool_name: str):
         for tool in self.tools:
             if tool["name"] == tool_name:
@@ -84,40 +78,63 @@ class RetrievalAugmentedGenerationAI:
                 break
 
     def create_agent(self, agent_timeout: int = 120):
+        logging.debug("Setting human message template")
+        human_message_template = get_prompt(
+            self.configuration.model_configuration.llm_type, "AGENT_TEMPLATE"
+        )
+
+        logging.debug("Setting memory")
+        memory = ReadOnlySharedMemory(
+            memory=self.interaction_manager.conversation_token_buffer_memory
+        )
+
+        logging.debug("Setting suffix")
+        suffix = get_prompt(
+            self.configuration.model_configuration.llm_type, "TOOLS_SUFFIX"
+        )
+
+        logging.debug("Setting format instructions")
+        format_instructions = get_prompt(
+            self.configuration.model_configuration.llm_type,
+            "TOOLS_FORMAT_INSTRUCTIONS",
+        )
+
+        try:
+            output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
+        except Exception as e:
+            logging.error(f"Could not create output parser: {e}")
+            logging.warning("Falling back to default output parser")
+            output_parser = StructuredChatOutputParserWithRetries()
+
+        logging.debug("Setting agent kwargs")
+        agent_kwargs = {
+            "suffix": suffix,
+            "format_instructions": format_instructions,
+            "output_parser": output_parser,  # (output_fixing_parser=CustomOutputFixingParser()),
+            "input_variables": [
+                "input",
+                "loaded_documents",
+                "chat_history",
+                "agent_scratchpad",
+                "system_information",
+            ],
+            "verbose": True,
+        }
+
+        logging.debug(f"Creating agent with kwargs: {agent_kwargs}")
         agent = initialize_agent(
             tools=self.get_enabled_tools(),
             llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=get_prompt(
-                self.configuration.model_configuration.llm_type, "AGENT_TEMPLATE"
-            ),
-            memory=ReadOnlySharedMemory(
-                memory=self.interaction_manager.conversation_token_buffer_memory
-            ),
-            agent_kwargs={
-                "suffix": get_prompt(
-                    self.configuration.model_configuration.llm_type, "TOOLS_SUFFIX"
-                ),
-                "format_instructions": get_prompt(
-                    self.configuration.model_configuration.llm_type,
-                    "TOOLS_FORMAT_INSTRUCTIONS",
-                ),
-                "output_parser": CustomStructuredChatOutputParserWithRetries.from_llm(llm=self.llm), #(output_fixing_parser=CustomOutputFixingParser()),
-                "input_variables": [
-                    "input",
-                    "loaded_documents",
-                    "chat_history",
-                    "agent_scratchpad",
-                    "system_information",
-                ],
-            },
+            human_message_template=human_message_template,
+            memory=memory,
+            agent_kwargs=agent_kwargs,
             max_execution_time=agent_timeout,
             early_stopping_method="generate",  # try to generate a response if it times out
         )
 
         return agent
-
 
     def generate_detailed_document_chunk_summary(
         self,
@@ -129,8 +146,7 @@ class RetrievalAugmentedGenerationAI:
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
-        return summary        
-
+        return summary
 
     def query(
         self,
@@ -146,13 +162,17 @@ class RetrievalAugmentedGenerationAI:
         self.interaction_manager.tool_kwargs = kwargs
 
         # Ensure we have a summary / title for the chat
+        logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
 
         self.spreadsheet_tool.callbacks = agent_callbacks
 
-        agent = self.create_agent(kwargs.get('agent_timeout', 120))
+        timeout = kwargs.get("agent_timeout", 120)
+        logging.debug(f"Creating agent with {timeout} second timeout")
+        agent = self.create_agent(agent_timeout=timeout)
 
         # Run the agent
+        logging.debug("Running agent")
         results = agent.run(
             input=query,
             system_information=get_system_information(
@@ -165,6 +185,7 @@ class RetrievalAugmentedGenerationAI:
             ),
             callbacks=agent_callbacks,
         )
+        logging.debug("Agent finished running")
 
         # Adding this after the run so that the agent can't see it in the history
         self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_user_message(
@@ -176,10 +197,13 @@ class RetrievalAugmentedGenerationAI:
             results
         )
 
+        logging.debug("Added results to chat memory")
+
         return results
 
     def check_summary(self, query):
         if self.interaction_manager.interaction_needs_summary:
+            logging.debug("Interaction needs summary, generating one now")
             interaction_summary = self.llm.predict(
                 get_prompt(
                     self.configuration.model_configuration.llm_type,
@@ -188,6 +212,7 @@ class RetrievalAugmentedGenerationAI:
             )
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
+            logging.debug(f"Generated summary: {interaction_summary}")
 
     def create_tools(self):
         """Used to create the initial tool set.  After creation, this can be modified by enabling/disabling tools."""
@@ -199,7 +224,7 @@ class RetrievalAugmentedGenerationAI:
         self.spreadsheet_tool = SpreadsheetsTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
-            llm=self.llm
+            llm=self.llm,
         )
         self.code_tool = CodeTool(
             configuration=self.configuration,
@@ -242,7 +267,9 @@ class RetrievalAugmentedGenerationAI:
                 "name": "List Documents",
                 "about": "Lists all loaded documents.",
                 "enabled": True,
-                "tool": StructuredTool.from_function(func=self.document_tool.list_documents),
+                "tool": StructuredTool.from_function(
+                    func=self.document_tool.list_documents
+                ),
             },
             {
                 "name": "Code Details",
@@ -254,7 +281,9 @@ class RetrievalAugmentedGenerationAI:
                 "name": "Code Structure",
                 "about": "Gets the structure of a code file.",
                 "enabled": True,
-                "tool": StructuredTool.from_function(func=self.code_tool.code_structure),
+                "tool": StructuredTool.from_function(
+                    func=self.code_tool.code_structure
+                ),
             },
             {
                 "name": "Dependency Graph",
