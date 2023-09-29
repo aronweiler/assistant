@@ -63,7 +63,7 @@ class RagUI:
 
         if "rag_ai" not in st.session_state:
             # First time loading the page
-            logging.debug("load_ai: ai not in session state")
+            logging.debug("load_ai: no ai in session state, creating a new one")
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["rag_config"],
                 interaction_id=selected_interaction_id,
@@ -71,14 +71,15 @@ class RagUI:
                 streaming=True,
             )
             st.session_state["rag_ai"] = rag_ai_instance
+            logging.debug("load_ai: created new ai instance")
 
         elif selected_interaction_id and selected_interaction_id != str(
             st.session_state["rag_ai"].interaction_manager.interaction_id
         ):
-            # We have an AI instance, but we need to change the interaction id
-            print(
-                "load_ai: interaction id is not none and not equal to ai interaction id"
+            logging.debug(
+                f"load_ai: AI instance exists, but need to change interaction ID from {str(st.session_state['rag_ai'].interaction_manager.interaction_id)} to {selected_interaction_id}"
             )
+            # We have an AI instance, but we need to change the interaction id            
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["rag_config"],
                 interaction_id=selected_interaction_id,
@@ -271,6 +272,8 @@ class RagUI:
         prompt = st.chat_input("Enter your message here", key="chat_input")
 
         if prompt:
+            logging.debug(f"User input: {prompt}")
+
             with main_window_container.container():
                 st.chat_message("user", avatar="👤").markdown(prompt)
 
@@ -290,6 +293,7 @@ class RagUI:
                         st.session_state["active_collection"],
                         rag_ai_instance.interaction_manager.interaction_id,
                     )
+                    logging.debug(f"Collection ID: {collection_id}")
 
                     kwargs = {
                         "search_top_k": int(st.session_state["search_top_k"])
@@ -314,51 +318,64 @@ class RagUI:
                         if "summarization_strategy" in st.session_state
                         else "map_reduce",
                     }
+                    logging.debug(f"kwargs: {kwargs}")
 
-                    result = rag_ai_instance.query(
-                        query=prompt,
-                        collection_id=collection_id,
-                        agent_callbacks=callbacks,
-                        kwargs=kwargs,
-                    )
+                    try:
+                        result = rag_ai_instance.query(
+                            query=prompt,
+                            collection_id=collection_id,
+                            agent_callbacks=callbacks,
+                            kwargs=kwargs,
+                        )
+                    except Exception as e:
+                        logging.error(f"Error querying AI: {e}")
+                        result = "Error querying AI, please try again (and see the logs)."
 
-                    print(f"Result: {result}")
+                    logging.debug(f"Result: {result}")
 
                     llm_container.markdown(result)
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO)    
 
     try:
+        logging.debug("Starting Jarvis")
         rag_ui = RagUI()
 
         # Always comes first!
+        logging.debug("Loading configuration")
         rag_ui.load_configuration()
 
+        logging.debug("Setting page config")
         rag_ui.set_page_config()
 
-        # Get the user from the environment variables
+        # Get the user from the environment variables        
         user_email = os.environ.get("USER_EMAIL", None)
         rag_ui.user_email = user_email
+        logging.debug(f"User email: {user_email}")
 
         if not user_email:
-            raise ValueError("USER_EMAIL environment variable not set")
+            raise ValueError("USER_EMAIL environment variable not set")        
 
+        logging.debug("Ensuring user exists")
         if ui_shared.ensure_user(user_email):
+            logging.debug("User exists")
             ui_shared.set_user_id_from_email(user_email)
             ui_shared.ensure_interaction()
             ui_shared.load_interaction_selectbox(rag_ui.load_ai)
             # Set up columns for chat and collections
             col1, col2 = st.columns([0.65, 0.35])
-
+            
             rag_ui.load_ai()
             ui_shared.setup_new_chat_button()
             rag_ui.create_collections_container(col2)
 
             ui_shared.select_documents(ai=st.session_state["rag_ai"])
 
-            rag_ui.handle_chat(col1)        
+            rag_ui.handle_chat(col1)       
+
+            ui_shared.show_version() 
     except Exception as e:
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
         # And after wasting 20 minutes of my life on this, I am done.

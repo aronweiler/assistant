@@ -316,6 +316,8 @@ if __name__ == "__main__":
             general_ui.handle_chat(col1)
 
             ui_shared.scroll_to_bottom('column')
+
+            ui_shared.show_version()
     
     except Exception as e:
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.

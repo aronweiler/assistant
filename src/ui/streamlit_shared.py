@@ -470,3 +470,11 @@ def upload_files(uploaded_files, status):
         st.success(f"Uploaded {len(uploaded_file_paths)} files")
 
     return uploaded_file_paths, root_temp_dir
+
+def show_version():
+    # Read the version from the version file
+    version = ""
+    with open("version.txt", "r") as f:
+        version = f.read()
+
+    st.sidebar.info(f"Version: {version}")
