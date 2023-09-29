@@ -95,7 +95,7 @@ class DocumentTool:
 
         results = qa_with_sources({"question": search_query or original_user_query})
 
-        return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources used are: {results['sources']}--- END RESULTS ---"
+        return f"RESULTS:\n{results['answer']}.\n\nThe sources used are: {results['sources']}"
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_entire_document(self, target_file_id: int):

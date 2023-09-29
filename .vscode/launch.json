@@ -64,14 +64,16 @@
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": ["run", "streamlit_ui.py"],
+      "args": ["run", "Jarvis_-_Home.py", "--server.port=${input:randomPort}"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
         "ASSISTANT_CONFIG_PATH": "configurations/console_configs/homework_openai_config.json",
+        "SOFTWARE_DEV_CONFIG_PATH":"configurations/software_development/openai_config.json",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT":"6969",
+        "LIBRE_OFFICE_PATH":"/Program Files/LibreOffice/program/soffice.exe",
         "USER_EMAIL":"susanmae1129@gmail.com"
       }
     },

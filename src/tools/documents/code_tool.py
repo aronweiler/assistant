@@ -349,7 +349,7 @@ class CodeTool:
 
         results = qa_with_sources({"question": original_user_query})
 
-        return f"--- BEGIN RESULTS ---\n{results['answer']}.\n\nThe sources are: {results['sources']}--- END RESULTS ---"
+        return f"RESULTS: \n{results['answer']}.\n\nThe sources are: {results['sources']}"
 
     def create_stub_code(self, file_id: int, available_dependencies:List[str] = None):
         """Create a mock / stub version of the given code file.
