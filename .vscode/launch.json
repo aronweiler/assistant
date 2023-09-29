@@ -75,7 +75,8 @@
         "POSTGRES_PORT":"6969",
         "LIBRE_OFFICE_PATH":"/Program Files/LibreOffice/program/soffice.exe",
         "USER_EMAIL":"susanmae1129@gmail.com"
-      }
+      },
+      "justMyCode": true
     },
     {
       "name": "Run OpenAI Assistant Console",
