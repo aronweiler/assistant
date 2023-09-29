@@ -173,9 +173,11 @@ class Documents(VectorDatabase):
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
             embedding = self.get_embedding(document.document_text)
-            document_text_summary_embedding = self.get_embedding(
-                document.document_text_summary
-            )
+            document_text_summary_embedding = None
+            if document.document_text_summary.strip() != '':
+                document_text_summary_embedding = self.get_embedding(
+                    document.document_text_summary
+                )                
             document = document.to_database_model()
             document.embedding = embedding
             document.document_text_summary_embedding = document_text_summary_embedding
@@ -255,7 +257,10 @@ class Documents(VectorDatabase):
         self, text_embedding_results, text_summary_embedding_results, top_k
     ) -> str:
         def reorder_dict_by_distance(dict_list):
-            sorted_dict_list = sorted(dict_list, key=lambda x: x["distance"])
+            # Remove anything that doesn't have a distance (e.g. probably didn't have a summary)
+            filtered_list = [item for item in dict_list if item.get('distance') is not None]            
+            
+            sorted_dict_list = sorted(filtered_list, key=lambda x: x["distance"])
 
             return sorted_dict_list
 
