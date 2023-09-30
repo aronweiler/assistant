@@ -1,27 +1,26 @@
 import logging
 import json
-from typing import List
 
 from langchain.tools import StructuredTool
 
-from langchain.agents import (
-    initialize_agent,
-    AgentType
+from langchain.agents.structured_chat.output_parser import (
+    StructuredChatOutputParserWithRetries,
 )
+
+from langchain.agents import initialize_agent, AgentType
 
 from src.configuration.assistant_configuration import Destination
 
-from src.ai.destinations.output_parser import CustomStructuredChatOutputParserWithRetries
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
-from src.ai.destination_route import DestinationRoute
 from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 from src.ai.callbacks.agent_callback import AgentCallback
 
 from src.tools.documents.document_tool import DocumentTool
+
 
 class DocumentsAI(DestinationBase):
     """A document-using AI that uses an LLM to generate responses"""
@@ -52,9 +51,21 @@ class DocumentsAI(DestinationBase):
             destination.model_configuration.max_conversation_history_tokens,
         )
 
-        self.document_tool = DocumentTool(configuration=self.destination, interaction_manager=self.interaction_manager, llm=self.llm)
+        self.document_tool = DocumentTool(
+            configuration=self.destination,
+            interaction_manager=self.interaction_manager,
+            llm=self.llm,
+        )
 
         self.create_document_tools(self.document_tool)
+
+        # This is a problem with langchain right now- hopefully it resolves soon, because the StructuredChatOutputParserWithRetries is crap without the llm
+        try:
+            output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
+        except Exception as e:
+            logging.error(f"Could not create output parser: {e}")
+            logging.warning("Falling back to default output parser")
+            output_parser = StructuredChatOutputParserWithRetries()
 
         self.agent = initialize_agent(
             tools=self.document_tools,
@@ -72,7 +83,7 @@ class DocumentsAI(DestinationBase):
                     self.destination.model_configuration.llm_type,
                     "TOOLS_FORMAT_INSTRUCTIONS",
                 ),
-                "output_parser": CustomStructuredChatOutputParserWithRetries.from_llm(llm=self.llm), #CustomStructuredChatOutputParserWithRetries(output_fixing_parser=CustomOutputFixingParser()),
+                "output_parser": output_parser,
                 "input_variables": [
                     "input",
                     "loaded_documents",
@@ -81,8 +92,8 @@ class DocumentsAI(DestinationBase):
                     "system_information",
                 ],
             },
-            max_execution_time=120, # 2 minute timeout
-            early_stopping_method="generate" # try to generate a response if it times out
+            max_execution_time=120,  # 2 minute timeout
+            early_stopping_method="generate",  # try to generate a response if it times out
         )
 
         # Agents should have their own memory (containing past tool runs or other info) that is combined with the conversation memory
@@ -92,21 +103,20 @@ class DocumentsAI(DestinationBase):
         # Set the memory on the agent tools callback so that it can manually add entries
         # self.agent_tools_callback.memory = agent_memory.memory
 
-    def create_document_tools(self, document_tool:DocumentTool):
+    def create_document_tools(self, document_tool: DocumentTool):
         self.document_tools = [
             StructuredTool.from_function(
                 func=document_tool.search_loaded_documents,
-                callbacks=[self.agent_callback]
+                callbacks=[self.agent_callback],
             ),
             StructuredTool.from_function(
-                func=document_tool.summarize_topic,
-                callbacks=[self.agent_callback]
+                func=document_tool.summarize_topic, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
                 func=document_tool.list_documents,
                 callbacks=[self.agent_callback],
                 return_direct=True,
-            )            
+            ),
         ]
 
     def run(
@@ -119,7 +129,7 @@ class DocumentsAI(DestinationBase):
     ):
         self.interaction_manager.collection_id = collection_id
         self.interaction_manager.tool_kwargs = kwargs
-        
+
         results = self.agent.run(
             input=input,
             system_information=get_system_information(
@@ -138,7 +148,7 @@ class DocumentsAI(DestinationBase):
                     ]
                 ]
             ),
-            callbacks=agent_callbacks            
+            callbacks=agent_callbacks,
         )
 
         # Adding this after the run so that the agent can't see it in the history

@@ -113,6 +113,7 @@ class RetrievalAugmentedGenerationAI:
             "TOOLS_FORMAT_INSTRUCTIONS",
         )
 
+        # This is a problem with langchain right now- hopefully it resolves soon, because the StructuredChatOutputParserWithRetries is crap without the llm
         try:
             output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
         except Exception as e:

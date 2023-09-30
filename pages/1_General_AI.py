@@ -303,15 +303,18 @@ if __name__ == "__main__":
         if ui_shared.ensure_user(user_email):
             ui_shared.set_user_id_from_email(user_email)
             ui_shared.ensure_interaction()
-            ui_shared.load_conversation_selectbox(general_ui.load_ai)
+
+            conversations, files_and_settings = st.sidebar.tabs(["Conversations", "Files & Settings"])
+
+            ui_shared.load_conversation_selectbox(general_ui.load_ai, conversations)
             # Set up columns for chat and collections
             col1, col2 = st.columns([0.65, 0.35])
 
             general_ui.load_ai()
-            ui_shared.setup_new_chat_button()
+            ui_shared.setup_new_chat_button(conversations)
             general_ui.create_collections_container(col2)
 
-            ui_shared.select_documents()
+            ui_shared.select_documents(ai=st.session_state["general_ai"], tab=files_and_settings)
 
             general_ui.handle_chat(col1)
 
@@ -322,4 +325,5 @@ if __name__ == "__main__":
     except Exception as e:
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
         # And after wasting 20 minutes of my life on this, I am done.
-        pass
+        logging.error(f"Caught a general exception: {e}")
+        
