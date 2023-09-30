@@ -92,8 +92,7 @@ class StubbingAgent(BaseMultiActionAgent):
             return AgentAction(
                 tool="get_dependency_graph",
                 tool_input={
-                    "target_file_id": kwargs["file_id"],
-                    "collection_id": kwargs["collection_id"],
+                    "target_file_id": kwargs["file_id"]
                 },
                 log=f"Getting dependency graph for file: {kwargs['file_id']}",
             )

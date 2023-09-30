@@ -405,12 +405,11 @@ class CodeTool:
             "file": doc.document_name,
             "code": f"Stubbed code for {doc.document_name}:\n```\n{stubbed_code}\n```",
         }
-
-
+    
 # Testing
 if __name__ == "__main__":
     code_tool = CodeTool(None, None, None)
 
-    dependency = code_tool.get_dependency_graph(4, 1)
+    dependency = code_tool.get_dependency_graph(4)
 
     code_tool.pretty_print_dependency_graph(dependency)
