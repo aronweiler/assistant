@@ -335,6 +335,9 @@ class RagUI:
 
                     llm_container.markdown(result)
 
+                    # TODO: Put this thought container text into the DB (it provides great context!)
+                    print(f"TODO: Put this thought container text into the DB (it provides great context!):{thought_container}")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)    
@@ -363,15 +366,18 @@ if __name__ == "__main__":
             logging.debug("User exists")
             ui_shared.set_user_id_from_email(user_email)
             ui_shared.ensure_interaction()
-            ui_shared.load_interaction_selectbox(rag_ui.load_ai)
+
+            conversations, files_and_settings = st.sidebar.tabs(["Conversations", "Files & Settings"])
+
+            ui_shared.load_conversation_selectbox(rag_ui.load_ai, conversations)
             # Set up columns for chat and collections
-            col1, col2 = st.columns([0.65, 0.35])
+            col1, col2 = st.columns([0.65, 0.35])            
             
             rag_ui.load_ai()
-            ui_shared.setup_new_chat_button()
+            ui_shared.setup_new_chat_button(conversations)
             rag_ui.create_collections_container(col2)
 
-            ui_shared.select_documents(ai=st.session_state["rag_ai"])
+            ui_shared.select_documents(ai=st.session_state["rag_ai"], tab=files_and_settings)
 
             rag_ui.handle_chat(col1)       
 
@@ -379,4 +385,5 @@ if __name__ == "__main__":
     except Exception as e:
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
         # And after wasting 20 minutes of my life on this, I am done.
+        logging.error(f"Caught a general exception: {e}")
         pass

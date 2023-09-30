@@ -303,7 +303,7 @@ if __name__ == "__main__":
         if ui_shared.ensure_user(user_email):
             ui_shared.set_user_id_from_email(user_email)
             ui_shared.ensure_interaction()
-            ui_shared.load_interaction_selectbox(general_ui.load_ai)
+            ui_shared.load_conversation_selectbox(general_ui.load_ai)
             # Set up columns for chat and collections
             col1, col2 = st.columns([0.65, 0.35])
 
