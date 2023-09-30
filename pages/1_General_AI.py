@@ -307,6 +307,7 @@ if __name__ == "__main__":
             conversations, files_and_settings = st.sidebar.tabs(["Conversations", "Files & Settings"])
 
             ui_shared.load_conversation_selectbox(general_ui.load_ai, conversations)
+
             # Set up columns for chat and collections
             col1, col2 = st.columns([0.65, 0.35])
 
