@@ -7,6 +7,7 @@ from streamlit_extras.stylable_container import stylable_container
 
 
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
+from src.ai.callbacks.generic_callbacks import ResultOnlyCallbackHandler
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfigurationLoader,
@@ -280,8 +281,10 @@ class RagUI:
                 with st.chat_message("assistant", avatar="🤖"):
                     thought_container = st.container().empty()
                     llm_container = st.container().empty()
+                    results_callback = ResultOnlyCallbackHandler()
                     callbacks = []
-                    callbacks.append(
+                    callbacks.append(results_callback)
+                    callbacks.append(                        
                         StreamlitCallbackHandler(
                             parent_container=thought_container,
                             expand_new_thoughts=True,
@@ -336,7 +339,7 @@ class RagUI:
                     llm_container.markdown(result)
 
                     # TODO: Put this thought container text into the DB (it provides great context!)
-                    print(f"TODO: Put this thought container text into the DB (it provides great context!):{thought_container}")
+                    print(f"TODO: Put this thought container text into the DB (it provides great context!):{results_callback.response}")
 
 
 if __name__ == "__main__":

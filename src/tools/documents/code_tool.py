@@ -177,7 +177,7 @@ class CodeTool:
                     [f"{m['type']}: {m['signature']}" for m in sorted_data]
                 )
 
-            return f"--- BEGIN CODE STRUCTURE ---\n{code_structure}\n--- END CODE STRUCTURE ---"
+            return f"The code structure looks like:\n{code_structure}"
 
         except Exception as e:
             logging.error(f"Error getting code structure: {e}")
