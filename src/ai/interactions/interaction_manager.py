@@ -115,6 +115,17 @@ class InteractionManager:
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
 
+    def get_loaded_documents_count(self):
+        """Gets the loaded documents for the specified collection."""
+
+        if self.collection_id is None:
+            logging.warning(
+                "No document collection ID specified, cannot get loaded documents."
+            )
+            return 0
+
+        return len(self.documents_helper.get_collection_files(self.collection_id))
+    
     def get_loaded_documents_for_reference(self):
         """Gets the loaded documents for the specified collection."""
 

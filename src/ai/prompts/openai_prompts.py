@@ -45,7 +45,7 @@ OUTPUT:
 #AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
-TOOLS_FORMAT_INSTRUCTIONS = """Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
+TOOLS_FORMAT_INSTRUCTIONS = """Use a json blob to specify a tool by providing an `action key` (tool name) and an `action_input` key (tool input).
 
 Valid "action" values: "Final Answer" or {tool_names}
 
@@ -62,9 +62,11 @@ Provide only ONE action per $JSON_BLOB, formatted as shown:
 
 Then, follow this format for your response:
 
-Query: <<user input query>>
+Original User Input: <<unmodified original user input - this should be what you use when calling tools that require the original user input>> 
 
-Thought: <<Describe your thinking on the previously taken steps and plan subsequent steps.  If the data exists to answer the users query, return the final answer.>>
+Query: <<query - can be modified from the original user input to be more precise>>
+
+Thought: <<Describe your thinking about the user's input, the previously taken steps, and your plans for subsequent steps.  Does the query require multiple steps?Describe them here.  If the data exists to answer the users query, return the final answer.>>
 
 Action:
 ```
@@ -73,9 +75,9 @@ $JSON_BLOB
 
 Observation: <<action result>>
 
-... (repeat Thought/Action/Observation as many times as necessary to get to the final answer)
+... (repeat Thought/Action/Observation steps as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps to answer)
 
-When you arrive at the final answer to the query, the format is:
+When you arrive at the final answer to the query, the response format is:
 ```json
 {{{{
   "action": "Final Answer",
@@ -103,7 +105,7 @@ $JSON_BLOB
 ```
 --- FORMAT --- 
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern. Use tools if necessary. Respond directly if appropriate. DO NOT respond with the same action twice in a row!  Each action you take should be different from the previous action.
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies all of the fields required!
 
 """
 

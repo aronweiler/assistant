@@ -28,19 +28,18 @@ class DocumentTool:
 
     def search_loaded_documents(
         self,
-        original_user_query: str,
-        search_query: str = None,
+        query: str,
+        original_user_input: str,
         target_file_id: int = None,
     ):
-        """Searches the loaded files for the given query.
-
+        """Searches the loaded files (or the specified file when target_file_id is set) for the given query.
         The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.
 
         IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
 
         Args:
-            original_user_query (str, required): The original unmodified query input from the user.
-            search_query (str, optional): The query, possibly rephrased by you, to search the files for.
+            query (str): The query to search the loaded documents for (can be a modified version of the original_user_input for searching).
+            original_user_input (str): The original user input.  Make sure this is not modified by you!
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
         search_kwargs = {
@@ -93,9 +92,14 @@ class DocumentTool:
         qa_with_sources.combine_documents_chain = combine_chain
         qa_with_sources.return_source_documents = True
 
-        results = qa_with_sources({"question": search_query or original_user_query})
+        results = qa_with_sources({"question": query})
 
-        return f"RESULTS:\n{results['answer']}.\n\nThe sources used are: {results['sources']}"
+        # return f"{results['answer']}.\n\nSources: {results['sources']}"
+        response = self.llm.predict(
+            f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+        )
+
+        return response
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_entire_document(self, target_file_id: int):
@@ -129,12 +133,14 @@ class DocumentTool:
         summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
         return summary
 
-    def summarize_topic(self, query: str):
-        """Useful for getting a summary of a topic or query from the user.  This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
+    def summarize_topic(self, query: str, original_user_input: str):
+        """Useful for getting a summary of a topic or query from the user.
+        This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
 
         Args:
 
-            query (str): The original query from the user.
+            query (str, Required): The query to search the loaded documents for (this can be a modified version of the original_user_input for searching).
+            original_user_input (str, Required): The original user input.  Make sure this is not modified by you!
         """
         # Create the documents class for the retriever
         documents = Documents()
@@ -163,7 +169,7 @@ class DocumentTool:
         summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
 
         response = self.llm.predict(
-            f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+            f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
         )
 
         return response
