@@ -389,8 +389,3 @@ if __name__ == "__main__":
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
         # And after wasting 20 minutes of my life on this, I am done.
         logging.error(f"Caught a general exception: {e}")
-<<<<<<< HEAD
-        
-=======
-        pass
->>>>>>> main
