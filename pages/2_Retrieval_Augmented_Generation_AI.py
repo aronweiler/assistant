@@ -180,6 +180,12 @@ class RagUI:
                                 ["map_reduce", "refine"],
                                 key="summarization_strategy",
                             )
+                            st.toggle(
+                                "Re-run user query after search / summarization",
+                                help="This will re-run the user query after the search and summarization is complete.  This can sometimes yield better results, but it can also hide data you may find relevant.",
+                                value=False,
+                                key="re_run_user_query",
+                            )
 
                         with st.expander("Spreadsheets"):
                             st.toggle(
@@ -279,8 +285,8 @@ class RagUI:
                 st.chat_message("user", avatar="👤").markdown(prompt)
 
                 with st.chat_message("assistant", avatar="🤖"):
-                    thought_container = st.container().empty()
-                    llm_container = st.container().empty()
+                    thought_container = st.container()
+                    llm_container = st.container()
                     results_callback = ResultOnlyCallbackHandler()
                     callbacks = []
                     callbacks.append(results_callback)
@@ -320,6 +326,9 @@ class RagUI:
                         ]
                         if "summarization_strategy" in st.session_state
                         else "map_reduce",
+                        "re_run_user_query": st.session_state["re_run_user_query"]
+                        if "re_run_user_query" in st.session_state
+                        else True,
                     }
                     logging.debug(f"kwargs: {kwargs}")
 
@@ -339,7 +348,7 @@ class RagUI:
                     llm_container.markdown(result)
 
                     # TODO: Put this thought container text into the DB (it provides great context!)
-                    print(f"TODO: Put this thought container text into the DB (it provides great context!):{results_callback.response}")
+                    logging.debug(f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}")
 
 
 if __name__ == "__main__":

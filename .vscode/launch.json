@@ -1,61 +1,24 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-    // Refactor these to work with the new docker / streamlit setup
-    // {
-    //   "name": "Run Llama2 LLM Streamlit App",
-    //   "type": "python",
-    //   "request": "launch",
-    //   "program": "assistant_venv/Scripts/streamlit.exe",
-    //   "args": ["run", "${workspaceFolder}/src/runners/ui/streamlit_ui.py"],
-    //   "cwd": "${workspaceFolder}/src",
-    //   "console": "integratedTerminal",
-    //   "env": {
-    //     "ASSISTANT_CONFIG_PATH": "configurations/console_configs/llama2_config.json"
-    //   }
-    // },
-    // {
-    //   "name": "Run Aron LLM Streamlit App",
-    //   "type": "python",
-    //   "request": "launch",
-    //   "program": "assistant_venv/Scripts/streamlit.exe",
-    //   "args": ["run", "${workspaceFolder}/src/runners/ui/streamlit_ui.py"],
-    //   "cwd": "${workspaceFolder}/src",
-    //   "console": "integratedTerminal",
-    //   "env": {
-    //     "ASSISTANT_CONFIG_PATH": "configurations/console_configs/aron_llm_config.json"
-    //   }
-    // },
-    // {
-    //   "name": "Run Luna AI LLM Streamlit App",
-    //   "type": "python",
-    //   "request": "launch",
-    //   "program": "assistant_venv/Scripts/streamlit.exe",
-    //   "args": ["run", "${workspaceFolder}/src/runners/ui/streamlit_ui.py"],
-    //   "cwd": "${workspaceFolder}/src",
-    //   "console": "integratedTerminal",
-    //   "env": {
-    //     "ASSISTANT_CONFIG_PATH": "configurations/console_configs/luna_config.json"
-    //   }
-    // },
     {
       "name": "OpenAI Jarvis",
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": ["run", "Jarvis_-_Home.py", "--server.port=${input:randomPort}"],
+      "args": [
+        "run",
+        "Jarvis_-_Home.py",
+        "--server.port=${input:randomPort}"
+      ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
         "ASSISTANT_CONFIG_PATH": "configurations/console_configs/openai_config.json",
-        "SOFTWARE_DEV_CONFIG_PATH":"configurations/software_development/openai_config.json",
+        "SOFTWARE_DEV_CONFIG_PATH": "configurations/software_development/openai_config.json",
         "POSTGRES_HOST": "localhost",
-        "LIBRE_OFFICE_PATH":"/Program Files/LibreOffice/program/soffice.exe"
-
+        "LIBRE_OFFICE_PATH": "/Program Files/LibreOffice/program/soffice.exe"
       },
       "justMyCode": true
     },
@@ -64,17 +27,21 @@
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": ["run", "Jarvis_-_Home.py", "--server.port=${input:randomPort}"],
+      "args": [
+        "run",
+        "Jarvis_-_Home.py",
+        "--server.port=${input:randomPort}"
+      ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
         "ASSISTANT_CONFIG_PATH": "configurations/console_configs/homework_openai_config.json",
-        "SOFTWARE_DEV_CONFIG_PATH":"configurations/software_development/openai_config.json",
+        "SOFTWARE_DEV_CONFIG_PATH": "configurations/software_development/openai_config.json",
         "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT":"6969",
-        "LIBRE_OFFICE_PATH":"/Program Files/LibreOffice/program/soffice.exe",
-        "USER_EMAIL":"susanmae1129@gmail.com"
+        "POSTGRES_PORT": "6969",
+        "LIBRE_OFFICE_PATH": "/Program Files/LibreOffice/program/soffice.exe",
+        "USER_EMAIL": "susanmae1129@gmail.com"
       },
       "justMyCode": true
     },
@@ -101,29 +68,38 @@
       ],
       "console": "integratedTerminal",
       "justMyCode": false
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Repos/sample_docs/cpp/Dave/StateMachine",
+      "program": "c:/Repos/sample_docs/cpp/Dave/StateMachine/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
     }
-    // Need to get this working again
-    // {
-    //   "name": "Run Voice LLM",
-    //   "type": "python",
-    //   "request": "launch",
-    //   "program": "src/run.py",
-    //   "args": [
-    //     "--config=configurations/voice_configs/voice_config.json",
-    //     "--logging_level=INFO"
-    //   ],
-    //   "console": "integratedTerminal",
-    //   "justMyCode": true
-    // }
   ],
   "inputs": [
     {
       "id": "randomPort",
       "type": "command",
-      "command": "extension.commandvariable.number", // Requires Command Variable extension
+      "command": "extension.commandvariable.number",
       "args": {
         "name": "randomPort",
-        "range": [1500, 60000],
+        "range": [
+          1500,
+          60000
+        ],
         "random": true,
         "uniqueCount": 10
       }
@@ -132,7 +108,9 @@
       "id": "rememberRandomPort",
       "type": "command",
       "command": "extension.commandvariable.remember",
-      "args": { "key": "number-randomPort" }
+      "args": {
+        "key": "number-randomPort"
+      }
     }
   ]
 }

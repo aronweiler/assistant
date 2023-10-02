@@ -107,14 +107,13 @@ class CodeTool:
         target_file_id: int,
         code_type: str = None,
     ):
-        """Useful for understanding the high-level structure of a specific loaded code file.  Use this tool before using the 'code_detail' tool.
-        This tool will give you a list of module names, function signatures, and class method signatures.
+        """This tool will give you a list of module names, function signatures, and class method signatures in the target file.
         You can use the signature of any of these to get more details about that specific piece of code when calling code_detail.
 
-        Don't use this tool on anything that isn't classified as 'Code'.
+        Make sure not to use this tool on anything that isn't classified as 'Code'.
 
         Args:
-            target_file_id (int): REQUIRED! The file ID you would like to get the code structure for.
+            target_file_id (int): REQUIRED! Cannot be null. The loaded 'Code' classified file ID you would like to get the code structure for.
             code_type (str, optional): Valid code_type arguments are 'MODULE', 'FUNCTION_DECLARATION', and 'CLASS_METHOD'. When left empty, the code structure will be returned in its entirety.
         """
         documents = Documents()
@@ -211,12 +210,14 @@ class CodeTool:
         target_file_id: int,
         target_signature: str,
     ):
-        """Useful for getting the details of a specific piece of code in a loaded code file.  Use this tool after using the 'code_structure' tool.  This tool will give you the code details for the specific piece of code you requested.  You can get the signature of any piece of code from the 'code_structure' tool.
+        """Useful for getting the details of a specific piece of code in a loaded code file.
+        This tool will give you the actual code for the file and signature you request.  
+        Make sure you have a list of signatures from the 'code_structure' tool before using this tool.
 
         Don't use this on anything that isn't classified as 'Code'.
 
         Args:
-            target_file_id (int): The file ID you would like to get the code details for.
+            target_file_id (int): The 'Code' classified file ID you would like to get the code details for.
             target_signature (str): The signature of the piece of code you would like to get the details for. Valid values for this argument are the signatures returned by the 'code_structure' tool.
         """
         documents = Documents()
