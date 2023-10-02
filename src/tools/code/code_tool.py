@@ -22,7 +22,7 @@ from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.llm_helper import get_prompt
 
-from src.tools.documents.code_dependency import CodeDependency
+from src.tools.code.code_dependency import CodeDependency
 
 
 class CodeTool:

@@ -21,7 +21,7 @@ from src.ai.callbacks.token_management_callback import TokenManagementCallbackHa
 from src.ai.callbacks.agent_callback import AgentCallback
 
 from src.tools.documents.document_tool import DocumentTool
-from src.tools.documents.code_tool import CodeTool
+from src.tools.code.code_tool import CodeTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
 

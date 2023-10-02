@@ -25,7 +25,7 @@ from src.ai.system_info import get_system_information
 
 from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
-from src.tools.documents.code_tool import CodeTool
+from src.tools.code.code_tool import CodeTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
 from src.ai.agents.code.code_review_agent import CodeReviewer
