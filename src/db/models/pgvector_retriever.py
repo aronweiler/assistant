@@ -44,7 +44,7 @@ class PGVectorRetriever(BaseRetriever):
         else:
             raise Exception("interaction_id must be specified in search_kwargs")
 
-        collection = self.vectorstore.get_collection(collection_id, interaction_id)
+        collection = self.vectorstore.get_collection(collection_id)
 
         if collection is None:
             raise Exception(

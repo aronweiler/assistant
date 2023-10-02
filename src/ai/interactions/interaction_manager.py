@@ -67,7 +67,6 @@ class InteractionManager:
         # Set our internal interaction id
         self.interaction_id = interaction_id
 
-
         self.interactions_helper = Interactions()
         self.conversations_helper = Conversations()
         self.users_helper = Users()
@@ -115,6 +114,17 @@ class InteractionManager:
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
 
+    def get_loaded_documents_count(self):
+        """Gets the loaded documents for the specified collection."""
+
+        if self.collection_id is None:
+            logging.warning(
+                "No document collection ID specified, cannot get loaded documents."
+            )
+            return 0
+
+        return len(self.documents_helper.get_collection_files(self.collection_id))
+    
     def get_loaded_documents_for_reference(self):
         """Gets the loaded documents for the specified collection."""
 
@@ -146,6 +156,11 @@ class InteractionManager:
             f"{file.id}:{file.file_name}"
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
+    
+    def get_interaction(self):
+        """Gets the interaction for the specified interaction ID."""
+
+        return self.interactions_helper.get_interaction(self.interaction_id)
 
     def _ensure_interaction_exists(self, user_id: int):
         """Ensures the interaction exists, and creates it if it doesn't."""

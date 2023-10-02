@@ -87,6 +87,7 @@ class Interaction(ModelBase):
     record_created = Column(DateTime, nullable=False, default=datetime.now)
     interaction_summary = Column(String, nullable=False)
     needs_summary = Column(Boolean, nullable=False, default=True)
+    last_selected_collection_id = Column(Integer, nullable=False, default=-1)
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
@@ -261,25 +262,12 @@ class DocumentCollection(ModelBase):
     __tablename__ = "document_collections"
 
     id = Column(Integer, primary_key=True)        
-    collection_name = Column(String, nullable=False)
-    interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
+    collection_name = Column(String, nullable=False, unique=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)    
     
-    # Define the foreign key constraint to ensure the interaction_id exists in the interactions table
-    interaction_constraint = ForeignKeyConstraint([interaction_id], ["interactions.id"])
-
-    # Define the CheckConstraint to enforce interaction_id existing in interactions
-    document_collection_check_constraint = CheckConstraint(
-        "interaction_id IN (SELECT id FROM interactions)",
-        name="ck_interaction_id_in_interactions",
-    )
-
     documents = relationship("Document", back_populates="collection")
 
     files = relationship("File", back_populates="collection")
-
-    # define the unique constraint on both the interaction_id and collection_name
-    __table_args__ = (UniqueConstraint("interaction_id", "collection_name"),)
 
 class Project(ModelBase):
     __tablename__ = "projects"

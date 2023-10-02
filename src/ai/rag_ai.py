@@ -64,7 +64,21 @@ class RetrievalAugmentedGenerationAI:
         self.tools = self.create_tools()
 
     def get_enabled_tools(self):
-        return [tool["tool"] for tool in self.tools if tool["enabled"]]
+        tools_that_should_be_enabled = [tool for tool in self.tools if tool["enabled"]]
+
+        # Now filter them down based on document-related tools, and if there are documents loaded
+        if self.interaction_manager.get_loaded_documents_count() <= 0:
+            tools_that_should_be_enabled = [
+                tool["tool"]
+                for tool in tools_that_should_be_enabled
+                if not tool["is_document_related"]
+            ]
+        else:
+            tools_that_should_be_enabled = [
+                tool["tool"] for tool in tools_that_should_be_enabled
+            ]
+
+        return tools_that_should_be_enabled
 
     def get_all_tools(self):
         return self.tools
@@ -100,6 +114,7 @@ class RetrievalAugmentedGenerationAI:
             "TOOLS_FORMAT_INSTRUCTIONS",
         )
 
+        # This is a problem with langchain right now- hopefully it resolves soon, because the StructuredChatOutputParserWithRetries is crap without the llm
         try:
             output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
         except Exception as e:
@@ -111,7 +126,7 @@ class RetrievalAugmentedGenerationAI:
         agent_kwargs = {
             "suffix": suffix,
             "format_instructions": format_instructions,
-            "output_parser": output_parser,  # (output_fixing_parser=CustomOutputFixingParser()),
+            "output_parser": output_parser,
             "input_variables": [
                 "input",
                 "loaded_documents",
@@ -249,30 +264,37 @@ class RetrievalAugmentedGenerationAI:
                 "name": "Search Documents",
                 "about": "Searches the loaded documents for a query. If the query is directed at a specific document, this will search just that document, otherwise, it will search all loaded documents.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
-                    func=self.document_tool.search_loaded_documents
+                    func=self.document_tool.search_loaded_documents,
+                    #return_direct=True,
                 ),
             },
             {
                 "name": "Summarize Topic (All Documents))",
                 "about": "Searches through all documents for the specified topic, and summarizes the results. Don't forget to set the top_k!  If the file override is set, it will use that file.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
-                    func=self.document_tool.summarize_topic
+                    func=self.document_tool.summarize_topic,
+                    #return_direct=True,
                 ),
             },
             {
                 "name": "Summarize Whole Document (⚠️ Slow / Expensive)",
                 "about": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
                 "enabled": False,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
-                    func=self.document_tool.summarize_entire_document
+                    func=self.document_tool.summarize_entire_document,
+                    return_direct=True,
                 ),
             },
             {
                 "name": "List Documents",
                 "about": "Lists all loaded documents.",
                 "enabled": True,
+                "is_document_related": False,
                 "tool": StructuredTool.from_function(
                     func=self.document_tool.list_documents
                 ),
@@ -281,12 +303,14 @@ class RetrievalAugmentedGenerationAI:
                 "name": "Code Details",
                 "about": "Gets details about a specific part of a code file.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(func=self.code_tool.code_details),
             },
             {
                 "name": "Code Structure",
                 "about": "Gets the structure of a code file.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.code_tool.code_structure
                 ),
@@ -295,6 +319,7 @@ class RetrievalAugmentedGenerationAI:
                 "name": "Dependency Graph",
                 "about": "Gets the dependency graph of a code file.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.code_tool.get_pretty_dependency_graph,
                     return_direct=True,
@@ -304,6 +329,7 @@ class RetrievalAugmentedGenerationAI:
                 "name": "Create Stubs",
                 "about": "Creates stubs for a specified code file.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.stubber_tool.create_stubs,
                     return_direct=True,
@@ -322,6 +348,7 @@ class RetrievalAugmentedGenerationAI:
                 "name": "Query Spreadsheet",
                 "about": "Queries a specific spreadsheet.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.spreadsheet_tool.query_spreadsheet
                 ),
