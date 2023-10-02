@@ -44,8 +44,8 @@ class GeneralUI:
     def create_collections_container(self, main_window_container):
         css_style = """{
     position: fixed;  /* Keeps the element fixed on the screen */
-    top: 10px;        /* Adjust the top position as needed */
-    right: 10px;      /* Adjust the right position as needed */
+    top: 140px;        /* Adjust the top position as needed */
+    right: 50px;      /* Adjust the right position as needed */
     width: 300px;     /* Adjust the width as needed */
     max-width: 100%;  /* Ensures the element width doesn't exceed area */
     z-index: 9999;    /* Ensures the element is on top of other content */
@@ -54,19 +54,14 @@ class GeneralUI:
     overflow-x: hidden;   /* Hides horizontal scrollbar */
 }"""
 
-        selected_interaction_id = ui_shared.get_selected_interaction_id()
-
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
                 if "general_ai" in st.session_state:
                     st.caption("Selected document collection:")
                     # This is a hack, but it works
                     col1, col2 = st.columns([0.80, 0.2])
-                    col1.selectbox(
-                        "Active document collection",
-                        ui_shared.get_available_collections(selected_interaction_id),
-                        key="active_collection",
-                        label_visibility="collapsed",
+                    ui_shared.create_collection_selectbox(
+                        col1, ai=st.session_state["general_ai"]
                     )
 
                     with st.container():
@@ -90,11 +85,9 @@ class GeneralUI:
                             st.experimental_rerun()
 
                     if "general_ai" in st.session_state:
-                        option = st.session_state["active_collection"]
-                        if option:
-                            collection_id = ui_shared.collection_id_from_option(
-                                option, selected_interaction_id
-                            )
+                        collection_id = ui_shared.get_selected_collection_id()
+                        if collection_id != -1:
+                            collection_id = ui_shared.get_selected_collection_id()
 
                             st.session_state[
                                 "general_ai"
@@ -108,7 +101,7 @@ class GeneralUI:
                                 st.text_input("Top K", key="search_top_k", value=10)
 
                             with st.expander(
-                                label=f"({len(loaded_docs)}) documents in {option}",
+                                label=f"({len(loaded_docs)}) documents in {ui_shared.get_selected_collection_name()}",
                                 expanded=False,
                             ):
                                 for doc in loaded_docs:
@@ -218,7 +211,7 @@ class GeneralUI:
         # Get user input (must be outside of the container)
         prompt = st.chat_input("Enter your message here", key="chat_input")
 
-        if prompt:            
+        if prompt:
             with main_window_container.container():
                 st.chat_message("user", avatar="👤").markdown(prompt)
 
@@ -228,8 +221,8 @@ class GeneralUI:
                     llm_callbacks = []
                     llm_callbacks.append(StreamingOnlyCallbackHandler(llm_container))
 
-                    agent_callbacks = []                    
-                    print("showing agent thoughts")                    
+                    agent_callbacks = []
+                    print("showing agent thoughts")
                     agent_callback = StreamlitCallbackHandler(
                         agent_callback_container,
                         expand_new_thoughts=True,
@@ -237,10 +230,7 @@ class GeneralUI:
                     )
                     agent_callbacks.append(agent_callback)
 
-                    collection_id = ui_shared.collection_id_from_option(
-                        st.session_state["active_collection"],
-                        general_ai_instance.interaction_manager.interaction_id,
-                    )
+                    collection_id = ui_shared.get_selected_collection_id()
 
                     kwargs = {
                         "search_top_k": int(st.session_state["search_top_k"])
@@ -250,7 +240,7 @@ class GeneralUI:
 
                     result = general_ai_instance.query(
                         prompt,
-                        collection_id=collection_id,
+                        collection_id=collection_id if collection_id != -1 else None,
                         llm_callbacks=llm_callbacks,
                         agent_callbacks=agent_callbacks,
                         kwargs=kwargs,
@@ -259,7 +249,7 @@ class GeneralUI:
                     print(f"Result: {result}")
 
                     llm_container.markdown(result)
-                    ui_shared.scroll_to_bottom('column')
+                    ui_shared.scroll_to_bottom("column")
 
     def load_configuration(self):
         # Load environment variables from the .env file
@@ -304,7 +294,9 @@ if __name__ == "__main__":
             ui_shared.set_user_id_from_email(user_email)
             ui_shared.ensure_interaction()
 
-            conversations, files_and_settings = st.sidebar.tabs(["Conversations", "Files & Settings"])
+            conversations, files_and_settings = st.sidebar.tabs(
+                ["Conversations", "Files & Settings"]
+            )
 
             ui_shared.load_conversation_selectbox(general_ui.load_ai, conversations)
 
@@ -315,16 +307,18 @@ if __name__ == "__main__":
             ui_shared.setup_new_chat_button(conversations)
             general_ui.create_collections_container(col2)
 
-            ui_shared.select_documents(ai=st.session_state["general_ai"], tab=files_and_settings)
+            ui_shared.select_documents(
+                ai=st.session_state["general_ai"], tab=files_and_settings
+            )
 
             general_ui.handle_chat(col1)
 
-            ui_shared.scroll_to_bottom('column')
+            ui_shared.scroll_to_bottom("column")
 
             ui_shared.show_version()
-    
+
     except Exception as e:
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
         # And after wasting 20 minutes of my life on this, I am done.
         logging.error(f"Caught a general exception: {e}")
-        
+        st.error(f"Caught a general exception: {e}")
