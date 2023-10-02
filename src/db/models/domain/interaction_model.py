@@ -6,6 +6,7 @@ class InteractionModel:
         self,
         interaction_summary,
         needs_summary,
+        last_selected_collection_id,
         user_id,
         id=None,
         is_deleted=False,
@@ -15,6 +16,7 @@ class InteractionModel:
         self.record_created = record_created
         self.interaction_summary = interaction_summary
         self.needs_summary = needs_summary
+        self.last_selected_collection_id = last_selected_collection_id
         self.user_id = user_id
         self.is_deleted = is_deleted
 
@@ -24,6 +26,7 @@ class InteractionModel:
             record_created=self.record_created,
             interaction_summary=self.interaction_summary,
             needs_summary=self.needs_summary,
+            last_selected_collection_id=self.last_selected_collection_id,
             user_id=self.user_id,
             is_deleted=self.is_deleted,
         )
@@ -38,6 +41,7 @@ class InteractionModel:
             record_created=db_interaction.record_created,
             interaction_summary=db_interaction.interaction_summary,
             needs_summary=db_interaction.needs_summary,
+            last_selected_collection_id=db_interaction.last_selected_collection_id,
             user_id=db_interaction.user_id,
             is_deleted=db_interaction.is_deleted,
         )

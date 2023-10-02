@@ -91,17 +91,15 @@ When you arrive at the final answer to the query, the response format is:
 ```
 """
 
-TOOLS_SUFFIX = """Consider the context provided in the chat history and loaded documents when deciding which tool to use:
+TOOLS_SUFFIX = """Consider the context provided in the chat history, loaded documents, and additional user information when deciding which tool to use:
 
---- BEGIN CHAT HISTORY ---
+--- CHAT HISTORY ---
 {chat_history}
---- END CHAT HISTORY ---
+--- CHAT HISTORY ---
 
---- BEGIN LOADED DOCUMENTS ---
+--- LOADED DOCUMENTS ---
 {loaded_documents}
---- END LOADED DOCUMENTS ---
-
-Helpful system information: {system_information}
+--- LOADED DOCUMENTS ---
 
 Think this through step-by-step. Note the type of document (Document, Code, Spreadsheet, etc.), and be certain to use the right tool and arguments in the json blob.  Pay close attention to the tool descriptions!
 
@@ -238,6 +236,9 @@ Action:
 }}
 ```
 --- END MULTI-HOP EXAMPLE ---
+
+Additional user information:
+{system_information}
 
 Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern described above. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies all of the required fields.
 

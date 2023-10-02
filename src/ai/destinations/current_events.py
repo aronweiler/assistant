@@ -1,33 +1,21 @@
 import logging
-from uuid import UUID
-from typing import List
 
-from langchain.chains.llm import LLMChain
-from langchain.base_language import BaseLanguageModel
-from langchain.prompts import PromptTemplate
-from langchain.tools import StructuredTool, Tool
-from langchain.chains import (
-    RetrievalQA,
-    RetrievalQAWithSourcesChain,
-    StuffDocumentsChain,
+from langchain.agents.structured_chat.output_parser import (
+    StructuredChatOutputParserWithRetries,
 )
-from langchain.schema import Document, HumanMessage, AIMessage
-from langchain.chains.summarize import load_summarize_chain
+from langchain.memory.readonly import ReadOnlySharedMemory
 from langchain.agents import (
     initialize_agent,
     AgentType,
-    AgentExecutor,
-    AgentOutputParser,
 )
 
-from src.configuration.assistant_configuration import Destination
+from langchain.tools import StructuredTool
 
-from src.db.models.conversations import SearchType
+from src.configuration.assistant_configuration import Destination
 
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
-from src.ai.destination_route import DestinationRoute
 from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
@@ -69,33 +57,73 @@ class CurrentEventsAI(DestinationBase):
 
         self.load_tools()
 
-        self.agent = initialize_agent(
-            self.current_events_tools,
-            self.llm,
+        self.agent = self.create_agent()
+
+    def create_agent(self, agent_timeout: int = 120):
+        logging.debug("Setting human message template")
+        human_message_template = get_prompt(
+            self.destination.model_configuration.llm_type, "AGENT_TEMPLATE"
+        )
+
+        logging.debug("Setting memory")
+        memory = ReadOnlySharedMemory(
+            memory=self.interaction_manager.conversation_token_buffer_memory
+        )
+
+        logging.debug("Setting suffix")
+        suffix = get_prompt(
+            self.destination.model_configuration.llm_type, "TOOLS_SUFFIX"
+        )
+
+        logging.debug("Setting format instructions")
+        format_instructions = get_prompt(
+            self.destination.model_configuration.llm_type,
+            "TOOLS_FORMAT_INSTRUCTIONS",
+        )
+
+        # This is a problem with langchain right now- hopefully it resolves soon, because the StructuredChatOutputParserWithRetries is crap without the llm
+        try:
+            output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
+        except Exception as e:
+            logging.error(f"Could not create output parser: {e}")
+            logging.warning("Falling back to default output parser")
+            output_parser = StructuredChatOutputParserWithRetries()
+
+        logging.debug("Setting agent kwargs")
+        agent_kwargs = {
+            "suffix": suffix,
+            "format_instructions": format_instructions,
+            "output_parser": output_parser,
+            "input_variables": [
+                "input",
+                "loaded_documents",
+                "chat_history",
+                "agent_scratchpad",
+                "system_information",
+            ],
+            "verbose": True,
+        }
+
+        logging.debug(f"Creating agent with kwargs: {agent_kwargs}")
+        agent = initialize_agent(
+            tools=self.current_events_tools,
+            llm=self.llm,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             verbose=True,
-            human_message_template=get_prompt(
-                self.destination.model_configuration.llm_type, "AGENT_TEMPLATE"
-            ),
-            agent_kwargs={
-                "suffix": get_prompt(
-                    self.destination.model_configuration.llm_type, "TOOLS_SUFFIX"
-                ),
-                "input_variables": [
-                    "input",
-                    "loaded_documents",
-                    "chat_history",
-                    "agent_scratchpad",
-                    "system_information",
-                ],
-            },
+            human_message_template=human_message_template,
+            memory=memory,
+            agent_kwargs=agent_kwargs,
+            max_execution_time=agent_timeout,
+            early_stopping_method="generate",  # try to generate a response if it times out
         )
+
+        return agent
 
     def load_tools(self):
         """Loads the tools for the current events AI"""
         self.current_events_tools = [
             StructuredTool.from_function(
-                TimeTool().get_time, return_direct=True, callbacks=[self.agent_callback]
+                TimeTool().get_time, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
                 WeatherTool().get_weather, callbacks=[self.agent_callback]
@@ -133,14 +161,6 @@ class CurrentEventsAI(DestinationBase):
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
             loaded_documents="",
-            chat_history="\n".join(
-                [
-                    f"{'AI' if m.type == 'ai' else f'{self.interaction_manager.user_name} ({self.interaction_manager.user_email})'}: {m.content}"
-                    for m in self.interaction_manager.conversation_token_buffer_memory.chat_memory.messages[
-                        -4:
-                    ]
-                ]
-            ),
             callbacks=agent_callbacks,
         )
 

@@ -125,7 +125,7 @@ class RetrievalAugmentedGenerationAI:
         agent_kwargs = {
             "suffix": suffix,
             "format_instructions": format_instructions,
-            "output_parser": output_parser,  # (output_fixing_parser=CustomOutputFixingParser()),
+            "output_parser": output_parser,
             "input_variables": [
                 "input",
                 "loaded_documents",
