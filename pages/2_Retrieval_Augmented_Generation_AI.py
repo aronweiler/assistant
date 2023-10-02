@@ -91,8 +91,7 @@ class RagUI:
         css_style = """{
     position: fixed;  /* Keeps the element fixed on the screen */
     top: 140px;        /* Adjust the top position as needed */
-    right: 50px;      /* Adjust the right position as needed */
-    width: 300px;     /* Adjust the width as needed */
+    right: 50px;      /* Adjust the right position as needed */    
     max-width: 100%;  /* Ensures the element width doesn't exceed area */
     z-index: 9999;    /* Ensures the element is on top of other content */
     max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
