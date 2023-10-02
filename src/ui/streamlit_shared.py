@@ -301,7 +301,7 @@ def select_documents(tab, ai=None):
                 collection_id = None
 
                 if active_collection:
-                    collection_id = collection_id_from_option(active_collection)
+                    collection_id = get_selected_collection_id()
 
                     if submit_button:
                         ingest_files(
@@ -347,7 +347,7 @@ def ingest_files(
         return
 
     status.update(
-        label=f"Ingesting files and adding to '{active_collection}'",
+        label=f"Ingesting files and adding to '{get_selected_collection_name()}'",
         state="running",
     )
 

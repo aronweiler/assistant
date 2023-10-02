@@ -276,6 +276,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Test loading and splitting documents
-    source = "/Repos/sample_docs/Haptic"
+    source = "/Repos/sample_docs/cpp/Dave/StateMachine"
     documents = load_and_split_documents(document_directory=source, split_documents=False, is_code=False, chunk_size=1000, chunk_overlap=0)
     print(len(documents))

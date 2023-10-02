@@ -105,11 +105,13 @@ class CppSplitter(SplitterBase):
 
     def _get_includes(self, node, allowed_include_paths):
         include_files = []
-        for include_obj in node.translation_unit.get_includes():
-            if self._is_node_in_allowed_path(
-                include_obj.include.name, allowed_include_paths
-            ):
-                include_files.append(include_obj.include.name)
+        includes = list(node.translation_unit.get_includes())
+        for include_obj in includes:
+            if include_obj.depth == 1:
+                if self._is_node_in_allowed_path(
+                    include_obj.include.name, allowed_include_paths
+                ):
+                    include_files.append(include_obj.include.name)
         return include_files
 
     def _is_node_in_allowed_path(self, node, allowed_include_paths):
