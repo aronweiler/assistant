@@ -1,42 +1,20 @@
 import logging
 import json
-from uuid import UUID
-from typing import List
 
-from langchain.chains.llm import LLMChain
-from langchain.base_language import BaseLanguageModel
-from langchain.prompts import PromptTemplate
-from langchain.tools import StructuredTool, Tool
-from langchain.chains import (
-    RetrievalQA,
-    RetrievalQAWithSourcesChain,
-    StuffDocumentsChain,
-    create_qa_with_sources_chain,
+from langchain.agents.structured_chat.output_parser import (
+    StructuredChatOutputParserWithRetries,
 )
-from langchain.schema import Document, HumanMessage, AIMessage
-from langchain.chains.summarize import load_summarize_chain
-from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+from langchain.tools import StructuredTool
 from langchain.agents import (
     initialize_agent,
     AgentType,
-    AgentExecutor,
-    AgentOutputParser,
 )
 
 from src.configuration.assistant_configuration import Destination
 
-from src.db.models.conversations import SearchType
-from src.db.models.documents import Documents
-from src.db.models.users import User
-from src.db.models.pgvector_retriever import PGVectorRetriever
-
-from src.ai.destinations.output_parser import (
-    CustomStructuredChatOutputParserWithRetries,
-)
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
-from src.ai.destination_route import DestinationRoute
 from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
@@ -46,7 +24,6 @@ from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.code_tool import CodeTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
-#from src.ai.agents.code.structured_chat_agent import BetterStructuredChatAgent
 
 
 class CodeAI(DestinationBase):
@@ -97,6 +74,14 @@ class CodeAI(DestinationBase):
 
         self.create_code_tools(self.document_tool, self.code_tool, self.stubber)
 
+        # This is a problem with langchain right now- hopefully it resolves soon, because the StructuredChatOutputParserWithRetries is crap without the llm
+        try:
+            output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
+        except Exception as e:
+            logging.error(f"Could not create output parser: {e}")
+            logging.warning("Falling back to default output parser")
+            output_parser = StructuredChatOutputParserWithRetries()
+
         self.agent = initialize_agent(
             tools=self.code_tools,
             llm=self.llm,
@@ -113,7 +98,7 @@ class CodeAI(DestinationBase):
                     self.destination.model_configuration.llm_type,
                     "TOOLS_FORMAT_INSTRUCTIONS",
                 ),
-                "output_parser": CustomStructuredChatOutputParserWithRetries.from_llm(llm=self.llm), #CustomStructuredChatOutputParserWithRetries(output_fixing_parser=CustomOutputFixingParser),
+                "output_parser": output_parser,
                 "input_variables": [
                     "input",
                     "loaded_documents",
@@ -155,10 +140,14 @@ class CodeAI(DestinationBase):
                 func=code_tool.code_structure, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
-                func=code_tool.create_stub_code, callbacks=[self.agent_callback], return_direct=True
+                func=code_tool.create_stub_code,
+                callbacks=[self.agent_callback],
+                return_direct=True,
             ),
             StructuredTool.from_function(
-                func=code_tool.get_pretty_dependency_graph, callbacks=[self.agent_callback], return_direct=True
+                func=code_tool.get_pretty_dependency_graph,
+                callbacks=[self.agent_callback],
+                return_direct=True,
             ),
             StructuredTool.from_function(
                 func=stubber.create_stubs,

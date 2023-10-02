@@ -7,7 +7,7 @@ from src.db.models.vector_database import VectorDatabase
 from src.db.models.domain.interaction_model import InteractionModel
 
 
-class Interactions(VectorDatabase): 
+class Interactions(VectorDatabase):
     def create_interaction(
         self, id: UUID, interaction_summary: str, user_id: int
     ) -> InteractionModel:
@@ -27,6 +27,7 @@ class Interactions(VectorDatabase):
         self,
         interaction_id: UUID,
         interaction_summary: str,
+        last_selected_collection_id: int,
         needs_summary: bool = False,
     ):
         with self.session_context(self.Session()) as session:
@@ -36,6 +37,21 @@ class Interactions(VectorDatabase):
                 {
                     Interaction.interaction_summary: interaction_summary,
                     Interaction.needs_summary: needs_summary,
+                    Interaction.last_selected_collection_id: last_selected_collection_id,
+                }
+            )
+
+            session.commit()
+
+    def update_interaction_collection(
+        self,
+        interaction_id: UUID,
+        last_selected_collection_id: int,
+    ):
+        with self.session_context(self.Session()) as session:
+            session.query(Interaction).filter(Interaction.id == interaction_id).update(
+                {
+                    Interaction.last_selected_collection_id: last_selected_collection_id,
                 }
             )
 

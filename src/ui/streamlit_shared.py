@@ -13,8 +13,9 @@ from src.utilities.hash_utilities import calculate_sha256
 
 from src.documents.document_loader import load_and_split_documents
 
+
 def scroll_to_bottom(control_name):
-    javascript_code = '''
+    javascript_code = """
 <script>
     function scrollColumnToBottom() {{
     const columnElement = document.getElementById('{control_name}');
@@ -22,10 +23,13 @@ def scroll_to_bottom(control_name):
     lastChild.scrollIntoView();
     }}
 </script>
-'''.format(control_name=control_name)
-    
+""".format(
+        control_name=control_name
+    )
+
     st.markdown(javascript_code, unsafe_allow_html=True)
-    st.markdown('<script>scrollColumnToBottom();</script>', unsafe_allow_html=True)
+    st.markdown("<script>scrollColumnToBottom();</script>", unsafe_allow_html=True)
+
 
 class IngestionSettings:
     def __init__(self):
@@ -44,11 +48,11 @@ def set_user_id_from_email(user_email):
     st.session_state["user_id"] = user.id
 
 
-def load_interaction_selectbox(load_ai_callback):
+def load_conversation_selectbox(load_ai_callback, tab):
     """Loads the interaction selectbox"""
 
     try:
-        st.sidebar.selectbox(
+        tab.selectbox(
             "Select Conversation",
             get_interaction_pairs(),
             key="interaction_summary_selectbox",
@@ -72,9 +76,7 @@ def get_interaction_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions = None
 
-    interactions = Interactions().get_interactions_by_user_id(
-        st.session_state.user_id
-    )
+    interactions = Interactions().get_interactions_by_user_id(st.session_state.user_id)
 
     if not interactions:
         return None
@@ -144,46 +146,58 @@ def get_selected_interaction_id():
     return selected_interaction_id
 
 
-def setup_new_chat_button():
-    with st.sidebar.container():
-        if st.sidebar.button("New Chat", key="new_chat_button"):
+def setup_new_chat_button(tab):
+    with tab.container():
+        if tab.button("New Chat", key="new_chat_button"):
             create_interaction("Empty Chat")
             st.experimental_rerun()
 
-        st.sidebar.divider()
+        tab.divider()
 
 
-def get_available_collections(interaction_id) -> dict[str, int]:
-    collections = Documents().get_collections(interaction_id)
+def get_available_collections():
+    collections = Documents().get_collections()
 
     # Create a dictionary of collection id to collection summary
-    collections_dict = {
-        collection.collection_name: collection.id for collection in collections
-    }
+    collections_list = [
+        f"{collection.id}:{collection.collection_name}" for collection in collections
+    ]
 
-    return collections_dict
+    collections_list.insert(0, "-1:---")
+
+    return collections_list
 
 
-def collection_id_from_option(option, interaction_id):
-    collections_dict = get_available_collections(interaction_id)
+def get_selected_collection_id():
+    """Gets the selected collection id from the selectbox"""
+    selected_collection_pair = st.session_state.get("active_collection")
 
-    if option in collections_dict:
-        return collections_dict[option]
-    else:
+    if not selected_collection_pair:
         return None
 
+    selected_collection_id = selected_collection_pair.split(":")[0]
 
-def create_collection(name):
-    selected_interaction_id = get_selected_interaction_id()
-
-    print(f"Creating collection {name} (interaction id: {selected_interaction_id})")
-
-    collection = Documents().create_collection(
-        name,
-        selected_interaction_id,
+    logging.info(
+        f"get_selected_collection_id(): selected_collection_id: {selected_collection_id}"
     )
 
-    print(f"Created collection {collection.collection_name}")
+    return selected_collection_id
+
+def get_selected_collection_name():
+    """Gets the selected collection name from the selectbox"""
+    selected_collection_pair = st.session_state.get("active_collection")
+
+    if not selected_collection_pair:
+        return None
+
+    selected_collection_name = selected_collection_pair.split(":")[1]
+
+    return selected_collection_name
+
+def create_collection(name):
+    collection = Documents().create_collection(name)
+
+    logging.debug(f"Created collection {collection.collection_name}")
 
     return collection.id
 
@@ -214,22 +228,18 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.summarize_chunks = False
 
 
-def select_documents(ai=None):
-    with st.sidebar.container():
+def select_documents(tab, ai=None):
+    # Handle the first time
+    if not "ingestion_settings" in st.session_state:
+        st.session_state.ingestion_settings = IngestionSettings()
+
+    with tab.container():
         active_collection = st.session_state.get("active_collection")
+        if not active_collection:
+            st.error("No document collection selected")
+            return
 
-        upload_form = st.form("upload_files_form", clear_on_submit=True)
-        uploaded_files = upload_form.file_uploader(
-            "Choose your files",
-            accept_multiple_files=True,
-            disabled=(active_collection == None),
-            key="file_uploader",
-        )
-
-        with st.expander(
-            "Ingestion Options",
-            expanded=uploaded_files != None and len(uploaded_files) > 0,
-        ):
+        with st.expander("Ingestion Settings", expanded=True):
             st.radio(
                 "File type",
                 [
@@ -241,9 +251,10 @@ def select_documents(ai=None):
                 on_change=set_ingestion_settings,
             )
 
-            # Handle the first time
-            if not "ingestion_settings" in st.session_state:
-                st.session_state.ingestion_settings = IngestionSettings()
+            st.markdown(
+                "<small>*📝 Group uploaded documents together by **File type** for best results!*</small>",
+                unsafe_allow_html=True,
+            )
 
             st.toggle(
                 "Overwrite existing files",
@@ -256,49 +267,55 @@ def select_documents(ai=None):
                 key="summarize_chunks",
                 value=st.session_state.ingestion_settings.summarize_chunks,
             )
-            
+
             st.toggle(
                 "Split documents",
                 key="split_documents",
                 value=st.session_state.ingestion_settings.split_documents,
             )
-            st.text_input(
+            col1, col2 = st.columns(2)
+            col1.text_input(
                 "Chunk size",
                 key="file_chunk_size",
                 value=st.session_state.ingestion_settings.chunk_size,
             )
-            st.text_input(
+            col2.text_input(
                 "Chunk overlap",
                 key="file_chunk_overlap",
                 value=st.session_state.ingestion_settings.chunk_overlap,
             )
 
-        status = st.status(f"File status", expanded=False, state="complete")
+        with tab.form(key="upload_files_form", clear_on_submit=True):
+            uploaded_files = st.file_uploader(
+                "Choose your files",
+                accept_multiple_files=True,
+                disabled=(active_collection == None),
+                key="file_uploader",
+            )
 
-        submit_button = upload_form.form_submit_button("Ingest files")
+            submit_button = st.form_submit_button("Ingest files", type="primary")
 
-        if uploaded_files and active_collection:
-            collection_id = None
+            status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
-            if active_collection:
-                collection_id = collection_id_from_option(
-                    active_collection,
-                    st.session_state["rag_ai"].interaction_manager.interaction_id,
-                )
+            if uploaded_files and active_collection:
+                collection_id = None
 
-                if submit_button:
-                    ingest_files(
-                        uploaded_files,
-                        active_collection,
-                        collection_id,
-                        status,
-                        st.session_state.get("overwrite_existing_files", True),
-                        st.session_state.get("split_documents", True),
-                        st.session_state.get("summarize_chunks", False),
-                        int(st.session_state.get("file_chunk_size", 500)),
-                        int(st.session_state.get("file_chunk_overlap", 50)),
-                        ai,
-                    )
+                if active_collection:
+                    collection_id = get_selected_collection_id()
+
+                    if submit_button:
+                        ingest_files(
+                            uploaded_files,
+                            active_collection,
+                            collection_id,
+                            status,
+                            st.session_state.get("overwrite_existing_files", True),
+                            st.session_state.get("split_documents", True),
+                            st.session_state.get("summarize_chunks", False),
+                            int(st.session_state.get("file_chunk_size", 500)),
+                            int(st.session_state.get("file_chunk_overlap", 50)),
+                            ai,
+                        )
 
 
 def ingest_files(
@@ -330,7 +347,7 @@ def ingest_files(
         return
 
     status.update(
-        label=f"Ingesting files and adding to '{active_collection}'",
+        label=f"Ingesting files and adding to '{get_selected_collection_name()}'",
         state="running",
     )
 
@@ -423,7 +440,9 @@ def ingest_files(
                     break
 
                 summary = ""
-                if summarize_chunks and hasattr(ai, "generate_detailed_document_chunk_summary"):
+                if summarize_chunks and hasattr(
+                    ai, "generate_detailed_document_chunk_summary"
+                ):
                     summary = ai.generate_detailed_document_chunk_summary(
                         document_text=document.page_content
                     )
@@ -471,6 +490,7 @@ def upload_files(uploaded_files, status):
 
     return uploaded_file_paths, root_temp_dir
 
+
 def show_version():
     # Read the version from the version file
     version = ""
@@ -478,3 +498,39 @@ def show_version():
         version = f.read()
 
     st.sidebar.info(f"Version: {version}")
+
+
+def on_change_collection():
+    # Set the last active collection for this interaction (conversation)
+    option = st.session_state["active_collection"]
+    collection_id = None
+    if option:
+        collection_id = get_selected_collection_id()
+        interactions_helper = Interactions()
+        interactions_helper.update_interaction_collection(
+            get_selected_interaction_id(), collection_id
+        )
+
+def create_collection_selectbox(col1, ai):
+    available_collections = get_available_collections()
+    selected_collection_id_index = 0
+    # Find the index of the selected collection
+    for i, collection in enumerate(available_collections):
+        if int(collection.split(":")[0]) == int(
+            ai
+            .interaction_manager.get_interaction()
+            .last_selected_collection_id
+        ):
+            selected_collection_id_index = i
+            break
+
+    col1.selectbox(
+        label="Active document collection",
+        index=int(selected_collection_id_index),
+        options=available_collections,
+        key="active_collection",
+        placeholder="Select a collection",
+        label_visibility="collapsed",
+        format_func=lambda x: x.split(":")[1],
+        on_change=on_change_collection,
+    )

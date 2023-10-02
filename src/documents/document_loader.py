@@ -32,7 +32,8 @@ DOCUMENT_TYPES = {
     ".ods": UnstructuredExcelLoader,
     ".xls": UnstructuredExcelLoader,
     ".xlsx": UnstructuredExcelLoader,
-    #".html": BSHTMLLoader, # Supported, but I don't want to deal with this right now
+    ".html": BSHTMLLoader, 
+    ".htm": BSHTMLLoader, 
     ".cpp": CodeLoader,
     ".c": CodeLoader,
     ".cc": CodeLoader,
@@ -275,6 +276,6 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     # Test loading and splitting documents
-    source = "/Repos/sample_docs"
-    documents = load_and_split_documents(source, True, 1000, 100)
+    source = "/Repos/sample_docs/cpp/Dave/StateMachine"
+    documents = load_and_split_documents(document_directory=source, split_documents=False, is_code=False, chunk_size=1000, chunk_overlap=0)
     print(len(documents))

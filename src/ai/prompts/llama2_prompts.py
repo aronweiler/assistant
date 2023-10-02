@@ -265,14 +265,14 @@ SINGLE LINE SUMMARY:
 
 SINGLE_LINE_SUMMARIZE_PROMPT = PromptTemplate.from_template(SINGLE_LINE_SUMMARIZE_TEMPLATE)
 
-CONCISE_SUMMARIZE_TEMPLATE = """Write a concise summary of the following:
+DETAILED_SUMMARIZE_TEMPLATE = """Write a concise summary of the following:
 
 {text}
 
 CONCISE SUMMARY:
 """
 
-SIMPLE_SUMMARIZE_PROMPT = PromptTemplate.from_template(CONCISE_SUMMARIZE_TEMPLATE)
+DETAILED_SUMMARIZE_PROMPT = PromptTemplate.from_template(DETAILED_SUMMARIZE_TEMPLATE)
 
 SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the following text. We have provided an existing summary up to a certain point: 
 

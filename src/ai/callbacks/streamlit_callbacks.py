@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from streamlit.delta_generator import DeltaGenerator
     from streamlit.elements.lib.mutable_status_container import StatusContainer
 
-
 class StreamingOnlyCallbackHandler(BaseCallbackHandler):
     def __init__(self, container:DeltaGenerator):
         self.container = container
@@ -57,8 +56,6 @@ class StreamingOnlyCallbackHandler(BaseCallbackHandler):
         except:
             # Sometimes the control goes away because we switch pages
             pass
-
-
 
 def _convert_newlines(text: str) -> str:
     """Convert newline characters to markdown newline sequences

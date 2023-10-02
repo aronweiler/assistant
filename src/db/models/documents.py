@@ -25,11 +25,11 @@ from src.db.models.domain.file_model import FileModel
 
 class Documents(VectorDatabase):
     def create_collection(
-        self, collection_name, interaction_id
+        self, collection_name
     ) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = DocumentCollection(
-                collection_name=collection_name, interaction_id=interaction_id
+                collection_name=collection_name
             )
 
             session.add(collection)
@@ -37,35 +37,30 @@ class Documents(VectorDatabase):
 
             return DocumentCollectionModel.from_database_model(collection)
 
-    def get_collection(self, collection_id, interaction_id) -> DocumentCollectionModel:
+    def get_collection(self, collection_id) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = (
                 session.query(DocumentCollection)
                 .filter(DocumentCollection.id == collection_id)
-                .filter(DocumentCollection.interaction_id == interaction_id)
                 .first()
             )
 
             return DocumentCollectionModel.from_database_model(collection)
 
-    def get_collection_by_name(
-        self, collection_name, interaction_id
-    ) -> DocumentCollectionModel:
+    def get_collection_by_name(self, collection_name) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = (
                 session.query(DocumentCollection)
                 .filter(DocumentCollection.collection_name == collection_name)
-                .filter(DocumentCollection.interaction_id == interaction_id)
                 .first()
             )
 
             return DocumentCollectionModel.from_database_model(collection)
 
-    def get_collections(self, interaction_id) -> List[DocumentCollectionModel]:
+    def get_collections(self) -> List[DocumentCollectionModel]:
         with self.session_context(self.Session()) as session:
             collections = (
                 session.query(DocumentCollection)
-                .filter(DocumentCollection.interaction_id == interaction_id)
                 .all()
             )
 
@@ -174,10 +169,10 @@ class Documents(VectorDatabase):
         with self.session_context(self.Session()) as session:
             embedding = self.get_embedding(document.document_text)
             document_text_summary_embedding = None
-            if document.document_text_summary.strip() != '':
+            if document.document_text_summary.strip() != "":
                 document_text_summary_embedding = self.get_embedding(
                     document.document_text_summary
-                )                
+                )
             document = document.to_database_model()
             document.embedding = embedding
             document.document_text_summary_embedding = document_text_summary_embedding
@@ -258,8 +253,10 @@ class Documents(VectorDatabase):
     ) -> str:
         def reorder_dict_by_distance(dict_list):
             # Remove anything that doesn't have a distance (e.g. probably didn't have a summary)
-            filtered_list = [item for item in dict_list if item.get('distance') is not None]            
-            
+            filtered_list = [
+                item for item in dict_list if item.get("distance") is not None
+            ]
+
             sorted_dict_list = sorted(filtered_list, key=lambda x: x["distance"])
 
             return sorted_dict_list
@@ -276,10 +273,8 @@ class Documents(VectorDatabase):
         # Now we need to take these two dictionaries, sort them by distance, and then combine them while removing duplicates
         def combine_and_remove_duplicates(list1, list2):
             # Combine the two lists and reorder by distance
-            combined_list = reorder_dict_by_distance(
-                list1 + list2
-            )  
-            
+            combined_list = reorder_dict_by_distance(list1 + list2)
+
             unique_documents = {}
             unique_list = []
 
@@ -289,9 +284,9 @@ class Documents(VectorDatabase):
                 # Check if the document ID is not already in the dictionary
                 if document_id not in unique_documents:
                     # Mark as seen
-                    unique_documents[document_id] = True  
+                    unique_documents[document_id] = True
                     # Add the dictionary to the unique list
-                    unique_list.append(item)  
+                    unique_list.append(item)
 
             return unique_list
 
