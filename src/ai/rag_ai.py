@@ -26,9 +26,9 @@ from src.ai.system_info import get_system_information
 from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 from src.tools.code.code_tool import CodeTool
+from src.tools.code.code_review_tool import CodeReviewTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
-from src.ai.agents.code.code_review_agent import CodeReviewer
 
 
 class RetrievalAugmentedGenerationAI:
@@ -253,11 +253,9 @@ class RetrievalAugmentedGenerationAI:
             # callbacks=self.callbacks,
             interaction_manager=self.interaction_manager,
         )
-        self.code_reviewer_tool = CodeReviewer(
-            llm=self.llm,
-            code_tool=self.code_tool,
-            document_tool=self.document_tool,
-            interaction_manager=self.interaction_manager,
+        self.code_review_tool = CodeReviewTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager
         )
 
         tools = [
@@ -341,7 +339,7 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Performs a code review of a specified code file.",
                 "enabled": True,
                 "tool": StructuredTool.from_function(
-                    func=self.code_reviewer_tool.code_review,
+                    func=self.code_review_tool.conduct_code_review,
                     return_direct=True,
                 ),
             },

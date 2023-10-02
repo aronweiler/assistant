@@ -36,12 +36,11 @@ class CodeTool:
         self.interaction_manager = interaction_manager
         self.llm = llm
 
-    def get_pretty_dependency_graph(self, target_file_id) -> CodeDependency:
+    def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
 
         Args:
             target_file_id: The id of the file to get the dependencies for.
-            collection_id: The id of the collection the file is in.
         """
 
         dependency_graph = self.get_dependency_graph(target_file_id)
@@ -58,7 +57,6 @@ class CodeTool:
 
         Args:
             target_file_id: The id of the file to get the dependencies for.
-            collection_id: The id of the collection the file is in.
         """
         documents = Documents()
 
