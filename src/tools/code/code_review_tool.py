@@ -182,11 +182,14 @@ class CodeReviewTool:
             file_id=target_file_id,
         )
 
+        # Convert file data bytes to string
+        file_data = file_model.file_data.decode("utf-8")
+
         max_code_review_token_count = self.interaction_manager.tool_kwargs.get('max_code_review_token_count', 1000)
-        if num_tokens_from_string(file_model.file_data) > max_code_review_token_count:
+        if num_tokens_from_string(file_data) > max_code_review_token_count:
             return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
 
-        code = file_model.file_data.splitlines()
+        code = file_data.splitlines()
         for line_num, line in enumerate(code):
             code[line_num] = f"{line_num}: {line}"
 
