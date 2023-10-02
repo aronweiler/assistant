@@ -25,6 +25,11 @@ Then, just run `docker-compose up -d` and let docker work it's magic.
 
 After you've done that, just navigate to [http://localhost:8500](http://localhost:8500) and you're off!
 
+### ⚠️WARNING⚠️
+The docker container is currently used primarily by me for development, so it does **not** mount a volume for the database.  When you delete the DB docker container, **ALL OF YOUR DATA WILL BE ERASED**.
+
+Feel free to alter this behavior on your instance, if you like.
+
 ---
 Here's a lot of info on running this in Python!
 
