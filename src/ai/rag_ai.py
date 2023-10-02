@@ -254,6 +254,7 @@ class RetrievalAugmentedGenerationAI:
             interaction_manager=self.interaction_manager,
         )
         self.code_reviewer_tool = CodeReviewer(
+            llm=self.llm,
             code_tool=self.code_tool,
             document_tool=self.document_tool,
             interaction_manager=self.interaction_manager,
