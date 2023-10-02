@@ -22,7 +22,7 @@ def upgrade() -> None:
     op.create_unique_constraint(None, 'document_collections', ['collection_name'])
     op.drop_constraint('document_collections_interaction_id_fkey', 'document_collections', type_='foreignkey')
     op.drop_column('document_collections', 'interaction_id')
-    op.add_column('interactions', sa.Column('last_selected_collection_id', sa.Integer(), nullable=False))
+    op.add_column('interactions', sa.Column('last_selected_collection_id', sa.Integer(), nullable=False, server_default="-1"))
     # ### end Alembic commands ###
 
 
