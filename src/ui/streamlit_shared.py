@@ -217,41 +217,29 @@ def set_ingestion_settings():
 
 
 def select_documents(tab, ai=None):
+    # Handle the first time
+    if not "ingestion_settings" in st.session_state:
+        st.session_state.ingestion_settings = IngestionSettings() 
+
     with tab.container():
         active_collection = st.session_state.get("active_collection")
         if not active_collection:                
             st.error("No document collection selected")
             return
 
-        st.radio(
-            "File type",
-            [
-                "Document (Word, PDF, TXT)",
-                "Spreadsheet (XLS, CSV)",
-                "Code (Python, C++)",
-            ],
-            key="file_type",
-            on_change=set_ingestion_settings,
-        )
-
-        st.markdown("<small>*📝 Group uploaded documents together by **File type** for best results!*</small>", unsafe_allow_html=True)
-        
-
-        with tab.form(key="upload_files_form", clear_on_submit=True):
-
-        
-            uploaded_files = st.file_uploader(
-                "Choose your files",
-                accept_multiple_files=True,
-                disabled=(active_collection == None),
-                key="file_uploader",
+        with st.expander("Ingestion Settings", expanded=True):
+            st.radio(
+                "File type",
+                [
+                    "Document (Word, PDF, TXT)",
+                    "Spreadsheet (XLS, CSV)",
+                    "Code (Python, C++)",
+                ],
+                key="file_type",
+                on_change=set_ingestion_settings,
             )
 
-            # Handle the first time
-            if not "ingestion_settings" in st.session_state:
-                st.session_state.ingestion_settings = IngestionSettings()
-
-            st.caption("Ingestion Settings")
+            st.markdown("<small>*📝 Group uploaded documents together by **File type** for best results!*</small>", unsafe_allow_html=True)        
 
             st.toggle(
                 "Overwrite existing files",
@@ -281,6 +269,19 @@ def select_documents(tab, ai=None):
                 key="file_chunk_overlap",
                 value=st.session_state.ingestion_settings.chunk_overlap,
             )
+        
+
+        with tab.form(key="upload_files_form", clear_on_submit=True):
+
+        
+            uploaded_files = st.file_uploader(
+                "Choose your files",
+                accept_multiple_files=True,
+                disabled=(active_collection == None),
+                key="file_uploader",
+            )
+
+                       
 
             submit_button = st.form_submit_button("Ingest files", type="primary")
 
