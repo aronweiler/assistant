@@ -95,9 +95,12 @@ class DocumentTool:
         results = qa_with_sources({"question": query})
 
         # return f"{results['answer']}.\n\nSources: {results['sources']}"
-        response = self.llm.predict(
-            f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
-        )
+        if self.interaction_manager.tool_kwargs.get("re_run_user_query", True):
+            response = self.llm.predict(
+                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+            )
+        else:
+            response = f"{results['answer']}\n\nSources: {results['sources']}"
 
         return response
 
@@ -168,11 +171,12 @@ class DocumentTool:
 
         summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
 
-        response = self.llm.predict(
-            f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
-        )
+        if self.interaction_manager.tool_kwargs.get("re_run_user_query", True):
+            summary = self.llm.predict(
+                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+            )
 
-        return response
+        return summary
 
     def map_reduce_summarize(self, query, llm, docs):
         pass
@@ -180,7 +184,7 @@ class DocumentTool:
         #     llm=llm,
         #     chain_type="refine",
         #     question_prompt=get_prompt(
-        #         self.configuration.model_configuration.llm_type, "SIMPLE_SUMMARIZE_PROMPT"
+        #         self.configuration.model_configuration.llm_type, "DETAILED_SUMMARIZE_PROMPT"
         #     ),
         #     refine_prompt=get_prompt(
         #         self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
@@ -205,7 +209,7 @@ class DocumentTool:
             chain_type="refine",
             question_prompt=get_prompt(
                 self.configuration.model_configuration.llm_type,
-                "SIMPLE_SUMMARIZE_PROMPT",
+                "DETAILED_SUMMARIZE_PROMPT",
             ),
             refine_prompt=get_prompt(
                 self.configuration.model_configuration.llm_type, refine_prompt

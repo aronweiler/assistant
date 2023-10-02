@@ -62,20 +62,25 @@ Provide only ONE action per $JSON_BLOB, formatted as shown:
 
 Then, follow this format for your response:
 
-Original User Input: <<unmodified original user input - this should be what you use when calling tools that require the original user input>> 
+Original User Input: <<Print the unmodified original user input>> 
 
-Query: <<query - can be modified from the original user input to be more precise>>
+Thought: <<Did any previous work answer the user's query? (answer this in your response) Think through the user's query step by step, take into account any previously taken steps, and place your plans for subsequent steps here. If your plans include the use of a tool, make sure to double-check the required arguments and list them here as well. Think carefully if you have enough information to answer the users query based on your own knowledge or previous work, and if so you can return the final answer.>>
 
-Thought: <<Describe your thinking about the user's input, the previously taken steps, and your plans for subsequent steps.  Does the query require multiple steps?Describe them here.  If the data exists to answer the users query, return the final answer.>>
+Step 1: <<Describe the steps that you need to take in order to arrive at the final answer>>
+...
+Step N: Return the final answer to the user.
+
+Tool Query: <<When using a tool, you should consider the context of the user's query, and rephrase it (if necessary) to better use the chosen tool. This could mean modifying the query to be more concise, adding additional context, or splitting it into keywords.  Place that modified query here for reference.>>
 
 Action:
 ```
 $JSON_BLOB
 ```
 
-Observation: <<action result>>
+Observation: 
+<<action result>>
 
-... (repeat Thought/Action/Observation steps as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps to answer)
+... (repeat Thought/Action/Observation steps as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps or tools to answer)
 
 When you arrive at the final answer to the query, the response format is:
 ```json
@@ -83,9 +88,11 @@ When you arrive at the final answer to the query, the response format is:
   "action": "Final Answer",
   "action_input": "<<Your final response to the user>>"
 }}}}
-```"""
+```
+"""
 
-TOOLS_SUFFIX = """Use any context you may need from the items below (e.g. chat history, document names, or other information):
+TOOLS_SUFFIX = """Consider the context provided in the chat history and loaded documents when deciding which tool to use:
+
 --- BEGIN CHAT HISTORY ---
 {chat_history}
 --- END CHAT HISTORY ---
@@ -96,7 +103,7 @@ TOOLS_SUFFIX = """Use any context you may need from the items below (e.g. chat h
 
 Helpful system information: {system_information}
 
-Let's think this through... examine the type of document (Document, Code, Spreadsheet, etc.), and be very careful to use the right tool and arguments in the json blob.  Pay close attention to the tool descriptions!
+Think this through step-by-step. Note the type of document (Document, Code, Spreadsheet, etc.), and be certain to use the right tool and arguments in the json blob.  Pay close attention to the tool descriptions!
 
 --- FORMAT --- 
 Action:
@@ -105,7 +112,134 @@ $JSON_BLOB
 ```
 --- FORMAT --- 
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies all of the fields required!
+Sometimes a query can be answered in a single hop (e.g. query to a tool):
+--- BEGIN SINGLE-HOP EXAMPLE ---
+Original User Input: What kind of experience does John Smith have working on medical devices?
+
+Thought: Did any of the previous steps give me enough data to answer the question?  No, there are no previous steps. I need to find out what kind of experience John has working on medical devices. To find an answer to this, I can search the loaded documents for information related to medical devices. Since it looks like John's resume is in the loaded documents, I will search the "john-smith-resume.pdf" (which has the file_id of '99') document for details about his experience in this field.  The required arguments are the query and the original user input.  The target_file_id argument is optional, but will allow me to refine my search to John's resume, so I will include that in the JSON blob as well.
+
+The steps I need to follow are:
+Step 1: Use the search_loaded_documents tool to search for John's experience with medical devices
+Step 2: Return the final answer to the user.
+
+Tool Query: medical devices
+
+Action:
+```json
+{{
+  "action": "search_loaded_documents",
+  "action_input": {{
+    "query": "medical devices",
+    "original_user_input": "What kind of experience does John Smith have working on medical devices?",
+    "target_file_id": "99"
+  }}
+}}
+```
+Observation: 
+John has 5 years of experience working on medical devices.
+
+Original User Input: What kind of experience does John Smith have working on medical devices?
+
+Thought: Did any of the previous steps give me enough data to answer the question? Yes, John has 5 years of experience working on medical devices. I will return the final answer to the user.
+
+Action:
+```json
+{{
+  "action": "Final Answer",
+  "action_input": "John has 5 years of experience working on medical devices."
+}}
+```
+--- END SINGLE-HOP EXAMPLE ---
+
+Sometimes a query cannot be answered in a single hop, and requires multiple hops (e.g. multiple queries to a tool, or other intermediate steps taken by you):
+--- BEGIN MULTI-HOP EXAMPLE ---
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? No, there are no previous steps. I need to find out who Leo DiCaprio's girlfriend is and then calculate her age raised to the 0.43 power. To do this, I will use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is, then I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
+
+The steps I need to follow are:
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
+Step 2: Use the web_search tool to find out what her age is.
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
+Step 4: Return the final answer to the user.
+
+web_search Tool Query: Who is Leo DiCaprio's girlfriend?
+
+Action:
+```json
+{{
+  "action": "web_search",
+  "action_input": {{
+    "query": "Who is Leo DiCaprio's girlfriend?"
+  }}
+}}
+```
+Observation: 
+Leo DiCaprio's girlfriend is Vittoria Ceretti.
+
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 1, I still need to find Vittoria Ceretti's age. I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
+
+The steps I need to follow are:
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
+Step 2: Use the web_search tool to find out what her age is.
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
+Step 4: Return the final answer to the user.
+
+web_search Tool Query: What is Vittoria Ceretti's age?
+
+Action:
+```json
+{{
+  "action": "web_search",
+  "action_input": {{
+    "query": "What is Vittoria Ceretti's age?"
+  }}
+}}
+```
+Observation: 
+Vittoria Ceretti is 25.
+
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 2, I still need to calculate Vittoria Ceretti's age raised to the 0.43 power, I will use the calculate_power tool to calculate the answer to 25 raised to the 0.43 power.  The required arguments for the calculate_power tool is the number and the power. 
+
+The steps I need to follow are:
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
+Step 2: Use the web_search tool to find out what her age is.
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
+Step 4: Return the final answer to the user.
+
+calculate_power Tool Query: number=25, power=0.43
+
+Action:
+```json
+{{
+  "action": "calculate_power",
+  "action_input": {{
+    "number": 25,
+    "power": 0.43
+  }}
+}}
+```
+Observation: 
+3.991298452658078
+
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? Yes, I have used the web_search and calculate_power tools to arrive at the final answer to the original query, which is 3.991298452658078. I will return the final answer to the user.
+
+Action:
+```json
+{{
+  "action": "Final Answer",
+  "action_input": "Leo DiCaprio's girlfriend is Vittoria Ceretti, who is 25 years old. Her age raised to the 0.43 power is 3.991298452658078."
+}}
+```
+--- END MULTI-HOP EXAMPLE ---
+
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern described above. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies all of the required fields.
 
 """
 
@@ -182,26 +316,26 @@ ONLY return the very short summary, nothing else.
 Sure, here you go:
 """
 
-SECONDARY_AGENT_ROUTER_TEMPLATE = """System information:
-{system_information}
+# SECONDARY_AGENT_ROUTER_TEMPLATE = """System information:
+# {system_information}
 
-You are an AI checking another AI's work.  Your job is to evaluate the following query from a User and a response from another AI that is answering the query.
+# You are an AI checking another AI's work.  Your job is to evaluate the following query from a User and a response from another AI that is answering the query.
 
---- BEGIN USER QUERY (with chat history) ---
-{chat_history}
---- END USER QUERY ---
+# --- BEGIN USER QUERY (with chat history) ---
+# {chat_history}
+# --- END USER QUERY ---
 
---- BEGIN AI RESPONSE ---
-{response}
---- END AI RESPONSE ---
+# --- BEGIN AI RESPONSE ---
+# {response}
+# --- END AI RESPONSE ---
 
-Review the query and the response above. 
+# Review the query and the response above. 
 
-If the AI RESPONSE contains the answer to the user's query, respond only with "YES".
+# If the AI RESPONSE contains the answer to the user's query, respond only with "YES".
 
-If the AI RESPONSE does not answer the user's query, or there are factual errors with the response, rephrase the question from the USER QUERY into a stand-alone question, and respond only with that.
+# If the AI RESPONSE does not answer the user's query, or there are factual errors with the response, rephrase the question from the USER QUERY into a stand-alone question, and respond only with that.
 
-AI: """
+# AI: """
 
 REPHRASE_TO_KEYWORDS_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone set of keywords to use when searching a document.  This means that the rephrased input should be able to be understood without any other context besides the input itself (resolve coreferences such as he/him/her/she/it/they, etc.).  Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone set of keywords.
 
@@ -268,14 +402,14 @@ SINGLE LINE SUMMARY:
 
 SINGLE_LINE_SUMMARIZE_PROMPT = PromptTemplate.from_template(SINGLE_LINE_SUMMARIZE_TEMPLATE)
 
-CONCISE_SUMMARIZE_TEMPLATE = """Write a concise summary of the following:
+DETAILED_SUMMARIZE_TEMPLATE = """Write a detailed summary of the following:
 
 {text}
 
-CONCISE SUMMARY:
+DETAILED SUMMARY:
 """
 
-SIMPLE_SUMMARIZE_PROMPT = PromptTemplate.from_template(CONCISE_SUMMARIZE_TEMPLATE)
+DETAILED_SUMMARIZE_PROMPT = PromptTemplate.from_template(DETAILED_SUMMARIZE_TEMPLATE)
 
 SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the following text with the goal of answering a user's query. Below is provided an existing summary up to a certain point: 
 
@@ -283,7 +417,7 @@ SIMPLE_REFINE_TEMPLATE = """Your job is to produce a final summary of the follow
 {existing_answer}
 ----- END EXISTING SUMMARY -----
 
-Now you have the opportunity to refine the existing summary (only if needed) with some more context below.
+Now you have the opportunity to refine or enhance the existing summary (only if needed) with some more context below.
 
 ----- BEGIN ADDITIONAL CONTEXT -----
 {text}
@@ -293,7 +427,7 @@ Now you have the opportunity to refine the existing summary (only if needed) wit
 {query}
 ----- END USER QUERY -----
 
-Given the new context, refine the original summary with the goal of answering the user's query.  If the context isn't useful, just return the original summary.
+If the additional context contains information relevant to the user's query, use it to add additional information to the summary.  If the additional context isn't useful, or is unrelated to the user's query, just return the existing summary.
 """
 
 SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)
@@ -306,8 +440,7 @@ DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE = """Write a detailed summary of the fo
 DETAILED SUMMARY:
 """
 
-
-SIMPLE_DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document. You will be provided a summary of all prior chunks, and one additional chunk.
+SIMPLE_DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document that has been split into chunks. You will be provided a summary of all prior chunks, and one additional chunk.
 Use the additional chunk to add to the summary. Do not remove information from the summary unless it is contradicted by information in the current chunk.
 The summary in progress is provided below:
 
@@ -317,11 +450,11 @@ The summary in progress is provided below:
 
 Below is an additional chunk that you should consider for an addition to the ongoing summary:
 
------ BEGIN ADDITIONAL CONTEXT -----
+----- BEGIN ADDITIONAL CHUNK -----
 {text}
------ END ADDITIONAL CONTEXT -----
+----- END ADDITIONAL CHUNK -----
 
-Given the new context, refine the original summary by adding to or modifying the existing summary. If the context isn't useful, just return the original summary.
+Given the additional chunk, refine the original summary by adding to or modifying the existing summary. If the additional chunk isn't useful for adding to the summary, just return the existing summary.
 """
 
 SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_DOCUMENT_REFINE_TEMPLATE)
@@ -355,7 +488,7 @@ SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='5'
 Question: describe the job Aron had in 2004
 
 Relevant text, if any, including document and page citations (in Markdown format):
-Aron Weiler held the position of Senior Software Engineer at **OFFICETOOL.COM, INC.** from Sept 2002 to Jul 2004.
+Aron Weiler held the position of Senior Software Engineer at OFFICETOOL.COM, INC. from Sept 2002 to Jul 2004.
 
 Here are some details about the position:
 
@@ -366,7 +499,7 @@ Here are some details about the position:
 - Conducted training sessions for fellow developers on the .NET architecture.
 - Assisted in testing and maintenance of both new and existing applications.
 
-*Source: [aron weiler resume.pdf (Page 5)](/files?file_id=1234&page=5)*
+Source: *[aron weiler resume.pdf (Page 5)](/files?file_id=1234&page=5)*
 --- END EXAMPLE ---
 
 {summaries}
@@ -406,7 +539,7 @@ Question: What abstract class is used for destinations?
 Relevant text, if any, including document and page citations (in Markdown format):
 The abstract class used for destinations is `DestinationBase`, which is found in the `my_code_file.py` file.
 
-*Source: [my_code_file.py (line 5)](/files?file_id=1234&line=5)*
+Source: *[my_code_file.py (line 5)](/files?file_id=1234&line=5)*
 --- END EXAMPLE ---
 
 {summaries}
@@ -420,27 +553,27 @@ CODE_QUESTION_PROMPT = PromptTemplate(
     template=CODE_QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
 )
 
-COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES"). 
-If you don't know the answer, just say that you don't know. Don't try to make up an answer.
-ALWAYS return a "SOURCES" part in your answer.
+# COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES"). 
+# If you don't know the answer, just say that you don't know. Don't try to make up an answer.
+# ALWAYS return a "SOURCES" part in your answer.
 
-Every response should follow this format:
---- BEGIN EXAMPLE RESPONSE --- 
-FINAL ANSWER: << your answer here >>
-SOURCES: << sources here >>
---- END EXAMPLE RESPONSE --- 
+# Every response should follow this format:
+# --- BEGIN EXAMPLE RESPONSE --- 
+# FINAL ANSWER: << your answer here >>
+# SOURCES: << sources here >>
+# --- END EXAMPLE RESPONSE --- 
 
-QUESTION: {question}
+# QUESTION: {question}
 
-Extracted Document Parts:
-=========
-{summaries}
-=========
+# Extracted Document Parts:
+# =========
+# {summaries}
+# =========
 
-FINAL ANSWER:"""
-COMBINE_PROMPT = PromptTemplate(
-    template=COMBINE_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
-)
+# FINAL ANSWER:"""
+# COMBINE_PROMPT = PromptTemplate(
+#     template=COMBINE_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
+# )
 
 DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}', page='{page}'"""
 

@@ -261,7 +261,7 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.document_tool.search_loaded_documents,
-                    return_direct=True,
+                    #return_direct=True,
                 ),
             },
             {
@@ -271,7 +271,7 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.document_tool.summarize_topic,
-                    return_direct=True,
+                    #return_direct=True,
                 ),
             },
             {
