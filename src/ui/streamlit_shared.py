@@ -45,7 +45,7 @@ def set_user_id_from_email(user_email):
     users_helper = Users()
 
     user = users_helper.get_user_by_email(user_email)
-    st.session_state["user_id"] = user.id
+    st.session_state.user_id = user.id
 
 
 def load_conversation_selectbox(load_ai_callback, tab):
@@ -234,8 +234,8 @@ def select_documents(tab, ai=None):
         st.session_state.ingestion_settings = IngestionSettings()
 
     with tab.container():
-        active_collection = st.session_state.get("active_collection")
-        if not active_collection:
+        active_collection_id = get_selected_collection_id()
+        if not active_collection_id:
             st.error("No document collection selected")
             return
 
@@ -289,7 +289,7 @@ def select_documents(tab, ai=None):
             uploaded_files = st.file_uploader(
                 "Choose your files",
                 accept_multiple_files=True,
-                disabled=(active_collection == None),
+                disabled=(active_collection_id == None),
                 key="file_uploader",
             )
 
@@ -297,17 +297,15 @@ def select_documents(tab, ai=None):
 
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
-            if uploaded_files and active_collection:
+            if uploaded_files and active_collection_id:
                 collection_id = None
 
-                if active_collection:
-                    collection_id = get_selected_collection_id()
+                if active_collection_id:
 
                     if submit_button:
                         ingest_files(
                             uploaded_files,
-                            active_collection,
-                            collection_id,
+                            active_collection_id,
                             status,
                             st.session_state.get("overwrite_existing_files", True),
                             st.session_state.get("split_documents", True),
@@ -320,8 +318,7 @@ def select_documents(tab, ai=None):
 
 def ingest_files(
     uploaded_files,
-    active_collection,
-    collection_id,
+    active_collection_id,
     status,
     overwrite_existing_files,
     split_documents,
@@ -334,16 +331,12 @@ def ingest_files(
 
     documents_helper = Documents()
 
-    if not active_collection:
+    if not active_collection_id:
         st.error("No collection selected")
         return
 
     if not uploaded_files:
         st.error("No files selected")
-        return
-
-    if not collection_id:
-        st.error("No collection id found")
         return
 
     status.update(
@@ -369,7 +362,7 @@ def ingest_files(
 
                 # See if it exists in this collection
                 existing_file = documents_helper.get_file_by_name(
-                    file_name, collection_id
+                    file_name, active_collection_id
                 )
 
                 if existing_file and not overwrite_existing_files:
@@ -399,7 +392,7 @@ def ingest_files(
                     documents_helper.create_file(
                         FileModel(
                             user_id=st.session_state.user_id,
-                            collection_id=collection_id,
+                            collection_id=active_collection_id,
                             file_name=file_name,
                             file_hash=calculate_sha256(uploaded_file_path),
                             file_data=file_data,
@@ -450,7 +443,7 @@ def ingest_files(
                 # Create the document chunks
                 documents_helper.store_document(
                     DocumentModel(
-                        collection_id=collection_id,
+                        collection_id=active_collection_id,
                         file_id=file.id,
                         user_id=st.session_state.user_id,
                         document_text=document.page_content,
@@ -502,14 +495,11 @@ def show_version():
 
 def on_change_collection():
     # Set the last active collection for this interaction (conversation)
-    option = st.session_state["active_collection"]
-    collection_id = None
-    if option:
-        collection_id = get_selected_collection_id()
-        interactions_helper = Interactions()
-        interactions_helper.update_interaction_collection(
-            get_selected_interaction_id(), collection_id
-        )
+    collection_id = get_selected_collection_id()
+    interactions_helper = Interactions()
+    interactions_helper.update_interaction_collection(
+        get_selected_interaction_id(), collection_id
+    )
 
 def create_collection_selectbox(col1, ai):
     available_collections = get_available_collections()
