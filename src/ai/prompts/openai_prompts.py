@@ -848,10 +848,16 @@ AI: Sure, here are the key interfaces (in JSON format):
 # - Constraints and Limitations:
 
 
-CODE_REVIEW_TEMPLATE = """
-"You have been tasked with identifying security vulnerabilities, performance bottlenecks, memory management concerns, and code correctness problems with the following code.
+CODE_REVIEW_TEMPLATE = """You have been tasked with conducting a code review to identify security vulnerabilities, performance bottlenecks, memory management concerns, and code correctness problems with the following code.
 
-The code below is a part of a larger code base.
+Please focus on the following aspects:
+
+1. **Security Vulnerabilities**
+2. **Performance Bottlenecks**
+3. **Memory Management Concerns**
+4. **Code Correctness Problems**
+
+Review the code below, which is a part of a larger code base:
 
 ----- BEGIN CODE SUMMARY -----
 {code_summary}
@@ -865,28 +871,39 @@ The code below is a part of a larger code base.
 {code}
 ----- END CODE -----
 
-Your code review output should be only JSON formatted text.
+Your code review output should be in JSON format.
+
 When commenting on one or more lines of code, use the following format:
-{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>}}
+{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}}
+
 When commenting on the entire code, use the following format:
-{{"comment": <comment in markdown>}}
+{{"comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}}
 
+If the code looks good, do not comment on it.  I already know what the code is doing, so I don't need you to tell me what it is doing.  I need you to tell me what is wrong with the code.
 
-Only provide comments on code that you find issue with.  Do not provide any comments on code that you do not find issue with.  
-If the context to judge a piece of code does not exist, such as when an unknown (not incorrect) method on an object is called, do not comment on it.
+If there isn't enough context to judge a piece of code, do not comment on it.
 
 EXAMPLE OUTPUT:
 {{
     "comments": [
-        {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead."}},
-        {{"start": 20, "end": 25, "comment": "Ensure proper input validation to prevent cross-site scripting (XSS) attacks by escaping user-generated content."}},
-        {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop."}},
-        {{"start": 50, "end": 55, "comment": "It seems that the 'result' object is not properly released, leading to a potential memory leak. Consider using context managers to ensure proper cleanup."}},
-        {{"start": 65, "end": 70, "comment": "The loop condition is incorrect. It should be 'while i < len(data)' to avoid an index out of range error."}},
-        {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered."}}
+        {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true}},
+        {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true}},
+        {{"start": 57, "end": 59, "comment": "The code defines a macro 'C_ASSERT' for compile-time checking of array sizes. This macro is used to prevent negative subscripts in array declarations.", "needs_change": false}},
+        {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered.", "needs_change": true}}
     ]
 }}
-Code review in JSON format:
+
+Code JSON format:
+{{
+    "comments": [
+        {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}},
+        ...
+    ]
+}}
+
+Your review should only contain JSON formatted data.  
+
+Code review in JSON format (leaving out the items with needs_change=false):
 """
 
 
