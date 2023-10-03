@@ -121,7 +121,7 @@ class CodeAI(DestinationBase):
     ):
         self.code_tools = [
             StructuredTool.from_function(
-                func=code_tool.search_loaded_documents, callbacks=[self.agent_callback]
+                func=document_tool.search_loaded_documents, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
                 func=document_tool.summarize_topic,

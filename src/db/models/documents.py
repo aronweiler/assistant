@@ -24,13 +24,9 @@ from src.db.models.domain.file_model import FileModel
 
 
 class Documents(VectorDatabase):
-    def create_collection(
-        self, collection_name
-    ) -> DocumentCollectionModel:
+    def create_collection(self, collection_name) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
-            collection = DocumentCollection(
-                collection_name=collection_name
-            )
+            collection = DocumentCollection(collection_name=collection_name)
 
             session.add(collection)
             session.commit()
@@ -59,10 +55,7 @@ class Documents(VectorDatabase):
 
     def get_collections(self) -> List[DocumentCollectionModel]:
         with self.session_context(self.Session()) as session:
-            collections = (
-                session.query(DocumentCollection)
-                .all()
-            )
+            collections = session.query(DocumentCollection).all()
 
             return [DocumentCollectionModel.from_database_model(c) for c in collections]
 
@@ -138,6 +131,19 @@ class Documents(VectorDatabase):
             )
 
             return [DocumentModel.from_database_model(d) for d in documents]
+        
+    def get_document_summaries(self, target_file_id) -> List[str]:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == target_file_id).first()
+
+            if file is None:
+                raise ValueError(f"File with ID '{target_file_id}' does not exist")
+
+            documents = (
+                session.query(Document).filter(Document.file_id == file.id).all()
+            )
+
+            return [d.document_text_summary for d in documents]
 
     def delete_document_chunks_by_file_id(self, target_file_id) -> None:
         with self.session_context(self.Session()) as session:
@@ -181,6 +187,24 @@ class Documents(VectorDatabase):
             session.commit()
 
             return DocumentModel.from_database_model(document)
+
+    def set_document_text_summary(self, document_id: int, document_text_summary):
+        with self.session_context(self.Session()) as session:
+            document_text_summary_embedding = None
+            if document_text_summary.strip() != "":
+                document_text_summary_embedding = self.get_embedding(
+                    document_text_summary
+                )
+
+                session.query(Document).filter(Document.id == document_id).update(
+                    {
+                        Document.document_text_summary: document_text_summary,
+                        Document.document_text_summary_embedding: document_text_summary_embedding,
+                        Document.document_text_has_summary: True,
+                    }
+                )
+
+                session.commit()
 
     def search_document_embeddings(
         self,

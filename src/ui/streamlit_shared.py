@@ -214,18 +214,21 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Spreadsheet"
         st.session_state.ingestion_settings.summarize_chunks = False
+        st.session_state.ingestion_settings.summarize_document = False
     elif "Code" in file_type:
         st.session_state.ingestion_settings.chunk_size = 0
         st.session_state.ingestion_settings.chunk_overlap = 0
         st.session_state.ingestion_settings.split_documents = False
         st.session_state.ingestion_settings.file_type = "Code"
         st.session_state.ingestion_settings.summarize_chunks = True
+        st.session_state.ingestion_settings.summarize_document = True
     else:  # Document
         st.session_state.ingestion_settings.chunk_size = 600
         st.session_state.ingestion_settings.chunk_overlap = 100
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Document"
         st.session_state.ingestion_settings.summarize_chunks = False
+        st.session_state.ingestion_settings.summarize_document = False
 
 
 def select_documents(tab, ai=None):
@@ -266,6 +269,13 @@ def select_documents(tab, ai=None):
                 "Summarize Chunks",
                 key="summarize_chunks",
                 value=st.session_state.ingestion_settings.summarize_chunks,
+            )
+            
+            st.toggle(
+                "Summarize Document",
+                help="⚠️ This is a longer running process!  Might cost significant 💰 and ⌛ depending on your files."
+                key="summarize_document",
+                value=st.session_state.ingestion_settings.summarize_document,
             )
 
             st.toggle(
@@ -310,6 +320,7 @@ def select_documents(tab, ai=None):
                             st.session_state.get("overwrite_existing_files", True),
                             st.session_state.get("split_documents", True),
                             st.session_state.get("summarize_chunks", False),
+                            st.session_state.get("summarize_document", False),
                             int(st.session_state.get("file_chunk_size", 500)),
                             int(st.session_state.get("file_chunk_overlap", 50)),
                             ai,
@@ -323,6 +334,7 @@ def ingest_files(
     overwrite_existing_files,
     split_documents,
     summarize_chunks,
+    summarize_document,
     chunk_size,
     chunk_overlap,
     ai=None,
@@ -448,11 +460,24 @@ def ingest_files(
                         user_id=st.session_state.user_id,
                         document_text=document.page_content,
                         document_text_summary=summary,
+                        document_text_has_summary=summary != "",
                         additional_metadata=document.metadata,
                         document_name=document.metadata["filename"],
                     )
                 )
 
+            summary = ""
+            if summarize_document and hasattr(
+                ai, "generate_detailed_document_summary"
+            ):
+                for file in files:
+                    file_summary = ai.generate_detailed_document_summary(
+                        file_id=file.id
+                    )
+                    
+                    # Put the summary into the DB
+                    documents_helper.update_file_summary_and_class(file_id=file.id, summary=file_summary, classification=file.file_classification)
+            
             st.success(
                 f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
             )

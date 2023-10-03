@@ -12,6 +12,7 @@ class DocumentModel:
         document_text,
         document_name,
         document_text_summary,
+        document_text_has_summary,
         id=None,
         additional_metadata: dict = {},
         record_created=None,
@@ -24,6 +25,7 @@ class DocumentModel:
         self.document_text = document_text
         self.document_name = document_name
         self.document_text_summary = document_text_summary
+        self.document_text_has_summary = document_text_has_summary
         self.record_created = record_created
 
     def to_database_model(self):
@@ -36,6 +38,7 @@ class DocumentModel:
             document_text=self.document_text,
             document_name=self.document_name,
             document_text_summary=self.document_text_summary,
+            document_text_has_summary=self.document_text_has_summary
             record_created=self.record_created,
         )
 
@@ -53,5 +56,6 @@ class DocumentModel:
             document_text=db_document.document_text,
             document_name=db_document.document_name,
             document_text_summary=db_document.document_text_summary,
+            document_text_has_summary=db_document.document_text_has_summary
             record_created=db_document.record_created
         )

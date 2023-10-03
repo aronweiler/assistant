@@ -888,3 +888,11 @@ EXAMPLE OUTPUT:
 }}
 Code review in JSON format:
 """
+
+
+REDUCE_SUMMARIES_TEMPLATE = """The following is set of summaries generated from a number of document chunks:
+
+{doc_summaries}
+
+Please take these summaries, and distill it into a final (detailed) consolidated summary.
+"""

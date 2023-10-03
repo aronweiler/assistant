@@ -163,6 +163,14 @@ class RetrievalAugmentedGenerationAI:
             ).format(text=document_text)
         )
         return summary
+    
+    def generate_detailed_document_summary(
+        self,
+        file_id: int,
+    ) -> str:
+        document_summary = self.document_tool.summarize_entire_document(file_id)
+        
+        return document_summary
 
     def query(
         self,

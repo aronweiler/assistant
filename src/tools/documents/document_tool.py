@@ -3,6 +3,7 @@ from langchain.base_language import BaseLanguageModel
 from langchain.chains import (
     RetrievalQAWithSourcesChain,
     StuffDocumentsChain,
+    ReduceDocumentsChain
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
@@ -104,6 +105,18 @@ class DocumentTool:
 
         return response
 
+    def generate_detailed_document_chunk_summary(
+        self,
+        document_text: str,
+    ) -> str:
+        summary = self.llm.predict(
+            get_prompt(
+                self.configuration.model_configuration.llm_type,
+                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+            ).format(text=document_text)
+        )
+        return summary
+    
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     def summarize_entire_document(self, target_file_id: int):
         """Useful for getting a summary of an entire specific document.  The target_file_id argument is required.
@@ -114,26 +127,61 @@ class DocumentTool:
         # Create the documents class for the retriever
         documents = Documents()
         file = documents.get_file(target_file_id)
-
-        docs = [
-            Document(
-                page_content=doc_chunk.document_text,
-                metadata=doc_chunk.additional_metadata,
-            )
-            for doc_chunk in documents.get_document_chunks_by_file_id(
+        
+        # Is there a summary already?  If so, return that instead of re-running the summarization.
+        if file.file_summary and file.file_summary != '':
+            return file.file_summary
+        
+        # Get the document chunks
+        document_chunks = documents.get_document_chunks_by_file_id(
                 target_file_id=target_file_id
             )
-        ]
+        
+        # Are there already document chunk summaries?
+        for chunk in document_chunks:
+            if not chunk.document_text_has_summary:
+                # Summarize the chunk
+                summary_chunk = self.generate_detailed_document_chunk_summary(chunk.document_text)
+                documents.set_document_text_summary(chunk.id, summary_chunk)
+            
+        reduce_chain = LLMChain(llm=self.llm, prompt=get_prompt(self.configuration.model_configuration.llm_type, "REDUCE_SUMMARIES_TEMPLATE"))
 
-        tool_kwargs = self.interaction_manager.tool_kwargs
-        summarization_type = tool_kwargs.get("summarization_type", "refine")
+        # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
+        combine_documents_chain = StuffDocumentsChain(
+            llm_chain=reduce_chain, document_variable_name="doc_summaries"
+        )
 
-        summarization_map = {
-            "refine": self.refine_summarize,
-            "map_reduce": self.map_reduce_summarize,
-        }
+        # Combines and iteravely reduces the document summaries
+        reduce_documents_chain = ReduceDocumentsChain(
+            # This is final chain that is called.
+            combine_documents_chain=combine_documents_chain,
+            # If documents exceed context for `StuffDocumentsChain`
+            collapse_documents_chain=combine_documents_chain,
+            # The maximum number of tokens to group documents into.
+            token_max=self.interaction_manager.tool_kwargs.get("max_summary_chunk_tokens", 5000),
+        )    
+        
+        document_chunk_summaries = documents.get_document_summaries(target_file_id)
+        summary = reduce_documents_chain.run(document_chunk_summaries)       
+        
 
-        summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
+        # docs = [
+        #     Document(
+        #         page_content=doc_chunk.document_text,
+        #         metadata=doc_chunk.additional_metadata,
+        #     )
+        #     for doc_chunk in document_chunks
+        # ]
+
+        # tool_kwargs = self.interaction_manager.tool_kwargs
+        # summarization_type = tool_kwargs.get("summarization_type", "refine")
+
+        # summarization_map = {
+        #     "refine": self.refine_summarize,
+        #     "map_reduce": self.map_reduce_summarize,
+        # }
+
+        # summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
         return summary
 
     def summarize_topic(self, query: str, original_user_input: str):
@@ -178,25 +226,25 @@ class DocumentTool:
 
         return summary
 
-    def map_reduce_summarize(self, query, llm, docs):
-        pass
-        # chain = load_summarize_chain(
-        #     llm=llm,
-        #     chain_type="refine",
-        #     question_prompt=get_prompt(
-        #         self.configuration.model_configuration.llm_type, "DETAILED_SUMMARIZE_PROMPT"
-        #     ),
-        #     refine_prompt=get_prompt(
-        #         self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
-        #     ),
-        #     return_intermediate_steps=True,
-        #     input_key="input_documents",
-        #     output_key="output_text",
-        # )
+    # def map_reduce_summarize(self, query, llm, docs):
+    #     pass
+    #     # chain = load_summarize_chain(
+    #     #     llm=llm,
+    #     #     chain_type="refine",
+    #     #     question_prompt=get_prompt(
+    #     #         self.configuration.model_configuration.llm_type, "DETAILED_SUMMARIZE_PROMPT"
+    #     #     ),
+    #     #     refine_prompt=get_prompt(
+    #     #         self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+    #     #     ),
+    #     #     return_intermediate_steps=True,
+    #     #     input_key="input_documents",
+    #     #     output_key="output_text",
+    #     # )
 
-        # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
+    #     # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
 
-        # return result["output_text"]
+    #     # return result["output_text"]
 
     def refine_summarize(self, llm, docs, query: str | None = None):
         if query is None:
