@@ -896,3 +896,7 @@ REDUCE_SUMMARIES_TEMPLATE = """The following is set of summaries generated from 
 
 Please take these summaries, and distill it into a final (detailed) consolidated summary.
 """
+
+REDUCE_SUMMARIES_PROMPT = PromptTemplate(
+    template=REDUCE_SUMMARIES_TEMPLATE, input_variables=["doc_summaries"]
+)
