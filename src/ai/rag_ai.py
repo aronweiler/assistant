@@ -335,9 +335,20 @@ class RetrievalAugmentedGenerationAI:
                 ),
             },
             {
+                "name": "Get All Code in File",
+                "about": "Gets all of the code in the target file.",
+                "enabled": True,
+                "is_document_related": True,
+                "tool": StructuredTool.from_function(
+                    func=self.code_tool.get_all_code_in_file,
+                    return_direct=True          
+                ),
+            },
+            {
                 "name": "Perform Code Review",
                 "about": "Performs a code review of a specified code file.",
                 "enabled": True,
+                "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.code_review_tool.conduct_code_review,
                     return_direct=True,
