@@ -21,7 +21,7 @@ openai
 langchain
 
 # REST
-requests
+requests==2.26.0
 
 # Search
 duckduckgo-search

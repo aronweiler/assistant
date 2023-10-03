@@ -218,6 +218,7 @@ class Document(ModelBase):
     document_name = Column(String, nullable=False)
     document_text_summary = Column(String, nullable=True)
     document_text_summary_embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    document_text_has_summary = Column(Boolean, nullable=False, default=False)
     embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 

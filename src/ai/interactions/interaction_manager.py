@@ -92,7 +92,7 @@ class InteractionManager:
     def set_interaction_summary(self, summary: str):
         """Sets the interaction summary to the specified summary."""
 
-        self.interactions_helper.update_interaction(
+        self.interactions_helper.update_interaction_summary(
             self.interaction_id, summary, False
         )
 

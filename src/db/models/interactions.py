@@ -23,11 +23,10 @@ class Interactions(VectorDatabase):
 
             return InteractionModel.from_database_model(interaction)
 
-    def update_interaction(
+    def update_interaction_summary(
         self,
         interaction_id: UUID,
         interaction_summary: str,
-        last_selected_collection_id: int,
         needs_summary: bool = False,
     ):
         with self.session_context(self.Session()) as session:
@@ -37,7 +36,6 @@ class Interactions(VectorDatabase):
                 {
                     Interaction.interaction_summary: interaction_summary,
                     Interaction.needs_summary: needs_summary,
-                    Interaction.last_selected_collection_id: last_selected_collection_id,
                 }
             )
 

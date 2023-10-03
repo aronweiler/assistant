@@ -10,9 +10,9 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
 )
 
-from src.tools.documents.code_tool import CodeTool
+from src.tools.code.code_tool import CodeTool
 from src.tools.documents.document_tool import DocumentTool
-from src.tools.documents.code_dependency import CodeDependency
+from src.tools.code.code_dependency import CodeDependency
 
 from src.db.models.documents import Documents
 
@@ -92,8 +92,7 @@ class StubbingAgent(BaseMultiActionAgent):
             return AgentAction(
                 tool="get_dependency_graph",
                 tool_input={
-                    "target_file_id": kwargs["file_id"],
-                    "collection_id": kwargs["collection_id"],
+                    "target_file_id": kwargs["file_id"]
                 },
                 log=f"Getting dependency graph for file: {kwargs['file_id']}",
             )

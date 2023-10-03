@@ -48,11 +48,11 @@ st.markdown(
     - ✅ Limited question answering / chat over documents 
         - Currently the RAG AI is limited some pretty basic question answering.  This will be improved over time.
     - [x] Code Understanding
-        - [x] Code Summarization    
-        - [x] Code Review
+        - ✅ Code Summarization    
+        - ✅ Code Review
         - [x] Code Documentation
         - [x] Unit Test Generation
-    - [x] Summarize documents
+    - ✅ Summarize documents
     - [x] Specific tools for various document types (e.g. Excel- Summarize a column, count rows, etc.)        
 
     ### Software Development AI

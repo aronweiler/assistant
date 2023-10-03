@@ -25,7 +25,8 @@ from src.ai.system_info import get_system_information
 
 from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
-from src.tools.documents.code_tool import CodeTool
+from src.tools.code.code_tool import CodeTool
+from src.tools.code.code_review_tool import CodeReviewTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
 
@@ -162,6 +163,14 @@ class RetrievalAugmentedGenerationAI:
             ).format(text=document_text)
         )
         return summary
+    
+    def generate_detailed_document_summary(
+        self,
+        file_id: int,
+    ) -> str:
+        document_summary = self.document_tool.summarize_entire_document(file_id)
+        
+        return document_summary
 
     def query(
         self,
@@ -252,6 +261,10 @@ class RetrievalAugmentedGenerationAI:
             # callbacks=self.callbacks,
             interaction_manager=self.interaction_manager,
         )
+        self.code_review_tool = CodeReviewTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager
+        )
 
         tools = [
             {
@@ -326,6 +339,26 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": StructuredTool.from_function(
                     func=self.stubber_tool.create_stubs,
+                    return_direct=True,
+                ),
+            },
+            {
+                "name": "Get All Code in File",
+                "about": "Gets all of the code in the target file.",
+                "enabled": True,
+                "is_document_related": True,
+                "tool": StructuredTool.from_function(
+                    func=self.code_tool.get_all_code_in_file,
+                    return_direct=True          
+                ),
+            },
+            {
+                "name": "Perform Code Review",
+                "about": "Performs a code review of a specified code file.",
+                "enabled": True,
+                "is_document_related": True,
+                "tool": StructuredTool.from_function(
+                    func=self.code_review_tool.conduct_code_review,
                     return_direct=True,
                 ),
             },
