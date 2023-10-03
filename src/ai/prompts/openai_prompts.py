@@ -66,7 +66,7 @@ Original User Input: <<Print the unmodified original user input>>
 
 Thought: <<Did any previous work answer the user's query? (answer this in your response) Think through the user's query step by step, take into account any previously taken steps, and place your plans for subsequent steps here. If your plans include the use of a tool, make sure to double-check the required arguments and list them here as well. Think carefully if you have enough information to answer the users query based on your own knowledge or previous work, and if so you can return the final answer.>>
 
-Step 1: <<Describe the steps that you need to take in order to arrive at the final answer>>
+Step 1: <<Describe the steps that you need to take in order to arrive at the final answer, including the required and optional arguments to any tools.>>
 ...
 Step N: Return the final answer to the user.
 
@@ -117,8 +117,8 @@ Original User Input: What kind of experience does John Smith have working on med
 Thought: Did any of the previous steps give me enough data to answer the question?  No, there are no previous steps. I need to find out what kind of experience John has working on medical devices. To find an answer to this, I can search the loaded documents for information related to medical devices. Since it looks like John's resume is in the loaded documents, I will search the "john-smith-resume.pdf" (which has the file_id of '99') document for details about his experience in this field.  The required arguments are the query and the original user input.  The target_file_id argument is optional, but will allow me to refine my search to John's resume, so I will include that in the JSON blob as well.
 
 The steps I need to follow are:
-Step 1: Use the search_loaded_documents tool to search for John's experience with medical devices
-Step 2: Return the final answer to the user.
+Step 1: Use the search_loaded_documents tool to search for John's experience with medical devices (The required arguments are 'query', 'original_user_input', the optional arguments are 'target_file_id')
+Step 2: Return the final answer about John's medical device experience to the user.
 
 Tool Query: medical devices
 
@@ -156,10 +156,10 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, there are no previous steps. I need to find out who Leo DiCaprio's girlfriend is, what her age is, and then calculate her age raised to the 0.43 power. To do this, I will use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is, then I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
-Step 2: Use the web_search tool to find out what her age is.
-Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
-Step 4: Return the final answer to the user.
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
+Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
 
 web_search Tool Query: Who is Leo DiCaprio's girlfriend?
 
@@ -180,10 +180,10 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 1, I still need to find Vittoria Ceretti's age. I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
-Step 2: Use the web_search tool to find out what her age is.
-Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
-Step 4: Return the final answer to the user.
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
+Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
 
 web_search Tool Query: What is Vittoria Ceretti's age?
 
@@ -204,10 +204,10 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 2, I still need to calculate Vittoria Ceretti's age raised to the 0.43 power, I will use the calculate_power tool to calculate the answer to 25 raised to the 0.43 power.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
-Step 2: Use the web_search tool to find out what her age is.
-Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
-Step 4: Return the final answer to the user.
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
+Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
 
 calculate_power Tool Query: number=25, power=0.43
 
@@ -240,7 +240,7 @@ Action:
 Additional user information:
 {system_information}
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern described above. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies all of the required fields.
+Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern described above. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies ALL of the required fields to use any tools you select.
 
 """
 
@@ -463,7 +463,7 @@ SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_DOCUMENT_REF
 QUESTION_PROMPT_TEMPLATE = """Use the following portion(s) of a long document to see if any of the text is relevant to answer the question. 
 Return any relevant text verbatim, including citations, if any.
 
---- BEGIN EXAMPLE ---
+--- BEGIN EXAMPLE 1 ---
 CONTENT: 
 ARON WEILER
 aronweiler@gmail.com · www.linkedin.com/in/aronweiler ·
@@ -501,23 +501,9 @@ Here are some details about the position:
 - Assisted in testing and maintenance of both new and existing applications.
 
 Source: *[aron weiler resume.pdf (Page 5)](/files?file_id=1234&page=5)*
---- END EXAMPLE ---
+--- END EXAMPLE 1 ---
 
-{summaries}
-
-Question: {question}
-
-Relevant text, if any, including document and page citations (in Markdown format):
-"""
-
-QUESTION_PROMPT = PromptTemplate(
-    template=QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
-)
-
-CODE_QUESTION_PROMPT_TEMPLATE = """Use the following portion(s) of a long document to see if any of the text is relevant to answer the question. 
-Return any relevant text verbatim, including citations, if any.
-
---- BEGIN EXAMPLE ---
+--- BEGIN EXAMPLE 2 ---
 CONTENT: 
 class LLMType(Enum):
     '''Enum for the type of prompt to use.'''
@@ -541,17 +527,17 @@ Relevant text, if any, including document and page citations (in Markdown format
 The abstract class used for destinations is `DestinationBase`, which is found in the `my_code_file.py` file.
 
 Source: *[my_code_file.py (line 5)](/files?file_id=1234&line=5)*
---- END EXAMPLE ---
+--- END EXAMPLE 2 ---
 
 {summaries}
 
 Question: {question}
 
-Relevant text, if any, including document and page citations (in Markdown format):
+Relevant text, if any, including document and page/line citations (in Markdown format):
 """
 
-CODE_QUESTION_PROMPT = PromptTemplate(
-    template=CODE_QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
+QUESTION_PROMPT = PromptTemplate(
+    template=QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
 )
 
 # COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES"). 
