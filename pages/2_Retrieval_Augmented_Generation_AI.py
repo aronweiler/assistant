@@ -89,15 +89,16 @@ class RagUI:
 
     def create_collections_container(self, main_window_container):
         css_style = """{
-    position: fixed;  /* Keeps the element fixed on the screen */
-    top: 140px;        /* Adjust the top position as needed */
-    right: 50px;      /* Adjust the right position as needed */    
-    max-width: 100%;  /* Ensures the element width doesn't exceed area */
-    z-index: 9999;    /* Ensures the element is on top of other content */
-    max-height: 80vh;     /* Sets the maximum height to 90% of the viewport height */
-    overflow: auto;     /* Adds a scrollbar when the content overflows */
-    overflow-x: hidden;   /* Hides horizontal scrollbar */
-}"""
+    position: fixed;     /* Keeps the element fixed on the screen */
+    top: 140px;              /* Aligns the element to the top of the screen */
+    right: 50px;         /* Adjust the right position as needed */
+    max-width: 100%;     /* Ensures the element width doesn't exceed area */
+    z-index: 9999;       /* Ensures the element is on top of other content */
+    max-height: calc(100vh - 280px); /* Sets the maximum height to 100% of viewport height minus 140px */
+    overflow: auto;      /* Adds a scrollbar when the content overflows */
+    overflow-x: hidden;  /* Hides horizontal scrollbar */
+}
+"""
 
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
@@ -340,9 +341,9 @@ class RagUI:
                     llm_container.markdown(result)
 
                     # TODO: Put this thought container text into the DB (it provides great context!)
-                    logging.debug(
-                        f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
-                    )
+                    # logging.debug(
+                    #     f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
+                    # )
 
 
 if __name__ == "__main__":
