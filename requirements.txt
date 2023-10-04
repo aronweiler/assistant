@@ -57,8 +57,9 @@ openpyxl
 libclang==16.0.6
 
 # Token counting
-# Currently pegged at this version for whisper compatibility
-tiktoken==0.3.3
+# Currently pegged at this version for whisper compatibility ==0.3.3
+tiktoken
+#aiohttp==3.8.2
 
 # UI
 streamlit

@@ -1,6 +1,6 @@
 # Dockerfile for the streamlit application
 
-FROM python:latest
+FROM python:3.11
 
 WORKDIR /app
 
