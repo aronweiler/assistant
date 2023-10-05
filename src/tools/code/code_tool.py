@@ -259,13 +259,18 @@ class CodeTool:
         code_details = ""
 
         try:
-            target_document_chunk = None
+            target_document_chunk = None            
             if target_file_id:
+                file = documents.get_file(target_file_id)
+
                 document_chunks = documents.get_document_chunks_by_file_id(
                     target_file_id
                 )
 
-                code_details = f"The code details for {target_signature} is:\n\n"
+                code_details = f"The code details for {target_signature or file.file_name} is:\n\n"
+
+                if target_signature is None or target_signature == "":
+                    return code_details + file.file_data.decode("utf-8")
 
                 # Find the document chunk that matches the target signature
                 for doc in document_chunks:

@@ -67,7 +67,7 @@ Original User Input: <<Print the unmodified original user input>>
 Thought: <<Did any previous work answer the user's query? (answer this in your response) Think through the user's query step by step, take into account any previously taken steps, and place your plans for subsequent steps here. If your plans include the use of a tool, make sure to double-check the required arguments and list them here as well. Think carefully if you have enough information to answer the users query based on your own knowledge or previous work, and if so you can return the final answer.>>
 
 Step 1: <<Describe the steps that you need to take in order to arrive at the final answer, including the required and optional arguments to any tools.>>
-...
+... (Make sure to mark steps as COMPLETE when they have been completed)
 Step N: Return the final answer to the user.
 
 Tool Query: <<When using a tool, you should consider the context of the user's query, and rephrase it (if necessary) to better use the chosen tool. This could mean modifying the query to be more concise, adding additional context, or splitting it into keywords.  Place that modified query here for reference.>>
@@ -77,10 +77,9 @@ Action:
 $JSON_BLOB
 ```
 
-Observation: 
-<<action result>>
+Observation: <<The action result.  Usually this is the output of a previous tool call.  If you have previously used a tool, the output will be here>>
 
-... (repeat Thought/Action/Observation steps as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps or tools to answer)
+... (repeat Thought/Steps/Action/Observation loop as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps or tools to answer)
 
 When you arrive at the final answer to the query, the response format is:
 ```json
@@ -140,6 +139,10 @@ Original User Input: What kind of experience does John Smith have working on med
 
 Thought: Did any of the previous steps give me enough data to answer the question? Yes, John has 5 years of experience working on medical devices. I will return the final answer to the user.
 
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: Return the final answer about John's medical device experience to the user.
+
 Action:
 ```json
 {{
@@ -180,7 +183,7 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 1, I still need to find Vittoria Ceretti's age. I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
+Step 1: COMPLETE
 Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
 Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
 Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
@@ -204,8 +207,8 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 2, I still need to calculate Vittoria Ceretti's age raised to the 0.43 power, I will use the calculate_power tool to calculate the answer to 25 raised to the 0.43 power.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
-Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 1: COMPLETE
+Step 2: COMPLETE
 Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
 Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
 
@@ -228,6 +231,12 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 
 Thought: Did any of the previous steps give me enough data to answer the question? Yes, I have used the web_search and calculate_power tools to arrive at the final answer to the original query, which is 3.991298452658078. I will return the final answer to the user.
 
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: COMPLETE
+Step 3: COMPLETE
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
 Action:
 ```json
 {{
@@ -240,9 +249,11 @@ Action:
 Additional user information:
 {system_information}
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern described above. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies ALL of the required fields to use any tools you select.
+Review the previous instructions carefully. Remember to ALWAYS respond with a SINGLE valid json blob of a SINGLE action (you will get a chance to perform more actions later), following the Thought/Steps/Action/Observation pattern in the examples above. Use the tools available to you if necessary, and make sure you've created a JSON blob that satisfies ALL of the required fields to use any tools you select.
 
-"""
+If you don't require a tool to complete the rest of the steps, please complete them and respond with a final answer.
+
+You are iterating over (possibly) multiple calls to tools. Please take into account the user query below, and then your previous work (if any). If you have previously used a tool, the output will be here."""
 
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
