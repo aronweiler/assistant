@@ -42,7 +42,7 @@ REMEMBER: "next_inputs" can just be the original input if you don't think any mo
 OUTPUT:
 """
 
-#AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
+# AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
 TOOLS_FORMAT_INSTRUCTIONS = """Use a json blob to specify a tool by providing an `action key` (tool name) and an `action_input` key (tool input).
@@ -278,7 +278,7 @@ CONVERSATIONAL_PROMPT = PromptTemplate(
         "chat_history",
         "input",
     ],
-    template=CONVERSATIONAL_TEMPLATE
+    template=CONVERSATIONAL_TEMPLATE,
 )
 
 MEMORY_TEMPLATE = """Below is a query from a user.  I have included some context that may be helpful.
@@ -298,11 +298,7 @@ Answer:
 """
 
 MEMORY_PROMPT = PromptTemplate(
-    input_variables=[
-        "context",
-        "input"
-    ],
-    template=MEMORY_TEMPLATE
+    input_variables=["context", "input"], template=MEMORY_TEMPLATE
 )
 
 SUMMARIZE_FOR_LABEL_TEMPLATE = """
@@ -341,7 +337,7 @@ Sure, here you go:
 # {response}
 # --- END AI RESPONSE ---
 
-# Review the query and the response above. 
+# Review the query and the response above.
 
 # If the AI RESPONSE contains the answer to the user's query, respond only with "YES".
 
@@ -392,7 +388,7 @@ When referencing any of the available files, you MUST include the ID of the file
 
 AI: I have rephrased the user input so that it can be understood without any other context by resolving any ambiguous references and coreferences, ensuring that any files are referred to by their full name AND file_id:
 """
-        
+
 REPHRASE_PROMPT = PromptTemplate(
     input_variables=[
         "system_information",
@@ -402,7 +398,7 @@ REPHRASE_PROMPT = PromptTemplate(
         "loaded_documents",
         "input",
     ],
-    template=REPHRASE_TEMPLATE
+    template=REPHRASE_TEMPLATE,
 )
 
 SINGLE_LINE_SUMMARIZE_TEMPLATE = """Provide a single-line summary of the following text, making sure to capture important details, such as thematically important people, organizations, places, etc.  This summary will be used to help route requests to the appropriate AI, based on the content of the text- so while your summary should be very short, it should also be as detailed as possible.
@@ -412,7 +408,9 @@ SINGLE_LINE_SUMMARIZE_TEMPLATE = """Provide a single-line summary of the followi
 SINGLE LINE SUMMARY:
 """
 
-SINGLE_LINE_SUMMARIZE_PROMPT = PromptTemplate.from_template(SINGLE_LINE_SUMMARIZE_TEMPLATE)
+SINGLE_LINE_SUMMARIZE_PROMPT = PromptTemplate.from_template(
+    SINGLE_LINE_SUMMARIZE_TEMPLATE
+)
 
 DETAILED_SUMMARIZE_TEMPLATE = """Write a detailed summary of the following:
 
@@ -469,7 +467,9 @@ Below is an additional chunk that you should consider for an addition to the ong
 Given the additional chunk, refine the original summary by adding to or modifying the existing summary. If the additional chunk isn't useful for adding to the summary, just return the existing summary.
 """
 
-SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_DOCUMENT_REFINE_TEMPLATE)
+SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(
+    SIMPLE_DOCUMENT_REFINE_TEMPLATE
+)
 
 QUESTION_PROMPT_TEMPLATE = """Use the following portion(s) of a long document to see if any of the text is relevant to answer the question. 
 Return any relevant text verbatim, including citations, if any.
@@ -551,15 +551,15 @@ QUESTION_PROMPT = PromptTemplate(
     template=QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
 )
 
-# COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES"). 
+# COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES").
 # If you don't know the answer, just say that you don't know. Don't try to make up an answer.
 # ALWAYS return a "SOURCES" part in your answer.
 
 # Every response should follow this format:
-# --- BEGIN EXAMPLE RESPONSE --- 
+# --- BEGIN EXAMPLE RESPONSE ---
 # FINAL ANSWER: << your answer here >>
 # SOURCES: << sources here >>
-# --- END EXAMPLE RESPONSE --- 
+# --- END EXAMPLE RESPONSE ---
 
 # QUESTION: {question}
 
@@ -576,13 +576,15 @@ QUESTION_PROMPT = PromptTemplate(
 DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}', page='{page}'"""
 
 DOCUMENT_PROMPT = PromptTemplate(
-    template=DOCUMENT_PROMPT_TEMPLATE, input_variables=["page_content", "page", "filename", "file_id"]
+    template=DOCUMENT_PROMPT_TEMPLATE,
+    input_variables=["page_content", "page", "filename", "file_id"],
 )
 
 CODE_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}, line={start_line}'"""
 
 CODE_PROMPT = PromptTemplate(
-    template=CODE_PROMPT_TEMPLATE, input_variables=["page_content", "filename", "file_id", "start_line"]
+    template=CODE_PROMPT_TEMPLATE,
+    input_variables=["page_content", "filename", "file_id", "start_line"],
 )
 
 C_STUBBING_TEMPLATE = """Please take the following code and create a stub for it.  The goal is to have the stub you create be able to be used in place of the original code, and have the same behavior as the original code, only with a fake implementation.
@@ -843,19 +845,19 @@ AI: Sure, here are the key interfaces (in JSON format):
 """
 
 # Additional items that should be in the architecture (we should be iterating over this list):
-# - Data Handling: 
-# - Interfaces: 
-# - Scalability Considerations: 
-# - Performance Characteristics: 
-# - Security Measures: 
-# - Error Handling: 
-# - Resilience and Fault Tolerance: 
-# - Compliance with Standards: 
-# - Technology Stack: 
-# - Hardware and Software Requirements: 
-# - Lifecycle Considerations: 
-# - Documentation and Support: 
-# - Integration Points: 
+# - Data Handling:
+# - Interfaces:
+# - Scalability Considerations:
+# - Performance Characteristics:
+# - Security Measures:
+# - Error Handling:
+# - Resilience and Fault Tolerance:
+# - Compliance with Standards:
+# - Technology Stack:
+# - Hardware and Software Requirements:
+# - Lifecycle Considerations:
+# - Documentation and Support:
+# - Integration Points:
 # - Constraints and Limitations:
 
 
@@ -928,3 +930,424 @@ Please take these summaries, and distill it into a final (detailed) consolidated
 REDUCE_SUMMARIES_PROMPT = PromptTemplate(
     template=REDUCE_SUMMARIES_TEMPLATE, input_variables=["doc_summaries"]
 )
+
+SYSTEM_TEMPLATE = """I'd like you to act as a personal assistant. It's important that you provide detailed and accurate assistance to me. 
+
+As my personal assistant, I expect you to be attentive, proactive, and reliable. You should be ready to help me with any questions, provide information, or engage in friendly conversation. Let's work together to make my day easier and more enjoyable!
+
+I want you to adjust your responses to match my preferred personality. I will provide personality descriptors below to indicate how you should customize your response style. Whether I want you to sound witty, professional, or somewhere in between, I expect you to adapt accordingly.
+
+--- PERSONALITY DESCRIPTORS ---
+{personality_descriptors}
+--- PERSONALITY DESCRIPTORS ---"""
+
+AGENT_PROMPT_TEMPLATE = """{system_prompt}
+
+You have access the following tools that you can use by returning the appropriately formatted JSON.  Don't make up tools, only ever use the tools that are listed here. If a query does not require the use of a tool, you can return a final answer to the user instead.
+--- AVAILABLE TOOLS ---
+{available_tools}
+--- AVAILABLE TOOLS ---
+
+The format of your response should always follow these formatting guidelines:
+--- RESPONSE FORMATTING ---
+{response_formatting_instructions}
+--- RESPONSE FORMATTING ---
+
+The loaded documents that you have access to are below.  Pay attention to the IDs of these loaded documents, you will need to use these IDs when using the tools.
+--- LOADED DOCUMENTS ---
+{loaded_documents}
+--- LOADED DOCUMENTS ---
+
+Any previous conversations with the user are contained here. The chat history may contain context that you find useful to answer a current query.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
+
+--- INSTRUCTIONS ---
+{agent_instructions}
+--- INSTRUCTIONS ---
+
+{examples}
+
+--- USER QUERY ---
+{user_query}
+--- USER QUERY ---
+
+Begin.  Remember to follow the instructions carefully, as well as making sure you adhere to the JSON output format.
+
+Thought: Given the context here, can I provide the user with a final answer? """
+
+AGENT_ROUND_N_TEMPLATE = """{previous_work}
+
+Observation: {observation}
+
+Thought: Given the context here, can I provide the user with a final answer? """
+
+RESPONSE_FORMATTING_TEMPLATE = """All responses should be in the following JSON format:
+```json
+{
+  "action": $ACTION,
+  "action_input": $ACTION_INPUT
+}
+
+Where $ACTION is the name of the tool you want to use, and $ACTION_INPUT is the input to that tool.  For example, if you want to use the hypothetical "search_internet" tool that takes a query argument, and you want to search for the word "cat", you would return the following JSON:
+```json
+{
+  "action": "search_internet",
+  "action_input": {
+    "query": "cat"
+  }
+}
+```
+When it is not appropriate to use a tool, or you want to return a final answer to the user, use the following format:
+```json
+{
+  "action": "final_answer",
+  "action_input": "<<Your final answer goes here>>"
+}
+```"""
+
+AGENT_INSTRUCTIONS_TEMPLATE = """To answer the user's query, you should follow the "Thought / Steps / Action / Observation" pattern outlined below.  This pattern can repeat over many iterations, such as when a user has a multi-part query or a query that requires multiple steps or tools to answer.
+
+Thought: Given the various context provided here (loaded documents, chat history, previous work, etc.), or your own internal knowledge, do you have enough information to answer the user's query?  You will think through the user's query step by step, take into account any previously taken steps, and place plans for subsequent steps here.
+
+Steps: This is where you will break down the user's query into the steps that you need to take in order to arrive at the final answer.  Plan out all of the steps necessary to answer the user's query, including tool usage, and list them here.  If no steps are necessary, and you have a final answer, you can skip this section and just provide the final answer in the Action section below.
+
+Action: This is where you will provide the JSON formatted action to take.  This action could be the use of a tool, or a "final_answer".  If you are using a tool, make sure to double-check the required arguments, and be sure you have included them in the JSON. 
+
+Observation: This is where you will be provided the output of any tool calls that you have requested in the Action above.  Use details here in Observation to help answer the user's query."""
+
+STAND_ALONE_EXAMPLE = """--- BEGIN TRAINING DATA EXAMPLE ---
+User Query: If I have 4 apples, and I give three to my friend Tommy, how many apples do I have?
+
+Thought: Given the context here, or my own training, can I provide the user with a final answer? Yes, this is a simple math problem that I can solve without the use of external tools. I can answer the user's query without any additional context. The user started with 4 apples, and gave 3 to Tommy.  The user wants to know how many apples they have left.  4 minus 3 is 1, so the user has 1 apple left.
+
+Action:
+```json
+{
+  "action": "final_answer",
+  "action_input": "You started with four apples, and gave three to your friend Tommy.  You have one apple left."
+}
+```
+--- END TRAINING DATA EXAMPLE ---"""
+
+SINGLE_HOP_EXAMPLE = """--- BEGIN SINGLE-HOP EXAMPLE ---
+User Query: How many years of experience does John Smith have working on medical devices?
+
+Thought: Given the context here, or my own training, can I provide the user with a final answer? No, I don't have enough context. I need to find out how many years of experience John has working on medical devices. Are there loaded documents that can help me?  Yes, it looks like John's resume is loaded under the name "john-smith-resume.pdf".  I will use the search_document tool to search for "medical devices" in "john-smith-resume.pdf", which has the file_id of "99".  That should give me the information I need.
+
+Steps:
+1. I will use the search_document tool to search for John's experience with medical devices in the document with the file_id of "99".
+2. Evaluate the response from the search_document tool, and construct the final answer describing John's history of medical device experience.
+3. Return the final answer about John's medical device experience to the user.
+
+Action:
+```json
+{
+  "action": "search_document",
+  "action_input": {
+    "query": "medical device",
+    "target_file_id": "99"
+  }
+}
+```
+Observation: 
+John worked at Boston Scientific on an insulin pump from 2002 until 2007.  He also worked at Medtronic on a pacemaker from 2007 until 2010.  
+
+Thought: After evaluating the response from the search_document tool above (in the Observation), I have determined that I can answer the user's query. I don't need to plan out any more steps, so I will construct the final answer describing John's history of medical device experience using the context provided.
+
+Action:
+```json
+{
+  "action": "final_answer",
+  "action_input": "According to my search of 'john-smith-resume.pdf', John worked on an insulin pump at Boston Scientific from 2002 until 2007, and then he worked at Medtronic on a pacemaker from 2007 until 2010. From these results, I can determine that John has 8 years of experience working on medical devices."
+}
+```
+--- END SINGLE-HOP EXAMPLE ---"""
+
+MULTI_HOP_EXAMPLE = """--- BEGIN MULTI-HOP EXAMPLE ---
+User Query: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Given the context here, or my own training, can I provide the user with a final answer? No, I don't have enough context. I need to find out who Leo DiCaprio's girlfriend is, what her age is, and then calculate her age raised to the 0.43 power. To do this, I will use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is, then I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  
+
+Steps:
+1. Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is.
+2. Use the web_search tool to find out what her age is.
+3. Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
+4. Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+Action:
+```json
+{
+  "action": "web_search",
+  "action_input": {
+    "query": "Who is Leo DiCaprio's girlfriend?"
+  }
+}
+```
+Observation: Leo DiCaprio's girlfriend is Vittoria Ceretti.
+
+Thought: Given the context here, or my own training, can I provide the user with a final answer? No, I don't have enough context. I still need to find Vittoria Ceretti's age. I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
+
+Steps:
+1. Use the web_search tool to find out what Vittoria Ceretti's age is.
+2. Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
+3. Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+Action:
+```json
+{
+  "action": "web_search",
+  "action_input": {
+    "query": "What is Vittoria Ceretti's age?"
+  }
+}
+```
+Observation: Vittoria Ceretti is 25.
+
+Thought: Given the context here, or my own training, can I provide the user with a final answer? No, I don't have enough context. I still need to calculate Vittoria Ceretti's age raised to the 0.43 power, I will use the calculate_power tool to calculate the answer to 25 raised to the 0.43 power.  
+
+Steps:
+1. Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.
+2. Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+Action:
+```json
+{
+  "action": "calculate_power",
+  "action_input": {
+    "number": 25,
+    "power": 0.43
+  }
+}
+```
+Observation: 3.991298452658078
+
+Thought: Given the context here, or my own training, can I provide the user with a final answer? Yes, I have used the web_search and calculate_power tools to arrive at the final answer to the user's query. Leo DiCaprio's girlfriend is Vittoria Ceretti, who is 25 years old. 25 raised to the 0.43 power is 3.991298452658078.
+
+Action:
+```json
+{
+  "action": "final_answer",
+  "action_input": "Leo DiCaprio's girlfriend is Vittoria Ceretti, who is 25 years old. Her age raised to the 0.43 power is 3.991298452658078."
+}
+```
+--- END MULTI-HOP EXAMPLE ---"""
+
+OLDDDDDBETTER_AGENT_PROMPT_TEMPLATE = """{system_prompt}
+
+You have been tasked with answering a user's query.  You have access the following tools that you can use by returning the appropriate JSON.
+
+--- BEGIN AVAILABLE TOOLS ---
+{tool_signatures}
+--- END AVAILABLE TOOLS ---
+
+To use a tool, return a JSON blob to that specifies a tool and its arguments by providing an `action` key, the value of which is the tool name, and an `action_input` key, the value of which is the tool's arguments (if any).
+
+Valid `action` values are: "Final Answer" or {tool_names}
+
+Provide only ONE action per $JSON_BLOB, formatted as shown:
+
+--- BEGIN JSON BLOB FORMAT ---
+```json
+{{{{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}}}}
+```
+--- END JSON BLOB FORMAT ---
+
+Then, follow this format for your response:
+
+Original User Input: <<Print the unmodified original user input>> 
+
+Thought: <<Did any previous work answer the user's query? (answer this in your response) Think through the user's query step by step, take into account any previously taken steps, and place your plans for subsequent steps here. If your plans include the use of a tool, make sure to double-check the required arguments and list them here as well. Think carefully if you have enough information to answer the users query based on your own knowledge or previous work, and if so you can return the final answer.>>
+
+Step 1: <<Describe the steps that you need to take in order to arrive at the final answer, including the required and optional arguments to any tools.>>
+... (Make sure to mark steps as COMPLETE when they have been completed)
+Step N: Return the final answer to the user.
+
+Tool Query: <<When using a tool, you should consider the context of the user's query, and rephrase it (if necessary) to better use the chosen tool. This could mean modifying the query to be more concise, adding additional context, or splitting it into keywords.  Place that modified query here for reference.>>
+
+Action:
+```
+$JSON_BLOB
+```
+
+Observation: <<The action result.  Usually this is the output of a previous tool call.  If you have previously used a tool, the output will be here>>
+
+... (repeat Thought/Steps/Action/Observation loop as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps or tools to answer)
+
+When you arrive at the final answer to the query, the response format is:
+```json
+{{{{
+  "action": "Final Answer",
+  "action_input": "<<Your final response to the user>>"
+}}}}
+```
+
+Consider the context provided in the chat history, loaded documents, and additional user information when deciding which tool to use:
+
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
+
+--- LOADED DOCUMENTS ---
+{loaded_documents}
+--- LOADED DOCUMENTS ---
+
+Think this through step-by-step. Note the type of document (Document, Code, Spreadsheet, etc.), and be certain to use the right tool and arguments in the json blob.  Pay close attention to the tool descriptions!
+
+--- FORMAT --- 
+Action:
+```json
+$JSON_BLOB
+```
+--- FORMAT --- 
+
+Sometimes a query can be answered in a single hop (e.g. query to a tool):
+--- BEGIN SINGLE-HOP EXAMPLE ---
+Original User Input: What kind of experience does John Smith have working on medical devices?
+
+Thought: Did any of the previous steps give me enough data to answer the question?  No, there are no previous steps. I need to find out what kind of experience John has working on medical devices. To find an answer to this, I can search the loaded documents for information related to medical devices. Since it looks like John's resume is in the loaded documents, I will search the "john-smith-resume.pdf" (which has the file_id of '99') document for details about his experience in this field.  The required arguments are the query and the original user input.  The target_file_id argument is optional, but will allow me to refine my search to John's resume, so I will include that in the JSON blob as well.
+
+The steps I need to follow are:
+Step 1: Use the search_loaded_documents tool to search for John's experience with medical devices (The required arguments are 'query', 'original_user_input', the optional arguments are 'target_file_id')
+Step 2: Return the final answer about John's medical device experience to the user.
+
+Tool Query: medical devices
+
+Action:
+```json
+{{
+  "action": "search_loaded_documents",
+  "action_input": {{
+    "query": "medical devices",
+    "original_user_input": "What kind of experience does John Smith have working on medical devices?",
+    "target_file_id": "99"
+  }}
+}}
+```
+Observation: 
+John has 5 years of experience working on medical devices.
+
+Original User Input: What kind of experience does John Smith have working on medical devices?
+
+Thought: Did any of the previous steps give me enough data to answer the question? Yes, John has 5 years of experience working on medical devices. I will return the final answer to the user.
+
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: Return the final answer about John's medical device experience to the user.
+
+Action:
+```json
+{{
+  "action": "Final Answer",
+  "action_input": "John has 5 years of experience working on medical devices."
+}}
+```
+--- END SINGLE-HOP EXAMPLE ---
+
+Sometimes a query cannot be answered in a single hop, and requires multiple hops (e.g. multiple queries to a tool, or other intermediate steps taken by you):
+--- BEGIN MULTI-HOP EXAMPLE ---
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? No, there are no previous steps. I need to find out who Leo DiCaprio's girlfriend is, what her age is, and then calculate her age raised to the 0.43 power. To do this, I will use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is, then I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
+
+The steps I need to follow are:
+Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
+Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+web_search Tool Query: Who is Leo DiCaprio's girlfriend?
+
+Action:
+```json
+{{
+  "action": "web_search",
+  "action_input": {{
+    "query": "Who is Leo DiCaprio's girlfriend?"
+  }}
+}}
+```
+Observation: 
+Leo DiCaprio's girlfriend is Vittoria Ceretti.
+
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 1, I still need to find Vittoria Ceretti's age. I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
+
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+web_search Tool Query: What is Vittoria Ceretti's age?
+
+Action:
+```json
+{{
+  "action": "web_search",
+  "action_input": {{
+    "query": "What is Vittoria Ceretti's age?"
+  }}
+}}
+```
+Observation: 
+Vittoria Ceretti is 25.
+
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 2, I still need to calculate Vittoria Ceretti's age raised to the 0.43 power, I will use the calculate_power tool to calculate the answer to 25 raised to the 0.43 power.  The required arguments for the calculate_power tool is the number and the power. 
+
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: COMPLETE
+Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+calculate_power Tool Query: number=25, power=0.43
+
+Action:
+```json
+{{
+  "action": "calculate_power",
+  "action_input": {{
+    "number": 25,
+    "power": 0.43
+  }}
+}}
+```
+Observation: 
+3.991298452658078
+
+Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age raised to the 0.43 power?
+
+Thought: Did any of the previous steps give me enough data to answer the question? Yes, I have used the web_search and calculate_power tools to arrive at the final answer to the original query, which is 3.991298452658078. I will return the final answer to the user.
+
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: COMPLETE
+Step 3: COMPLETE
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
+Action:
+```json
+{{
+  "action": "Final Answer",
+  "action_input": "Leo DiCaprio's girlfriend is Vittoria Ceretti, who is 25 years old. Her age raised to the 0.43 power is 3.991298452658078."
+}}
+```
+--- END MULTI-HOP EXAMPLE ---
+
+Additional user information:
+{system_information}
+
+Review the previous instructions carefully. Remember to ALWAYS respond with a SINGLE valid json blob of a SINGLE action (you will get a chance to perform more actions later), following the Thought/Steps/Action/Observation pattern in the examples above. Use the tools available to you if necessary, and make sure you've created a JSON blob that satisfies ALL of the required fields to use any tools you select.
+
+If you don't require a tool to complete the rest of the steps, please complete them and respond with a final answer.
+
+You are iterating over (possibly) multiple calls to tools. Please take into account the user query below, and then your previous work (if any). If you have previously used a tool, the output will be here.
+"""
