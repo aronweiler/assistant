@@ -33,7 +33,7 @@ def get_template():
 
 def main():
 
-    review_file_loc = pathlib.Path(__file__).parent.resolve() / "test" / "data" / "comment_data_0.json"
+    review_file_loc = pathlib.Path(__file__).parent.resolve() / "test" / "data" / "comment_data_2.json"
     review = load_review(file_loc=review_file_loc)
     gl = gitlab.Gitlab(
         url='https://code.medtronic.com',
