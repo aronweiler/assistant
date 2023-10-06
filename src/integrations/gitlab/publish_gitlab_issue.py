@@ -6,6 +6,8 @@ import pathlib
 
 import dotenv
 import gitlab
+import jinja2
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -17,10 +19,22 @@ def load_review(file_loc: pathlib.Path | str) -> dict:
     return data
 
 
+def get_template():
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(
+            [pathlib.Path(__file__).parent.resolve() / 'templates']
+        ),
+        autoescape=jinja2.select_autoescape()
+    )
+
+    template = env.get_template("code_review_issue_template.md.j2")
+    return template
+
+
 def main():
 
     review_file_loc = pathlib.Path(__file__).parent.resolve() / "test" / "data" / "comment_data_0.json"
-    review = load_review(file_loc=review_file_loc)#'/test/data/comment_data_0.json')
+    review = load_review(file_loc=review_file_loc)
     gl = gitlab.Gitlab(
         url='https://code.medtronic.com',
         private_token=os.getenv('GITLAB_PAT')
@@ -39,10 +53,15 @@ def main():
     
     source_code_file = 'tbd.cpp'
     title = f"Review of file {source_code_file}"
-    description = f"""
-        The file {source_code_file} from URL tbd was reviewed with the following findings:
-        {review}
-    """
+
+    description_template = get_template()
+    description = description_template.render(
+        source_code_file_path=source_code_file,
+        source_code_href="https://",
+        reviewer="Jarvis AI",
+        comments=review['comments']
+    )
+
     issue = project.issues.create(
         {
             'title': title,
@@ -52,9 +71,6 @@ def main():
             ]
         }
     )
-    # issue.labels([
-    #     'Jarvis'
-    # ])
 
     issue.save()
 

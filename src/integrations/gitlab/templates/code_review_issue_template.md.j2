@@ -1,0 +1,13 @@
+The file {{source_code_file_path}} from {{source_code_href}} 
+was reviewed by {{ reviewer }} with the following findings:
+
+{% if comments|length == 0 %}
+No comments found
+{% endif %}
+
+{% for comment in comments %}
+  - {{ comment.comment }}
+    Lines: {{ comment.start }} - {{ comment.end }}
+{% endfor %}
+
+
