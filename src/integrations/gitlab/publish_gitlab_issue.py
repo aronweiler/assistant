@@ -43,21 +43,22 @@ def main():
     # gl.enable_debug()
     gl.auth()
     
-    logger.info("Projects in group:")
-    VENTILATION_GROUP_ID = 5850
+    # logger.info("Projects in group:")
+    # VENTILATION_GROUP_ID = 5850
     CODE_SPLITTER_PROJECT_ID = 14163
 
     project = gl.projects.get(id=CODE_SPLITTER_PROJECT_ID)
     # print(project)
     issues = project.issues.list()
     
-    source_code_file = 'tbd.cpp'
+    source_code_file = 'cpp_splitter.py'
+    source_code_href = 'https://code.medtronic.com/Ventilation/sandbox/code-splitter/-/blob/8d90e484d4d41601e5b610b20bc271ee4fb2e19b/codesplitter/splitter/cpp_splitter/cpp_splitter.py'
     title = f"Review of file {source_code_file}"
 
     description_template = get_template()
     description = description_template.render(
         source_code_file_path=source_code_file,
-        source_code_href="https://",
+        source_code_href=source_code_href,
         reviewer="Jarvis AI",
         comments=review['comments']
     )

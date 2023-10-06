@@ -11,8 +11,6 @@
             "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
         },
         {
-            "start":23,
-            "end":30,
             "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
         },
         {
