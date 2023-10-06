@@ -14,6 +14,7 @@
         {
           "destination": {
             "is_default": true,
+            "requires_documents": false,
             "name": "conversational",
             "module": "src.ai.destinations.conversational",
             "class_name": "ConversationalAI",
@@ -33,6 +34,7 @@
         {
           "destination": {
             "name": "memory",
+            "requires_documents": false,
             "module": "src.ai.destinations.memory",
             "class_name": "MemoryAI",
             "description": "Good for when you may need to remember something from a previous conversation with the user, or look up some information about the user.",
@@ -51,6 +53,7 @@
         {
           "destination": {
             "name": "documents",
+            "requires_documents": true,
             "module": "src.ai.destinations.documents",
             "class_name": "DocumentsAI",
             "description": "Good for interacting with any of the 'Document' documents that maybe be loaded (see: LOADED DOCUMENTS).  NEVER use this model if there are no LOADED DOCUMENTS.",
@@ -69,6 +72,7 @@
         {
           "destination": {
             "name": "code",
+            "requires_documents": true,
             "module": "src.ai.destinations.code",
             "class_name": "CodeAI",
             "description": "Good for interacting with any of the 'Code' documents that maybe be loaded (see: LOADED DOCUMENTS).  NEVER use this model if there are no 'Code' documents in LOADED DOCUMENTS.",
@@ -87,6 +91,7 @@
         {
           "destination": {
             "name": "current-events",
+            "requires_documents": false,
             "module": "src.ai.destinations.current_events",
             "class_name": "CurrentEventsAI",
             "description": "Good for when you need to answer a query about current events such as weather, news, sports, traffic, movie show times, etc.",

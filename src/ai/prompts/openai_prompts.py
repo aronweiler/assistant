@@ -67,7 +67,7 @@ Original User Input: <<Print the unmodified original user input>>
 Thought: <<Did any previous work answer the user's query? (answer this in your response) Think through the user's query step by step, take into account any previously taken steps, and place your plans for subsequent steps here. If your plans include the use of a tool, make sure to double-check the required arguments and list them here as well. Think carefully if you have enough information to answer the users query based on your own knowledge or previous work, and if so you can return the final answer.>>
 
 Step 1: <<Describe the steps that you need to take in order to arrive at the final answer, including the required and optional arguments to any tools.>>
-...
+... (Make sure to mark steps as COMPLETE when they have been completed)
 Step N: Return the final answer to the user.
 
 Tool Query: <<When using a tool, you should consider the context of the user's query, and rephrase it (if necessary) to better use the chosen tool. This could mean modifying the query to be more concise, adding additional context, or splitting it into keywords.  Place that modified query here for reference.>>
@@ -77,10 +77,9 @@ Action:
 $JSON_BLOB
 ```
 
-Observation: 
-<<action result>>
+Observation: <<The action result.  Usually this is the output of a previous tool call.  If you have previously used a tool, the output will be here>>
 
-... (repeat Thought/Action/Observation steps as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps or tools to answer)
+... (repeat Thought/Steps/Action/Observation loop as many times as necessary to get to the final answer- this is useful when a user has a multi-part query or a query that requires multiple steps or tools to answer)
 
 When you arrive at the final answer to the query, the response format is:
 ```json
@@ -140,6 +139,10 @@ Original User Input: What kind of experience does John Smith have working on med
 
 Thought: Did any of the previous steps give me enough data to answer the question? Yes, John has 5 years of experience working on medical devices. I will return the final answer to the user.
 
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: Return the final answer about John's medical device experience to the user.
+
 Action:
 ```json
 {{
@@ -180,7 +183,7 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 1, I still need to find Vittoria Ceretti's age. I will use the web_search tool again to find out what her age is.  After I have Leo DiCaprio's girlfriend's age, I will use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power.  The required arguments for the web_search tool is the query.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
+Step 1: COMPLETE
 Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
 Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
 Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
@@ -204,8 +207,8 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 Thought: Did any of the previous steps give me enough data to answer the question? No, I am only on Step 2, I still need to calculate Vittoria Ceretti's age raised to the 0.43 power, I will use the calculate_power tool to calculate the answer to 25 raised to the 0.43 power.  The required arguments for the calculate_power tool is the number and the power. 
 
 The steps I need to follow are:
-Step 1: Use the web_search tool to find the answer to who Leo DiCaprio's girlfriend is. (The required arguments are 'query')
-Step 2: Use the web_search tool to find out what her age is. (The required arguments are 'query')
+Step 1: COMPLETE
+Step 2: COMPLETE
 Step 3: Use the calculate_power tool to calculate the answer to her current age raised to the 0.43 power. (The required arguments are 'number', and 'power')
 Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
 
@@ -228,6 +231,12 @@ Original User Input: Who is Leo DiCaprio's girlfriend? What is her current age r
 
 Thought: Did any of the previous steps give me enough data to answer the question? Yes, I have used the web_search and calculate_power tools to arrive at the final answer to the original query, which is 3.991298452658078. I will return the final answer to the user.
 
+The steps I need to follow are:
+Step 1: COMPLETE
+Step 2: COMPLETE
+Step 3: COMPLETE
+Step 4: Return the final answer of what Leo DiCaprio's girlfriend's age raised to the 0.43 power is to the user.
+
 Action:
 ```json
 {{
@@ -240,9 +249,11 @@ Action:
 Additional user information:
 {system_information}
 
-Begin! Reminder to ALWAYS respond with a valid json blob of a single action, following the Thought/Action/Observation pattern described above. Use tools if necessary. Respond directly if appropriate.  Make sure you've created a JSON blob that satisfies ALL of the required fields to use any tools you select.
+Review the previous instructions carefully. Remember to ALWAYS respond with a SINGLE valid json blob of a SINGLE action (you will get a chance to perform more actions later), following the Thought/Steps/Action/Observation pattern in the examples above. Use the tools available to you if necessary, and make sure you've created a JSON blob that satisfies ALL of the required fields to use any tools you select.
 
-"""
+If you don't require a tool to complete the rest of the steps, please complete them and respond with a final answer.
+
+You are iterating over (possibly) multiple calls to tools. Please take into account the user query below, and then your previous work (if any). If you have previously used a tool, the output will be here."""
 
 CONVERSATIONAL_TEMPLATE = """{system_prompt}
 System information:
@@ -848,10 +859,16 @@ AI: Sure, here are the key interfaces (in JSON format):
 # - Constraints and Limitations:
 
 
-CODE_REVIEW_TEMPLATE = """
-"You have been tasked with identifying security vulnerabilities, performance bottlenecks, memory management concerns, and code correctness problems with the following code.
+CODE_REVIEW_TEMPLATE = """You have been tasked with conducting a code review to identify security vulnerabilities, performance bottlenecks, memory management concerns, and code correctness problems with the following code.
 
-The code below is a part of a larger code base.
+Please focus on the following aspects:
+
+1. **Security Vulnerabilities**
+2. **Performance Bottlenecks**
+3. **Memory Management Concerns**
+4. **Code Correctness Problems**
+
+Review the code below, which is a part of a larger code base:
 
 ----- BEGIN CODE SUMMARY -----
 {code_summary}
@@ -865,28 +882,39 @@ The code below is a part of a larger code base.
 {code}
 ----- END CODE -----
 
-Your code review output should be only JSON formatted text.
+Your code review output should be in JSON format.
+
 When commenting on one or more lines of code, use the following format:
-{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>}}
+{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}}
+
 When commenting on the entire code, use the following format:
-{{"comment": <comment in markdown>}}
+{{"comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}}
 
+If the code looks good, do not comment on it.  I already know what the code is doing, so I don't need you to tell me what it is doing.  I need you to tell me what is wrong with the code.
 
-Only provide comments on code that you find issue with.  Do not provide any comments on code that you do not find issue with.  
-If the context to judge a piece of code does not exist, such as when an unknown (not incorrect) method on an object is called, do not comment on it.
+If there isn't enough context to judge a piece of code, do not comment on it.
 
 EXAMPLE OUTPUT:
 {{
     "comments": [
-        {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead."}},
-        {{"start": 20, "end": 25, "comment": "Ensure proper input validation to prevent cross-site scripting (XSS) attacks by escaping user-generated content."}},
-        {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop."}},
-        {{"start": 50, "end": 55, "comment": "It seems that the 'result' object is not properly released, leading to a potential memory leak. Consider using context managers to ensure proper cleanup."}},
-        {{"start": 65, "end": 70, "comment": "The loop condition is incorrect. It should be 'while i < len(data)' to avoid an index out of range error."}},
-        {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered."}}
+        {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true}},
+        {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true}},
+        {{"start": 57, "end": 59, "comment": "The code defines a macro 'C_ASSERT' for compile-time checking of array sizes. This macro is used to prevent negative subscripts in array declarations.", "needs_change": false}},
+        {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered.", "needs_change": true}}
     ]
 }}
-Code review in JSON format:
+
+Code JSON format:
+{{
+    "comments": [
+        {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}},
+        ...
+    ]
+}}
+
+Your review should only contain JSON formatted data.  
+
+Code review in JSON format (leaving out the items with needs_change=false):
 """
 
 
@@ -896,3 +924,7 @@ REDUCE_SUMMARIES_TEMPLATE = """The following is set of summaries generated from 
 
 Please take these summaries, and distill it into a final (detailed) consolidated summary.
 """
+
+REDUCE_SUMMARIES_PROMPT = PromptTemplate(
+    template=REDUCE_SUMMARIES_TEMPLATE, input_variables=["doc_summaries"]
+)

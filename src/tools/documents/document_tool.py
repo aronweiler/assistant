@@ -130,7 +130,7 @@ class DocumentTool:
         
         # Is there a summary already?  If so, return that instead of re-running the summarization.
         if file.file_summary and file.file_summary != '':
-            return file.file_summary
+            return f"--- SUMMARY ---\n{file.file_summary}\n--- SUMMARY ---"
         
         # Get the document chunks
         document_chunks = documents.get_document_chunks_by_file_id(
@@ -144,7 +144,7 @@ class DocumentTool:
                 summary_chunk = self.generate_detailed_document_chunk_summary(chunk.document_text)
                 documents.set_document_text_summary(chunk.id, summary_chunk)
             
-        reduce_chain = LLMChain(llm=self.llm, prompt=get_prompt(self.configuration.model_configuration.llm_type, "REDUCE_SUMMARIES_TEMPLATE"))
+        reduce_chain = LLMChain(llm=self.llm, prompt=get_prompt(self.configuration.model_configuration.llm_type, "REDUCE_SUMMARIES_PROMPT"))
 
         # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
         combine_documents_chain = StuffDocumentsChain(
@@ -161,28 +161,22 @@ class DocumentTool:
             token_max=self.interaction_manager.tool_kwargs.get("max_summary_chunk_tokens", 5000),
         )    
         
-        document_chunk_summaries = documents.get_document_summaries(target_file_id)
-        summary = reduce_documents_chain.run(document_chunk_summaries)       
+        document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
+
+        docs = [
+            Document(
+                page_content=doc_chunk.document_text_summary,
+                metadata=doc_chunk.additional_metadata,
+            )
+            for doc_chunk in document_chunks
+        ]
+
+        summary = reduce_documents_chain.run(docs)        
+
+        # Put the summary into the DB
+        documents.update_file_summary_and_class(file_id=file.id, summary=summary, classification=file.file_classification)
         
-
-        # docs = [
-        #     Document(
-        #         page_content=doc_chunk.document_text,
-        #         metadata=doc_chunk.additional_metadata,
-        #     )
-        #     for doc_chunk in document_chunks
-        # ]
-
-        # tool_kwargs = self.interaction_manager.tool_kwargs
-        # summarization_type = tool_kwargs.get("summarization_type", "refine")
-
-        # summarization_map = {
-        #     "refine": self.refine_summarize,
-        #     "map_reduce": self.map_reduce_summarize,
-        # }
-
-        # summary = summarization_map[summarization_type](llm=self.llm, docs=docs)
-        return summary
+        return f"--- SUMMARY ---\n{summary}\n--- SUMMARY ---"
 
     def summarize_topic(self, query: str, original_user_input: str):
         """Useful for getting a summary of a topic or query from the user.

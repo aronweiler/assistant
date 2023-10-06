@@ -38,13 +38,14 @@ class ModelConfiguration:
 
 class Destination:
     def __init__(
-        self, name, module, class_name, description, system_prompt, model_configuration, is_default=False
+        self, name, module, class_name, description, system_prompt, model_configuration, is_default=False, requires_documents=False
     ):
         self.name = name
         self.module = module
         self.class_name = class_name
         self.description = description
         self.is_default = is_default
+        self.requires_documents = requires_documents
         self.system_prompt = system_prompt
         self.model_configuration = ModelConfiguration(**model_configuration)
 

@@ -183,9 +183,12 @@ class RagUI:
                                 )
 
                             with st.expander("General"):
-                                options = ["0:---"]
+                                options = []
                                 if loaded_docs_delimited:
-                                    [options.append(d) for d in loaded_docs_delimited]
+                                    options = [d for d in loaded_docs_delimited]
+                                    
+                                options.insert(0, "0:---")                                
+                                    
                                 st.selectbox(
                                     "Override automatic document selection:",
                                     options=options,

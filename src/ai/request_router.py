@@ -110,7 +110,7 @@ class RequestRouter(AbstractAI):
         if "destination" in router_result and router_result["destination"] is not None:
             # Get the destination chain
             destination = next(
-                (c for c in self.routes if c.name == router_result["destination"]),
+                (c for c in self._get_enabled_routes() if c.name == router_result["destination"]),
                 None,
             )
 
@@ -135,13 +135,13 @@ class RequestRouter(AbstractAI):
 
         # If we got here, something went wrong.  Get the default chain.
         destination = next(
-            (c for c in self.routes if c.is_default == True),
+            (c for c in self._get_enabled_routes() if c.is_default == True),
             None,
         )
 
         # If it's still None, we have a problem, just use the first one
         if destination is None:
-            destination = self.routes[0]
+            destination = self._get_enabled_routes()[0]
 
         destination.instance.run(
             input=query,
@@ -153,7 +153,7 @@ class RequestRouter(AbstractAI):
     def _create_router_chain(self):
         """Creates the router chain for this router."""
 
-        destinations = [f"{r.name}: {r.description}" for r in self.routes]
+        destinations = [f"{r.name}: {r.description}" for r in self._get_enabled_routes()]
 
         destinations_str = "\n".join(destinations)
 
@@ -213,5 +213,14 @@ class RequestRouter(AbstractAI):
             name=destination.name,
             description=destination.description,
             is_default=destination.is_default,
+            requires_documents=destination.requires_documents,
             instance=instance,
         )
+
+    def _get_enabled_routes(self):
+        # Filter down based on whether documents are loaded
+        if self.interaction_manager.get_loaded_documents_count() > 0:
+            return self.routes
+        else:
+            return [d for d in self.routes if not d.requires_documents]
+        

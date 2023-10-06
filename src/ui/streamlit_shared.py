@@ -38,6 +38,7 @@ class IngestionSettings:
         self.split_documents = True
         self.file_type = "Document"
         self.summarize_chunks = False
+        self.summarize_document = False
 
 
 def set_user_id_from_email(user_email):
@@ -273,7 +274,7 @@ def select_documents(tab, ai=None):
             
             st.toggle(
                 "Summarize Document",
-                help="⚠️ This is a longer running process!  Might cost significant 💰 and ⌛ depending on your files."
+                help="⚠️ This is a longer running process!  Might cost significant 💰 and ⌛ depending on your files.",
                 key="summarize_document",
                 value=st.session_state.ingestion_settings.summarize_document,
             )
@@ -474,9 +475,6 @@ def ingest_files(
                     file_summary = ai.generate_detailed_document_summary(
                         file_id=file.id
                     )
-                    
-                    # Put the summary into the DB
-                    documents_helper.update_file_summary_and_class(file_id=file.id, summary=file_summary, classification=file.file_classification)
             
             st.success(
                 f"Successfully ingested {len(documents)} document chunks from {len(files)} files"

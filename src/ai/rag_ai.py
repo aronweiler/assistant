@@ -290,11 +290,10 @@ class RetrievalAugmentedGenerationAI:
             {
                 "name": "Summarize Whole Document (⚠️ Slow / Expensive)",
                 "about": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
-                "enabled": False,
+                "enabled": True,
                 "is_document_related": True,
                 "tool": StructuredTool.from_function(
-                    func=self.document_tool.summarize_entire_document,
-                    return_direct=True,
+                    func=self.document_tool.summarize_entire_document
                 ),
             },
             {
