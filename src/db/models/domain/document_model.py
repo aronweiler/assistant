@@ -56,10 +56,6 @@ class DocumentModel:
             document_text=db_document.document_text,
             document_name=db_document.document_name,
             document_text_summary=db_document.document_text_summary,
-<<<<<<< HEAD
-            document_text_has_summary=db_document.document_text_has_summary
-=======
             document_text_has_summary=db_document.document_text_has_summary,
->>>>>>> main
             record_created=db_document.record_created
         )
