@@ -13,7 +13,7 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 
 from langchain.tools import StructuredTool
 
-from langchain.agents import initialize_agent, AgentType
+from langchain.agents import initialize_agent, AgentType, AgentExecutor
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfiguration,
@@ -29,6 +29,7 @@ from src.tools.code.code_tool import CodeTool
 from src.tools.code.code_review_tool import CodeReviewTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
+from src.ai.agents.general.generic_tools_agent import GenericToolsAgent, GenericTool
 
 
 class RetrievalAugmentedGenerationAI:
@@ -93,6 +94,19 @@ class RetrievalAugmentedGenerationAI:
                 break
 
     def create_agent(self, agent_timeout: int = 120):
+        tools = self.get_enabled_tools()
+
+        agent = GenericToolsAgent(
+            tools=tools, model_configuration=self.configuration.model_configuration, interaction_manager=self.interaction_manager
+        )
+
+        agent_executor = AgentExecutor.from_agent_and_tools(
+            agent=agent, tools=[t.structured_tool for t in tools], verbose=True, max_execution_time=agent_timeout, early_stopping_method="generate"
+        )
+
+        return agent_executor
+
+    def ___old_create_agent(self, agent_timeout: int = 120):
         logging.debug("Setting human message template")
         human_message_template = get_prompt(
             self.configuration.model_configuration.llm_type, "AGENT_TEMPLATE"
@@ -163,13 +177,13 @@ class RetrievalAugmentedGenerationAI:
             ).format(text=document_text)
         )
         return summary
-    
+
     def generate_detailed_document_summary(
         self,
         file_id: int,
     ) -> str:
         document_summary = self.document_tool.summarize_entire_document(file_id)
-        
+
         return document_summary
 
     def query(
@@ -204,9 +218,6 @@ class RetrievalAugmentedGenerationAI:
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
-            loaded_documents="\n".join(
-                self.interaction_manager.get_loaded_documents_for_reference()
-            ),
             callbacks=agent_callbacks,
         )
         logging.debug("Agent finished running")
@@ -263,7 +274,7 @@ class RetrievalAugmentedGenerationAI:
         )
         self.code_review_tool = CodeReviewTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager
+            interaction_manager=self.interaction_manager,
         )
 
         tools = [
@@ -272,9 +283,10 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Searches the loaded documents for a query. If the query is directed at a specific document, this will search just that document, otherwise, it will search all loaded documents.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.document_tool.search_loaded_documents,
-                    #return_direct=True,
+                "tool": GenericTool(
+                    description="Searches the loaded documents for a query.",
+                    additional_instructions="Searches the loaded files (or the specified file when target_file_id is set) for the given query. The target_file_id argument is optional, and can be used to search a specific file if the user has specified one. IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.",
+                    function=self.document_tool.search_loaded_documents,
                 ),
             },
             {
@@ -282,9 +294,11 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Searches through all documents for the specified topic, and summarizes the results. Don't forget to set the top_k!  If the file override is set, it will use that file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.document_tool.summarize_topic,
-                    #return_direct=True,
+                "tool": GenericTool(
+                    description="Searches through all documents for the specified topic, and summarizes the results.",
+                    additional_instructions="Useful for getting a summary of a topic or query from the user. This looks at all loaded documents for the topic specified by the query and return a summary of that topic.",
+                    function=self.document_tool.summarize_topic,
+                    # return_direct=True,
                 ),
             },
             {
@@ -292,17 +306,20 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.document_tool.summarize_entire_document
+                "tool": GenericTool(
+                    description="Summarizes an entire document.",
+                    additional_instructions="Useful for getting a summary of an entire specific document.  The target_file_id argument is required.",
+                    function=self.document_tool.summarize_entire_document,
                 ),
             },
             {
                 "name": "List Documents",
                 "about": "Lists all loaded documents.",
-                "enabled": True,
-                "is_document_related": False,
-                "tool": StructuredTool.from_function(
-                    func=self.document_tool.list_documents
+                "enabled": False,
+                "is_document_related": True,
+                "tool": GenericTool(
+                    description="Lists all loaded documents.",
+                    function=self.document_tool.list_documents,
                 ),
             },
             {
@@ -310,15 +327,21 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Gets details about a specific part of a code file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(func=self.code_tool.code_details),
+                "tool": GenericTool(
+                    description="Gets details about a specific part of a code file.",
+                    additional_instructions="Useful for getting the details of a specific signature (signature cannot be blank) in a specific loaded 'Code' file (required: target_file_id).",
+                    function=self.code_tool.code_details,
+                ),
             },
             {
                 "name": "Code Structure",
-                "about": "Gets the structure of a code file.",
+                "about": "Gets the high-level structure of a code file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.code_tool.code_structure
+                "tool": GenericTool(
+                    description="Gets the high-level structure of a code file.",
+                    additional_instructions="Useful for looking at the code structure of a single file. This tool only works when you specify a file. It will give you a list of module names, function signatures, and class method signatures in the specified file (represented by the 'target_file_id').",
+                    function=self.code_tool.code_structure,
                 ),
             },
             {
@@ -326,8 +349,10 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Gets the dependency graph of a code file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.code_tool.get_pretty_dependency_graph,
+                "tool": GenericTool(
+                    description="Gets the dependency graph of a code file.",
+                    additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
+                    function=self.code_tool.get_pretty_dependency_graph,
                     return_direct=True,
                 ),
             },
@@ -336,8 +361,10 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Creates stubs for a specified code file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.stubber_tool.create_stubs,
+                "tool": GenericTool(
+                    description="Creates stubs for a specified code file.",
+                    additional_instructions="Create mocks / stubs for the dependencies of a given code file. Use this when the user asks you to mock or stub out the dependencies for a given file.",
+                    function=self.stubber_tool.create_stubs,
                     return_direct=True,
                 ),
             },
@@ -346,9 +373,11 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Gets all of the code in the target file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.code_tool.get_all_code_in_file,
-                    return_direct=True          
+                "tool": GenericTool(
+                    description="Gets all of the code in the target file.",
+                    additional_instructions="Useful for getting all of the code in a specific file when the user asks you to show them code from a particular file.",
+                    function=self.code_tool.get_all_code_in_file,
+                    return_direct=True,
                 ),
             },
             {
@@ -356,8 +385,9 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Performs a code review of a specified code file.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.code_review_tool.conduct_code_review,
+                "tool": GenericTool(
+                    description="Performs a code review of a specified code file.",
+                    function=self.code_review_tool.conduct_code_review,
                     return_direct=True,
                 ),
             },
@@ -366,8 +396,10 @@ class RetrievalAugmentedGenerationAI:
                 "about": "Queries a specific spreadsheet.",
                 "enabled": True,
                 "is_document_related": True,
-                "tool": StructuredTool.from_function(
-                    func=self.spreadsheet_tool.query_spreadsheet
+                "tool": GenericTool(
+                    description="Queries a specific spreadsheet.",
+                    additional_instructions="Useful for querying a specific spreadsheet.  If the target document is a 'Spreadsheet', always use this tool.",
+                    function=self.spreadsheet_tool.query_spreadsheet,
                 ),
             },
         ]

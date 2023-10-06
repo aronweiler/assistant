@@ -30,7 +30,7 @@ class DocumentTool:
     def search_loaded_documents(
         self,
         query: str,
-        original_user_input: str,
+        original_user_input: str = None,
         target_file_id: int = None,
     ):
         """Searches the loaded files (or the specified file when target_file_id is set) for the given query.
