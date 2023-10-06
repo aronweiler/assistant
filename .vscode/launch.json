@@ -70,6 +70,19 @@
       "justMyCode": false
     },
     {
+      "name": "Run Publish Gitlab Issue",
+      "type": "python",
+      "request": "launch",
+      "program": "src/integrations/gitlab/publish_gitlab_issue.py",
+      "args": [
+        // "--project"
+        // "--config=configurations/console_configs/llama2_config.json",
+        // "--logging_level=DEBUG"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
