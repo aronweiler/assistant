@@ -14,8 +14,6 @@ from src.db.models.domain.conversation_role_type import ConversationRoleType
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
-from src.ai.destination_route import DestinationRoute
-from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.callbacks.token_management_callback import TokenManagementCallbackHandler
 

@@ -27,9 +27,11 @@ from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 from src.tools.code.code_tool import CodeTool
 from src.tools.code.code_review_tool import CodeReviewTool
+from src.tools.llm.llm_tool import LLMTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent, GenericTool
+
 
 
 class RetrievalAugmentedGenerationAI:
@@ -276,8 +278,24 @@ class RetrievalAugmentedGenerationAI:
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
         )
+        self.llm_tool = LLMTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager,
+            llm=self.llm
+        )
 
         tools = [
+            {
+                "name": "LLM Query Tool",
+                "about": "Uses a conversational LLM as a tool to answer a query.",
+                "enabled": True,
+                "is_document_related": False,
+                "tool": GenericTool(
+                    description="Uses a conversational LLM as a tool to answer a query.",
+                    additional_instructions="This is useful for when you want to just generate a response from an LLM with the given query, such as when you have gathered enough data and would like to combine it into an answer for the user.  This tool is also useful for when you just want to answer a general question that does not involve any documents.",
+                    function=self.llm_tool.query_llm,
+                ),
+            },
             {
                 "name": "Search Documents",
                 "about": "Searches the loaded documents for a query. If the query is directed at a specific document, this will search just that document, otherwise, it will search all loaded documents.",
@@ -292,13 +310,13 @@ class RetrievalAugmentedGenerationAI:
             {
                 "name": "Summarize Topic (All Documents))",
                 "about": "Searches through all documents for the specified topic, and summarizes the results. Don't forget to set the top_k!  If the file override is set, it will use that file.",
-                "enabled": True,
+                "enabled": False,
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Searches through all documents for the specified topic, and summarizes the results.",
-                    additional_instructions="Useful for getting a summary of a topic or query from the user. This looks at all loaded documents for the topic specified by the query and return a summary of that topic.",
+                    additional_instructions="Useful for getting a very general summary of a topic across all of the loaded documents. Do not use this tool for specific document queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
                     function=self.document_tool.summarize_topic,
-                    # return_direct=True,
+                    # return_direct=False,
                 ),
             },
             {
@@ -308,7 +326,7 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Summarizes an entire document.",
-                    additional_instructions="Useful for getting a summary of an entire specific document.  The target_file_id argument is required.",
+                    additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
                     function=self.document_tool.summarize_entire_document,
                 ),
             },
@@ -336,7 +354,7 @@ class RetrievalAugmentedGenerationAI:
             {
                 "name": "Code Structure",
                 "about": "Gets the high-level structure of a code file.",
-                "enabled": True,
+                "enabled": False,
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Gets the high-level structure of a code file.",
@@ -353,7 +371,7 @@ class RetrievalAugmentedGenerationAI:
                     description="Gets the dependency graph of a code file.",
                     additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
                     function=self.code_tool.get_pretty_dependency_graph,
-                    return_direct=True,
+                    return_direct=False,
                 ),
             },
             {
@@ -365,7 +383,7 @@ class RetrievalAugmentedGenerationAI:
                     description="Creates stubs for a specified code file.",
                     additional_instructions="Create mocks / stubs for the dependencies of a given code file. Use this when the user asks you to mock or stub out the dependencies for a given file.",
                     function=self.stubber_tool.create_stubs,
-                    return_direct=True,
+                    return_direct=False,
                 ),
             },
             {
@@ -377,7 +395,7 @@ class RetrievalAugmentedGenerationAI:
                     description="Gets all of the code in the target file.",
                     additional_instructions="Useful for getting all of the code in a specific file when the user asks you to show them code from a particular file.",
                     function=self.code_tool.get_all_code_in_file,
-                    return_direct=True,
+                    return_direct=False,
                 ),
             },
             {
@@ -388,7 +406,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Performs a code review of a specified code file.",
                     function=self.code_review_tool.conduct_code_review,
-                    return_direct=True,
+                    return_direct=False,
                 ),
             },
             {
@@ -398,7 +416,7 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Queries a specific spreadsheet.",
-                    additional_instructions="Useful for querying a specific spreadsheet.  If the target document is a 'Spreadsheet', always use this tool.",
+                    additional_instructions="Useful for querying a specific spreadsheet.  If the target document is a 'Spreadsheet', always use this tool. Never use this tool on documents that are not classified as 'Spreadsheet'.",
                     function=self.spreadsheet_tool.query_spreadsheet,
                 ),
             },
