@@ -42,7 +42,7 @@ REMEMBER: "next_inputs" can just be the original input if you don't think any mo
 OUTPUT:
 """
 
-#AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
+# AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 AGENT_TEMPLATE = "{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
 
 TOOLS_FORMAT_INSTRUCTIONS = """Use a json blob to specify a tool by providing an `action key` (tool name) and an `action_input` key (tool input).
@@ -278,7 +278,7 @@ CONVERSATIONAL_PROMPT = PromptTemplate(
         "chat_history",
         "input",
     ],
-    template=CONVERSATIONAL_TEMPLATE
+    template=CONVERSATIONAL_TEMPLATE,
 )
 
 MEMORY_TEMPLATE = """Below is a query from a user.  I have included some context that may be helpful.
@@ -298,11 +298,7 @@ Answer:
 """
 
 MEMORY_PROMPT = PromptTemplate(
-    input_variables=[
-        "context",
-        "input"
-    ],
-    template=MEMORY_TEMPLATE
+    input_variables=["context", "input"], template=MEMORY_TEMPLATE
 )
 
 SUMMARIZE_FOR_LABEL_TEMPLATE = """
@@ -327,27 +323,6 @@ ONLY return the very short summary, nothing else.
 
 Sure, here you go:
 """
-
-# SECONDARY_AGENT_ROUTER_TEMPLATE = """System information:
-# {system_information}
-
-# You are an AI checking another AI's work.  Your job is to evaluate the following query from a User and a response from another AI that is answering the query.
-
-# --- BEGIN USER QUERY (with chat history) ---
-# {chat_history}
-# --- END USER QUERY ---
-
-# --- BEGIN AI RESPONSE ---
-# {response}
-# --- END AI RESPONSE ---
-
-# Review the query and the response above. 
-
-# If the AI RESPONSE contains the answer to the user's query, respond only with "YES".
-
-# If the AI RESPONSE does not answer the user's query, or there are factual errors with the response, rephrase the question from the USER QUERY into a stand-alone question, and respond only with that.
-
-# AI: """
 
 REPHRASE_TO_KEYWORDS_TEMPLATE = """Your job is to rephrase the following user input into a stand-alone set of keywords to use when searching a document.  This means that the rephrased input should be able to be understood without any other context besides the input itself (resolve coreferences such as he/him/her/she/it/they, etc.).  Use any of the available chat history, system information, or documents to help you rephrase the user's input into a stand-alone set of keywords.
 
@@ -392,7 +367,7 @@ When referencing any of the available files, you MUST include the ID of the file
 
 AI: I have rephrased the user input so that it can be understood without any other context by resolving any ambiguous references and coreferences, ensuring that any files are referred to by their full name AND file_id:
 """
-        
+
 REPHRASE_PROMPT = PromptTemplate(
     input_variables=[
         "system_information",
@@ -402,17 +377,9 @@ REPHRASE_PROMPT = PromptTemplate(
         "loaded_documents",
         "input",
     ],
-    template=REPHRASE_TEMPLATE
+    template=REPHRASE_TEMPLATE,
 )
 
-SINGLE_LINE_SUMMARIZE_TEMPLATE = """Provide a single-line summary of the following text, making sure to capture important details, such as thematically important people, organizations, places, etc.  This summary will be used to help route requests to the appropriate AI, based on the content of the text- so while your summary should be very short, it should also be as detailed as possible.
-
-{text}
-
-SINGLE LINE SUMMARY:
-"""
-
-SINGLE_LINE_SUMMARIZE_PROMPT = PromptTemplate.from_template(SINGLE_LINE_SUMMARIZE_TEMPLATE)
 
 DETAILED_SUMMARIZE_TEMPLATE = """Write a detailed summary of the following:
 
@@ -469,7 +436,9 @@ Below is an additional chunk that you should consider for an addition to the ong
 Given the additional chunk, refine the original summary by adding to or modifying the existing summary. If the additional chunk isn't useful for adding to the summary, just return the existing summary.
 """
 
-SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_DOCUMENT_REFINE_TEMPLATE)
+SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(
+    SIMPLE_DOCUMENT_REFINE_TEMPLATE
+)
 
 QUESTION_PROMPT_TEMPLATE = """Use the following portion(s) of a long document to see if any of the text is relevant to answer the question. 
 Return any relevant text verbatim, including citations, if any.
@@ -551,38 +520,18 @@ QUESTION_PROMPT = PromptTemplate(
     template=QUESTION_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
 )
 
-# COMBINE_PROMPT_TEMPLATE = """Given the following extracted parts of a long document and a question, create a final answer with references ("SOURCES"). 
-# If you don't know the answer, just say that you don't know. Don't try to make up an answer.
-# ALWAYS return a "SOURCES" part in your answer.
-
-# Every response should follow this format:
-# --- BEGIN EXAMPLE RESPONSE --- 
-# FINAL ANSWER: << your answer here >>
-# SOURCES: << sources here >>
-# --- END EXAMPLE RESPONSE --- 
-
-# QUESTION: {question}
-
-# Extracted Document Parts:
-# =========
-# {summaries}
-# =========
-
-# FINAL ANSWER:"""
-# COMBINE_PROMPT = PromptTemplate(
-#     template=COMBINE_PROMPT_TEMPLATE, input_variables=["summaries", "question"]
-# )
-
 DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}', page='{page}'"""
 
 DOCUMENT_PROMPT = PromptTemplate(
-    template=DOCUMENT_PROMPT_TEMPLATE, input_variables=["page_content", "page", "filename", "file_id"]
+    template=DOCUMENT_PROMPT_TEMPLATE,
+    input_variables=["page_content", "page", "filename", "file_id"],
 )
 
 CODE_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}, line={start_line}'"""
 
 CODE_PROMPT = PromptTemplate(
-    template=CODE_PROMPT_TEMPLATE, input_variables=["page_content", "filename", "file_id", "start_line"]
+    template=CODE_PROMPT_TEMPLATE,
+    input_variables=["page_content", "filename", "file_id", "start_line"],
 )
 
 C_STUBBING_TEMPLATE = """Please take the following code and create a stub for it.  The goal is to have the stub you create be able to be used in place of the original code, and have the same behavior as the original code, only with a fake implementation.
@@ -843,19 +792,19 @@ AI: Sure, here are the key interfaces (in JSON format):
 """
 
 # Additional items that should be in the architecture (we should be iterating over this list):
-# - Data Handling: 
-# - Interfaces: 
-# - Scalability Considerations: 
-# - Performance Characteristics: 
-# - Security Measures: 
-# - Error Handling: 
-# - Resilience and Fault Tolerance: 
-# - Compliance with Standards: 
-# - Technology Stack: 
-# - Hardware and Software Requirements: 
-# - Lifecycle Considerations: 
-# - Documentation and Support: 
-# - Integration Points: 
+# - Data Handling:
+# - Interfaces:
+# - Scalability Considerations:
+# - Performance Characteristics:
+# - Security Measures:
+# - Error Handling:
+# - Resilience and Fault Tolerance:
+# - Compliance with Standards:
+# - Technology Stack:
+# - Hardware and Software Requirements:
+# - Lifecycle Considerations:
+# - Documentation and Support:
+# - Integration Points:
 # - Constraints and Limitations:
 
 
@@ -928,3 +877,135 @@ Please take these summaries, and distill it into a final (detailed) consolidated
 REDUCE_SUMMARIES_PROMPT = PromptTemplate(
     template=REDUCE_SUMMARIES_TEMPLATE, input_variables=["doc_summaries"]
 )
+
+SYSTEM_TEMPLATE = """I'd like you to act as a personal assistant. It's important that you provide detailed and accurate assistance to me. 
+
+As my personal assistant, I expect you to be attentive, proactive, and reliable. You should be ready to help me with any questions, provide information, or engage in friendly conversation. Let's work together to make my day easier and more enjoyable!
+
+I want you to adjust your responses to match my preferred personality. I will provide personality descriptors below to indicate how you should customize your response style. Whether I want you to sound witty, professional, or somewhere in between, I expect you to adapt accordingly.
+
+--- PERSONALITY DESCRIPTORS ---
+{personality_descriptors}
+--- PERSONALITY DESCRIPTORS ---
+
+Here is some helpful system information:
+{system_information}"""
+
+PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """{system_prompt}
+
+You have access the following tools that you can use by returning the appropriately formatted JSON. Don't make up tools, only ever use the tools that are listed here. If a query does not require the use of a tool (such as when you know the answer, or the answer exists in this context), you can return an answer to the user instead.  If there are no tools available, or if none of the available tools suit your purpose, you should answer the user instead of using a tool.
+
+--- AVAILABLE TOOLS ---
+{available_tool_descriptions}
+--- AVAILABLE TOOLS ---
+
+The loaded documents that you have access to are below.
+--- LOADED DOCUMENTS ---
+{loaded_documents}
+--- LOADED DOCUMENTS ---
+
+Any previous conversation with the user is contained here. The chat history may contain context that you find useful to answer the current query.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
+
+--- USER QUERY ---
+{user_query}
+--- USER QUERY ---
+
+Read the user's query very carefully. I need you to help me to decompose the user's query into a plan that contains the appropriate actions to take in order to answer the user's query.
+
+Please decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.  Make sure that each step contains enough information to be acted upon on it's own.
+
+All responses are JSON blobs with the following format:
+```json
+{{
+  "steps": [
+    {{"step_num": <<step number>>, "step_description": "<<describe the step in detail here>>", "tool": "<<tool name (one of the available tools)>>", "relies_on": [<<list other step IDs this step relies on, if any>>]}},
+    ...
+  ]
+}}
+
+For example, if the user's query is "What's the weather like here?", you might split this into two steps- getting the user's location, and then getting the weather for that location.  Your response would look like this:
+```json
+{{
+  "steps": [
+    {{"step_num": 1, "step_description": "Get the user's current location", "tool": "get_location", "relies_on": []}},
+    {{"step_num": 2, "step_description": "Get the weather for the user's location", "tool": "get_weather", "relies_on": [1,]}}
+  ]
+}}
+```
+
+Please take note of the "relies_on" field in the JSON output.  This field is used to indicate which previous steps this step relies on.  If a step does not rely on any previous steps, this field should be an empty list.  If a step relies on a previous step, the "relies_on" field should contain a list of the step numbers that this step relies on.  For example, if step 3 relies on steps 1 and 2, the "relies_on" field for step 3 should be [1, 2].
+
+If you already know the answer to the user's query, or you do not have the appropriate tools to create any steps without making up new tools, you should respond with the following JSON blob:
+```json
+{{
+  "final_answer": "<<your complete answer here, or an explanation as to why you can't answer the query>>"
+}}
+```
+Only reply with a final answer if you can completely answer the user's query, or if there is no way you can plan how to answer it using the tools provided.
+
+AI: Sure! Here is my response (in JSON format) that are all using the various tools you provided (I am definitely not making up tools!) to me (or answering directly), and that can be used to answer the user's query:
+"""
+
+TOOL_USE_TEMPLATE = """Your job is to construct a JSON blob that represents a tool call given the following information.
+
+You have access to the following loaded documents (take note of the ID of each document):
+--- LOADED DOCUMENTS ---
+{loaded_documents}
+--- LOADED DOCUMENTS ---
+
+The following helpful context may contain additional information that should inform your tool use:
+--- HELPFUL CONTEXT ---
+{helpful_context}
+--- HELPFUL CONTEXT ---
+
+Please construct a tool call that uses the '{tool_name}' tool.  The '{tool_name}' tool has the following details:
+--- TOOL DETAILS ---
+{tool_details}
+--- TOOL DETAILS ---
+
+Pay close attention to the required arguments for this tool, and make sure to include them in the JSON output.
+
+I want you to use the '{tool_name}' tool in order to do the following:
+--- TOOL USE DESCRIPTION ---
+{tool_use_description}
+--- TOOL USE DESCRIPTION ---
+
+Your output should follow this JSON format:
+
+```json
+{{
+  "tool_use_description": "<<Describe the use of this tool>>", "tool": "<<tool name>>", "tool_args": {{"<<arg 1 name>>": "<<arg 1 value>>", "<<arg 2 name>>": "<<arg 2 value>>", ...}}
+}}
+```
+
+For example, if the tool is 'get_weather', and the tool arguments are 'location' and 'date', your response would look something like this:
+```json
+{{
+  "step_description": "Get the weather at the user's location", "tool": "get_weather", "tool_args": {{"location": "New York, NY", "date": "2021-01-01"}}
+}}
+```
+
+The loaded documents and the helpful context may contain additional information that should inform your tool use.  For example, if the tool arguments require a file ID, then you should use the file ID of a loaded document, or if the tool arguments require a location you should use the location from the helpful context, etc.
+
+
+AI: Sure! Here is my response (in JSON format):
+"""
+
+ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have been working on a user's query.  The other AIs have gathered enough information for you to be able to answer the query.  Now, I would like you to answer the user's query for me using the information I provide here.
+
+The user's query is: 
+{user_query}
+
+This helpful context contains all of the information you will require to answer the query, pay attention to it carefully.
+--- HELPFUL CONTEXT ---
+{helpful_context}
+--- HELPFUL CONTEXT ---
+
+Use the helpful context above to answer the user's query, which is:
+{user_query}
+
+AI: Sure! Here is my response to the user's query (in Markdown format):
+"""

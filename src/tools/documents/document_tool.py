@@ -30,7 +30,7 @@ class DocumentTool:
     def search_loaded_documents(
         self,
         query: str,
-        original_user_input: str,
+        original_user_input: str = None,
         target_file_id: int = None,
     ):
         """Searches the loaded files (or the specified file when target_file_id is set) for the given query.
@@ -95,13 +95,13 @@ class DocumentTool:
 
         results = qa_with_sources({"question": query})
 
-        # return f"{results['answer']}.\n\nSources: {results['sources']}"
         if self.interaction_manager.tool_kwargs.get("re_run_user_query", True):
             response = self.llm.predict(
                 f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
             )
         else:
-            response = f"{results['answer']}\n\nSources: {results['sources']}"
+            sources = f"\nSources: {results['sources']}" if results["sources"] else ""
+            response = f"{results['answer']}{sources}"
 
         return response
 
