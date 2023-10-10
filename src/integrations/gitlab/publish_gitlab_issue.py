@@ -50,23 +50,21 @@ def main():
     review_file_loc = pathlib.Path(__file__).parent.resolve() / "test" / "data" / "comment_data_2.json"
     review = load_review(file_loc=review_file_loc)
     gl = gitlab.Gitlab(
-        url='https://code.medtronic.com',
+        url='TBD gitlab URL',
         private_token=os.getenv('GITLAB_PAT')
     )
 
     # gl.enable_debug()
     gl.auth()
-    
-    # logger.info("Projects in group:")
-    # VENTILATION_GROUP_ID = 5850
-    CODE_SPLITTER_PROJECT_ID = 14163
 
-    project = gl.projects.get(id=CODE_SPLITTER_PROJECT_ID)
+    PROJECT_ID = 0
+
+    project = gl.projects.get(id=PROJECT_ID)
     # print(project)
     issues = project.issues.list()
     
-    source_code_file = 'cpp_splitter.py'
-    source_code_href = 'https://code.medtronic.com/Ventilation/sandbox/code-splitter/-/blob/8d90e484d4d41601e5b610b20bc271ee4fb2e19b/codesplitter/splitter/cpp_splitter/cpp_splitter.py'
+    source_code_file = 'tbd.py'
+    source_code_href = 'tbd_ref_link'
     title = f"Review of file {source_code_file}"
 
     review = preprocess_review(review)
@@ -95,15 +93,6 @@ def main():
     )
 
     issue.save()
-
-    # group = gl.groups.get(VENTILATION_GROUP_ID)
-    # for project in group.projects.list(iterator=True):
-    #     print(project)
-
-    # logger.info("All projects:")
-    # projects = gl.projects.list(iterator=True)
-    # for project in projects:
-    #     print(project)
 
 
 if __name__ == "__main__":
