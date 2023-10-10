@@ -27,6 +27,7 @@ from src.tools.code.code_dependency import CodeDependency
 from src.tools.code.code_tool import CodeTool
 
 from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
+from src.integrations.gitlab.gitlab_file_retriever import GitlabFileRetriever
 
 
 # import logging
@@ -149,35 +150,41 @@ class CodeReviewTool:
         return agent
     
 
+    def ingest_source_code_file_from_url(
+        self,
+        url
+    ):
+        file_retriever = GitlabFileRetriever(
+            gitlab_url=os.getenv('GITLAB_URL'),
+            gitlab_pat=os.getenv('GITLAB_PAT')
+        )
+
+        return file_retriever.retrieve_file_data(
+            url=url
+        )
+
+
     def create_code_review_issue_tool(
         self,
-        gitlab_url,
-        gitlab_pat,
-        project_id,
-        source_code_file_loc,
-        source_code_file_href,
+        source_code_file_data,
         review_data
     ):
         """
-        Creates a code review issue for a single reviewed file,on the source code control system specified
+        Creates an issue containing the code review for a single reviewed file,on the source code control system specified
 
         Args:
-            gitlab_url: The URL of the version control system to create the issue
-            gitlab_pat: The access token for the version control system
-            project_id: The project ID of the repository containing the reviewed code file
-            source_code_file_loc: The relative path within the repository to the specific file being reviewed
-            source_code_file_href: The permalink URL to the file being code reviewed
+            source_code_file_data: A dictionary containing the project ID, file URL, file relative path, ref name, file contents
             review_data: A python dictionary containing the code review data to create the issue from
         """
         issue_creator = GitlabIssueCreator(
-            gitlab_url=gitlab_url,
-            gitlab_pat=gitlab_pat
+            gitlab_url=os.getenv('GITLAB_URL'),
+            gitlab_pat=os.getenv('GITLAB_PAT')
         )
 
         issue_creator.generate_issue(
-            project_id=project_id,
-            source_code_file_loc=source_code_file_loc,
-            source_code_file_href=source_code_file_href,
+            project_id=source_code_file_data['project_id'],
+            source_code_file_loc=source_code_file_data['file_path'],
+            source_code_file_href=source_code_file_data['url'],
             review_data=review_data,
         )
 
@@ -202,11 +209,63 @@ class CodeReviewTool:
             ),
             StructuredTool.from_function(
                 func=self.create_code_review_issue_tool
-            )
+            ),
         ]
 
 
-    def conduct_code_review(self, target_file_id):
+    def conduct_code_review_from_url(self, url):
+        """
+        Conducts a code review for the specified file from a given URL
+
+        Args:
+            url: The URL of the file to code review
+        """
+        file_info = self.ingest_source_code_file_from_url(
+            url=url
+        )
+
+        file_data = file_info['file_content']
+        max_code_review_token_count = self.interaction_manager.tool_kwargs.get('max_code_review_token_count', 5000)
+        if num_tokens_from_string(file_data) > max_code_review_token_count:
+            return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
+
+        code = file_data.splitlines()
+        for line_num, line in enumerate(code):
+            code[line_num] = f"{line_num}: {line}"
+
+        # document_tool = DocumentTool(
+        #     configuration=self.configuration,
+        #     interaction_manager=self.interaction_manager,
+        #     llm=self.llm
+        # )
+
+        code_review_prompt = get_prompt(
+            self.configuration.model_configuration.llm_type, "CODE_REVIEW_TEMPLATE"
+        ).format(
+            code_summary="Not Available",
+            code_dependencies="Not Available",
+            code=code
+        )
+
+        logging.debug("Running agent")
+        results = self.agent.run(
+            input=code_review_prompt,
+            system_information=get_system_information(
+                self.interaction_manager.user_location
+            ),
+            user_name=self.interaction_manager.user_name,
+            user_email=self.interaction_manager.user_email,
+            loaded_documents="\n".join(
+                self.interaction_manager.get_loaded_documents_for_reference()
+            ),
+            # callbacks=agent_callbacks,
+        )
+        logging.debug("Agent finished running")
+
+        return results
+
+
+    def conduct_code_review_from_file_id(self, target_file_id):
         """
         Conducts a code review for the specified file
 

@@ -399,13 +399,26 @@ class RetrievalAugmentedGenerationAI:
                 ),
             },
             {
-                "name": "Perform Code Review",
+                "name": "Perform Code Review on Loaded Code File",
                 "about": "Performs a code review of a specified code file.",
                 "enabled": True,
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Performs a code review of a specified code file.",
-                    function=self.code_review_tool.conduct_code_review,
+                    function=self.code_review_tool.conduct_code_review_from_file_id,
+                    additional_instructions="Use this tool for conducting a code review on a loaded code file.",
+                    return_direct=False,
+                ),
+            },
+            {
+                "name": "Perform Code Review on URL file",
+                "about": "Performs a code review of a specified code file.",
+                "enabled": True,
+                "is_document_related": True,
+                "tool": GenericTool(
+                    description="Performs a code review of a specified code file.",
+                    function=self.code_review_tool.conduct_code_review_from_url,
+                    additional_instructions="Use this tool for conducting a code review on a URL.",
                     return_direct=False,
                 ),
             },

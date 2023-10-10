@@ -844,9 +844,9 @@ If the code looks good, do not comment on it.  I already know what the code is d
 If there isn't enough context to judge a piece of code, do not comment on it.
 
 Include the "language" key in the output to specify the language of the source code file being reviewed. e.g.
-- C -> "c".
-- C++ -> "cpp".
-- Python -> "python".
+- C -> "c"
+- C++ -> "cpp"
+- Python -> "python"
 
 EXAMPLE OUTPUT:
 {{

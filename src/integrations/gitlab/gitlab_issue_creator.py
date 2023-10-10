@@ -8,27 +8,28 @@ import dotenv
 import gitlab
 import jinja2
 
+import src.integrations.gitlab.gitlab_shared as gitlab_shared
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
-        with open(file_loc, 'r') as f:
-            data = json.load(f)
+    with open(file_loc, 'r') as f:
+        data = json.load(f)
 
-        return data
+    return data
 
 
 class GitlabIssueCreator:
 
     def __init__(self, gitlab_url, gitlab_pat):
-        self._gl = gitlab.Gitlab(
-            url=gitlab_url,
-            private_token=gitlab_pat
-        )
-        self._gl.auth()
-        
+        self._gl = gitlab_shared.retrieve_gitlab_client(
+            gitlab_url=gitlab_url,
+            gitlab_pat=gitlab_pat,
+            verify_auth=True
+        )      
     
 
     @staticmethod
