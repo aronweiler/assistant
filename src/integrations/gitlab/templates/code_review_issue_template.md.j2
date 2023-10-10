@@ -10,7 +10,7 @@ No comments found
 
     {% if 'original_code_snippet' in comment %}
     Existing code snippet:
-    ```
+    ```{{ language_mode_syntax_highlighting }}
     {% filter indent(width=4) %}
     {{ comment.original_code_snippet}}
     {% endfilter %}
@@ -19,7 +19,7 @@ No comments found
     {% if 'suggested_code_snippet' in comment %}
 
     Suggested code snippet:
-    ```
+    ```{{ language_mode_syntax_highlighting }}
     {% filter indent(width=4) %}
     {{ comment.suggested_code_snippet}}
     {% endfilter %}

@@ -57,12 +57,14 @@ def main():
     source_code_href = 'https://code.medtronic.com/Ventilation/sandbox/code-splitter/-/blob/8d90e484d4d41601e5b610b20bc271ee4fb2e19b/codesplitter/splitter/cpp_splitter/cpp_splitter.py'
     title = f"Review of file {source_code_file}"
 
+    language = review.get('language',"")
     description_template = get_template()
     description = description_template.render(
         source_code_file_path=source_code_file,
         source_code_href=source_code_href,
         reviewer="Jarvis AI",
-        comments=review['comments']
+        comments=review['comments'],
+        language_mode_syntax_highlighting=language
     )
 
     # Debug output to file
