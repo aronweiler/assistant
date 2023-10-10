@@ -33,6 +33,18 @@ def get_template():
     return template
 
 
+def preprocess_review(review: dict) -> dict:
+
+    # Replace all tabs with TAB_WIDTH
+    TAB_WIDTH = 4
+    for comment in review['comments']:
+        for key in ('original_code_snippet', 'suggested_code_snippet'):
+            if key in comment:
+                comment[key] = comment[key].expandtabs(TAB_WIDTH)
+    
+    return review
+
+
 def main():
 
     review_file_loc = pathlib.Path(__file__).parent.resolve() / "test" / "data" / "comment_data_2.json"
@@ -57,6 +69,7 @@ def main():
     source_code_href = 'https://code.medtronic.com/Ventilation/sandbox/code-splitter/-/blob/8d90e484d4d41601e5b610b20bc271ee4fb2e19b/codesplitter/splitter/cpp_splitter/cpp_splitter.py'
     title = f"Review of file {source_code_file}"
 
+    review = preprocess_review(review)
     language = review.get('language',"")
     description_template = get_template()
     description = description_template.render(
