@@ -24,7 +24,9 @@ def get_template():
         loader=jinja2.FileSystemLoader(
             [pathlib.Path(__file__).parent.resolve() / 'templates']
         ),
-        autoescape=jinja2.select_autoescape()
+        autoescape=jinja2.select_autoescape(),
+        trim_blocks=True,
+        lstrip_blocks=True
     )
 
     template = env.get_template("code_review_issue_template.md.j2")
@@ -62,6 +64,10 @@ def main():
         reviewer="Jarvis AI",
         comments=review['comments']
     )
+
+    # Debug output to file
+    # with open(pathlib.Path(__file__).parent.resolve() / "test" / "data" / "rendered_issue.md", "w") as fh:
+    #     fh.write(description)
 
     issue = project.issues.create(
         {

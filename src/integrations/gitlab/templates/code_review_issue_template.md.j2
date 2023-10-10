@@ -6,25 +6,30 @@ No comments found
 {% endif %}
 
 {% for comment in comments %}
-  1. {{ comment.comment }}
+1.  {{ comment.comment }}
 
-     {% if 'original_code_snippet' in comment %}
-     Existing code snippet:
-     ```
-     {{ comment.original_code_snippet}}
-     ```
-     {% endif %}
-     {% if 'suggested_code_snippet' in comment %}
-     Suggested code snippet:
-     ```
-     {{ comment.suggested_code_snippet}}
-     ```
-     {% endif %}
-  {% if 'start' in comment and 'end' in comment %}
-     - [Link]({{ source_code_href + "#L" + comment.start|string + "-L" + comment.end|string }})
-  {% else %}
-     - [Link]({{ source_code_href }})
-  {% endif %}
+    {% if 'original_code_snippet' in comment %}
+    Existing code snippet:
+    ```
+    {% filter indent(width=4) %}
+    {{ comment.original_code_snippet}}
+    {% endfilter %}
+    ```
+    {% endif %}
+    {% if 'suggested_code_snippet' in comment %}
+
+    Suggested code snippet:
+    ```
+    {% filter indent(width=4) %}
+    {{ comment.suggested_code_snippet}}
+    {% endfilter %}
+    ```
+    {% endif %}
+    {% if 'start' in comment and 'end' in comment %}
+    - [Link]({{ source_code_href + "#L" + comment.start|string + "-L" + comment.end|string }})
+    {% else %}
+    - [Link]({{ source_code_href }})
+    {% endif %}
      
 {% endfor %}
 
