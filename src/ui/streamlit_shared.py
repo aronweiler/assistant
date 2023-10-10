@@ -8,10 +8,17 @@ import streamlit as st
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.interactions import Interactions
+from src.db.models.conversations import Conversations
 
 from src.utilities.hash_utilities import calculate_sha256
 
 from src.documents.document_loader import load_and_split_documents
+
+
+def delete_conversation_item(id):
+    """Deletes the conversation item with the specified id"""
+    conversations_helper = Conversations()
+    conversations_helper.delete_conversation(id)
 
 
 def scroll_to_bottom(control_name):
@@ -60,8 +67,13 @@ def load_conversation_selectbox(load_ai_callback, tab):
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
         )
+
     except Exception as e:
         logging.error(f"Error loading interaction selectbox: {e}")
+
+
+def set_confirm_interaction_delete(val):
+    st.session_state.confirm_interaction_delete = val
 
 
 def create_interaction(interaction_summary):
@@ -149,9 +161,31 @@ def get_selected_interaction_id():
 
 def setup_new_chat_button(tab):
     with tab.container():
-        if tab.button("New Chat", key="new_chat_button"):
+        col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
+        if col1.button("New Chat", key="new_chat_button"):
             create_interaction("Empty Chat")
             st.experimental_rerun()
+
+        if "confirm_interaction_delete" not in st.session_state:
+            st.session_state.confirm_interaction_delete = False
+
+        if st.session_state.confirm_interaction_delete == False:
+            col2.button(
+                "🗑️",
+                help="Delete this conversation?",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": True},
+                key=str(uuid.uuid4()),
+            )
+        else:
+            col2.button("✅", help="Click to confirm delete", key=str(uuid.uuid4()))
+            col3.button(
+                "❌",
+                help="Click to cancel delete",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": False},
+                key=str(uuid.uuid4()),
+            )
 
         tab.divider()
 
@@ -184,6 +218,7 @@ def get_selected_collection_id():
 
     return selected_collection_id
 
+
 def get_selected_collection_name():
     """Gets the selected collection name from the selectbox"""
     selected_collection_pair = st.session_state.get("active_collection")
@@ -194,6 +229,7 @@ def get_selected_collection_name():
     selected_collection_name = selected_collection_pair.split(":")[1]
 
     return selected_collection_name
+
 
 def create_collection(name):
     collection = Documents().create_collection(name)
@@ -271,7 +307,7 @@ def select_documents(tab, ai=None):
                 key="summarize_chunks",
                 value=st.session_state.ingestion_settings.summarize_chunks,
             )
-            
+
             st.toggle(
                 "Summarize Document",
                 help="⚠️ This is a longer running process!  Might cost significant 💰 and ⌛ depending on your files.",
@@ -312,7 +348,6 @@ def select_documents(tab, ai=None):
                 collection_id = None
 
                 if active_collection_id:
-
                     if submit_button:
                         ingest_files(
                             uploaded_files,
@@ -468,14 +503,12 @@ def ingest_files(
                 )
 
             summary = ""
-            if summarize_document and hasattr(
-                ai, "generate_detailed_document_summary"
-            ):
+            if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
                 for file in files:
                     file_summary = ai.generate_detailed_document_summary(
                         file_id=file.id
                     )
-            
+
             st.success(
                 f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
             )
@@ -524,15 +557,14 @@ def on_change_collection():
         get_selected_interaction_id(), collection_id
     )
 
+
 def create_collection_selectbox(col1, ai):
     available_collections = get_available_collections()
     selected_collection_id_index = 0
     # Find the index of the selected collection
     for i, collection in enumerate(available_collections):
         if int(collection.split(":")[0]) == int(
-            ai
-            .interaction_manager.get_interaction()
-            .last_selected_collection_id
+            ai.interaction_manager.get_interaction().last_selected_collection_id
         ):
             selected_collection_id_index = i
             break

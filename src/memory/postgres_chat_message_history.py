@@ -35,15 +35,14 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         )
         for message in messages:
             if message.conversation_role_type == ConversationRoleType.USER:
-                chat_messages.append(
-                    HumanMessage(content=message.conversation_text)
-                )
+                chat_message = HumanMessage(content=message.conversation_text)
             elif message.conversation_role_type == ConversationRoleType.ASSISTANT:
-                chat_messages.append(AIMessage(content=message.conversation_text))
+                chat_message = AIMessage(content=message.conversation_text)
             elif message.conversation_role_type == ConversationRoleType.SYSTEM:
-                chat_messages.append(
-                    SystemMessage(content=message.conversation_text)
-                )
+                chat_message = SystemMessage(content=message.conversation_text)
+
+            chat_message.additional_kwargs = {"id": message.id}
+            chat_messages.append(chat_message)
 
         return chat_messages
 

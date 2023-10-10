@@ -238,11 +238,11 @@ class RagUI:
         for message in buffer_messages:
             if message.type == "human":
                 st.session_state["messages"].append(
-                    {"role": "user", "content": message.content, "avatar": "🗣️"}
+                    {"role": "user", "content": message.content, "avatar": "🗣️", "id": message.additional_kwargs['id']}
                 )
             else:
                 st.session_state["messages"].append(
-                    {"role": "assistant", "content": message.content, "avatar": "🤖"}
+                    {"role": "assistant", "content": message.content, "avatar": "🤖", "id": message.additional_kwargs['id']}
                 )
 
     def show_old_messages(self, rag_ai_instance):
@@ -250,7 +250,9 @@ class RagUI:
 
         for message in st.session_state["messages"]:
             with st.chat_message(message["role"], avatar=message["avatar"]):
-                st.markdown(message["content"])
+                col1, col3 = st.columns([0.99, 0.1])
+                col3.button("🗑️", help="Delete this conversation row", on_click=ui_shared.delete_conversation_item, kwargs={"id": message['id']}, key=str(uuid.uuid4()))
+                col1.markdown(message["content"])
 
     def handle_chat(self, main_window_container):
         with main_window_container.container():
