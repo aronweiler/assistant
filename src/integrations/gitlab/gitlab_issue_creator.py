@@ -104,7 +104,7 @@ class GitlabIssueCreator:
 if __name__ == "__main__":
     dotenv.load_dotenv()
     issue_creator = GitlabIssueCreator(
-        gitlab_url='https://...',
+        gitlab_url=os.getenv('GITLAB_URL'),
         gitlab_pat=os.getenv('GITLAB_PAT')
     )
 
