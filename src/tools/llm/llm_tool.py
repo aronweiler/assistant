@@ -1,5 +1,6 @@
 from langchain.base_language import BaseLanguageModel
 from langchain.chains.llm import LLMChain
+from langchain.memory.readonly import ReadOnlySharedMemory
 
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_prompt
@@ -19,12 +20,14 @@ class LLMTool:
         self.llm = llm
         self.llm_callbacks = llm_callbacks
 
+        memory = ReadOnlySharedMemory(memory=self.interaction_manager.conversation_token_buffer_memory)
+
         self.chain = LLMChain(
             llm=self.llm,
             prompt=get_prompt(
                 self.configuration.model_configuration.llm_type, "CONVERSATIONAL_PROMPT"
             ),
-            memory=self.interaction_manager.conversation_token_buffer_memory,
+            memory=memory,
         )
 
     def query_llm(self, query: str, related_context: str = None):
