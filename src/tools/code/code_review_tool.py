@@ -26,6 +26,8 @@ from src.ai.llm_helper import get_prompt
 from src.tools.code.code_dependency import CodeDependency
 from src.tools.code.code_tool import CodeTool
 
+from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
+
 
 # import logging
 # import json
@@ -147,6 +149,39 @@ class CodeReviewTool:
         return agent
     
 
+    def create_code_review_issue_tool(
+        self,
+        gitlab_url,
+        gitlab_pat,
+        project_id,
+        source_code_file_loc,
+        source_code_file_href,
+        review_data
+    ):
+        """
+        Creates a code review issue for a single reviewed file,on the source code control system specified
+
+        Args:
+            gitlab_url: The URL of the version control system to create the issue
+            gitlab_pat: The access token for the version control system
+            project_id: The project ID of the repository containing the reviewed code file
+            source_code_file_loc: The relative path within the repository to the specific file being reviewed
+            source_code_file_href: The permalink URL to the file being code reviewed
+            review_data: A python dictionary containing the code review data to create the issue from
+        """
+        issue_creator = GitlabIssueCreator(
+            gitlab_url=gitlab_url,
+            gitlab_pat=gitlab_pat
+        )
+
+        issue_creator.generate_issue(
+            project_id=project_id,
+            source_code_file_loc=source_code_file_loc,
+            source_code_file_href=source_code_file_href,
+            review_data=review_data,
+        )
+
+
     def get_tools(self) -> list[StructuredTool]:
 
         # code_tool = CodeTool()
@@ -165,6 +200,9 @@ class CodeReviewTool:
             StructuredTool.from_function(
                 func=self.code_tool.get_dependency_graph,
             ),
+            StructuredTool.from_function(
+                func=self.create_code_review_issue_tool
+            )
         ]
 
 
@@ -231,3 +269,5 @@ class CodeReviewTool:
         logging.debug("Agent finished running")
 
         return results
+
+

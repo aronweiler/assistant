@@ -843,8 +843,14 @@ If the code looks good, do not comment on it.  I already know what the code is d
 
 If there isn't enough context to judge a piece of code, do not comment on it.
 
+Include the "language" key in the output to specify the language of the source code file being reviewed. e.g.
+- C -> "c".
+- C++ -> "cpp".
+- Python -> "python".
+
 EXAMPLE OUTPUT:
 {{
+    "language": "cpp",
     "comments": [
         {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true, "original_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id=' + user_input)", "suggested_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id = ?', (user_input,))"}},
         {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
@@ -855,6 +861,7 @@ EXAMPLE OUTPUT:
 
 Code JSON format:
 {{
+    "language": "<string: programming language being reviewed>",
     "comments": [
         {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
         ...
