@@ -110,7 +110,7 @@ class InteractionManager:
             ]
 
         return [
-            f"{file.file_name} ({file.file_classification})"
+            f"{file.file_name} (Class: '{file.file_classification}')"
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
 
@@ -137,7 +137,7 @@ class InteractionManager:
             ]
 
         return [
-            f"file_id='{file.id}' ({file.file_name}, {file.file_classification})"
+            f"file_id='{file.id}' ({file.file_name}, Class: '{file.file_classification}')"
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
     
