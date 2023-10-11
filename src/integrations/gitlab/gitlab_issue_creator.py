@@ -3,10 +3,15 @@ import json
 import logging
 import os
 import pathlib
+import sys
 
 import dotenv
 import gitlab
 import jinja2
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+import src.integrations.gitlab.gitlab_shared as gitlab_shared
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -14,21 +19,20 @@ logger = logging.getLogger(__name__)
 
 
 def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
-        with open(file_loc, 'r') as f:
-            data = json.load(f)
+    with open(file_loc, 'r') as f:
+        data = json.load(f)
 
-        return data
+    return data
 
 
 class GitlabIssueCreator:
 
     def __init__(self, gitlab_url, gitlab_pat):
-        self._gl = gitlab.Gitlab(
-            url=gitlab_url,
-            private_token=gitlab_pat
-        )
-        self._gl.auth()
-        
+        self._gl = gitlab_shared.retrieve_gitlab_client(
+            gitlab_url=gitlab_url,
+            gitlab_pat=gitlab_pat,
+            verify_auth=True
+        )      
     
 
     @staticmethod
@@ -50,18 +54,23 @@ class GitlabIssueCreator:
     def _preprocess_review(review_data: dict) -> dict:
 
         # Replace all tabs with TAB_WIDTH
+        # Remove any code snippets which are empty strings
         TAB_WIDTH = 4
         for comment in review_data['comments']:
             for key in ('original_code_snippet', 'suggested_code_snippet'):
                 if key in comment:
-                    comment[key] = comment[key].expandtabs(TAB_WIDTH)
-        
+                    if comment[key] == "":
+                        del comment[key]
+                    else:
+                        comment[key] = comment[key].expandtabs(TAB_WIDTH)
+                   
         return review_data
 
 
     def generate_issue(
             self,
             project_id: int,
+            ref: str,
             source_code_file_loc: str | pathlib.Path,
             source_code_file_href: str,
             review_data: dict):
@@ -100,11 +109,15 @@ class GitlabIssueCreator:
 
         issue.save()
 
+        return {
+            'url': issue.web_url
+        }
+
 
 if __name__ == "__main__":
     dotenv.load_dotenv()
     issue_creator = GitlabIssueCreator(
-        gitlab_url='https://...',
+        gitlab_url=os.getenv('GITLAB_URL'),
         gitlab_pat=os.getenv('GITLAB_PAT')
     )
 
@@ -113,9 +126,10 @@ if __name__ == "__main__":
     )
 
     issue_creator.generate_issue(
-        project_id=0,
-        source_code_file_loc='dir1/dir2/test.py',
-        source_code_file_href='https://...',
+        project_id=13881,
+        ref='main',
+        source_code_file_loc='samples/StateMachine/Motor.cpp',
+        source_code_file_href='https://code.medtronic.com/Ventilation/sandbox/llm-integration-prototypes/-/blob/main/samples/StateMachine/Motor.cpp',
         review_data=review_data
     )
 

@@ -62,15 +62,20 @@
       "justMyCode": false
     },
     {
-      "name": "Run Publish Gitlab Issue",
+      "name": "Run Gitlab Issue Creator",
       "type": "python",
       "request": "launch",
-      "program": "src/integrations/gitlab/publish_gitlab_issue.py",
-      "args": [
-        // "--project"
-        // "--config=configurations/console_configs/llama2_config.json",
-        // "--logging_level=DEBUG"
-      ],
+      "program": "src/integrations/gitlab/gitlab_issue_creator.py",
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Run Gitlab File Retriever",
+      "type": "python",
+      "request": "launch",
+      "program": "src/integrations/gitlab/gitlab_file_retriever.py",
+      "args": [],
       "console": "integratedTerminal",
       "justMyCode": true
     },
