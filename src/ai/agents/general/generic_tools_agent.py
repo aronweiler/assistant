@@ -187,7 +187,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         if not intermediate_steps or len(intermediate_steps) == 0:
             return "No helpful context, sorry!"
 
-        return "\n----\n".join([s[1] for s in intermediate_steps if s[1] not None])
+        return "\n----\n".join([s[1] for s in intermediate_steps if s[1] is not None])
 
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email
