@@ -834,7 +834,7 @@ Review the code below, which is a part of a larger code base:
 Your code review output should be in JSON format.
 
 When commenting on one or more lines of code, use the following format:
-{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}}
+{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>,"original_code_snippet": <str: original code snippet>, "suggested_code_snippet": <suggested change to code snippet>}}
 
 When commenting on the entire code, use the following format:
 {{"comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}}
@@ -846,17 +846,17 @@ If there isn't enough context to judge a piece of code, do not comment on it.
 EXAMPLE OUTPUT:
 {{
     "comments": [
-        {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true}},
-        {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true}},
-        {{"start": 57, "end": 59, "comment": "The code defines a macro 'C_ASSERT' for compile-time checking of array sizes. This macro is used to prevent negative subscripts in array declarations.", "needs_change": false}},
-        {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered.", "needs_change": true}}
+        {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true, "original_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id=' + user_input)", "suggested_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id = ?', (user_input,))"}},
+        {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
+        {{"start": 57, "end": 59, "comment": "The code defines a macro 'C_ASSERT' for compile-time checking of array sizes. This macro is used to prevent negative subscripts in array declarations.", "needs_change": false, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
+        {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered.", "needs_change": true, "original_code_snippet": "...", "suggested_code_snippet": "..."}}
     ]
 }}
 
 Code JSON format:
 {{
     "comments": [
-        {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>}},
+        {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
         ...
     ]
 }}
