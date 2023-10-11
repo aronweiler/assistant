@@ -57,7 +57,7 @@ class GitlabFileRetriever:
             ref=ref
         )
 
-        file_content = f.decode()
+        file_content = f.decode().decode('UTF-8')
 
         return {
             'project_id': project.get_id(),

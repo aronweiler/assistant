@@ -120,6 +120,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
             tool_use_prompt = self.get_tool_use_prompt(
                 step=self.step_plans["steps"][self.step_index],
                 helpful_context=self.get_helpful_context(intermediate_steps),
+                user_query=kwargs["input"],
             )
 
             action_json = self.parse_json(self.llm.predict(tool_use_prompt))
@@ -186,7 +187,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         if not intermediate_steps or len(intermediate_steps) == 0:
             return "No helpful context, sorry!"
 
-        return "\n----\n".join([s[1] for s in intermediate_steps])
+        return "\n----\n".join([s[1] for s in intermediate_steps if s[1] not None])
 
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email
@@ -219,7 +220,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
 
         return agent_prompt
 
-    def get_tool_use_prompt(self, step, helpful_context):
+    def get_tool_use_prompt(self, step, helpful_context, user_query):
         tool_name = step["tool"]
         tool_details = ""
         for tool in self.tools:
@@ -235,6 +236,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
             tool_name=tool_name,
             tool_details=tool_details,
             tool_use_description=step["step_description"],
+            user_query=user_query,
         )
 
         return agent_prompt

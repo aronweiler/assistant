@@ -166,15 +166,17 @@ class CodeReviewTool:
 
     def create_code_review_issue_tool(
         self,
-        source_code_file_data,
-        review_data
+        project_id: int,
+        source_code_file_href: str,
+        source_code_file_path: str,
+        review_data: dict
     ):
         """
         Creates an issue containing the code review for a single reviewed file,on the source code control system specified
 
-        Args:
-            source_code_file_data: A dictionary containing the project ID, file URL, file relative path, ref name, file contents
-            review_data: A python dictionary containing the code review data to create the issue from
+        # Args:
+        #     source_code_file_data: A dictionary containing the project ID, file URL, file relative path, ref name, file contents
+        #     review_data: A python dictionary containing the code review data to create the issue from
         """
         issue_creator = GitlabIssueCreator(
             gitlab_url=os.getenv('GITLAB_URL'),
@@ -182,11 +184,14 @@ class CodeReviewTool:
         )
 
         issue_creator.generate_issue(
-            project_id=source_code_file_data['project_id'],
-            source_code_file_loc=source_code_file_data['file_path'],
-            source_code_file_href=source_code_file_data['url'],
+            project_id=project_id,
+            source_code_file_loc=source_code_file_path,
+            source_code_file_href=source_code_file_href,
             review_data=review_data,
         )
+
+        # TODO have it return URL of issue
+        return "Successfully created issue"
 
 
     def get_tools(self) -> list[StructuredTool]:
@@ -213,18 +218,20 @@ class CodeReviewTool:
         ]
 
 
-    def conduct_code_review_from_url(self, url):
+    def conduct_code_review_from_url(self, target_url: str):
         """
-        Conducts a code review for the specified file from a given URL
+        Conducts a code review for the specified file from a given target URL
 
         Args:
-            url: The URL of the file to code review
+            target_url: The URL of the file to code review
         """
         file_info = self.ingest_source_code_file_from_url(
-            url=url
+            url=target_url
         )
 
         file_data = file_info['file_content']
+
+        # TODO combine with other conduct code review function for common pieces
         max_code_review_token_count = self.interaction_manager.tool_kwargs.get('max_code_review_token_count', 5000)
         if num_tokens_from_string(file_data) > max_code_review_token_count:
             return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
@@ -239,12 +246,20 @@ class CodeReviewTool:
         #     llm=self.llm
         # )
 
+        code_metadata = {
+            'project_id': file_info['project_id'],
+            'url': file_info['url'],
+            'ref': file_info['ref'],
+            'file_path': file_info['file_path'],
+        }
+
         code_review_prompt = get_prompt(
             self.configuration.model_configuration.llm_type, "CODE_REVIEW_TEMPLATE"
         ).format(
             code_summary="Not Available",
             code_dependencies="Not Available",
-            code=code
+            code=code,
+            code_metadata=code_metadata
         )
 
         logging.debug("Running agent")
@@ -255,9 +270,10 @@ class CodeReviewTool:
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
-            loaded_documents="\n".join(
-                self.interaction_manager.get_loaded_documents_for_reference()
-            ),
+            loaded_documents="",
+            # "\n".join(
+            #     self.interaction_manager.get_loaded_documents_for_reference()
+            # ),
             # callbacks=agent_callbacks,
         )
         logging.debug("Agent finished running")
@@ -309,7 +325,10 @@ class CodeReviewTool:
         ).format(
             code_summary=summary,
             code_dependencies=dependencies,
-            code=code
+            code=code,
+            code_metadata={
+                'filename': file_model.file_name
+            }
         )
 
         logging.debug("Running agent")

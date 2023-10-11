@@ -819,6 +819,10 @@ Please focus on the following aspects:
 
 Review the code below, which is a part of a larger code base:
 
+----- BEGIN CODE METADATA -----
+{code_metadata}
+----- END CODE METADATA -----
+
 ----- BEGIN CODE SUMMARY -----
 {code_summary}
 ----- END CODE SUMMARY -----
@@ -851,6 +855,12 @@ Include the "language" key in the output to specify the language of the source c
 EXAMPLE OUTPUT:
 {{
     "language": "cpp",
+    "metadata": {{
+      'project_id': 12959,
+      'url': https://gitlab.com/code-repository/-/blob/main/samples/sample.cpp,
+      'ref': main,
+      'file_path': samples/sample.cpp,
+    }},
     "comments": [
         {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true, "original_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id=' + user_input)", "suggested_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id = ?', (user_input,))"}},
         {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
@@ -862,6 +872,7 @@ EXAMPLE OUTPUT:
 Code JSON format:
 {{
     "language": "<string: programming language being reviewed>",
+    "metadata": "<dict: metadata dictionary>",
     "comments": [
         {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
         ...
@@ -967,6 +978,11 @@ The following helpful context may contain additional information that should inf
 --- HELPFUL CONTEXT ---
 {helpful_context}
 --- HELPFUL CONTEXT ---
+
+The following was the original user query:
+--- USER QUERY ---
+{user_query}
+--- USER QUERY ---
 
 Please construct a tool call that uses the '{tool_name}' tool.  The '{tool_name}' tool has the following details:
 --- TOOL DETAILS ---
