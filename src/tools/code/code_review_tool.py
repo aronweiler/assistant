@@ -213,9 +213,6 @@ class CodeReviewTool:
             StructuredTool.from_function(
                 func=self.code_tool.get_dependency_graph,
             ),
-            StructuredTool.from_function(
-                func=self.create_code_review_issue_tool
-            ),
         ]
 
 
@@ -240,12 +237,6 @@ class CodeReviewTool:
         code = file_data.splitlines()
         for line_num, line in enumerate(code):
             code[line_num] = f"{line_num}: {line}"
-
-        # document_tool = DocumentTool(
-        #     configuration=self.configuration,
-        #     interaction_manager=self.interaction_manager,
-        #     llm=self.llm
-        # )
 
         code_metadata = {
             'project_id': file_info['project_id'],
@@ -272,10 +263,6 @@ class CodeReviewTool:
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
             loaded_documents="",
-            # "\n".join(
-            #     self.interaction_manager.get_loaded_documents_for_reference()
-            # ),
-            # callbacks=agent_callbacks,
         )
         logging.debug("Agent finished running")
 
