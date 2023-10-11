@@ -117,7 +117,9 @@ class RagUI:
                             key="new_collection_name",
                             label_visibility="collapsed",
                         )
-                        new_collection = col2.button("Create New", key="create_collection")
+                        new_collection = col2.button(
+                            "Create New", key="create_collection"
+                        )
 
                         if st.session_state["new_collection_name"] and new_collection:
                             ui_shared.create_collection(
@@ -186,9 +188,9 @@ class RagUI:
                                 options = []
                                 if loaded_docs_delimited:
                                     options = [d for d in loaded_docs_delimited]
-                                    
-                                options.insert(0, "0:---")                                
-                                    
+
+                                options.insert(0, "0:---")
+
                                 st.selectbox(
                                     "Override automatic document selection:",
                                     options=options,
@@ -238,11 +240,21 @@ class RagUI:
         for message in buffer_messages:
             if message.type == "human":
                 st.session_state["messages"].append(
-                    {"role": "user", "content": message.content, "avatar": "🗣️", "id": message.additional_kwargs['id']}
+                    {
+                        "role": "user",
+                        "content": message.content,
+                        "avatar": "🗣️",
+                        "id": message.additional_kwargs["id"],
+                    }
                 )
             else:
                 st.session_state["messages"].append(
-                    {"role": "assistant", "content": message.content, "avatar": "🤖", "id": message.additional_kwargs['id']}
+                    {
+                        "role": "assistant",
+                        "content": message.content,
+                        "avatar": "🤖",
+                        "id": message.additional_kwargs["id"],
+                    }
                 )
 
     def show_old_messages(self, rag_ai_instance):
@@ -250,8 +262,47 @@ class RagUI:
 
         for message in st.session_state["messages"]:
             with st.chat_message(message["role"], avatar=message["avatar"]):
-                col1, col3 = st.columns([0.99, 0.1])
-                col3.button("🗑️", help="Delete this conversation row", on_click=ui_shared.delete_conversation_item, kwargs={"id": message['id']}, key=str(uuid.uuid4()))
+                col1, col2, col3 = st.columns([0.98, 0.1, 0.1])
+
+                if (
+                    f"confirm_conversation_item_delete_{message['id']}"
+                    not in st.session_state
+                ):
+                    st.session_state[
+                        f"confirm_conversation_item_delete_{message['id']}"
+                    ] = False
+
+                if (
+                    st.session_state[
+                        f"confirm_conversation_item_delete_{message['id']}"
+                    ]
+                    == False
+                ):
+                            
+                    col3.button(
+                        "🗑️",
+                        help="Delete this conversation entry?",
+                        on_click=ui_shared.set_confirm_conversation_item_delete,
+                        kwargs={"val": True, "id": message["id"]},
+                        key=str(uuid.uuid4()),
+                    )
+                else:
+                    col2.button(
+                        "✅",
+                        help="Click to confirm delete",
+                        key=str(uuid.uuid4()),
+                        on_click=ui_shared.delete_conversation_item,
+                        kwargs={"id": message["id"]},
+                    )
+                    
+                    col3.button(
+                        "❌",
+                        help="Click to cancel delete",
+                        on_click=ui_shared.set_confirm_conversation_item_delete,
+                        kwargs={"val": False, "id": message["id"]},
+                        key=str(uuid.uuid4()),
+                    )
+
                 col1.markdown(message["content"])
 
     def handle_chat(self, main_window_container):

@@ -33,6 +33,13 @@ class Conversations(VectorDatabase):
             ).update({Conversation.is_deleted: True})
             session.commit()
 
+    def delete_conversation_by_interaction_id(self, interaction_id: UUID) -> None:
+        with self.session_context(self.Session()) as session:
+            session.query(Conversation).filter(
+                Conversation.interaction_id == interaction_id
+            ).update({Conversation.is_deleted: True})
+            session.commit()
+
     def search_conversations_with_user_id(
         self,
         search_query: str,

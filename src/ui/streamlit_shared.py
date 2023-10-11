@@ -15,10 +15,15 @@ from src.utilities.hash_utilities import calculate_sha256
 from src.documents.document_loader import load_and_split_documents
 
 
-def delete_conversation_item(id):
+def delete_conversation_item(id: int):
     """Deletes the conversation item with the specified id"""
+    # Delete the conversation item. (Note: This just sets the is_deleted flag to True)
     conversations_helper = Conversations()
     conversations_helper.delete_conversation(id)
+
+
+def set_confirm_conversation_item_delete(id: int, val: bool):
+    st.session_state[f"confirm_conversation_item_delete_{id}"] = val
 
 
 def scroll_to_bottom(control_name):
@@ -159,6 +164,20 @@ def get_selected_interaction_id():
     return selected_interaction_id
 
 
+def delete_interaction(interaction_id):
+    """Deletes the conversation item with the specified id"""
+
+    # Delete the interaction (Note: This just sets the is_deleted flag to True)
+    interactions_helper = Interactions()
+    interactions_helper.delete_interaction(interaction_id)
+
+    # Mark the individual conversation items as deleted, as well
+    conversations_helper = Conversations()
+    conversations_helper.delete_conversation_by_interaction_id(interaction_id)
+
+    set_confirm_interaction_delete(False)
+
+
 def setup_new_chat_button(tab):
     with tab.container():
         col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
@@ -178,7 +197,13 @@ def setup_new_chat_button(tab):
                 key=str(uuid.uuid4()),
             )
         else:
-            col2.button("✅", help="Click to confirm delete", key=str(uuid.uuid4()))
+            col2.button(
+                "✅",
+                help="Click to confirm delete",
+                key=str(uuid.uuid4()),
+                on_click=delete_interaction,
+                kwargs={"interaction_id": get_selected_interaction_id()},
+            )
             col3.button(
                 "❌",
                 help="Click to cancel delete",
@@ -417,13 +442,13 @@ def ingest_files(
 
                 if existing_file and not overwrite_existing_files:
                     st.warning(
-                        f"File '{file_name}' already exists, and overwrite is not enabled"                        
+                        f"File '{file_name}' already exists, and overwrite is not enabled"
                     )
                     logging.warning(
                         f"File '{file_name}' already exists, and overwrite is not enabled"
-                    )  
+                    )
                     logging.debug(f"Deleting temp file: {uploaded_file_path}")
-                    os.remove(uploaded_file_path)                    
+                    os.remove(uploaded_file_path)
                     # status.update(
                     #     label=f"File '{file_name}' already exists, and overwrite is not enabled",
                     #     state="error",
@@ -462,9 +487,8 @@ def ingest_files(
                 logging.warning("No files to ingest")
                 return
 
-
             st.info("Splitting documents...")
-            logging.info("Splitting documents...")            
+            logging.info("Splitting documents...")
 
             is_code = st.session_state.ingestion_settings.file_type == "Code"
 
@@ -527,9 +551,7 @@ def ingest_files(
             if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
                 for file in files:
                     # Note: this generates a summary and also puts it into the DB
-                    ai.generate_detailed_document_summary(
-                        file_id=file.id
-                    )
+                    ai.generate_detailed_document_summary(file_id=file.id)
 
                     logging.info(f"Created a summary of file: '{file.file_name}'")
 
