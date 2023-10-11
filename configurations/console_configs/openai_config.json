@@ -1,6 +1,6 @@
 {
   "assistant_configuration": {
-    "request_router": {
+    "general_ai": {
       "model_configuration": {
         "llm_type": "openai",
         "model": "gpt-3.5-turbo-16k",

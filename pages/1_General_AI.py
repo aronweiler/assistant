@@ -9,7 +9,7 @@ import os
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from langchain.callbacks.base import BaseCallbackHandler
 
-from src.ai.request_router import RequestRouter
+from src.ai.general_ai import GeneralAI
 
 from src.configuration.assistant_configuration import AssistantConfigurationLoader
 
@@ -127,7 +127,7 @@ class GeneralUI:
         if "general_ai" not in st.session_state:
             # First time loading the page
             print("load_ai: ai not in session state")
-            general_ai_instance = RequestRouter(
+            general_ai_instance = GeneralAI(
                 st.session_state["general_config"],
                 self.user_email,
                 selected_interaction_id,
@@ -142,7 +142,7 @@ class GeneralUI:
             print(
                 "load_ai: interaction id is not none and not equal to ai interaction id"
             )
-            general_ai_instance = RequestRouter(
+            general_ai_instance = GeneralAI(
                 st.session_state["general_config"],
                 self.user_email,
                 selected_interaction_id,
