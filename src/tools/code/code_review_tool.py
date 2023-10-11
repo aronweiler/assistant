@@ -167,6 +167,7 @@ class CodeReviewTool:
     def create_code_review_issue_tool(
         self,
         project_id: int,
+        ref: str,
         source_code_file_href: str,
         source_code_file_path: str,
         review_data: dict
@@ -183,15 +184,15 @@ class CodeReviewTool:
             gitlab_pat=os.getenv('GITLAB_PAT')
         )
 
-        issue_creator.generate_issue(
+        result = issue_creator.generate_issue(
             project_id=project_id,
+            ref=ref,
             source_code_file_loc=source_code_file_path,
             source_code_file_href=source_code_file_href,
             review_data=review_data,
         )
 
-        # TODO have it return URL of issue
-        return "Successfully created issue"
+        return f"Successfully created issue at {result['url']}"
 
 
     def get_tools(self) -> list[StructuredTool]:
