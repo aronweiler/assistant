@@ -6,11 +6,7 @@
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": [
-        "run",
-        "Jarvis_-_Home.py",
-        "--server.port=${input:randomPort}"
-      ],
+      "args": ["run", "Jarvis_-_Home.py", "--server.port=${input:randomPort}"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
@@ -27,11 +23,7 @@
       "type": "python",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": [
-        "run",
-        "Jarvis_-_Home.py",
-        "--server.port=${input:randomPort}"
-      ],
+      "args": ["run", "Jarvis_-_Home.py", "--server.port=${input:randomPort}"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
@@ -55,7 +47,7 @@
         "--logging_level=DEBUG"
       ],
       "console": "integratedTerminal",
-      "justMyCode": false
+      "justMyCode": true
     },
     {
       "name": "Run Llama 2 Assistant Console",
@@ -109,10 +101,7 @@
       "command": "extension.commandvariable.number",
       "args": {
         "name": "randomPort",
-        "range": [
-          1500,
-          60000
-        ],
+        "range": [1500, 60000],
         "random": true,
         "uniqueCount": 10
       }

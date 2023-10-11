@@ -8,10 +8,22 @@ import streamlit as st
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.interactions import Interactions
+from src.db.models.conversations import Conversations
 
 from src.utilities.hash_utilities import calculate_sha256
 
 from src.documents.document_loader import load_and_split_documents
+
+
+def delete_conversation_item(id: int):
+    """Deletes the conversation item with the specified id"""
+    # Delete the conversation item. (Note: This just sets the is_deleted flag to True)
+    conversations_helper = Conversations()
+    conversations_helper.delete_conversation(id)
+
+
+def set_confirm_conversation_item_delete(id: int, val: bool):
+    st.session_state[f"confirm_conversation_item_delete_{id}"] = val
 
 
 def scroll_to_bottom(control_name):
@@ -60,8 +72,13 @@ def load_conversation_selectbox(load_ai_callback, tab):
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
         )
+
     except Exception as e:
         logging.error(f"Error loading interaction selectbox: {e}")
+
+
+def set_confirm_interaction_delete(val):
+    st.session_state.confirm_interaction_delete = val
 
 
 def create_interaction(interaction_summary):
@@ -147,11 +164,53 @@ def get_selected_interaction_id():
     return selected_interaction_id
 
 
+def delete_interaction(interaction_id):
+    """Deletes the conversation item with the specified id"""
+
+    # Delete the interaction (Note: This just sets the is_deleted flag to True)
+    interactions_helper = Interactions()
+    interactions_helper.delete_interaction(interaction_id)
+
+    # Mark the individual conversation items as deleted, as well
+    conversations_helper = Conversations()
+    conversations_helper.delete_conversation_by_interaction_id(interaction_id)
+
+    set_confirm_interaction_delete(False)
+
+
 def setup_new_chat_button(tab):
     with tab.container():
-        if tab.button("New Chat", key="new_chat_button"):
+        col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
+        if col1.button("New Chat", key="new_chat_button"):
             create_interaction("Empty Chat")
             st.experimental_rerun()
+
+        if "confirm_interaction_delete" not in st.session_state:
+            st.session_state.confirm_interaction_delete = False
+
+        if st.session_state.confirm_interaction_delete == False:
+            col2.button(
+                "🗑️",
+                help="Delete this conversation?",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": True},
+                key=str(uuid.uuid4()),
+            )
+        else:
+            col2.button(
+                "✅",
+                help="Click to confirm delete",
+                key=str(uuid.uuid4()),
+                on_click=delete_interaction,
+                kwargs={"interaction_id": get_selected_interaction_id()},
+            )
+            col3.button(
+                "❌",
+                help="Click to cancel delete",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": False},
+                key=str(uuid.uuid4()),
+            )
 
         tab.divider()
 
@@ -184,6 +243,7 @@ def get_selected_collection_id():
 
     return selected_collection_id
 
+
 def get_selected_collection_name():
     """Gets the selected collection name from the selectbox"""
     selected_collection_pair = st.session_state.get("active_collection")
@@ -194,6 +254,7 @@ def get_selected_collection_name():
     selected_collection_name = selected_collection_pair.split(":")[1]
 
     return selected_collection_name
+
 
 def create_collection(name):
     collection = Documents().create_collection(name)
@@ -271,7 +332,7 @@ def select_documents(tab, ai=None):
                 key="summarize_chunks",
                 value=st.session_state.ingestion_settings.summarize_chunks,
             )
-            
+
             st.toggle(
                 "Summarize Document",
                 help="⚠️ This is a longer running process!  Might cost significant 💰 and ⌛ depending on your files.",
@@ -312,7 +373,6 @@ def select_documents(tab, ai=None):
                 collection_id = None
 
                 if active_collection_id:
-
                     if submit_button:
                         ingest_files(
                             uploaded_files,
@@ -360,9 +420,10 @@ def ingest_files(
     # First upload the files to our temp directory
     uploaded_file_paths, root_temp_dir = upload_files(uploaded_files, status)
 
-    with status.container() as status_container:
+    with status.container():
         with st.empty():
             st.info(f"Processing {len(uploaded_file_paths)} files...")
+            logging.info(f"Processing {len(uploaded_file_paths)} files...")
             # First see if there are any files we can't load
             files = []
             for uploaded_file_path in uploaded_file_paths:
@@ -372,6 +433,7 @@ def ingest_files(
                 )
 
                 st.info(f"Verifying {uploaded_file_path}...")
+                logging.info(f"Verifying {uploaded_file_path}...")
 
                 # See if it exists in this collection
                 existing_file = documents_helper.get_file_by_name(
@@ -379,15 +441,20 @@ def ingest_files(
                 )
 
                 if existing_file and not overwrite_existing_files:
-                    st.error(
+                    st.warning(
                         f"File '{file_name}' already exists, and overwrite is not enabled"
                     )
-                    status.update(
-                        label=f"File '{file_name}' already exists, and overwrite is not enabled",
-                        state="error",
+                    logging.warning(
+                        f"File '{file_name}' already exists, and overwrite is not enabled"
                     )
+                    logging.debug(f"Deleting temp file: {uploaded_file_path}")
+                    os.remove(uploaded_file_path)
+                    # status.update(
+                    #     label=f"File '{file_name}' already exists, and overwrite is not enabled",
+                    #     state="error",
+                    # )
 
-                    return
+                    continue
 
                 if existing_file and overwrite_existing_files:
                     # Delete the document chunks
@@ -401,6 +468,7 @@ def ingest_files(
                     file_data = file.read()
 
                 # Create the file
+                logging.info(f"Creating file '{file_name}'...")
                 files.append(
                     documents_helper.create_file(
                         FileModel(
@@ -414,7 +482,13 @@ def ingest_files(
                     )
                 )
 
+            if not files or len(files) == 0:
+                st.warning("Nothing to split... bye!")
+                logging.warning("No files to ingest")
+                return
+
             st.info("Splitting documents...")
+            logging.info("Splitting documents...")
 
             is_code = st.session_state.ingestion_settings.file_type == "Code"
 
@@ -428,6 +502,7 @@ def ingest_files(
             )
 
             st.info(f"Saving {len(documents)} document chunks...")
+            logging.info(f"Saving {len(documents)} document chunks...")
 
             # For each document, create the file if it doesn't exist and then the document chunks
             for document in documents:
@@ -440,7 +515,10 @@ def ingest_files(
                 file = next((f for f in files if f.file_name == file_name), None)
 
                 if not file:
-                    status_container.error(
+                    st.error(
+                        f"Could not find file '{file_name}' in the database after uploading"
+                    )
+                    logging.error(
                         f"Could not find file '{file_name}' in the database after uploading"
                     )
                     break
@@ -449,11 +527,13 @@ def ingest_files(
                 if summarize_chunks and hasattr(
                     ai, "generate_detailed_document_chunk_summary"
                 ):
+                    logging.info("Summarizing chunk...")
                     summary = ai.generate_detailed_document_chunk_summary(
                         document_text=document.page_content
                     )
 
                 # Create the document chunks
+                logging.info(f"Inserting document chunk for file '{file_name}'...")
                 documents_helper.store_document(
                     DocumentModel(
                         collection_id=active_collection_id,
@@ -468,15 +548,17 @@ def ingest_files(
                 )
 
             summary = ""
-            if summarize_document and hasattr(
-                ai, "generate_detailed_document_summary"
-            ):
+            if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
                 for file in files:
-                    file_summary = ai.generate_detailed_document_summary(
-                        file_id=file.id
-                    )
-            
+                    # Note: this generates a summary and also puts it into the DB
+                    ai.generate_detailed_document_summary(file_id=file.id)
+
+                    logging.info(f"Created a summary of file: '{file.file_name}'")
+
             st.success(
+                f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
+            )
+            logging.info(
                 f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
             )
             status.update(
@@ -524,15 +606,14 @@ def on_change_collection():
         get_selected_interaction_id(), collection_id
     )
 
+
 def create_collection_selectbox(col1, ai):
     available_collections = get_available_collections()
     selected_collection_id_index = 0
     # Find the index of the selected collection
     for i, collection in enumerate(available_collections):
         if int(collection.split(":")[0]) == int(
-            ai
-            .interaction_manager.get_interaction()
-            .last_selected_collection_id
+            ai.interaction_manager.get_interaction().last_selected_collection_id
         ):
             selected_collection_id_index = i
             break
