@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 import src.integrations.gitlab.gitlab_shared as gitlab_shared
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 

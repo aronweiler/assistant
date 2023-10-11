@@ -273,7 +273,7 @@ def load_and_split_documents(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     # Test loading and splitting documents
     source = "/Repos/sample_docs/cpp/Dave/StateMachine"

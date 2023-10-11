@@ -15,15 +15,6 @@ from src.configuration.assistant_configuration import (
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
-from src.db.models.users import Users
-from src.db.models.interactions import Interactions
-from src.db.models.documents import Documents
-from src.db.models.documents import FileModel, DocumentModel
-
-from src.utilities.hash_utilities import calculate_sha256
-
-from src.documents.document_loader import load_and_split_documents
-
 import src.ui.streamlit_shared as ui_shared
 
 
@@ -403,7 +394,7 @@ class RagUI:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     try:
         logging.debug("Starting Jarvis")

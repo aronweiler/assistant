@@ -273,7 +273,7 @@ class GeneralUI:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     try:
         general_ui = GeneralUI()
