@@ -395,9 +395,10 @@ def ingest_files(
     # First upload the files to our temp directory
     uploaded_file_paths, root_temp_dir = upload_files(uploaded_files, status)
 
-    with status.container() as status_container:
+    with status.container():
         with st.empty():
             st.info(f"Processing {len(uploaded_file_paths)} files...")
+            logging.info(f"Processing {len(uploaded_file_paths)} files...")
             # First see if there are any files we can't load
             files = []
             for uploaded_file_path in uploaded_file_paths:
@@ -407,6 +408,7 @@ def ingest_files(
                 )
 
                 st.info(f"Verifying {uploaded_file_path}...")
+                logging.info(f"Verifying {uploaded_file_path}...")
 
                 # See if it exists in this collection
                 existing_file = documents_helper.get_file_by_name(
@@ -414,15 +416,20 @@ def ingest_files(
                 )
 
                 if existing_file and not overwrite_existing_files:
-                    st.error(
+                    st.warning(
+                        f"File '{file_name}' already exists, and overwrite is not enabled"                        
+                    )
+                    logging.warning(
                         f"File '{file_name}' already exists, and overwrite is not enabled"
-                    )
-                    status.update(
-                        label=f"File '{file_name}' already exists, and overwrite is not enabled",
-                        state="error",
-                    )
+                    )  
+                    logging.debug(f"Deleting temp file: {uploaded_file_path}")
+                    os.remove(uploaded_file_path)                    
+                    # status.update(
+                    #     label=f"File '{file_name}' already exists, and overwrite is not enabled",
+                    #     state="error",
+                    # )
 
-                    return
+                    continue
 
                 if existing_file and overwrite_existing_files:
                     # Delete the document chunks
@@ -436,6 +443,7 @@ def ingest_files(
                     file_data = file.read()
 
                 # Create the file
+                logging.info(f"Creating file '{file_name}'...")
                 files.append(
                     documents_helper.create_file(
                         FileModel(
@@ -449,7 +457,14 @@ def ingest_files(
                     )
                 )
 
+            if not files or len(files) == 0:
+                st.warning("Nothing to split... bye!")
+                logging.warning("No files to ingest")
+                return
+
+
             st.info("Splitting documents...")
+            logging.info("Splitting documents...")            
 
             is_code = st.session_state.ingestion_settings.file_type == "Code"
 
@@ -463,6 +478,7 @@ def ingest_files(
             )
 
             st.info(f"Saving {len(documents)} document chunks...")
+            logging.info(f"Saving {len(documents)} document chunks...")
 
             # For each document, create the file if it doesn't exist and then the document chunks
             for document in documents:
@@ -475,7 +491,10 @@ def ingest_files(
                 file = next((f for f in files if f.file_name == file_name), None)
 
                 if not file:
-                    status_container.error(
+                    st.error(
+                        f"Could not find file '{file_name}' in the database after uploading"
+                    )
+                    logging.error(
                         f"Could not find file '{file_name}' in the database after uploading"
                     )
                     break
@@ -484,11 +503,13 @@ def ingest_files(
                 if summarize_chunks and hasattr(
                     ai, "generate_detailed_document_chunk_summary"
                 ):
+                    logging.info("Summarizing chunk...")
                     summary = ai.generate_detailed_document_chunk_summary(
                         document_text=document.page_content
                     )
 
                 # Create the document chunks
+                logging.info(f"Inserting document chunk for file '{file_name}'...")
                 documents_helper.store_document(
                     DocumentModel(
                         collection_id=active_collection_id,
@@ -505,11 +526,17 @@ def ingest_files(
             summary = ""
             if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
                 for file in files:
-                    file_summary = ai.generate_detailed_document_summary(
+                    # Note: this generates a summary and also puts it into the DB
+                    ai.generate_detailed_document_summary(
                         file_id=file.id
                     )
 
+                    logging.info(f"Created a summary of file: '{file.file_name}'")
+
             st.success(
+                f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
+            )
+            logging.info(
                 f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
             )
             status.update(
