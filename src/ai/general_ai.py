@@ -20,7 +20,7 @@ from src.ai.callbacks.token_management_callback import TokenManagementCallbackHa
 from src.utilities.instance_utility import create_instance_from_module_and_class
 
 
-class RequestRouter(AbstractAI):
+class GeneralAI(AbstractAI):
     """A Router AI that examines the user's input and routes it to the appropriate AI (using an LLM to determine the AI to use)"""
 
     llm: BaseLanguageModel = None
@@ -34,7 +34,7 @@ class RequestRouter(AbstractAI):
         interaction_id: UUID,
         streaming: bool = False,        
     ):
-        """Creates a new RequestRouter
+        """Creates a new GeneralAI
 
         Args:
             ai_configuration (AIConfiguration): AI configuration
@@ -46,7 +46,7 @@ class RequestRouter(AbstractAI):
         self.streaming = streaming
 
         self.llm = get_llm(
-            assistant_configuration.request_router.model_configuration,
+            assistant_configuration.general_ai.model_configuration,
             callbacks=[self.token_management_handler],
             tags=["request-router"],
             streaming=streaming,
@@ -57,10 +57,10 @@ class RequestRouter(AbstractAI):
             interaction_id,
             user_email,
             self.llm,
-            assistant_configuration.request_router.model_configuration.max_conversation_history_tokens,
+            assistant_configuration.general_ai.model_configuration.max_conversation_history_tokens,
         )
 
-        self._create_routes(assistant_configuration.request_router.destination_routes)
+        self._create_routes(assistant_configuration.general_ai.destination_routes)
 
         self._create_router_chain()
 
@@ -80,7 +80,7 @@ class RequestRouter(AbstractAI):
         if self.interaction_manager.interaction_needs_summary:
             interaction_summary = self.llm.predict(
                 get_prompt(
-                    self.assistant_configuration.request_router.model_configuration.llm_type,
+                    self.assistant_configuration.general_ai.model_configuration.llm_type,
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )
@@ -158,7 +158,7 @@ class RequestRouter(AbstractAI):
         destinations_str = "\n".join(destinations)
 
         router_template = get_prompt(
-            self.assistant_configuration.request_router.model_configuration.llm_type,
+            self.assistant_configuration.general_ai.model_configuration.llm_type,
             "MULTI_PROMPT_ROUTER_TEMPLATE",
         ).format(destinations=destinations_str)
 
