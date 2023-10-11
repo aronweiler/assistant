@@ -173,7 +173,7 @@ class DocumentTool:
 
         summary = reduce_documents_chain.run(docs)        
 
-        # Put the summary into the DB
+        # Put the summary into the DB so we don't have to re-run this.
         documents.update_file_summary_and_class(file_id=file.id, summary=summary, classification=file.file_classification)
         
         return f"--- SUMMARY ---\n{summary}\n--- SUMMARY ---"

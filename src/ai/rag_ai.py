@@ -304,6 +304,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Searches the loaded documents for a query.",
                     additional_instructions="Searches the loaded files (or the specified file when target_file_id is set) for the given query. The target_file_id argument is optional, and can be used to search a specific file if the user has specified one. IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.",
+                    document_class="Code', 'Spreadsheet', or 'Document", # lame formatting
                     function=self.document_tool.search_loaded_documents,
                 ),
             },
@@ -315,6 +316,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Searches through all documents for the specified topic, and summarizes the results.",
                     additional_instructions="Useful for getting a very general summary of a topic across all of the loaded documents. Do not use this tool for specific document queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
+                    document_class="Code', 'Spreadsheet', or 'Document", # lame formatting
                     function=self.document_tool.summarize_topic,
                     # return_direct=False,
                 ),
@@ -327,6 +329,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Summarizes an entire document.",
                     additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
+                    document_class="Code', 'Spreadsheet', or 'Document", # lame formatting
                     function=self.document_tool.summarize_entire_document,
                 ),
             },
@@ -348,6 +351,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Gets details about a specific part of a code file.",
                     additional_instructions="Useful for getting the details of a specific signature (signature cannot be blank) in a specific loaded 'Code' file (required: target_file_id).",
+                    document_class="Code",
                     function=self.code_tool.code_details,
                 ),
             },
@@ -359,6 +363,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Gets the high-level structure of a code file.",
                     additional_instructions="Useful for looking at the code structure of a single file. This tool only works when you specify a file. It will give you a list of module names, function signatures, and class method signatures in the specified file (represented by the 'target_file_id').",
+                    document_class="Code",
                     function=self.code_tool.code_structure,
                 ),
             },
@@ -370,6 +375,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Gets the dependency graph of a code file.",
                     additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
+                    document_class="Code",
                     function=self.code_tool.get_pretty_dependency_graph,
                     return_direct=False,
                 ),
@@ -382,6 +388,7 @@ class RetrievalAugmentedGenerationAI:
                 "tool": GenericTool(
                     description="Creates stubs for a specified code file.",
                     additional_instructions="Create mocks / stubs for the dependencies of a given code file. Use this when the user asks you to mock or stub out the dependencies for a given file.",
+                    document_class="Code",
                     function=self.stubber_tool.create_stubs,
                     return_direct=False,
                 ),
@@ -393,7 +400,8 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Gets all of the code in the target file.",
-                    additional_instructions="Useful for getting all of the code in a specific file when the user asks you to show them code from a particular file.",
+                    additional_instructions="Useful for getting all of the code in a specific 'Code' file when the user asks you to show them code from a particular file.",
+                    document_class="Code",
                     function=self.code_tool.get_all_code_in_file,
                     return_direct=False,
                 ),
@@ -404,7 +412,9 @@ class RetrievalAugmentedGenerationAI:
                 "enabled": True,
                 "is_document_related": True,
                 "tool": GenericTool(
-                    description="Performs a code review of a specified code file.",
+                    description="Performs a code review of a 'Code' classified file.",
+                    additional_instructions="Only use this on 'Code' files. This tool will return a code review of the specified file (represented by the 'target_file_id').",
+                    document_class="Code",
                     function=self.code_review_tool.conduct_code_review,
                     return_direct=False,
                 ),
@@ -416,6 +426,7 @@ class RetrievalAugmentedGenerationAI:
                 "is_document_related": True,
                 "tool": GenericTool(
                     description="Queries a specific spreadsheet.",
+                    document_class="Spreadsheet",
                     additional_instructions="Useful for querying a specific spreadsheet.  If the target document is a 'Spreadsheet', always use this tool. Never use this tool on documents that are not classified as 'Spreadsheet'.",
                     function=self.spreadsheet_tool.query_spreadsheet,
                 ),
