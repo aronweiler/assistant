@@ -32,7 +32,7 @@ class ConversationTokenBufferMemory(BaseChatMemory):
         )
 
     @property
-    def buffer_as_messages(self) -> List[BaseMessage]:        
+    def buffer_as_messages(self) -> List[BaseMessage]:
         """Exposes the buffer as a list of messages in case return_messages is False."""
         return self.get_messages()
 

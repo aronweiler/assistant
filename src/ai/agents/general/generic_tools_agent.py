@@ -20,7 +20,7 @@ from src.configuration.assistant_configuration import ModelConfiguration
 
 class GenericTool:
     def __init__(
-        self, description, function, return_direct=False, additional_instructions=None
+        self, description, function, document_class=None, return_direct=False, additional_instructions=None
     ):
         self.description = description
         self.additional_instructions = additional_instructions
@@ -30,6 +30,7 @@ class GenericTool:
         self.structured_tool = StructuredTool.from_function(
             func=self.function, return_direct=return_direct
         )
+        self.document_class = document_class
 
     def extract_function_schema(self, func):
         import inspect
@@ -278,8 +279,15 @@ class GenericToolsAgent(BaseMultiActionAgent):
             else:
                 additional_instructions = ""
 
+            if tool.document_class:
+                document_class = (
+                    f"\nIMPORTANT: Only use this tool with '{tool.document_class}' class files. For other types of files, refer to specialized tools."
+                )
+            else:
+                document_class = ""
+
             tool_strings.append(
-                f"Name: {tool.name}\nDescription: {tool.description}{additional_instructions}"
+                f"Name: {tool.name}\nDescription: {tool.description}{additional_instructions}{document_class}"
             )
 
         formatted_tools = "\n----\n".join(tool_strings)

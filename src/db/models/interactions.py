@@ -69,8 +69,15 @@ class Interactions(VectorDatabase):
         self, user_id: int, eager_load: List[InstrumentedAttribute[Any]] = []
     ) -> List[InteractionModel]:
         with self.session_context(self.Session()) as session:
-            query = session.query(Interaction).filter(Interaction.user_id == user_id)
+            query = session.query(Interaction).filter(Interaction.user_id == user_id, Interaction.is_deleted == False)
 
             query = super().eager_load(query, eager_load)
 
             return [InteractionModel.from_database_model(i) for i in query.all()]
+
+    def delete_interaction(self, interaction_id: UUID) -> None:
+        with self.session_context(self.Session()) as session:
+            session.query(Interaction).filter(Interaction.id == interaction_id).update(
+                {Interaction.is_deleted: True}
+            )
+            session.commit()

@@ -917,7 +917,7 @@ You have access the following tools that you can use by returning the appropriat
 {available_tool_descriptions}
 --- AVAILABLE TOOLS ---
 
-The loaded documents that you have access to are below.
+The loaded documents that you have access to are below.  Pay close attention to the Class of document it is.  Some tools can only be used with certain classes of documents.
 --- LOADED DOCUMENTS ---
 {loaded_documents}
 --- LOADED DOCUMENTS ---
