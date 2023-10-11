@@ -542,7 +542,7 @@ class SoftwareDevelopmentUI:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     general_ui = SoftwareDevelopmentUI()
 

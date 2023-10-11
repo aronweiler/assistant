@@ -9,7 +9,7 @@ import gitlab
 import jinja2
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
