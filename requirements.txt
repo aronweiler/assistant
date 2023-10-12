@@ -76,4 +76,5 @@ streamlit-tree-select
 # fastapi
 
 python-gitlab==3.15.0
+PyGithub==2.1.1
 Jinja2==3.1.2
