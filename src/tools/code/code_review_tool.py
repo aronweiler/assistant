@@ -197,13 +197,7 @@ class CodeReviewTool:
         return f"Successfully created issue at {result['url']}"
 
     def get_tools(self) -> list[StructuredTool]:
-        # code_tool = CodeTool()
-        # document_tool = DocumentTool()
-
         return [
-            # StructuredTool.from_function(
-            #     func=document_tool.summarize_entire_document,
-            # ),
             StructuredTool.from_function(
                 func=self.code_tool.code_details,
             ),
@@ -253,17 +247,7 @@ class CodeReviewTool:
             code_metadata=code_metadata,
         )
 
-        logging.debug("Running agent")
-        results = self.agent.run(
-            input=code_review_prompt,
-            system_information=get_system_information(
-                self.interaction_manager.user_location
-            ),
-            user_name=self.interaction_manager.user_name,
-            user_email=self.interaction_manager.user_email,
-            loaded_documents="",
-        )
-        logging.debug("Agent finished running")
+        results = self.llm.predict(code_review_prompt)
 
         return results
 
