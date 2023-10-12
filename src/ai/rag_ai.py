@@ -98,7 +98,7 @@ class RetrievalAugmentedGenerationAI:
                     tool["enabled"] = True
                 break
 
-    def create_agent(self, agent_timeout: int = 120):
+    def create_agent(self, agent_timeout: int = 300):
         tools = self.get_enabled_tools()
 
         agent = GenericToolsAgent(
@@ -106,7 +106,7 @@ class RetrievalAugmentedGenerationAI:
         )
 
         agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=agent, tools=[t.structured_tool for t in tools], verbose=True, max_execution_time=agent_timeout, early_stopping_method="generate"
+            agent=agent, tools=[t.structured_tool for t in tools], verbose=True, max_execution_time=agent_timeout, # early_stopping_method="generate" <- this is not supported, but somehow in their docs
         )
 
         return agent_executor    
@@ -150,7 +150,7 @@ class RetrievalAugmentedGenerationAI:
 
         self.spreadsheet_tool.callbacks = agent_callbacks
 
-        timeout = kwargs.get("agent_timeout", 120)
+        timeout = kwargs.get("agent_timeout", 300)
         logging.debug(f"Creating agent with {timeout} second timeout")
         agent = self.create_agent(agent_timeout=timeout)
 

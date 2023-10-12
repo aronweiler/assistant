@@ -88,7 +88,7 @@ class CodeReviewTool:
 
         self.agent = self.create_agent()
 
-    def create_agent(self, agent_timeout: int = 120):
+    def create_agent(self, agent_timeout: int = 300):
         logging.debug("Setting human message template")
         human_message_template = get_prompt(
             self.configuration.model_configuration.llm_type, "AGENT_TEMPLATE"
@@ -143,7 +143,7 @@ class CodeReviewTool:
             memory=memory,
             agent_kwargs=agent_kwargs,
             max_execution_time=agent_timeout,
-            early_stopping_method="generate",  # try to generate a response if it times out
+            # early_stopping_method="generate" <- this is not supported, but somehow in their docs
         )
 
         return agent

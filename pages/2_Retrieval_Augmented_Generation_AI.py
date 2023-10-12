@@ -189,7 +189,7 @@ class RagUI:
                                     format_func=lambda x: x.split(":")[1],
                                 )
                                 st.number_input(
-                                    "Timeout (seconds)", key="agent_timeout", value=120
+                                    "Timeout (seconds)", key="agent_timeout", value=300
                                 )
 
                             tools = st.session_state.rag_ai.get_all_tools()
@@ -356,7 +356,7 @@ class RagUI:
                         else None,
                         "agent_timeout": int(st.session_state["agent_timeout"])
                         if "agent_timeout" in st.session_state
-                        else 120,
+                        else 300,
                         "summarization_strategy": st.session_state[
                             "summarization_strategy"
                         ]
