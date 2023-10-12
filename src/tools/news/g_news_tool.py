@@ -4,7 +4,7 @@ class GNewsTool:
     def __init__(self, max_results:int=5):
         self.google_news = GNews(max_results=max_results)
 
-    def get_news(self, query:str):
+    def get_news_for_topic(self, query:str):
         """Use this to get a list of news headlines and article URLs for a specified term. 
 
         Args:
@@ -17,7 +17,7 @@ class GNewsTool:
 
         return "----".join(headlines)
 
-    def get_top_news(self):
+    def get_top_news_headlines(self):
         """Use this to get a list of the top news story headlines and article URLs"""
         
         headlines = self.google_news.get_top_news()

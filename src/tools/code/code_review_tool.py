@@ -70,15 +70,10 @@ class CodeReviewTool:
     source_control_to_file_retriever_map: dict = {"gitlab": GitlabFileRetriever, "github": GitHubFileRetriever}
     source_control_to_issue_creator_map: dict = {"gitlab": GitlabIssueCreator, "github": None}
 
-    def __init__(self, configuration, interaction_manager: InteractionManager):
+    def __init__(self, configuration, interaction_manager: InteractionManager, llm: BaseLanguageModel):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-
-        self.llm = get_llm(
-            self.configuration.model_configuration,
-            tags=["code-review-tool"],
-            streaming=True,
-        )
+        self.llm = llm
 
         self.code_tool = CodeTool(
             configuration=self.configuration,
@@ -199,10 +194,10 @@ class CodeReviewTool:
     def get_tools(self) -> list[StructuredTool]:
         return [
             StructuredTool.from_function(
-                func=self.code_tool.code_details,
+                func=self.code_tool.get_code_details,
             ),
             StructuredTool.from_function(
-                func=self.code_tool.code_structure,
+                func=self.code_tool.get_code_structure,
             ),
             StructuredTool.from_function(
                 func=self.code_tool.get_dependency_graph,

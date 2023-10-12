@@ -1,40 +1,19 @@
 import logging
-import json
 from uuid import UUID
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
-
-from langchain.agents.structured_chat.output_parser import (
-    StructuredChatOutputParserWithRetries,
-)
-
-from langchain.memory.readonly import ReadOnlySharedMemory
-
-from langchain.tools import StructuredTool
-
-from langchain.agents import initialize_agent, AgentType, AgentExecutor
+from langchain.agents import AgentExecutor
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfiguration,
 )
-
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
-
+from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
 from src.tools.documents.document_tool import DocumentTool
-from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
-from src.tools.code.code_tool import CodeTool
-from src.tools.code.code_review_tool import CodeReviewTool
-from src.tools.llm.llm_tool import LLMTool
-from src.tools.weather.weather_tool import WeatherTool
-from src.tools.general.time_tool import TimeTool
-from src.tools.news.g_news_tool import GNewsTool
-
-from src.ai.agents.code.stubbing_agent import Stubber
-from src.ai.agents.general.generic_tools_agent import GenericToolsAgent, GenericTool
-
+from src.ai.tools.tool_manager import ToolManager
 
 
 class RetrievalAugmentedGenerationAI:
@@ -67,20 +46,27 @@ class RetrievalAugmentedGenerationAI:
             self.configuration.model_configuration.max_conversation_history_tokens,
         )
 
-        self.create_tools(self.configuration, self.interaction_manager, self.llm)    
+        self.tool_manager = ToolManager(
+            self.configuration, self.interaction_manager, self.llm
+        )
 
     def create_agent(self, agent_timeout: int = 300):
-        tools = self.get_enabled_tools()
+        tools = self.tool_manager.get_enabled_tools()
 
         agent = GenericToolsAgent(
-            tools=tools, model_configuration=self.configuration.model_configuration, interaction_manager=self.interaction_manager
+            tools=tools,
+            model_configuration=self.configuration.model_configuration,
+            interaction_manager=self.interaction_manager,
         )
 
         agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=agent, tools=[t.structured_tool for t in tools], verbose=True, max_execution_time=agent_timeout, # early_stopping_method="generate" <- this is not supported, but somehow in their docs
+            agent=agent,
+            tools=[t.structured_tool for t in tools],
+            verbose=True,
+            max_execution_time=agent_timeout,  # early_stopping_method="generate" <- this is not supported, but somehow in their docs
         )
 
-        return agent_executor    
+        return agent_executor
 
     def generate_detailed_document_chunk_summary(
         self,
@@ -98,7 +84,9 @@ class RetrievalAugmentedGenerationAI:
         self,
         file_id: int,
     ) -> str:
-        document_tool = DocumentTool(self.configuration, self.interaction_manager, self.llm)
+        document_tool = DocumentTool(
+            self.configuration, self.interaction_manager, self.llm
+        )
         document_summary = document_tool.summarize_entire_document(file_id)
 
         return document_summary
@@ -119,8 +107,6 @@ class RetrievalAugmentedGenerationAI:
         # Ensure we have a summary / title for the chat
         logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
-
-        self.spreadsheet_tool.callbacks = agent_callbacks
 
         timeout = kwargs.get("agent_timeout", 300)
         logging.debug(f"Creating agent with {timeout} second timeout")
@@ -165,5 +151,3 @@ class RetrievalAugmentedGenerationAI:
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
             logging.debug(f"Generated summary: {interaction_summary}")
-
-    
