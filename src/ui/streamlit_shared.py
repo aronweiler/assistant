@@ -3,7 +3,7 @@ import os
 import uuid
 
 import streamlit as st
-
+from streamlit.runtime.scriptrunner import RerunException
 
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
@@ -183,7 +183,10 @@ def setup_new_chat_button(tab):
         col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
         if col1.button("New Chat", key="new_chat_button"):
             create_interaction("Empty Chat")
-            st.experimental_rerun()
+            try:
+                st.rerun()
+            except RerunException:
+                pass
 
         if "confirm_interaction_delete" not in st.session_state:
             st.session_state.confirm_interaction_delete = False

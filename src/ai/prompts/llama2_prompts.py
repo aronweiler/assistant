@@ -7,7 +7,7 @@ from langchain.prompts import PromptTemplate
 
 # {{ user_message }} [/INST]
 
-MULTI_PROMPT_ROUTER_TEMPLATE = """<s>[INST] <<SYS>>
+MULTI_DESTINATION_ROUTER_TEMPLATE = """<s>[INST] <<SYS>>
 SYSTEM INFORMATION:
 {{system_information}}
 

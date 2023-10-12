@@ -28,6 +28,7 @@ duckduckgo-search
 
 # Date/Time & Calendars
 pytz
+tzlocal 
 
 # Google
 google-api-python-client 

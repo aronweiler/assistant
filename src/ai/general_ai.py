@@ -159,7 +159,7 @@ class GeneralAI(AbstractAI):
 
         router_template = get_prompt(
             self.assistant_configuration.general_ai.model_configuration.llm_type,
-            "MULTI_PROMPT_ROUTER_TEMPLATE",
+            "MULTI_DESTINATION_ROUTER_TEMPLATE",
         ).format(destinations=destinations_str)
 
         router_prompt = PromptTemplate(

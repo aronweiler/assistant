@@ -283,6 +283,9 @@ class CodeReviewTool:
             file_id=target_file_id,
         )
 
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
+
         # Convert file data bytes to string
         file_data = file_model.file_data.decode("utf-8")
 

@@ -19,4 +19,4 @@ class TimeTool:
 
             return current_datetime.strftime("%A, %B %d, %Y %I:%M %p")
         except:
-            return "Invalid time zone specified."
+            return "Invalid time zone specified.  Make sure you use IANA time zone names.  Such as 'America/New_York'"

@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 
-MULTI_PROMPT_ROUTER_TEMPLATE = """SYSTEM INFORMATION:
+MULTI_DESTINATION_ROUTER_TEMPLATE = """SYSTEM INFORMATION:
 {{system_information}}
 
 Given a raw text input to a language model, select the model best suited for processing \
@@ -9,6 +9,7 @@ what the model is best suited for.
 
 Use the provided chat history to help rephrase the input so that it is a stand-alone question \
 by doing things like resolving coreferences in the input (e.g. assigning names to things like "him", or places like "here", or dates like "tomorrow", etc).
+Put anything that a candidate model may need into the additional_context.
 
 --- BEGIN CHAT HISTORY ---
 {{chat_history}}
@@ -18,12 +19,13 @@ by doing things like resolving coreferences in the input (e.g. assigning names t
 {{loaded_documents}}
 --- END LOADED DOCUMENTS ---
 
+Return a JSON object formatted to look like the following.  
 --- BEGIN FORMATTING ---
-Return a markdown code snippet with a JSON object formatted to look like:
-```json
 {{{{
-    "destination": string \\ name of the MODEL to use. Must be one of the candidate model specified below.
-    "next_inputs": string \\ a potentially modified version of the original input
+    "destination": <<string: name of the MODEL to use. Must be one of the candidate model specified below.>>,
+    "next_inputs": <<string: a potentially modified version of the original input>>,
+    "additional_context": <<string: any additional context that you want to provide to the model.  This can be anything you want.>>,
+    "explanation": <<string: an explanation of why you chose the model you did.>>
 }}}}
 ```
 --- END FORMATTING ---
@@ -39,7 +41,7 @@ REMEMBER: "next_inputs" can just be the original input if you don't think any mo
 {{input}}
 --- END INPUT ---
 
-OUTPUT:
+AI: Sure, here is my response in JSON:
 """
 
 # AGENT_TEMPLATE = "{system_information}\n{user_name} ({user_email}): {input}\n\n{agent_scratchpad}"
@@ -949,7 +951,7 @@ For example, if the user's query is "What's the weather like here?", you might s
 {{
   "steps": [
     {{"step_num": 1, "step_description": "Get the user's current location", "tool": "get_location", "relies_on": []}},
-    {{"step_num": 2, "step_description": "Get the weather for the user's location", "tool": "get_weather", "relies_on": [1,]}}
+    {{"step_num": 2, "step_description": "Get the weather for the user's location", "tool": "get_weather", "relies_on": [1]}}
   ]
 }}
 ```
@@ -967,7 +969,9 @@ Only reply with a final answer if you can completely answer the user's query, or
 AI: Sure! Here is my response (in JSON format) that are all using the various tools you provided (I am definitely not making up tools!) to me (or answering directly), and that can be used to answer the user's query:
 """
 
-TOOL_USE_TEMPLATE = """Your job is to construct a JSON blob that represents a tool call given the following information.
+TOOL_USE_TEMPLATE = """{system_prompt}
+
+I'm giving you a very important job. Your job is to construct a JSON blob that represents a tool call given the following information.
 
 You have access to the following loaded documents (take note of the ID of each document):
 --- LOADED DOCUMENTS ---
@@ -978,11 +982,6 @@ The following helpful context may contain additional information that should inf
 --- HELPFUL CONTEXT ---
 {helpful_context}
 --- HELPFUL CONTEXT ---
-
-The following was the original user query:
---- USER QUERY ---
-{user_query}
---- USER QUERY ---
 
 Please construct a tool call that uses the '{tool_name}' tool.  The '{tool_name}' tool has the following details:
 --- TOOL DETAILS ---
@@ -1013,6 +1012,8 @@ For example, if the tool is 'get_weather', and the tool arguments are 'location'
 
 The loaded documents and the helpful context may contain additional information that should inform your tool use.  For example, if the tool arguments require a file ID, then you should use the file ID of a loaded document, or if the tool arguments require a location you should use the location from the helpful context, etc.
 
+The following was the original user query:
+{user_query}
 
 AI: Sure! Here is my response (in JSON format):
 """
@@ -1027,8 +1028,22 @@ This helpful context contains all of the information you will require to answer 
 {helpful_context}
 --- HELPFUL CONTEXT ---
 
+If you cannot answer the user's query, please return a JSON blob with the following format:
+```json
+{{
+  "failure": "<<explain precisely why you cannot answer the user's query with the information in the helpful context>>"
+}}
+```
+
+If you can answer the user's query, please return a JSON blob with the following format:
+```json
+{{
+  "answer": "<<markdown formatted complete answer here (remember to escape anything required to be used in a JSON string)>>"
+}}
+```
+
 Use the helpful context above to answer the user's query, which is:
 {user_query}
 
-AI: Sure! Here is my response to the user's query (in Markdown format):
+AI: Sure! Here is my response (in JSON format):
 """
