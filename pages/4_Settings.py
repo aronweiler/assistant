@@ -4,7 +4,18 @@ import os
 
 def settings_page():
     st.title("Settings")
+    settings_tab, tools_tab = st.tabs(["General Settings", "Tools"])
 
+    with settings_tab:
+        general_settings()
+        
+    with tools_tab:
+        tools_settings()
+        
+def tools_settings():
+    
+        
+def general_settings():
     source_control_options = ["GitLab", "GitHub"]
     source_control_provider = st.selectbox("Source Control Provider", source_control_options, index=source_control_options.index(os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")))
 
