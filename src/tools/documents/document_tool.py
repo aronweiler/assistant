@@ -30,7 +30,7 @@ class DocumentTool:
     def search_loaded_documents(
         self,
         query: str,
-        original_user_input: str = None,
+        original_user_input,
         target_file_id: int = None,
     ):
         """Searches the loaded files (or the specified file when target_file_id is set) for the given query.
@@ -95,7 +95,7 @@ class DocumentTool:
 
         results = qa_with_sources({"question": query})
 
-        if self.interaction_manager.tool_kwargs.get("re_run_user_query", True):
+        if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
             response = self.llm.predict(
                 f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
             )
@@ -178,14 +178,14 @@ class DocumentTool:
         
         return f"--- SUMMARY ---\n{summary}\n--- SUMMARY ---"
 
-    def summarize_topic(self, query: str, original_user_input: str):
+    def summarize_topic(self, query: str, original_user_query: str):
         """Useful for getting a summary of a topic or query from the user.
         This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
 
         Args:
 
-            query (str, Required): The query to search the loaded documents for (this can be a modified version of the original_user_input for searching).
-            original_user_input (str, Required): The original user input.  Make sure this is not modified by you!
+            query (str, Required): The query to search the loaded documents for (this can be a modified version of the original_user_query for searching).
+            original_user_query (str, Required): The original user input.  Make sure this is not modified by you!
         """
         # Create the documents class for the retriever
         documents = Documents()
@@ -213,9 +213,9 @@ class DocumentTool:
 
         summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
 
-        if self.interaction_manager.tool_kwargs.get("re_run_user_query", True):
+        if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
             summary = self.llm.predict(
-                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
             )
 
         return summary

@@ -20,7 +20,12 @@ from src.configuration.assistant_configuration import ModelConfiguration
 
 class GenericTool:
     def __init__(
-        self, description, function, document_class=None, return_direct=False, additional_instructions=None
+        self,
+        description,
+        function,
+        document_class=None,
+        return_direct=False,
+        additional_instructions=None,
     ):
         self.description = description
         self.additional_instructions = additional_instructions
@@ -63,6 +68,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
     streaming: bool = True
     step_plans: dict = None
     step_index: int = -1
+    current_retries: int = 0
 
     class Config:
         arbitrary_types_allowed = True  # Enable the use of arbitrary types
@@ -122,6 +128,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
                 step=self.step_plans["steps"][self.step_index],
                 helpful_context=self.get_helpful_context(intermediate_steps),
                 user_query=kwargs["input"],
+                system_information=kwargs["system_information"],
             )
 
             action_json = self.parse_json(self.llm.predict(tool_use_prompt))
@@ -147,6 +154,36 @@ class GenericToolsAgent(BaseMultiActionAgent):
             )
 
             answer_response = self.llm.predict(answer_prompt)
+
+            answer = self.parse_json(answer_response)
+
+            # If answer is a fail, we need to retry the last step with the added context from the tool failure
+            if isinstance(answer, dict):
+                if "answer" in answer:
+                    answer_response = answer["answer"]
+                else:
+                    if self.current_retries >= self.model_configuration.max_retries:
+                        return AgentFinish(
+                            return_values={
+                                "output": "I ran out of retries attempting to answer.  Here's my last output:\n"
+                                + answer_response
+                            },
+                            log="Agent finished.",
+                        )
+
+                    self.current_retries += 1
+                    self.step_index -= 1
+
+                    action = AgentAction(
+                        tool=intermediate_steps[-1][0].tool,
+                        tool_input=intermediate_steps[-1][0].tool_input,
+                        log=f"Failed... retrying ({self.current_retries}):",
+                    )
+                    logging.info(
+                        f"Failed... retrying ({self.current_retries}): {answer_response}"
+                    )
+
+                    return action
 
             return AgentFinish(
                 return_values={"output": answer_response},
@@ -188,7 +225,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         if not intermediate_steps or len(intermediate_steps) == 0:
             return "No helpful context, sorry!"
 
-        return "\n----\n".join([s[1] for s in intermediate_steps if s[1] is not None])
+        return "\n----\n".join([f"using the `{s[0].tool}` tool returned:\n'{s[1]}'" for s in intermediate_steps if s[1] is not None])
 
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email
@@ -221,7 +258,9 @@ class GenericToolsAgent(BaseMultiActionAgent):
 
         return agent_prompt
 
-    def get_tool_use_prompt(self, step, helpful_context, user_query):
+    def get_tool_use_prompt(
+        self, step, helpful_context, user_query, system_information
+    ):
         tool_name = step["tool"]
         tool_details = ""
         for tool in self.tools:
@@ -238,6 +277,10 @@ class GenericToolsAgent(BaseMultiActionAgent):
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
+            system_prompt=self.get_system_prompt(
+                "Detail oriented, organized, and logical.  Sometimes a little sarcastic and snarky.",
+                system_information,
+            ),
         )
 
         return agent_prompt
@@ -280,9 +323,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
                 additional_instructions = ""
 
             if tool.document_class:
-                document_class = (
-                    f"\nIMPORTANT: Only use this tool with '{tool.document_class}' class files. For other types of files, refer to specialized tools."
-                )
+                document_class = f"\nIMPORTANT: Only use this tool with '{tool.document_class}' class files. For other types of files, refer to specialized tools."
             else:
                 document_class = ""
 

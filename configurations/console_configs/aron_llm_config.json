@@ -1,7 +1,7 @@
 {
     "assistant_configuration": {
       "user_email": "aronweiler@gmail.com",
-      "request_router": {
+      "general_ai": {
         "model_configuration": {
           "llm_type": "llama2",
           "model": "H:\\LLM\\aron-llama-7b-ggml-model-f16.gguf",

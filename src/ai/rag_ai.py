@@ -28,6 +28,9 @@ from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 from src.tools.code.code_tool import CodeTool
 from src.tools.code.code_review_tool import CodeReviewTool
 from src.tools.llm.llm_tool import LLMTool
+from src.tools.weather.weather_tool import WeatherTool
+from src.tools.general.time_tool import TimeTool
+from src.tools.news.g_news_tool import GNewsTool
 
 from src.ai.agents.code.stubbing_agent import Stubber
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent, GenericTool
@@ -106,67 +109,7 @@ class RetrievalAugmentedGenerationAI:
             agent=agent, tools=[t.structured_tool for t in tools], verbose=True, max_execution_time=agent_timeout, early_stopping_method="generate"
         )
 
-        return agent_executor
-
-    def ___old_create_agent(self, agent_timeout: int = 120):
-        logging.debug("Setting human message template")
-        human_message_template = get_prompt(
-            self.configuration.model_configuration.llm_type, "AGENT_TEMPLATE"
-        )
-
-        logging.debug("Setting memory")
-        memory = ReadOnlySharedMemory(
-            memory=self.interaction_manager.conversation_token_buffer_memory
-        )
-
-        logging.debug("Setting suffix")
-        suffix = get_prompt(
-            self.configuration.model_configuration.llm_type, "TOOLS_SUFFIX"
-        )
-
-        logging.debug("Setting format instructions")
-        format_instructions = get_prompt(
-            self.configuration.model_configuration.llm_type,
-            "TOOLS_FORMAT_INSTRUCTIONS",
-        )
-
-        # This is a problem with langchain right now- hopefully it resolves soon, because the StructuredChatOutputParserWithRetries is crap without the llm
-        try:
-            output_parser = StructuredChatOutputParserWithRetries.from_llm(llm=self.llm)
-        except Exception as e:
-            logging.error(f"Could not create output parser: {e}")
-            logging.warning("Falling back to default output parser")
-            output_parser = StructuredChatOutputParserWithRetries()
-
-        logging.debug("Setting agent kwargs")
-        agent_kwargs = {
-            "suffix": suffix,
-            "format_instructions": format_instructions,
-            "output_parser": output_parser,
-            "input_variables": [
-                "input",
-                "loaded_documents",
-                "chat_history",
-                "agent_scratchpad",
-                "system_information",
-            ],
-            "verbose": True,
-        }
-
-        logging.debug(f"Creating agent with kwargs: {agent_kwargs}")
-        agent = initialize_agent(
-            tools=self.get_enabled_tools(),
-            llm=self.llm,
-            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True,
-            human_message_template=human_message_template,
-            memory=memory,
-            agent_kwargs=agent_kwargs,
-            max_execution_time=agent_timeout,
-            early_stopping_method="generate",  # try to generate a response if it times out
-        )
-
-        return agent
+        return agent_executor    
 
     def generate_detailed_document_chunk_summary(
         self,
@@ -283,16 +226,17 @@ class RetrievalAugmentedGenerationAI:
             interaction_manager=self.interaction_manager,
             llm=self.llm
         )
+        self.weather_tool = WeatherTool()
 
         tools = [
             {
-                "name": "LLM Query Tool",
+                "name": "Query LLM",
                 "about": "Uses a conversational LLM as a tool to answer a query.",
                 "enabled": True,
                 "is_document_related": False,
                 "tool": GenericTool(
-                    description="Uses a conversational LLM as a tool to answer a query.",
-                    additional_instructions="This is useful for when you want to just generate a response from an LLM with the given query, such as when you have gathered enough data and would like to combine it into an answer for the user.  This tool is also useful for when you just want to answer a general question that does not involve any documents.",
+                    description="Uses a conversational LLM as a tool.",
+                    additional_instructions="This is useful for when you want to generate a response from data you have gathered, such as after searching for various topics, or taking information from disparate sources in order to combine it into an answer for the user.  This tool is also useful for when you just want to respond to general conversation.  Pass any additional context for the query as related_context.",
                     function=self.llm_tool.query_llm,
                 ),
             },
@@ -454,6 +398,50 @@ class RetrievalAugmentedGenerationAI:
                     function=self.spreadsheet_tool.query_spreadsheet,
                 ),
             },
+            {
+                "name": "Weather",
+                "about": "Queries the weather at a given location.",
+                "enabled": True,
+                "is_document_related": False,
+                "tool": GenericTool(
+                    description="Queries the weather at a given location.",
+                    additional_instructions="Location is a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. 'Phoenix, AZ'. Date is optional, and should be a string ('%Y-%m-%d') representing the date to get the weather for, e.g. '2023-4-15'.  If no date is provided, the weather for the current date will be returned.",
+                    function=self.weather_tool.get_weather
+                ),
+            },
+            {
+                "name": "Time",
+                "about": "Get the current time in the specified IANA time zone.",
+                "enabled": True,
+                "is_document_related": False,
+                "tool": GenericTool(
+                    description="Get the current time in the specified IANA time zone.",
+                    additional_instructions="current_time_zone (str): The IANA time zone to get the current time in, for example: 'America/New_York'.",
+                    function=TimeTool().get_time
+                ),
+            },            
+            {
+                "name": "Search News",
+                "about": "Get news headlines and article URLs for a search query.",
+                "enabled": True,
+                "is_document_related": False,
+                "tool": GenericTool(
+                    description="Get a list of news headlines and article URLs for a specified term.",
+                    additional_instructions="Always return the Headline, whatever summary there is, the source, and the URL.",
+                    function=GNewsTool().get_news
+                ),
+            },          
+            {
+                "name": "Top News Headlines",
+                "about": "Gets the top news headlines and article URLs.",
+                "enabled": True,
+                "is_document_related": False,
+                "tool": GenericTool(
+                    description="Get a list of headlines and article URLs for the top news headlines.",
+                    additional_instructions="Always return the Headline, whatever summary there is, the source, and the URL.",
+                    function=GNewsTool().get_top_news
+                ),
+            },          
         ]
 
         return tools

@@ -43,6 +43,10 @@ class CodeTool:
             target_file_id: The id of the file to get the dependencies for.
         """
 
+        file_model = Documents().get_file(target_file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
+
         dependency_graph = self.get_dependency_graph(target_file_id)
 
         if len(dependency_graph.dependencies) == 0:
@@ -132,6 +136,9 @@ class CodeTool:
             return "target_file_id is required!  Check the loaded documents, and try again."
 
         documents = Documents()
+        file_model = documents.get_file(target_file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         try:
             document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
@@ -229,6 +236,8 @@ class CodeTool:
         documents = Documents()
 
         file_model = documents.get_file(target_file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         file_data = file_model.file_data.decode("utf-8")
         
@@ -262,6 +271,8 @@ class CodeTool:
             target_document_chunk = None            
             if target_file_id:
                 file = documents.get_file(target_file_id)
+                if file.file_classification.lower() != 'code':
+                    return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
                 document_chunks = documents.get_document_chunks_by_file_id(
                     target_file_id
@@ -338,6 +349,10 @@ class CodeTool:
         """
 
         documents_helper = Documents()
+        
+        file_model = documents_helper.get_file(file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 

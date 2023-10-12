@@ -15,7 +15,7 @@ class GNewsTool:
     
         headlines = self.parse_news(headlines)
 
-        return headlines
+        return "----".join(headlines)
 
     def get_top_news(self):
         """Use this to get a list of the top news story headlines and article URLs"""
@@ -24,7 +24,7 @@ class GNewsTool:
     
         headlines = self.parse_news(headlines)
 
-        return headlines
+        return "----".join(headlines)
 
     def get_full_article(self, url:str):
         """Use this to get the full article for the specified headline URL.  Note: This can only be used if you already have the article URL.
@@ -50,7 +50,7 @@ class GNewsTool:
 
         headlines = self.parse_news(headlines)
 
-        return headlines
+        return "----".join(headlines)
 
     def parse_news(self, news:list):
         """Parse the news list into a more readable format.

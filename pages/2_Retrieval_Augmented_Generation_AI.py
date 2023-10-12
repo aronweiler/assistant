@@ -116,7 +116,7 @@ class RagUI:
                             ui_shared.create_collection(
                                 st.session_state["new_collection_name"]
                             )
-                            st.experimental_rerun()
+                            st.rerun()
 
                     if "rag_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()

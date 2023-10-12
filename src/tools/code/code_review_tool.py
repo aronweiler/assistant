@@ -1,4 +1,3 @@
-
 import sys
 import os
 import logging
@@ -29,6 +28,8 @@ from src.tools.code.code_tool import CodeTool
 from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
 from src.integrations.gitlab.gitlab_file_retriever import GitlabFileRetriever
 
+from src.integrations.github.github_file_retriever import GitHubFileRetriever
+
 
 # import logging
 # import json
@@ -49,7 +50,7 @@ from langchain.agents import initialize_agent, AgentType
 
 from src.configuration.assistant_configuration import (
     # RetrievalAugmentedGenerationConfiguration,
-    ModelConfiguration
+    ModelConfiguration,
 )
 
 # from src.ai.interactions.interaction_manager import InteractionManager
@@ -57,6 +58,7 @@ from src.ai.llm_helper import get_llm, get_prompt
 from src.ai.system_info import get_system_information
 
 from src.tools.documents.document_tool import DocumentTool
+
 # from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 # from src.tools.code.code_tool import CodeTool
 
@@ -65,12 +67,10 @@ from src.tools.documents.document_tool import DocumentTool
 
 
 class CodeReviewTool:
+    source_control_to_file_retriever_map: dict = {"gitlab": GitlabFileRetriever, "github": GitHubFileRetriever}
+    source_control_to_issue_creator_map: dict = {"gitlab": GitlabIssueCreator, "github": None}
 
-    def __init__(
-        self,
-        configuration,
-        interaction_manager: InteractionManager
-    ):
+    def __init__(self, configuration, interaction_manager: InteractionManager):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
 
@@ -83,11 +83,10 @@ class CodeReviewTool:
         self.code_tool = CodeTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
-            llm=self.llm
+            llm=self.llm,
         )
 
         self.agent = self.create_agent()
-
 
     def create_agent(self, agent_timeout: int = 120):
         logging.debug("Setting human message template")
@@ -148,21 +147,19 @@ class CodeReviewTool:
         )
 
         return agent
-    
 
-    def ingest_source_code_file_from_url(
-        self,
-        url
-    ):
-        file_retriever = GitlabFileRetriever(
-            gitlab_url=os.getenv('GITLAB_URL'),
-            gitlab_pat=os.getenv('GITLAB_PAT')
+    def ingest_source_code_file_from_url(self, url):
+        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
+        file_retriever = self.source_control_to_file_retriever_map[source_control_provider.lower()]
+        if not file_retriever:
+            return f"Source control provider {source_control_provider} does not support file retrieval"
+
+        file_retriever = file_retriever(
+            source_control_url=os.getenv("source_control_url"),
+            source_control_pat=os.getenv("source_control_pat"),
         )
 
-        return file_retriever.retrieve_file_data(
-            url=url
-        )
-
+        return file_retriever.retrieve_file_data(url=url)
 
     def create_code_review_issue_tool(
         self,
@@ -170,7 +167,7 @@ class CodeReviewTool:
         ref: str,
         source_code_file_href: str,
         source_code_file_path: str,
-        review_data: dict
+        review_data: dict,
     ):
         """
         Creates an issue containing the code review for a single reviewed file,on the source code control system specified
@@ -179,9 +176,14 @@ class CodeReviewTool:
         #     source_code_file_data: A dictionary containing the project ID, file URL, file relative path, ref name, file contents
         #     review_data: A python dictionary containing the code review data to create the issue from
         """
-        issue_creator = GitlabIssueCreator(
-            gitlab_url=os.getenv('GITLAB_URL'),
-            gitlab_pat=os.getenv('GITLAB_PAT')
+        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
+        issue_creator = self.source_control_to_issue_creator_map[source_control_provider.lower()]
+        if not issue_creator:
+            return f"Source control provider {source_control_provider} does not support issue creation"
+        
+        issue_creator = issue_creator(
+            source_control_url=os.getenv("source_control_url"),
+            source_control_pat=os.getenv("source_control_pat"),
         )
 
         result = issue_creator.generate_issue(
@@ -194,16 +196,8 @@ class CodeReviewTool:
 
         return f"Successfully created issue at {result['url']}"
 
-
     def get_tools(self) -> list[StructuredTool]:
-
-        # code_tool = CodeTool()
-        # document_tool = DocumentTool()
-        
         return [
-            # StructuredTool.from_function(
-            #     func=document_tool.summarize_entire_document,
-            # ),
             StructuredTool.from_function(
                 func=self.code_tool.code_details,
             ),
@@ -215,7 +209,6 @@ class CodeReviewTool:
             ),
         ]
 
-
     def conduct_code_review_from_url(self, target_url: str):
         """
         Conducts a code review for the specified file from a given target URL
@@ -223,14 +216,14 @@ class CodeReviewTool:
         Args:
             target_url: The URL of the file to code review
         """
-        file_info = self.ingest_source_code_file_from_url(
-            url=target_url
-        )
+        file_info = self.ingest_source_code_file_from_url(url=target_url)
 
-        file_data = file_info['file_content']
+        file_data = file_info["file_content"]
 
         # TODO combine with other conduct code review function for common pieces
-        max_code_review_token_count = self.interaction_manager.tool_kwargs.get('max_code_review_token_count', 5000)
+        max_code_review_token_count = self.interaction_manager.tool_kwargs.get(
+            "max_code_review_token_count", 5000
+        )
         if num_tokens_from_string(file_data) > max_code_review_token_count:
             return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
 
@@ -239,10 +232,10 @@ class CodeReviewTool:
             code[line_num] = f"{line_num}: {line}"
 
         code_metadata = {
-            'project_id': file_info['project_id'],
-            'url': file_info['url'],
-            'ref': file_info['ref'],
-            'file_path': file_info['file_path'],
+            "project_id": file_info["project_id"],
+            "url": file_info["url"],
+            "ref": file_info["ref"],
+            "file_path": file_info["file_path"],
         }
 
         code_review_prompt = get_prompt(
@@ -251,23 +244,12 @@ class CodeReviewTool:
             code_summary="Not Available",
             code_dependencies="Not Available",
             code=code,
-            code_metadata=code_metadata
+            code_metadata=code_metadata,
         )
 
-        logging.debug("Running agent")
-        results = self.agent.run(
-            input=code_review_prompt,
-            system_information=get_system_information(
-                self.interaction_manager.user_location
-            ),
-            user_name=self.interaction_manager.user_name,
-            user_email=self.interaction_manager.user_email,
-            loaded_documents="",
-        )
-        logging.debug("Agent finished running")
+        results = self.llm.predict(code_review_prompt)
 
         return results
-
 
     def conduct_code_review_from_file_id(self, target_file_id):
         """
@@ -283,10 +265,15 @@ class CodeReviewTool:
             file_id=target_file_id,
         )
 
+        if file_model.file_classification.lower() != "code":
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
+
         # Convert file data bytes to string
         file_data = file_model.file_data.decode("utf-8")
 
-        max_code_review_token_count = self.interaction_manager.tool_kwargs.get('max_code_review_token_count', 5000)
+        max_code_review_token_count = self.interaction_manager.tool_kwargs.get(
+            "max_code_review_token_count", 5000
+        )
         if num_tokens_from_string(file_data) > max_code_review_token_count:
             return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
 
@@ -301,12 +288,10 @@ class CodeReviewTool:
         document_tool = DocumentTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
-            llm=self.llm
+            llm=self.llm,
         )
 
-        summary = document_tool.summarize_entire_document(
-            target_file_id=target_file_id
-        )
+        summary = document_tool.summarize_entire_document(target_file_id=target_file_id)
 
         code_review_prompt = get_prompt(
             self.configuration.model_configuration.llm_type, "CODE_REVIEW_TEMPLATE"
@@ -314,9 +299,7 @@ class CodeReviewTool:
             code_summary=summary,
             code_dependencies=dependencies,
             code=code,
-            code_metadata={
-                'filename': file_model.file_name
-            }
+            code_metadata={"filename": file_model.file_name},
         )
 
         logging.debug("Running agent")
@@ -335,5 +318,3 @@ class CodeReviewTool:
         logging.debug("Agent finished running")
 
         return results
-
-

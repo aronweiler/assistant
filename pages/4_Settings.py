@@ -5,13 +5,16 @@ import os
 def settings_page():
     st.title("Settings")
 
+    source_control_options = ["GitLab", "GitHub"]
+    source_control_provider = st.selectbox("Source Control Provider", source_control_options, index=source_control_options.index(os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")))
+
     # Source Code URL
-    source_code_url = st.text_input("Source Code URL", os.getenv("GITLAB_URL"))
+    source_code_url = st.text_input("Source Code URL", os.getenv("SOURCE_CONTROL_URL"))
 
     # Source Code Personal Access Token (PAT)
-    pat = st.text_input("Source Code Personal Access Token (PAT)", type="password", value=os.getenv("GITLAB_PAT"))
+    pat = st.text_input("Source Code Personal Access Token (PAT)", type="password", value=os.getenv("SOURCE_CONTROL_PAT"))
     
-    # Debug Logging toggle
+    # Debug Logging 
     logging_options = ["DEBUG", "INFO", "WARN"]
     debug_logging = st.selectbox("Logging Level", logging_options, index=logging_options.index(os.getenv("LOGGING_LEVEL", "INFO")))
 
@@ -22,11 +25,13 @@ def settings_page():
     # Save button
     if st.button("Save Settings"):
         # Set the environment variables
+        os.environ["SOURCE_CONTROL_PROVIDER"] = source_control_provider
+
         if source_code_url:
-            os.environ["GITLAB_URL"] = source_code_url
+            os.environ["SOURCE_CONTROL_URL"] = source_code_url
         
         if pat:
-            os.environ["GITLAB_PAT"] = pat
+            os.environ["SOURCE_CONTROL_PAT"] = pat            
 
         os.environ["LOGGING_LEVEL"] = str(debug_logging)
         logging.basicConfig(level=debug_logging)
@@ -35,8 +40,9 @@ def settings_page():
 
         # Process and save the settings here (e.g., to a file or database)
         # For demonstration purposes, we'll just print them
-        print(f"GITLAB_URL: {os.getenv('GITLAB_URL', 'NOT SET')}")
-        print(f"GITLAB_PAT: {os.getenv('GITLAB_PAT', 'NOT SET')}")
+        print(f"SOURCE_CONTROL_PROVIDER: {os.getenv('SOURCE_CONTROL_PROVIDER', 'NOT SET')}")
+        print(f"SOURCE_CONTROL_URL: {os.getenv('SOURCE_CONTROL_URL', 'NOT SET')}")
+        print(f"SOURCE_CONTROL_PAT: {os.getenv('SOURCE_CONTROL_PAT', 'NOT SET')}")
         print(f"LOGGING_LEVEL: {os.getenv('LOGGING_LEVEL', 'NOT SET')}")
         #print(f"LLM_MODEL: {os.getenv('LLM_MODEL', 'NOT SET')}")
 
