@@ -20,7 +20,9 @@ class LLMTool:
         self.llm = llm
         self.llm_callbacks = llm_callbacks
 
-        memory = ReadOnlySharedMemory(memory=self.interaction_manager.conversation_token_buffer_memory)
+        memory = ReadOnlySharedMemory(
+            memory=self.interaction_manager.conversation_token_buffer_memory
+        )
 
         self.chain = LLMChain(
             llm=self.llm,
@@ -30,17 +32,17 @@ class LLMTool:
             memory=memory,
         )
 
-    def query_llm(self, query: str, related_context: str = None):
+    def analyze_with_llm(self, query: str, data_to_analyze: str):
         """Uses an LLM to answer a query.  This is useful for when you want to just generate a response from an LLM with the given query."""
         return self.chain.run(
-            system_prompt="You are a friendly AI agent who's purpose it is to answer the user's query.  Do your best to answer given the available data, and your own knowledge.  If you don't know the answer, don't make anything up, just say 'I don't know'.",
+            system_prompt=f"You are a friendly AI agent who's purpose it is to answer the user's query. Do your best to answer given the available data, and your own knowledge.  If you don't know the answer, don't make anything up, just say you don't know.",
             input=query,
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
             system_information=get_system_information(
                 self.interaction_manager.user_location
             ),
-            context=related_context,
+            context=data_to_analyze,
             loaded_documents="\n".join(
                 self.interaction_manager.get_loaded_documents_for_display()
             ),
