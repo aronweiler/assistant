@@ -9,10 +9,13 @@ from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.interactions import Interactions
 from src.db.models.conversations import Conversations
+from langchain.callbacks.streamlit import StreamlitCallbackHandler
+from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandler
 
 from src.utilities.hash_utilities import calculate_sha256
 
 from src.documents.document_loader import load_and_split_documents
+from streamlit_extras.stylable_container import stylable_container
 
 
 def delete_conversation_item(id: int):
@@ -631,3 +634,203 @@ def create_collection_selectbox(col1, ai):
         format_func=lambda x: x.split(":")[1],
         on_change=on_change_collection,
     )
+
+
+def refresh_messages_session_state(ai_instance):
+    """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
+
+    buffer_messages = (
+        ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+    )
+
+    print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
+
+    st.session_state["messages"] = []
+
+    for message in buffer_messages:
+        if message.type == "human":
+            st.session_state["messages"].append(
+                {
+                    "role": "user",
+                    "content": message.content,
+                    "avatar": "🗣️",
+                    "id": message.additional_kwargs["id"],
+                }
+            )
+        else:
+            st.session_state["messages"].append(
+                {
+                    "role": "assistant",
+                    "content": message.content,
+                    "avatar": "🤖",
+                    "id": message.additional_kwargs["id"],
+                }
+            )
+
+
+def show_old_messages(ai_instance):
+    refresh_messages_session_state(ai_instance)
+
+    for message in st.session_state["messages"]:
+        with st.chat_message(message["role"], avatar=message["avatar"]):
+            col1, col2, col3 = st.columns([0.98, 0.1, 0.1])
+
+            if (
+                f"confirm_conversation_item_delete_{message['id']}"
+                not in st.session_state
+            ):
+                st.session_state[
+                    f"confirm_conversation_item_delete_{message['id']}"
+                ] = False
+
+            if (
+                st.session_state[f"confirm_conversation_item_delete_{message['id']}"]
+                == False
+            ):
+                col3.button(
+                    "🗑️",
+                    help="Delete this conversation entry?",
+                    on_click=set_confirm_conversation_item_delete,
+                    kwargs={"val": True, "id": message["id"]},
+                    key=str(uuid.uuid4()),
+                )
+            else:
+                col2.button(
+                    "✅",
+                    help="Click to confirm delete",
+                    key=str(uuid.uuid4()),
+                    on_click=delete_conversation_item,
+                    kwargs={"id": message["id"]},
+                )
+
+                col3.button(
+                    "❌",
+                    help="Click to cancel delete",
+                    on_click=set_confirm_conversation_item_delete,
+                    kwargs={"val": False, "id": message["id"]},
+                    key=str(uuid.uuid4()),
+                )
+
+            col1.markdown(message["content"])
+
+
+def handle_chat(main_window_container, ai_instance):
+    with main_window_container.container():
+        # Get the AI instance from session state
+        if not ai_instance:
+            st.warning("No AI instance")
+            st.stop()
+
+        show_old_messages(ai_instance)
+
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+        st.write("")
+
+    # Get user input (must be outside of the container)
+    prompt = st.chat_input("Enter your message here", key="chat_input")
+
+    # Write some css out to make the list of tools appear below the chat input
+    css_style = """{
+    position: fixed;
+    bottom: 10px;
+    right: 80px; 
+    z-index: 9999;
+    max-width: none;
+}
+"""
+
+    with stylable_container(key="enabled_tools_container", css_styles=css_style):
+        col1, col2, col3 = st.columns([0.06, 0.15, 0.7])
+
+        col1.markdown(
+            f'<div align="left"><b>AI Mode:</b></div>', unsafe_allow_html=True
+        )
+
+        def set_mode():
+            mode = st.session_state["mode"]
+            ai_instance.set_mode(mode)
+
+        col2.selectbox(
+            label="Mode",
+            label_visibility="collapsed",
+            options=["Auto", "Conversation Only"],
+            key="mode",
+            help="Select the mode to use. 'Auto' will automatically switch between 'Conversation Only' and 'Tool Using AI' based on the user's input.",
+            on_change=set_mode,
+        )
+
+    if prompt:
+        logging.debug(f"User input: {prompt}")
+
+        with main_window_container.container():
+            st.chat_message("user", avatar="👤").markdown(prompt)
+
+            with st.chat_message("assistant", avatar="🤖"):
+                thought_container = st.container()
+                llm_container = st.container().empty()
+                llm_callback = StreamingOnlyCallbackHandler(llm_container)
+                agent_callbacks = []
+                llm_callbacks = []
+                # callbacks.append(results_callback)
+                agent_callbacks.append(
+                    StreamlitCallbackHandler(
+                        parent_container=thought_container,
+                        expand_new_thoughts=True,
+                        collapse_completed_thoughts=True,
+                    )
+                )
+                llm_callbacks.append(llm_callback)
+
+                collection_id = get_selected_collection_id()
+
+                logging.debug(f"Collection ID: {collection_id}")
+
+                kwargs = {
+                    "search_top_k": int(st.session_state["search_top_k"])
+                    if "search_top_k" in st.session_state
+                    else 5,
+                    "search_method": st.session_state["search_method"]
+                    if "search_method" in st.session_state
+                    else "Similarity",
+                    "use_pandas": st.session_state["use_pandas"]
+                    if "use_pandas" in st.session_state
+                    else True,
+                    "override_file": st.session_state["override_file"].split(":")[0]
+                    if "override_file" in st.session_state
+                    and st.session_state["override_file"].split(":")[0] != "0"
+                    else None,
+                    "agent_timeout": int(st.session_state["agent_timeout"])
+                    if "agent_timeout" in st.session_state
+                    else 300,
+                    "summarization_strategy": st.session_state["summarization_strategy"]
+                    if "summarization_strategy" in st.session_state
+                    else "map_reduce",
+                    "re_run_user_query": st.session_state["re_run_user_query"]
+                    if "re_run_user_query" in st.session_state
+                    else True,
+                }
+                logging.debug(f"kwargs: {kwargs}")
+
+                try:
+                    result = ai_instance.query(
+                        query=prompt,
+                        collection_id=collection_id if collection_id != -1 else None,
+                        agent_callbacks=agent_callbacks,
+                        llm_callbacks=llm_callbacks,
+                        kwargs=kwargs,
+                    )
+                except Exception as e:
+                    logging.error(f"Error querying AI: {e}")
+                    result = "Error querying AI, please try again (and see the logs)."
+
+                logging.debug(f"Result: {result}")
+
+                llm_container.markdown(result)
+
+                # TODO: Put this thought container text into the DB (it provides great context!)
+                # logging.debug(
+                #     f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
+                # )
