@@ -23,9 +23,9 @@ from src.ai.agents.general.generic_tools_agent import GenericTool
 
 class ToolManager:
     tools = {
-        "query_llm": {
-            "display_name": "Query LLM",
-            "help_text": "Uses a conversational LLM as a tool to answer a query.",
+        "analyze_with_llm": {
+            "display_name": "Analyze Results",
+            "help_text": "Uses an LLM to analyze results of another query or queries",
             "enabled_by_default": True,
             "requires_documents": False,
         },
@@ -133,7 +133,7 @@ class ToolManager:
         },
     }
 
-    def get_enabled_tools(self):
+    def get_enabled_tools(self) -> list[GenericTool]:
         # Filter the list by tools that are enabled in the environment (or their defaults)
         tools_that_should_be_enabled = [
             tool for tool in self.tools if self.is_tool_enabled(tool)
@@ -142,13 +142,13 @@ class ToolManager:
         # Now filter them down based on document-related tools, and if there are documents loaded
         if self.interaction_manager.get_loaded_documents_count() <= 0:
             tools_that_should_be_enabled = [
-                tool
+                self.tools[tool]["tool"]
                 for tool in tools_that_should_be_enabled
                 if not self.tools[tool]["requires_documents"]
             ]
         else:
             tools_that_should_be_enabled = [
-                tool for tool in tools_that_should_be_enabled
+                self.tools[tool]["tool"] for tool in tools_that_should_be_enabled
             ]
 
         return tools_that_should_be_enabled
@@ -225,9 +225,9 @@ class ToolManager:
 
         generic_tools = [
             GenericTool(
-                description="Uses a conversational LLM as a tool.",
-                additional_instructions="This is useful for when you want to generate a response from data you have gathered, such as after searching for various topics, or taking information from disparate sources in order to combine it into an answer for the user.  This tool is also useful for when you just want to respond to general conversation.  Pass any additional context for the query as related_context.",
-                function=llm_tool.query_llm,
+                description="Uses an LLM to analyze data.",
+                additional_instructions="Best used at the end of a chain of tools.  This tool is useful for when you want to generate a response from data you have gathered, such as after searching for various topics, or taking information from disparate sources in order to combine it into an answer for the user.",
+                function=llm_tool.analyze_with_llm,
             ),
             GenericTool(
                 description="Searches the loaded documents for a query.",
