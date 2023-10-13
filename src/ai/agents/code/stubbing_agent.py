@@ -36,7 +36,7 @@ class Stubber:
 
         tools = [
             StructuredTool.from_function(
-                func=code_tool.code_structure, callbacks=self.callbacks
+                func=code_tool.get_code_structure, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
                 func=code_tool.create_stub_code, callbacks=self.callbacks
