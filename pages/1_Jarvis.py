@@ -151,7 +151,7 @@ class RagUI:
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
-                                    value=5,
+                                    value=10,
                                 )
                                 st.selectbox(
                                     "Summarization strategy",
