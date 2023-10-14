@@ -178,7 +178,7 @@ class DocumentTool:
         
         return f"--- SUMMARY ---\n{summary}\n--- SUMMARY ---"
 
-    def summarize_topic(self, query: str, original_user_query: str):
+    def summarize_search_topic(self, query: str, original_user_query: str):
         """Useful for getting a summary of a topic or query from the user.
         This looks at all loaded documents for the topic specified by the query and return a summary of that topic.
 

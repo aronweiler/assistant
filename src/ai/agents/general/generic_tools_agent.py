@@ -117,6 +117,12 @@ class GenericToolsAgent(BaseMultiActionAgent):
             self.step_plans = self.parse_json(self.llm.predict(plan_steps_prompt))
             # Make sure we're starting at the beginning
             self.step_index = 0
+            
+            if "final_answer" in self.step_plans:
+                return AgentFinish(
+                    return_values={"output": self.step_plans["final_answer"]},
+                    log="Agent finished, answering directly.",
+                )
 
         # If we still have steps to perform
         if self.step_index < len(self.step_plans["steps"]):

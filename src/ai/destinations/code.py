@@ -124,7 +124,7 @@ class CodeAI(DestinationBase):
                 func=document_tool.search_loaded_documents, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
-                func=document_tool.summarize_topic,
+                func=document_tool.summarize_search_topic,
                 callbacks=[self.agent_callback],
                 return_direct=True,
             ),
@@ -134,10 +134,10 @@ class CodeAI(DestinationBase):
                 return_direct=True,
             ),
             StructuredTool.from_function(
-                func=code_tool.code_details, callbacks=[self.agent_callback]
+                func=code_tool.get_code_details, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
-                func=code_tool.code_structure, callbacks=[self.agent_callback]
+                func=code_tool.get_code_structure, callbacks=[self.agent_callback]
             ),
             StructuredTool.from_function(
                 func=code_tool.create_stub_code,

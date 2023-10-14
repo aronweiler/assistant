@@ -39,7 +39,7 @@ class CodeReviewer:
 
         tools = [
             StructuredTool.from_function(
-                func=code_tool.code_structure, callbacks=self.callbacks
+                func=code_tool.get_code_structure, callbacks=self.callbacks
             ),
             StructuredTool.from_function(
                 func=code_tool.get_dependency_graph, callbacks=self.callbacks
@@ -91,7 +91,7 @@ class CodeReviewAgent(BaseMultiActionAgent):
             # Get the code structure for the file
             actions.append(
                 AgentAction(
-                    tool="code_structure",
+                    tool="get_code_structure",
                     tool_input={"target_file_id": file_id},
                     log=f"Getting the code structure for: {file_id}",
                 )
@@ -110,24 +110,24 @@ class CodeReviewAgent(BaseMultiActionAgent):
 
         elif len(intermediate_steps) == 2:
             # We have the code structure and the dependency graph only
-            code_structure = intermediate_steps[-2][1]
+            get_code_structure = intermediate_steps[-2][1]
             code_dependency: CodeDependency = intermediate_steps[-1][1]
 
             # Call out to a function that prompts the llm to begin the code review
             # Use the code structure and the dependencies in the prompt asking where to start the code review
             # Utilize the same tool prompt / format as each of the code review chunks
             # The LLM should look at the available code, and then request details on a specific part of the code
-            # E.g. "What is the purpose of the function: {function_name}?" Which would be translated into a code_details tool call
+            # E.g. "What is the purpose of the function: {function_name}?" Which would be translated into a get_code_details tool call
 
-        elif intermediate_steps[-1][0].tool == "code_details":
+        elif intermediate_steps[-1][0].tool == "get_code_details":
             # The LLM requested this chunk of code
-            code_details = intermediate_steps[-1][1]
+            get_code_details = intermediate_steps[-1][1]
 
-            # This is where the results of the code_details tool call would be used to prompt the LLM to review the code
+            # This is where the results of the get_code_details tool call would be used to prompt the LLM to review the code
             # or to ask for more details about the code, or ultimately end the code review.
             # Each time the LLM is given code, we should also have it output the review of the code if possible-
             # e.g. if the code is a simple function, only return the review- no need to ask for more details on anything.
-            # The results of the code_details call that got us here should be inserted into the existing prompt as "code"-
+            # The results of the get_code_details call that got us here should be inserted into the existing prompt as "code"-
             # but the LLM needs to be able to tell if this code is given to provide context to something else its reviewing,
             # or if this code is the code to review.
 
@@ -136,7 +136,7 @@ class CodeReviewAgent(BaseMultiActionAgent):
             # as a part of the code review for the file.
 
             # TODO: Define SnippetCodeReview- should be a class that stores the code snippet, the review, and generally the context of the review
-            code_details: SnippetCodeReview = intermediate_steps[-1][1]
+            get_code_details: SnippetCodeReview = intermediate_steps[-1][1]
 
         return AgentFinish({"output": "done"}, log="Finished stubbing")
 

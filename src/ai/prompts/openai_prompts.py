@@ -262,7 +262,7 @@ System information:
 {system_information}
 Loaded documents:
 {loaded_documents}
-Possibly related conversation context:
+Additional context:
 {context}
 Current conversation:
 {chat_history}
@@ -913,7 +913,7 @@ Here is some helpful system information:
 
 PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """{system_prompt}
 
-You have access the following tools that you can use by returning the appropriately formatted JSON. Don't make up tools, only ever use the tools that are listed here. If a query does not require the use of a tool (such as when you know the answer, or the answer exists in this context), you can return an answer to the user instead.  If there are no tools available, or if none of the available tools suit your purpose, you should answer the user instead of using a tool.
+You have access the following tools that you can use by returning the appropriately formatted JSON. Don't make up tools, only ever use the tools that are listed here. If a query does not require the use of a tool (such as when it is conversational, or you know the answer), you can return a final_answer to the user instead.  If there are no tools available, or if none of the available tools suit your purpose, you should give a final_answer instead of using a tool that does not fit the purpose.
 
 --- AVAILABLE TOOLS ---
 {available_tool_descriptions}
@@ -929,13 +929,7 @@ Any previous conversation with the user is contained here. The chat history may 
 {chat_history}
 --- CHAT HISTORY ---
 
---- USER QUERY ---
-{user_query}
---- USER QUERY ---
-
-Read the user's query very carefully. I need you to help me to decompose the user's query into a plan that contains the appropriate actions to take in order to answer the user's query.
-
-Please decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.  Make sure that each step contains enough information to be acted upon on it's own.
+When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.  Make sure that each step contains enough information to be acted upon on it's own.  Do this by resolving coreferences, and providing any additional context that may be needed to answer the user's query in each step.
 
 All responses are JSON blobs with the following format:
 ```json
@@ -958,15 +952,20 @@ For example, if the user's query is "What's the weather like here?", you might s
 
 Please take note of the "relies_on" field in the JSON output.  This field is used to indicate which previous steps this step relies on.  If a step does not rely on any previous steps, this field should be an empty list.  If a step relies on a previous step, the "relies_on" field should contain a list of the step numbers that this step relies on.  For example, if step 3 relies on steps 1 and 2, the "relies_on" field for step 3 should be [1, 2].
 
-If you already know the answer to the user's query, or you do not have the appropriate tools to create any steps without making up new tools, you should respond with the following JSON blob:
+If you can answer the user's query directly, or the user's query is just conversational in nature, you should respond with the following JSON blob:
 ```json
 {{
-  "final_answer": "<<your complete answer here, or an explanation as to why you can't answer the query>>"
+  "final_answer": "<<your complete answer to the query, or your response to a conversation>>"
 }}
 ```
-Only reply with a final answer if you can completely answer the user's query, or if there is no way you can plan how to answer it using the tools provided.
 
-AI: Sure! Here is my response (in JSON format) that are all using the various tools you provided (I am definitely not making up tools!) to me (or answering directly), and that can be used to answer the user's query:
+Now take a deep breath, and read the user's query very carefully. I need you to decide whether to answer the user's query directly, or decompose a list of steps.
+
+--- USER QUERY ---
+{user_query}
+--- USER QUERY ---
+
+AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format):
 """
 
 TOOL_USE_TEMPLATE = """{system_prompt}
