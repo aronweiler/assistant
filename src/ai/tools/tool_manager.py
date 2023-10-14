@@ -231,7 +231,8 @@ class ToolManager:
             ),
             GenericTool(
                 description="Searches the loaded documents for a query.",
-                additional_instructions="Searches the loaded files (or the specified file when target_file_id is set) for the given query. The target_file_id argument is optional, and can be used to search a specific file if the user has specified one. IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.",
+                additional_instructions="Searches the loaded files (or the specified file when target_file_id is set) for the given query. The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.",
+                #The `search_type` parameter tells the tool what kind of search to perform.  You can perform a similarity search (default, 'Similarity'), which looks for similarity in the meaning of phrases.  Or it can perform a keyword search ('Keyword'), which matches a keyword or phrase.  Think carefully about which search_type to use.
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_loaded_documents,
             ),

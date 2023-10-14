@@ -231,9 +231,10 @@ class Documents(VectorDatabase):
 
             if search_type == SearchType.Keyword:
                 # TODO: Do better key word search
-                query = query.filter(
-                    Document.document_text.contains(search_query)
-                ).limit(top_k)
+                query = query.filter(func.lower(Document.document_text).contains(func.lower(search_query)))
+                # query = query.filter(
+                #     Document.document_text.ilike(search_query) # Would rather use this, but can't get it working atm
+                # ).limit(top_k)
 
                 return [
                     DocumentModel.from_database_model(d) for d in query.all()[:top_k]
@@ -286,11 +287,11 @@ class Documents(VectorDatabase):
             return sorted_dict_list
 
         text_embeddings_dict = [
-            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1]}
+            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1], "l2_distance": d[2]}
             for d in text_embedding_results
         ]
         text_summary_embeddings_dict = [
-            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1]}
+            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1], "l2_distance": d[2]}
             for d in text_summary_embedding_results
         ]
 
@@ -319,7 +320,7 @@ class Documents(VectorDatabase):
         )
 
         # Now the list contains a sorted and de-duped combination of the two lists, but it may be longer than the top_k
-        # Return the list limited to the original top_k
+        # Return the list limited to the original top_k        
         return combined_list[:top_k]
 
     def _get_nearest_neighbors(
@@ -333,6 +334,7 @@ class Documents(VectorDatabase):
     ):
         emb_val = cast(embedding, pgvector.sqlalchemy.Vector)
         cosine_distance = func.cosine_distance(embedding_prop, emb_val)
+        l2_distance = func.l2_distance(embedding_prop, emb_val)
 
         statement = (
             select(Document)
@@ -343,6 +345,7 @@ class Documents(VectorDatabase):
             .order_by(cosine_distance)
             .limit(top_k)
             .add_columns(cosine_distance)
+            .add_columns(l2_distance)
         )
         result = session.execute(statement)
 
@@ -353,13 +356,25 @@ class Documents(VectorDatabase):
 if __name__ == "__main__":
     document_helper = Documents()
 
-    documents = document_helper.search_document_embeddings(
-        search_query="sets it's speed to 100",
+    similarity_documents = document_helper.search_document_embeddings(
+        search_query="hello",
         search_type=SearchType.Similarity,
-        collection_id=3,
-        top_k=10,
+        collection_id=6,
+        top_k=5,
     )
 
-    for doc in documents:
-        print(doc.document_text)
+    for doc in similarity_documents:
+        print(f"Chunk: {doc.id}, Doc: {doc.document_name}")
+        print("---------------")
+
+
+    keyword_documents = document_helper.search_document_embeddings(
+        search_query="hello",
+        search_type=SearchType.Keyword,
+        collection_id=6,
+        top_k=5,
+    )
+
+    for doc in keyword_documents:
+        print(f"KEYWORD: Chunk: {doc.id}, Doc: {doc.document_name}")
         print("---------------")

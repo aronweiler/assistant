@@ -1014,7 +1014,60 @@ The loaded documents and the helpful context may contain additional information 
 The following was the original user query:
 {user_query}
 
+Take a deep breath, and think this through.  Make sure to resolve any coreferences in the steps, so that each step can be interpreted on its own.
+
 AI: Sure! Here is my response (in JSON format):
+"""
+
+TOOL_USE_RETRY_TEMPLATE = """{system_prompt}
+
+I'm giving you a very important job. Your job is to construct a JSON blob that represents a tool call given the following information.
+
+You have access to the following loaded documents (take note of the ID of each document):
+--- LOADED DOCUMENTS ---
+{loaded_documents}
+--- LOADED DOCUMENTS ---
+
+Please construct a modified tool call that uses the '{tool_name}' tool, but with different arguments, or rephrased content.  
+The '{tool_name}' tool has the following details:
+--- TOOL DETAILS ---
+{tool_details}
+--- TOOL DETAILS ---
+
+Pay close attention to the required arguments for this tool, and make sure to include them in the JSON output.
+
+The goal is to attempt to retry the previous failed tool calls with a modified tool call that uses the '{tool_name}' tool, but with different arguments, or rephrased content, in order to get better results.  
+
+Your output should follow this JSON format:
+
+```json
+{{
+  "tool_use_description": "<<Describe the use of this tool>>", "tool": "<<tool name>>", "tool_args": {{"<<arg 1 name>>": "<<arg 1 value>>", "<<arg 2 name>>": "<<arg 2 value>>", ...}}
+}}
+```
+
+For example, if the tool is 'get_weather', and the tool arguments are 'location' and 'date', your response would look something like this:
+```json
+{{
+  "step_description": "Get the weather at the user's location", "tool": "get_weather", "tool_args": {{"location": "New York, NY", "date": "2021-01-01"}}
+}}
+```
+
+The loaded documents and the previous tool call contain additional information that should inform your tool use.  For example, if the tool arguments require a file ID, then you should use the file ID of a loaded document. The previous tool call contains information on how the tool was called the last time- use this to make sure you call the tool in a different manner this time.
+
+The following is the original user query we're trying to answer, use this to inform your tool use:
+{user_query}
+
+Here are the previous tool calls that were made:
+----
+{previous_tool_attempts}
+----
+
+Take a deep breath and examine the previous tool calls carefully.  
+
+Think about the previous tool calls, and construct a new tool call that attempts to answer the user's query, but with different or rephrased arguments than the previous tool calls.  Be creative in your approach, and try to think of a different way to use the tool to answer the user's query.
+
+AI: Sure! I will think about this carefully.  Here is my response containing a modified tool call that is different than the previous tool calls (in JSON format):
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have been working on a user's query.  The other AIs have gathered enough information for you to be able to answer the query.  Now, I would like you to answer the user's query for me using the information I provide here.
@@ -1037,7 +1090,7 @@ If you cannot answer the user's query, please return a JSON blob with the follow
 If you can answer the user's query, please return a JSON blob with the following format:
 ```json
 {{
-  "answer": "<<markdown formatted complete answer here (remember to escape anything required to be used in a JSON string)>>"
+  "answer": "<<markdown formatted complete answer here (remember to escape anything required to be used in a JSON string).  take a deep breath here and make sure you carefully enter all of the details from the helpful context that make up this answer.  Be very detail oriented, and quote verbatim where possible.  If there are sources in the helpful context, make sure to include them here.>>"
 }}
 ```
 
