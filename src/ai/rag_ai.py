@@ -193,7 +193,7 @@ class RetrievalAugmentedGenerationAI:
             logging.debug(f"Generated summary: {interaction_summary}")
             
     def set_mode(self, mode: str):        
-        if mode == "Conversation Only":
+        if mode.lower().startswith("conversation"):
             # Use the LLM with a chat prompt
             self.mode = "Conversation"
         else:    

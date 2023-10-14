@@ -2,6 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Discord Bot",
+      "type": "python",
+      "request": "launch",
+      "program": "src/discord/bot.py",
+      "args": [
+        "--logging_level=DEBUG"
+      ],
+      //"cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "OpenAI Jarvis",
       "type": "python",
       "request": "launch",
