@@ -919,12 +919,50 @@ AI: Sure, here are the key interfaces (in JSON format):
 
 CODE_REVIEW_TEMPLATE = """You have been tasked with conducting a code review to identify security vulnerabilities, performance bottlenecks, memory management concerns, and code correctness problems with the following code.
 
-Please focus on the following aspects:
+The following guidelines should be followed when conducting the code review:
+--- CODE REVIEW GUIDELINES ---
+- Security: 
+  Explanation: This category focuses on identifying potential vulnerabilities and weaknesses in the code that could be exploited by attackers.
+    Examples:
+        Use of unvalidated input: Accepting user input without proper validation can lead to security vulnerabilities such as SQL injection or cross-site scripting (XSS) attacks.
+        Insecure authentication or authorization: Poorly implemented authentication mechanisms, weak password storage, or insufficient access controls can compromise the security of the application.
 
-1. **Security Vulnerabilities**
-2. **Performance Bottlenecks**
-3. **Memory Management Concerns**
-4. **Code Correctness Problems**
+- Performance: 
+  Explanation: This category aims to review code for any bottlenecks or inefficient practices that could impact the overall performance of the system, such as excessive resource usage or slow response times.
+    Examples:
+        Lack of caching: Failure to implement proper caching mechanisms for frequently accessed data or computations can result in decreased performance.
+        Inefficient algorithms or data structures: Using algorithms or data structures with poor time complexity can lead to slow processing and reduced performance.
+
+- Memory Management: 
+  Explanation: This category involves assessing the code for proper allocation, usage, and deallocation of memory resources to avoid memory leaks, excessive memory consumption, or segmentation faults.
+    Examples:
+        Failure to release dynamically allocated memory: Not properly releasing memory can result in memory leaks and eventually cause the application to run out of memory.
+        Accessing freed or uninitialized memory: Referencing memory that has already been freed or using uninitialized memory can lead to unpredictable behavior and crashes.
+
+- Code Correctness: 
+  Explanation: This category focuses on verifying the accuracy and functionality of the code, ensuring that it behaves as intended and produces the expected results.
+    Examples:
+        Logic errors: Incorrectly implemented conditional statements, loops, or mathematical calculations can cause the code to produce incorrect or unexpected results.
+        Error handling: Inadequate error handling and exception management can lead to system instability, unexpected crashes, or inaccurate error messages.
+
+- Maintainability: 
+  Explanation: This category assesses the code's structure, organization, and adherence to coding standards to ensure that it is easy to understand, modify, and maintain in the long term.
+    Examples:
+        Lack of modularization or excessive dependencies: A monolithic codebase or tight coupling between components can make it difficult to understand and maintain the code.
+        Inconsistent naming conventions and formatting: Inconsistent or poorly chosen variable names, code indentation, or formatting make it challenging to read and maintain the code.
+
+- Readability: 
+  Explanation: This category focuses on the code's readability, clarity, and documentation to improve collaboration among developers and make it easier to understand and debug.
+    Examples:
+        Lack of comments or insufficient documentation: Inadequate or missing comments make it difficult for other developers to understand the code's purpose, intent, or important details.
+        Complex or convoluted code structures: Overly complex or convoluted code can make it hard to follow the logic and understand the code's functionality.
+
+- Reliability: 
+  Explanation: This category aims to ensure the stability and robustness of the code, minimizing the likelihood of crashes, errors, or unexpected behavior, especially during edge cases or exceptional scenarios.
+    Examples:
+        Lack of input validation: Not properly validating user input can result in the code encountering unexpected data or triggering runtime errors.
+        Race conditions: Improper synchronization of shared resources or failure to handle concurrent execution can lead to unpredictable behavior and race conditions.
+--- CODE REVIEW GUIDELINES ---        
 
 Review the code below, which is a part of a larger code base:
 
@@ -989,6 +1027,8 @@ Code JSON format:
 }}
 
 Your review should only contain JSON formatted data.  
+
+Now, take a deep breath, and review the code carefully. Keep the guidelines in mind, while looking at the code for potential issues. 
 
 Code review in JSON format (leaving out the items with needs_change=false):
 """
