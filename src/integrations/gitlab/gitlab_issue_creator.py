@@ -74,13 +74,11 @@ class GitlabIssueCreator:
             source_code_file_loc: str | pathlib.Path,
             source_code_file_href: str,
             review_data: dict):
-        
-        REVIEWER = 'Jarvis AI'
 
         project = self._gl.projects.get(id=project_id)
         # issues = project.issues.list()
         
-        title = f"Review of file {source_code_file_loc}"
+        title = f"{gitlab_shared.REVIEWER} review of {source_code_file_loc} (ref: {ref})"
 
         review_data = self._preprocess_review(review_data=review_data)
         language = review_data.get('language',"")
@@ -88,7 +86,7 @@ class GitlabIssueCreator:
         description = description_template.render(
             source_code_file_path=source_code_file_loc,
             source_code_href=source_code_file_href,
-            reviewer=REVIEWER,
+            reviewer=gitlab_shared.REVIEWER,
             comments=review_data['comments'],
             language_mode_syntax_highlighting=language
         )
@@ -102,7 +100,7 @@ class GitlabIssueCreator:
                 'title': title,
                 'description': description,
                 'labels': [
-                    REVIEWER
+                    gitlab_shared.REVIEWER
                 ]
             }
         )
@@ -117,8 +115,8 @@ class GitlabIssueCreator:
 if __name__ == "__main__":
     dotenv.load_dotenv()
     issue_creator = GitlabIssueCreator(
-        source_control_url=os.getenv('source_control_url'),
-        source_control_pat=os.getenv('source_control_pat')
+        source_control_url=os.getenv('SOURCE_CONTROL_URL'),
+        source_control_pat=os.getenv('SOURCE_CONTROL_PAT')
     )
 
     review_data = load_review_from_json_file(
@@ -129,7 +127,7 @@ if __name__ == "__main__":
         project_id=13881,
         ref='main',
         source_code_file_loc='samples/StateMachine/Motor.cpp',
-        source_code_file_href='https://code.medtronic.com/Ventilation/sandbox/llm-integration-prototypes/-/blob/main/samples/StateMachine/Motor.cpp',
+        source_code_file_href='',
         review_data=review_data
     )
 
