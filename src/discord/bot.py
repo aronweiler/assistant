@@ -13,6 +13,7 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from src.ai.llm_helper import get_llm, get_prompt
+from src.utilities.token_helper import num_tokens_from_string
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfigurationLoader,
@@ -21,6 +22,8 @@ from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 
 class JarvisBot(discord.Client):
+    memory_map: dict = {}
+    
     def __init__(
         self,
         ai: RetrievalAugmentedGenerationAI = None,
@@ -43,63 +46,89 @@ class JarvisBot(discord.Client):
         # don't respond to ourselves
         if message.author == self.user:
             return
-
-        # memory = ConversationTokenBufferMemory(
-        #     llm=self.chain.llm,
-        #     human_prefix="(Discord User)",
-        #     ai_prefix="Jarvis",
-        #     memory_key="chat_history",
-        #     input_key="input",
-        #     max_token_limit=2000,
-        # )
-
-        # chain.memory = ReadOnlySharedMemory(memory=memory)
-
+                
         response: str = ""
 
         if message.channel.name.lower() == "support":
-            please_wait = self.llm.predict(f"The user has asked a question: '{message.content}'.  Please give me a one sentence answer that tells the user to please wait while I look into this.\n\nAI:")
+            please_wait = await self.llm.apredict(f"The user has asked a question: '{message.content}'.  Please give me a one sentence answer that tells the user to please wait while I look into this.\n\nAI:")
             await message.channel.send(please_wait)
             response: str = self.ai.query(query=message.content, collection_id=4)
         elif message.channel.name.lower() == "general":
-            self.have_conversation(message)
+            response = await self.have_conversation(message, "DISCORD_TEMPLATE")
+        elif message.channel.name.lower() == "smack-talk":
+            response = await self.have_conversation(message, "SMACK_TALK_TEMPLATE")
 
         if response != "":
             if not response.lower().startswith("no response necessary"):
-                # if self.memory is not None:
-                #     self.memory.chat_memory.add_ai_message(response)
+                memory = await self.get_conversation_memory(message)
+                
+                if memory is not None:
+                    memory.chat_memory.add_ai_message(response)
 
                 await message.channel.send(response)
             else:
-                logging.debug("No response necessary")
-                # Still add the message to the chat history for reference
+                logging.info("No response necessary")
 
-                # if self.chain is not None and self.memory is not None:
-                #     self.memory.chat_memory.add_user_message(
-                #         f"{message.author.display_name}: {message.content}"
-                #     )
+    async def get_conversation_memory(self, message):
+        memory = self.memory_map.get(message.channel.name.lower())
+        if memory is None:
+            memory = ConversationTokenBufferMemory(
+                llm=self.llm,
+                human_prefix="User",
+                ai_prefix="Jarvis",
+                memory_key="chat_history",
+                input_key="input",
+                max_token_limit=1000,
+            )
+            
+            async for msg in message.channel.history(limit=None):
+                if msg.channel.name.lower() == message.channel.name.lower():
+                    if msg.author.display_name.startswith("Jarvis"):
+                        memory.chat_memory.add_ai_message(msg.content)
+                    else:
+                        memory.chat_memory.add_user_message(f"{msg.author.display_name}: {msg.content}")
+                    #     memory.buffer_as_messages.append(f"{msg.author.display_name}: {msg.content}")
+                    # messages.append(f"{msg.author.display_name}: {msg.content}")
+            
+            # pull the last message off the stack, because it's the message that triggered this
+            memory.chat_memory.messages = memory.chat_memory.messages[1:]
+            
+            self.memory_map[message.channel.name.lower()] = memory
 
+        return memory
 
-    async def have_conversation(self, message):
-        messages = []
-        async for msg in message.channel.history(limit=None):
-            if msg.channel.name.lower() == message.channel.name.lower():                    
-                messages.append(f"{msg.author.display_name}: {msg.content}")
+    async def have_conversation(self, message, template="DISCORD_TEMPLATE"):
+                
+        memory = await self.get_conversation_memory(message)
 
         prompt = get_prompt(
             configuration.model_configuration.llm_type,
-            "DISCORD_TEMPLATE",
+            template,
         )
 
-        # Trim the messages by 1 to remove the current message
-        messages = messages[:-1]
+        # Trim the messages by 1 to remove the current message        
+        messages = []
+        total = 0
+        for m in memory.buffer_as_messages:
+            total += num_tokens_from_string(f"{message.author.display_name}: {message.content}")
+            if total < 1000:
+                messages.append(m)
+            
+        #messages = memory.buffer_as_messages
         messages.reverse()
+        messages = [f'{"" if m.type == "human" else "Jarvis:"} {m.content}' for m in messages]
         prompt = prompt.format(
-            chat_history="\n".join(messages),
+            chat_history="\n".join([m.strip() for m in messages]),
             input=f"{message.author.display_name}: {message.content}",
         )
+        
+        memory.chat_memory.add_user_message(f"{message.author.display_name}: {message.content}")
 
-        response: str = self.llm.predict(prompt)
+        response = await self.llm.apredict(prompt)
+        
+        memory.chat_memory.add_ai_message(response)
+        
+        return response
 
 def load_configuration():
     """Loads the configuration from the path"""
