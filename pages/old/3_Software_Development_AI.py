@@ -114,7 +114,7 @@ class SoftwareDevelopmentUI:
                 self.create_project(st.session_state.project_name)
                 st.success(f"Project {st.session_state.project_name} created!")
 
-                st.experimental_rerun()
+                st.rerun()
 
     def create_project(self, project_name):
         projects_helper = Projects()
@@ -542,7 +542,7 @@ class SoftwareDevelopmentUI:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     general_ui = SoftwareDevelopmentUI()
 

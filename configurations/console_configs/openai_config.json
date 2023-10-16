@@ -1,6 +1,6 @@
 {
   "assistant_configuration": {
-    "request_router": {
+    "general_ai": {
       "model_configuration": {
         "llm_type": "openai",
         "model": "gpt-3.5-turbo-16k",
@@ -42,7 +42,7 @@
             "model_configuration": {
               "llm_type": "openai",
               "model": "gpt-3.5-turbo-16k",
-              "temperature": 0,
+              "temperature": 0.7,
               "max_retries": 3,
               "max_model_supported_tokens": 16384,
               "max_conversation_history_tokens": 4096,
@@ -52,61 +52,23 @@
         },
         {
           "destination": {
-            "name": "documents",
-            "requires_documents": true,
-            "module": "src.ai.destinations.documents",
-            "class_name": "DocumentsAI",
-            "description": "Good for interacting with any of the 'Document' documents that maybe be loaded (see: LOADED DOCUMENTS).  NEVER use this model if there are no LOADED DOCUMENTS.",
-            "system_prompt": "You are a digital assistant who's job it is to look at documentation and answer any of the user's questions as accurately as possible.  If you do not find an answer in the documentation, do not make anything up, simply say you don't know, or that you can't find the answer.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
-            "model_configuration": {
-              "llm_type": "openai",
-              "model": "gpt-3.5-turbo-16k",
-              "temperature": 0,
-              "max_retries": 3,
-              "max_model_supported_tokens": 16384,
-              "max_conversation_history_tokens": 2048,
-              "max_completion_tokens": 8192
-            }
-          }
-        },
-        {
-          "destination": {
-            "name": "code",
-            "requires_documents": true,
-            "module": "src.ai.destinations.code",
-            "class_name": "CodeAI",
-            "description": "Good for interacting with any of the 'Code' documents that maybe be loaded (see: LOADED DOCUMENTS).  NEVER use this model if there are no 'Code' documents in LOADED DOCUMENTS.",
-            "system_prompt": "You are a digital assistant who's job it is to look at documentation and answer any of the user's questions as accurately as possible.  If you do not find an answer in the documentation, do not make anything up, simply say you don't know, or that you can't find the answer.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
-            "model_configuration": {
-              "llm_type": "openai",
-              "model": "gpt-3.5-turbo-16k",
-              "temperature": 0,
-              "max_retries": 3,
-              "max_model_supported_tokens": 16384,
-              "max_conversation_history_tokens": 500,
-              "max_completion_tokens": 8192
-            }
-          }
-        },
-        {
-          "destination": {
-            "name": "current-events",
+            "name": "tool_using",
             "requires_documents": false,
-            "module": "src.ai.destinations.current_events",
-            "class_name": "CurrentEventsAI",
-            "description": "Good for when you need to answer a query about current events such as weather, news, sports, traffic, movie show times, etc.",
-            "system_prompt": "You are a digital assistant named Jarvis, who's job it is to help the user with any questions they might have, or just chat with them.\nYou're a fun-loving jokester, and will randomly throw out jokes and pop culture references in your responses, while also answering the user's questions.\nWhile your responses should sometimes include jokes and references to pop culture, don't overdo it – strike a balance between playful and serious, and tailor your responses to the user's mood.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
+            "module": "src.ai.destinations.tool_using",
+            "class_name": "ToolUsingAI",
+            "description": "A General tool-using AI with an array of tools at its disposal.  Always use this for interacting with documents, current events, traffic, weather, time, etc., basically anything that you cannot answer yourself.  If you don't know what to use, use this.",
+            "system_prompt": "You are a digital assistant who's job it is to use tools to answer any of the user's questions as accurately as possible.\nAll of your responses should be in markdown, as they will be displayed on a chatbot web interface.  You provide plenty of examples and relevant data to the user.",
             "model_configuration": {
               "llm_type": "openai",
               "model": "gpt-3.5-turbo-16k",
-              "temperature": 0.5,
+              "temperature": 0,
               "max_retries": 3,
               "max_model_supported_tokens": 16384,
-              "max_conversation_history_tokens": 2048,
-              "max_completion_tokens": 8192
+              "max_conversation_history_tokens": 8192,
+              "max_completion_tokens": 6096
             }
           }
-        }
+        }        
       ]
     }
   },

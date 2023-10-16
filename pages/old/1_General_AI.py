@@ -9,7 +9,7 @@ import os
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from langchain.callbacks.base import BaseCallbackHandler
 
-from src.ai.request_router import RequestRouter
+from src.ai.general_ai import GeneralAI
 
 from src.configuration.assistant_configuration import AssistantConfigurationLoader
 
@@ -26,7 +26,7 @@ from src.documents.document_loader import load_and_split_documents
 
 from src.ai.llm_helper import get_prompt
 from src.utilities.hash_utilities import calculate_sha256
-from src.ai.callbacks.streamlit_callbacks import StreamingOnlyCallbackHandler
+from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandler
 
 import src.ui.streamlit_shared as ui_shared
 
@@ -82,7 +82,7 @@ class GeneralUI:
                             ui_shared.create_collection(
                                 st.session_state["new_collection_name"]
                             )
-                            st.experimental_rerun()
+                            st.rerun()
 
                     if "general_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()
@@ -127,7 +127,7 @@ class GeneralUI:
         if "general_ai" not in st.session_state:
             # First time loading the page
             print("load_ai: ai not in session state")
-            general_ai_instance = RequestRouter(
+            general_ai_instance = GeneralAI(
                 st.session_state["general_config"],
                 self.user_email,
                 selected_interaction_id,
@@ -142,7 +142,7 @@ class GeneralUI:
             print(
                 "load_ai: interaction id is not none and not equal to ai interaction id"
             )
-            general_ai_instance = RequestRouter(
+            general_ai_instance = GeneralAI(
                 st.session_state["general_config"],
                 self.user_email,
                 selected_interaction_id,
@@ -273,7 +273,7 @@ class GeneralUI:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     try:
         general_ui = GeneralUI()

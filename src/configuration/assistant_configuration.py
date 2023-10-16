@@ -49,7 +49,7 @@ class Destination:
         self.system_prompt = system_prompt
         self.model_configuration = ModelConfiguration(**model_configuration)
 
-class RequestRouter:
+class GeneralAI:
     def __init__(self, model_configuration, destination_routes):
         self.model_configuration = ModelConfiguration(**model_configuration)
         self.destination_routes = []
@@ -65,8 +65,8 @@ class RequirementBreakdown:
         self.model_configuration = ModelConfiguration(**requirement_breakdown_configuration['model_configuration'])
 
 class AssistantConfiguration:
-    def __init__(self, request_router):
-        self.request_router = request_router
+    def __init__(self, general_ai):
+        self.general_ai = general_ai
 
 class SoftwareDevelopmentConfiguration:
     def __init__(self, design_decision_generator, requirement_breakdown):
@@ -92,9 +92,9 @@ class AssistantConfigurationLoader:
     @staticmethod
     def from_dict(config_dict):
         assistant_config_data = config_dict.get("assistant_configuration", {})
-        request_router_data = assistant_config_data.get("request_router", {})
-        destination_routes_data = request_router_data.get("destination_routes", [])
-        model_configuration = request_router_data.get("model_configuration", [])
+        general_ai_data = assistant_config_data.get("general_ai", {})
+        destination_routes_data = general_ai_data.get("destination_routes", [])
+        model_configuration = general_ai_data.get("model_configuration", [])
 
         destination_routes = []
         for route_data in destination_routes_data:
@@ -103,7 +103,7 @@ class AssistantConfigurationLoader:
             destination_routes.append(destination)
 
         assistant_configuration = AssistantConfiguration(
-            request_router=RequestRouter(model_configuration, destination_routes)
+            general_ai=GeneralAI(model_configuration, destination_routes)
         )
 
         return assistant_configuration
@@ -165,11 +165,11 @@ if __name__ == "__main__":
     config = AssistantConfigurationLoader.from_file(json_file_path)
     # config = AssistantConfigurationLoader.from_string(json_string)
 
-    print(config.request_router.model_configuration.llm_type)    
-    print(config.request_router.model_configuration.model)
-    print(config.request_router.model_configuration.temperature)
+    print(config.general_ai.model_configuration.llm_type)    
+    print(config.general_ai.model_configuration.model)
+    print(config.general_ai.model_configuration.temperature)
 
-    for route in config.request_router.destination_routes:
+    for route in config.general_ai.destination_routes:
         print(route.name)
         print(route.module)
         print(route.class_name)

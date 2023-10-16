@@ -99,7 +99,7 @@ class Conversations(VectorDatabase):
                     (Conversation.is_deleted == False)
                     if return_deleted == False
                     else True,
-                )
+                ) 
                 .order_by(Conversation.record_created)
             )
 

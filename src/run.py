@@ -8,7 +8,7 @@ from src.configuration.assistant_configuration import (
 from src.configuration.runner_configuration import RunnerConfig
 from src.utilities.instance_utility import create_instance_from_module_and_class
 
-from src.ai.request_router import RequestRouter
+from src.ai.general_ai import GeneralAI
 from src.runners.runner import Runner
 
 if __name__ == "__main__":
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     )
 
     # Create the AI instance
-    ai_inst = RequestRouter(assistant_config, runner_config.arguments.interaction_id)
+    ai_inst = GeneralAI(assistant_config, runner_config.arguments.interaction_id)
 
     # If there are arguments in the runner config, pass them on
     if runner_config.arguments:

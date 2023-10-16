@@ -6,23 +6,11 @@ import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 
 
-from langchain.callbacks.streamlit import StreamlitCallbackHandler
-from src.ai.callbacks.generic_callbacks import ResultOnlyCallbackHandler
-
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfigurationLoader,
 )
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-
-from src.db.models.users import Users
-from src.db.models.interactions import Interactions
-from src.db.models.documents import Documents
-from src.db.models.documents import FileModel, DocumentModel
-
-from src.utilities.hash_utilities import calculate_sha256
-
-from src.documents.document_loader import load_and_split_documents
 
 import src.ui.streamlit_shared as ui_shared
 
@@ -125,7 +113,7 @@ class RagUI:
                             ui_shared.create_collection(
                                 st.session_state["new_collection_name"]
                             )
-                            st.experimental_rerun()
+                            st.rerun()
 
                     if "rag_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()
@@ -163,7 +151,7 @@ class RagUI:
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
-                                    value=5,
+                                    value=10,
                                 )
                                 st.selectbox(
                                     "Summarization strategy",
@@ -198,24 +186,8 @@ class RagUI:
                                     format_func=lambda x: x.split(":")[1],
                                 )
                                 st.number_input(
-                                    "Timeout (seconds)", key="agent_timeout", value=120
+                                    "Timeout (seconds)", key="agent_timeout", value=300
                                 )
-
-                            tools = st.session_state.rag_ai.get_all_tools()
-
-                            def toggle_tool(tool_name):
-                                st.session_state.rag_ai.toggle_tool(tool_name)
-
-                            with st.expander("Available RAG Tools"):
-                                for tool in tools:
-                                    st.toggle(
-                                        tool["name"],
-                                        key=tool["name"],
-                                        help=tool["about"],
-                                        value=tool["enabled"],
-                                        on_change=toggle_tool,
-                                        kwargs={"tool_name": tool["name"]},
-                                    )
                         else:
                             st.warning("No collection selected")
 
@@ -226,184 +198,9 @@ class RagUI:
             st.write("")
             st.write("")
 
-    def refresh_messages_session_state(self, rag_ai_instance):
-        """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
-
-        buffer_messages = (
-            rag_ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
-        )
-
-        print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
-
-        st.session_state["messages"] = []
-
-        for message in buffer_messages:
-            if message.type == "human":
-                st.session_state["messages"].append(
-                    {
-                        "role": "user",
-                        "content": message.content,
-                        "avatar": "🗣️",
-                        "id": message.additional_kwargs["id"],
-                    }
-                )
-            else:
-                st.session_state["messages"].append(
-                    {
-                        "role": "assistant",
-                        "content": message.content,
-                        "avatar": "🤖",
-                        "id": message.additional_kwargs["id"],
-                    }
-                )
-
-    def show_old_messages(self, rag_ai_instance):
-        self.refresh_messages_session_state(rag_ai_instance)
-
-        for message in st.session_state["messages"]:
-            with st.chat_message(message["role"], avatar=message["avatar"]):
-                col1, col2, col3 = st.columns([0.98, 0.1, 0.1])
-
-                if (
-                    f"confirm_conversation_item_delete_{message['id']}"
-                    not in st.session_state
-                ):
-                    st.session_state[
-                        f"confirm_conversation_item_delete_{message['id']}"
-                    ] = False
-
-                if (
-                    st.session_state[
-                        f"confirm_conversation_item_delete_{message['id']}"
-                    ]
-                    == False
-                ):
-                            
-                    col3.button(
-                        "🗑️",
-                        help="Delete this conversation entry?",
-                        on_click=ui_shared.set_confirm_conversation_item_delete,
-                        kwargs={"val": True, "id": message["id"]},
-                        key=str(uuid.uuid4()),
-                    )
-                else:
-                    col2.button(
-                        "✅",
-                        help="Click to confirm delete",
-                        key=str(uuid.uuid4()),
-                        on_click=ui_shared.delete_conversation_item,
-                        kwargs={"id": message["id"]},
-                    )
-                    
-                    col3.button(
-                        "❌",
-                        help="Click to cancel delete",
-                        on_click=ui_shared.set_confirm_conversation_item_delete,
-                        kwargs={"val": False, "id": message["id"]},
-                        key=str(uuid.uuid4()),
-                    )
-
-                col1.markdown(message["content"])
-
-    def handle_chat(self, main_window_container):
-        with main_window_container.container():
-            # Get the AI instance from session state
-            if "rag_ai" not in st.session_state:
-                st.warning("No AI instance found in session state")
-                st.stop()
-            else:
-                rag_ai_instance = st.session_state["rag_ai"]
-
-            self.show_old_messages(rag_ai_instance)
-
-            st.write("")
-            st.write("")
-            st.write("")
-            st.write("")
-            st.write("")
-
-        # Get user input (must be outside of the container)
-        prompt = st.chat_input("Enter your message here", key="chat_input")
-
-        if prompt:
-            logging.debug(f"User input: {prompt}")
-
-            with main_window_container.container():
-                st.chat_message("user", avatar="👤").markdown(prompt)
-
-                with st.chat_message("assistant", avatar="🤖"):
-                    thought_container = st.container()
-                    llm_container = st.container()
-                    results_callback = ResultOnlyCallbackHandler()
-                    callbacks = []
-                    callbacks.append(results_callback)
-                    callbacks.append(
-                        StreamlitCallbackHandler(
-                            parent_container=thought_container,
-                            expand_new_thoughts=True,
-                            collapse_completed_thoughts=True,
-                        )
-                    )
-
-                    collection_id = ui_shared.get_selected_collection_id()
-
-                    logging.debug(f"Collection ID: {collection_id}")
-
-                    kwargs = {
-                        "search_top_k": int(st.session_state["search_top_k"])
-                        if "search_top_k" in st.session_state
-                        else 5,
-                        "search_method": st.session_state["search_method"]
-                        if "search_method" in st.session_state
-                        else "Similarity",
-                        "use_pandas": st.session_state["use_pandas"]
-                        if "use_pandas" in st.session_state
-                        else True,
-                        "override_file": st.session_state["override_file"].split(":")[0]
-                        if "override_file" in st.session_state
-                        and st.session_state["override_file"].split(":")[0] != "0"
-                        else None,
-                        "agent_timeout": int(st.session_state["agent_timeout"])
-                        if "agent_timeout" in st.session_state
-                        else 120,
-                        "summarization_strategy": st.session_state[
-                            "summarization_strategy"
-                        ]
-                        if "summarization_strategy" in st.session_state
-                        else "map_reduce",
-                        "re_run_user_query": st.session_state["re_run_user_query"]
-                        if "re_run_user_query" in st.session_state
-                        else True,
-                    }
-                    logging.debug(f"kwargs: {kwargs}")
-
-                    try:
-                        result = rag_ai_instance.query(
-                            query=prompt,
-                            collection_id=collection_id
-                            if collection_id != -1
-                            else None,
-                            agent_callbacks=callbacks,
-                            kwargs=kwargs,
-                        )
-                    except Exception as e:
-                        logging.error(f"Error querying AI: {e}")
-                        result = (
-                            "Error querying AI, please try again (and see the logs)."
-                        )
-
-                    logging.debug(f"Result: {result}")
-
-                    llm_container.markdown(result)
-
-                    # TODO: Put this thought container text into the DB (it provides great context!)
-                    # logging.debug(
-                    #     f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
-                    # )
-
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     try:
         logging.debug("Starting Jarvis")
@@ -446,7 +243,7 @@ if __name__ == "__main__":
                 ai=st.session_state["rag_ai"], tab=files_and_settings
             )
 
-            rag_ui.handle_chat(col1)
+            ui_shared.handle_chat(col1, st.session_state["rag_ai"])
 
             ui_shared.show_version()
     except Exception as e:

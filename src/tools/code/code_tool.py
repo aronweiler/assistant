@@ -43,6 +43,10 @@ class CodeTool:
             target_file_id: The id of the file to get the dependencies for.
         """
 
+        file_model = Documents().get_file(target_file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
+
         dependency_graph = self.get_dependency_graph(target_file_id)
 
         if len(dependency_graph.dependencies) == 0:
@@ -113,13 +117,13 @@ class CodeTool:
     # NOTE!
     ## TODO: This can return enormous amounts of data, depending on the size of the file-
     # need to chunk the results up and then run a chain over them to answer
-    def code_structure(
+    def get_code_structure(
         self,
         target_file_id: int,
         code_type: str = None,
     ):
         """Useful for looking at the code structure of a single file. This tool only works when you specify a file. It will give you a list of module names, function signatures, and class method signatures in the specified file (represented by the 'target_file_id').
-        You can use the signature provided by this tool to call 'code_details' in order to get the underlying code.
+        You can use the signature provided by this tool to call 'get_code_details' in order to get the underlying code.
 
         Make sure not to use this tool on anything that isn't classified as 'Code'.
 
@@ -132,6 +136,9 @@ class CodeTool:
             return "target_file_id is required!  Check the loaded documents, and try again."
 
         documents = Documents()
+        file_model = documents.get_file(target_file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         try:
             document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
@@ -159,25 +166,25 @@ class CodeTool:
 
             if code_type is not None:
                 if code_type == "MODULE":
-                    code_structure = (
+                    get_code_structure = (
                         "Modules:\n\t"
                         + "\n\t".join([m["filename"] for m in modules])
                         + "\n\n"
                     )
                 elif code_type == "FUNCTION_DECLARATION":
-                    code_structure = (
+                    get_code_structure = (
                         "Functions:\n\t"
                         + "\n\t".join([f["signature"] for f in functions])
                         + "\n\n"
                     )
                 elif code_type == "CLASS_METHOD":
-                    code_structure = (
+                    get_code_structure = (
                         "Class Methods:\n\t"
                         + "\n\t".join([c["signature"] for c in class_methods])
                         + "\n\n"
                     )
                 elif code_type == "OTHER":
-                    code_structure = (
+                    get_code_structure = (
                         "Other:\n\t"
                         + "\n\t".join([o["signature"] for o in others])
                         + "\n\n"
@@ -187,11 +194,11 @@ class CodeTool:
                 sorted_data = sorted(full_metadata_list, key=custom_sorting_key)
 
                 # Iterate through everything and put it into the prompt
-                code_structure = "\n\t".join(
+                get_code_structure = "\n\t".join(
                     [f"{m['type']}: {m['signature']}" for m in sorted_data]
                 )
 
-            return f"The code structure looks like:\n{code_structure}"
+            return f"The code structure looks like:\n{get_code_structure}"
 
         except Exception as e:
             logging.error(f"Error getting code structure: {e}")
@@ -229,6 +236,8 @@ class CodeTool:
         documents = Documents()
 
         file_model = documents.get_file(target_file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         file_data = file_model.file_data.decode("utf-8")
         
@@ -240,7 +249,7 @@ class CodeTool:
             f"Here is the code for the file with id: '{target_file_id}':\n```\n{file_data}\n```"
         )
 
-    def code_details(
+    def get_code_details(
         self,
         target_file_id: int,
         target_signature: str,
@@ -256,21 +265,23 @@ class CodeTool:
             target_signature (str): The signature (e.g. class declaration, function declaration, etc.) of the piece of code you would like to get the details for. 
         """
         documents = Documents()
-        code_details = ""
+        get_code_details = ""
 
         try:
             target_document_chunk = None            
             if target_file_id:
                 file = documents.get_file(target_file_id)
+                if file.file_classification.lower() != 'code':
+                    return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
                 document_chunks = documents.get_document_chunks_by_file_id(
                     target_file_id
                 )
 
-                code_details = f"The code details for {target_signature or file.file_name} is:\n\n"
+                get_code_details = f"The code details for {target_signature or file.file_name} is:\n\n"
 
                 if target_signature is None or target_signature == "":
-                    return code_details + file.file_data.decode("utf-8")
+                    return get_code_details + file.file_data.decode("utf-8")
 
                 # Find the document chunk that matches the target signature
                 for doc in document_chunks:
@@ -310,21 +321,21 @@ class CodeTool:
                 # Loop through the full metadata list and add it to the output, checking to see if we're over the arbitrary token limit of 1000
                 for doc in related_documents:
                     max_document_chunk_size = self.interaction_manager.tool_kwargs.get('max_document_chunk_size', 1000)
-                    if num_tokens_from_string(code_details) > max_document_chunk_size:
+                    if num_tokens_from_string(get_code_details) > max_document_chunk_size:
                         break
                     metadata = doc.additional_metadata
                     if metadata["type"] != "MODULE":
-                        code_details += metadata["text"] + "\n\n"
+                        get_code_details += metadata["text"] + "\n\n"
 
                 # If we still can't find anything, tell the AI it's behaving badly
                 return (
-                    "I found the following code, but no code exists with that signature!  You were probably being a bad AI and NOT following the instructions where I told you to use the code_structure tool first!  BAD AI!\n\n"
-                    + code_details
+                    "I found the following code, but no code exists with that signature!  You were probably being a bad AI and NOT following the instructions where I told you to use the get_code_structure tool first!  BAD AI!\n\n"
+                    + get_code_details
                 )
             else:
-                code_details += target_document_chunk.document_text
+                get_code_details += target_document_chunk.document_text
 
-                return target_document_chunk.document_text  # code_details
+                return target_document_chunk.document_text  # get_code_details
         except Exception as e:
             logging.error(f"Error getting code details: {e}")
             return f"There was an error getting the code details: {e}"    
@@ -338,6 +349,10 @@ class CodeTool:
         """
 
         documents_helper = Documents()
+        
+        file_model = documents_helper.get_file(file_id)
+        if file_model.file_classification.lower() != 'code':
+            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 

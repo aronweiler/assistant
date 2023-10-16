@@ -1,7 +1,7 @@
 {
     "assistant_configuration": {
       "user_email": "aronweiler@gmail.com",
-      "request_router": {
+      "general_ai": {
         "model_configuration": {
           "llm_type": "luna",
           "model": "H:\\LLM\\Luna-AI-Llama2-Uncensored.gguf.q8_0.bin",

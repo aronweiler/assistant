@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 import src.integrations.gitlab.gitlab_shared as gitlab_shared
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
@@ -27,10 +27,10 @@ def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
 
 class GitlabIssueCreator:
 
-    def __init__(self, gitlab_url, gitlab_pat):
+    def __init__(self, source_control_url, source_control_pat):
         self._gl = gitlab_shared.retrieve_gitlab_client(
-            gitlab_url=gitlab_url,
-            gitlab_pat=gitlab_pat,
+            source_control_url=source_control_url,
+            source_control_pat=source_control_pat,
             verify_auth=True
         )      
     
@@ -117,8 +117,8 @@ class GitlabIssueCreator:
 if __name__ == "__main__":
     dotenv.load_dotenv()
     issue_creator = GitlabIssueCreator(
-        gitlab_url=os.getenv('GITLAB_URL'),
-        gitlab_pat=os.getenv('GITLAB_PAT')
+        source_control_url=os.getenv('source_control_url'),
+        source_control_pat=os.getenv('source_control_pat')
     )
 
     review_data = load_review_from_json_file(

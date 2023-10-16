@@ -13,8 +13,10 @@ RUN apt-get update && apt-get install -y \
 
 # Install the requirements
 COPY requirements.txt /app
-
 RUN pip3 install -r requirements.txt
+
+COPY discord_requirements.txt /app
+RUN pip3 install -r discord_requirements.txt
 
 # Copy the local files to the image
 # This copies everything over after the pip install so that we don't have to
@@ -25,4 +27,4 @@ EXPOSE 8500
 
 HEALTHCHECK CMD curl --fail http://localhost:8500/_stcore/health
 
-ENTRYPOINT ["streamlit", "run", "Jarvis_-_Home.py", "--server.port=8500", "--server.address=0.0.0.0", "--server.fileWatcherType=none"]
+ENTRYPOINT ["streamlit", "run", "About.py", "--server.port=8500", "--server.address=0.0.0.0", "--server.fileWatcherType=none"]

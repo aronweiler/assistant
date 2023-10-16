@@ -18,3 +18,11 @@ services:
       - .env
     ports:
       - 8500:8500
+
+  discord-bot:
+    image: aronweiler/assistant:latest
+    container_name: discord-bot
+    restart: always
+    entrypoint: python src/discord/bot.py
+    env_file:
+      - .env
