@@ -13,8 +13,10 @@ RUN apt-get update && apt-get install -y \
 
 # Install the requirements
 COPY requirements.txt /app
-
 RUN pip3 install -r requirements.txt
+
+COPY discord_requirements.txt /app
+RUN pip3 install -r discord_requirements.txt
 
 # Copy the local files to the image
 # This copies everything over after the pip install so that we don't have to
