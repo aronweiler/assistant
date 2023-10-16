@@ -69,18 +69,31 @@ class GitlabIssueRetriever:
             # Match the ref (branch/tag)
             if url_info['ref'] != self._get_ref_from_title(title=issue.title):
                 continue
+
+            # Issue must be in open state
+            if issue.state not in ("opened","reopened"):
+                continue
             
             matching_issues.append(issue)
 
         if len(matching_issues) == 0:
             return None
                 
-        # Sort the issues by IID (in descending order) so that the neweest issue is first
+        # Sort the issues by IID (in descending order) so that the newest issue is first
         sorted_issues = sorted(matching_issues, key=lambda issue: issue.iid, reverse=True)
 
         previous_issue = sorted_issues[0]
         
-        return previous_issue
+        return {
+            'metadata': {
+                'iid': previous_issue.iid,
+                'title': previous_issue.title,
+                'description': previous_issue.description,
+                'created_at': previous_issue.created_at,
+                'url': previous_issue.web_url,
+            },
+            # 'issue_obj': previous_issue
+        }
 
 
 
@@ -91,4 +104,4 @@ if __name__ == "__main__":
         source_control_pat=os.getenv("SOURCE_CONTROL_PAT"),
     )
 
-    file_data = issue_retriever.retrieve_issue_data(url="")
+    issue_data = issue_retriever.retrieve_issue_data(url="")
