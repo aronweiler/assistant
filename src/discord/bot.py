@@ -1,6 +1,7 @@
 import os
 import discord
 import logging
+import threading
 
 # include the root directory in the path so we can import the configuration
 import sys
@@ -9,6 +10,7 @@ from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.memory.token_buffer import ConversationTokenBufferMemory
 from langchain.memory.readonly import ReadOnlySharedMemory
+from langchain.schema import AIMessage, HumanMessage
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
@@ -23,7 +25,8 @@ from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 class JarvisBot(discord.Client):
     memory_map: dict = {}
-    
+    lock = threading.Lock()
+
     def __init__(
         self,
         ai: RetrievalAugmentedGenerationAI = None,
@@ -46,59 +49,49 @@ class JarvisBot(discord.Client):
         # don't respond to ourselves
         if message.author == self.user:
             return
-                
+
         response: str = ""
 
         if message.channel.name.lower() == "support":
-            please_wait = await self.llm.apredict(f"The user has asked a question: '{message.content}'.  Please give me a one sentence answer that tells the user to please wait while I look into this.\n\nAI:")
+            please_wait = await self.llm.apredict(
+                f"The user has asked a question: '{message.content}'.  Please give me a one sentence answer that tells the user to please wait while I look into this.\n\nAI:"
+            )
             await message.channel.send(please_wait)
             response: str = self.ai.query(query=message.content, collection_id=4)
+            await message.channel.send(response)
         elif message.channel.name.lower() == "general":
-            response = await self.have_conversation(message, "DISCORD_TEMPLATE")
+            await self.have_conversation(message, "DISCORD_TEMPLATE")
         elif message.channel.name.lower() == "smack-talk":
-            response = await self.have_conversation(message, "SMACK_TALK_TEMPLATE")
-
-        if response != "":
-            if not response.lower().startswith("no response necessary"):
-                memory = await self.get_conversation_memory(message)
-                
-                if memory is not None:
-                    memory.chat_memory.add_ai_message(response)
-
-                await message.channel.send(response)
-            else:
-                logging.info("No response necessary")
+            await self.have_conversation(message, "SMACK_TALK_TEMPLATE")
 
     async def get_conversation_memory(self, message):
         memory = self.memory_map.get(message.channel.name.lower())
         if memory is None:
-            memory = ConversationTokenBufferMemory(
-                llm=self.llm,
-                human_prefix="User",
-                ai_prefix="Jarvis",
-                memory_key="chat_history",
-                input_key="input",
-                max_token_limit=1000,
-            )
-            
-            async for msg in message.channel.history(limit=None):
-                if msg.channel.name.lower() == message.channel.name.lower():
-                    if msg.author.display_name.startswith("Jarvis"):
-                        memory.chat_memory.add_ai_message(msg.content)
-                    else:
-                        memory.chat_memory.add_user_message(f"{msg.author.display_name}: {msg.content}")
-                    #     memory.buffer_as_messages.append(f"{msg.author.display_name}: {msg.content}")
-                    # messages.append(f"{msg.author.display_name}: {msg.content}")
-            
-            # pull the last message off the stack, because it's the message that triggered this
-            memory.chat_memory.messages = memory.chat_memory.messages[1:]
-            
-            self.memory_map[message.channel.name.lower()] = memory
+            self.lock.acquire()  # Acquire the lock before accessing the shared resource
+            try:
+                memory = []
+                async for msg in message.channel.history(limit=None):
+                    if msg.channel.name.lower() == message.channel.name.lower():
+                        if msg.author.display_name.startswith("Jarvis"):
+                            memory.append(AIMessage(content=msg.content))
+                        else:
+                            memory.append(
+                                HumanMessage(
+                                    content=f"{msg.author.display_name}: {msg.content}"
+                                )
+                            )
+
+                # pull the last message off the stack, because it's the message that triggered this
+                memory = memory[1:]
+                memory.reverse()
+
+                self.memory_map[message.channel.name.lower()] = memory
+            finally:
+                self.lock.release()
 
         return memory
 
     async def have_conversation(self, message, template="DISCORD_TEMPLATE"):
-                
         memory = await self.get_conversation_memory(message)
 
         prompt = get_prompt(
@@ -106,29 +99,39 @@ class JarvisBot(discord.Client):
             template,
         )
 
-        # Trim the messages by 1 to remove the current message        
         messages = []
         total = 0
-        for m in memory.buffer_as_messages:
-            total += num_tokens_from_string(f"{message.author.display_name}: {message.content}")
-            if total < 1000:
-                messages.append(m)
-            
-        #messages = memory.buffer_as_messages
-        messages.reverse()
-        messages = [f'{"" if m.type == "human" else "Jarvis:"} {m.content}' for m in messages]
+        count = 0
+        for m in reversed(memory):
+            total += num_tokens_from_string(m.content)
+            if total < 500:
+                count += 1
+            else:
+                break
+
+        messages = memory[-count:]
+
+        messages = [
+            f'{"" if m.type == "human" else "Jarvis:"} {m.content}' for m in messages
+        ]
         prompt = prompt.format(
             chat_history="\n".join([m.strip() for m in messages]),
             input=f"{message.author.display_name}: {message.content}",
         )
-        
-        memory.chat_memory.add_user_message(f"{message.author.display_name}: {message.content}")
+
+        memory.append(
+            HumanMessage(content=f"{message.author.display_name}: {message.content}")
+        )
 
         response = await self.llm.apredict(prompt)
-        
-        memory.chat_memory.add_ai_message(response)
-        
-        return response
+
+        if not response.lower().startswith("no response necessary"):
+            memory.append(AIMessage(content=response))
+
+            await message.channel.send(response)
+        else:
+            logging.info("No response necessary")
+
 
 def load_configuration():
     """Loads the configuration from the path"""
@@ -151,25 +154,19 @@ def load_rag_ai(configuration, discord_interaction_id, discord_bot_email):
 
 
 def get_the_llm(configuration):
+    configuration.model_configuration.temperature = 1.0
+
     llm = get_llm(
         configuration.model_configuration,
         tags=["retrieval-augmented-generation-ai"],
         streaming=False,
+        model_kwargs={
+            "frequency_penalty": 1.0,
+            "presence_penalty": 1.0,
+        },
     )
 
     return llm
-
-
-# def load_llm_chain(llm, configuration):
-#     chain = LLMChain(
-#         llm=llm,
-#         prompt=get_prompt(
-#             configuration.model_configuration.llm_type,
-#             "DISCORD_PROMPT",
-#         ),
-#     )
-
-#     return chain, memory
 
 
 def set_tool_environment_variables():
