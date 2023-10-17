@@ -26,11 +26,13 @@ No comments found
     ```
     {% endif %}
     {% if 'start' in comment and 'end' in comment %}
-    - [Link]({{ source_code_href + "#L" + comment.start|string + "-L" + comment.end|string }})
+    - [Link]({{ source_code_href + "#L" + (comment.start+1)|string + "-L" + (comment.end+1)|string }})
     {% else %}
     - [Link]({{ source_code_href }})
     {% endif %}
      
 {% endfor %}
+
+[Raw code review results]({{ code_review_json_file['url'] }})
 
 

@@ -26,6 +26,7 @@ from src.tools.code.code_dependency import CodeDependency
 from src.tools.code.code_tool import CodeTool
 
 from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
+from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
 from src.integrations.gitlab.gitlab_file_retriever import GitlabFileRetriever
 
 from src.integrations.github.github_file_retriever import GitHubFileRetriever
@@ -69,6 +70,7 @@ from src.tools.documents.document_tool import DocumentTool
 class CodeReviewTool:
     source_control_to_file_retriever_map: dict = {"gitlab": GitlabFileRetriever, "github": GitHubFileRetriever}
     source_control_to_issue_creator_map: dict = {"gitlab": GitlabIssueCreator, "github": None}
+    source_control_to_issue_retriever_map: dict = {"gitlab": GitlabIssueRetriever, "github": None}
 
     def __init__(self, configuration, interaction_manager: InteractionManager, llm: BaseLanguageModel):
         self.configuration = configuration
@@ -155,6 +157,21 @@ class CodeReviewTool:
         )
 
         return file_retriever.retrieve_file_data(url=url)
+    
+
+    def ingest_issue_from_url(self, url):
+        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
+        retriever = self.source_control_to_issue_retriever_map[source_control_provider.lower()]
+        if not retriever:
+            return f"Source control provider {source_control_provider} does not support issue retrieval"
+
+        retriever = retriever(
+            source_control_url=os.getenv("source_control_url"),
+            source_control_pat=os.getenv("source_control_pat"),
+        )
+
+        return retriever.retrieve_issue_data(url=url)
+
 
     def create_code_review_issue_tool(
         self,
@@ -220,6 +237,8 @@ class CodeReviewTool:
 
         file_data = file_info["file_content"]
 
+        previous_issue = self.ingest_issue_from_url(url=target_url)
+        
         # TODO combine with other conduct code review function for common pieces
         max_code_review_token_count = self.interaction_manager.tool_kwargs.get(
             "max_code_review_token_count", 5000
