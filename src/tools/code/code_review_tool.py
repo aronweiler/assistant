@@ -221,13 +221,18 @@ class CodeReviewTool:
             ),
         ]
 
-    def conduct_code_review_from_url(self, target_url: str):
+    def conduct_code_review_from_url(self, target_url: str, additional_instructions: str = None):
         """
         Conducts a code review for the specified file from a given target URL
 
         Args:
             target_url: The URL of the file to code review
         """
+        if additional_instructions:
+            additional_instructions = f"\n--- ADDITIONAL INSTRUCTIONS ---\n{additional_instructions}\n--- ADDITIONAL INSTRUCTIONS ---\n"
+        else:
+            additional_instructions = ""
+        
         file_info = self.ingest_source_code_file_from_url(url=target_url)
 
         file_data = file_info["file_content"]
@@ -255,23 +260,30 @@ class CodeReviewTool:
         code_review_prompt = get_prompt(
             self.configuration.model_configuration.llm_type, "CODE_REVIEW_TEMPLATE"
         ).format(
-            code_summary="Not Available",
-            code_dependencies="Not Available",
+            code_summary="",
+            code_dependencies="",
             code=code,
             code_metadata=code_metadata,
+            additional_instructions=additional_instructions
         )
 
         results = self.llm.predict(code_review_prompt)
 
         return results
 
-    def conduct_code_review_from_file_id(self, target_file_id):
+    def conduct_code_review_from_file_id(self, target_file_id:int, additional_instructions: str = None):
         """
         Conducts a code review for the specified file
 
         Args:
             target_file_id: The id of the file to conduct a code review on
         """
+        
+        if additional_instructions:
+            additional_instructions = f"\n--- ADDITIONAL INSTRUCTIONS ---\n{additional_instructions}\n--- ADDITIONAL INSTRUCTIONS ---\n"
+        else:
+            additional_instructions = ""
+        
         documents = Documents()
 
         # Get the list of documents
@@ -298,6 +310,7 @@ class CodeReviewTool:
         dependencies = self.code_tool.get_dependency_graph(
             target_file_id=target_file_id
         )
+        dependencies = "\n----- CODE DEPENDENCIES -----\n" + dependencies + "\n----- CODE DEPENDENCIES -----\n"
 
         document_tool = DocumentTool(
             configuration=self.configuration,
@@ -306,6 +319,7 @@ class CodeReviewTool:
         )
 
         summary = document_tool.summarize_entire_document(target_file_id=target_file_id)
+        summary = "\n--- CODE SUMMARY ---\n" + summary + "\n--- CODE SUMMARY ---\n"
 
         code_review_prompt = get_prompt(
             self.configuration.model_configuration.llm_type, "CODE_REVIEW_TEMPLATE"
@@ -314,6 +328,7 @@ class CodeReviewTool:
             code_dependencies=dependencies,
             code=code,
             code_metadata={"filename": file_model.file_name},
+            additional_instructions=additional_instructions
         )
 
         logging.debug("Running agent")

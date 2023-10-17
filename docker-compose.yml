@@ -23,6 +23,7 @@ services:
     image: aronweiler/assistant:latest
     container_name: discord-bot
     restart: always
-    entrypoint: python src/discord/bot.py
+    entrypoint: >
+      sh -c "if [ '$ENABLE_DISCORD_BOT' == 'true' ]; then python src/discord/bot.py; else sleep infinity; fi"
     env_file:
       - .env
