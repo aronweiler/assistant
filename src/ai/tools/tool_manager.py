@@ -289,13 +289,13 @@ class ToolManager:
             GenericTool(
                 description="Performs a code review of a specified code file.",
                 function=code_review_tool.conduct_code_review_from_file_id,
-                additional_instructions="Use this tool for conducting a code review on a loaded code file.",
+                additional_instructions="Use this tool for conducting a code review on a loaded code file.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
                 return_direct=False,
             ),
             GenericTool(
                 description="Performs a code review of a specified code file.",
                 function=code_review_tool.conduct_code_review_from_url,
-                additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.",
+                additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
                 return_direct=False,
             ),
             GenericTool(
