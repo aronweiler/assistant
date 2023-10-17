@@ -19,11 +19,26 @@ An intelligent assistant.  This is a work in progress.
 - ☑️ API Discovery and Calling
 
 # Running the UI in Docker
-All you really need to run this in docker is the [docker-compose.yml](docker-compose.yml), and a [.env](.env.template) (with the values filled in) in some directory on a computer with Docker.
+In order to install the assistant using Docker, you'll need the following:
 
-Then, just run `docker-compose up -d` and let docker work it's magic.  
+- Docker (probably Docker Desktop) installed and running on your computer
+- Git
+- A web browser
+- An OpenAI Account and API key (or local models)
 
-After you've done that, just navigate to [http://localhost:8500](http://localhost:8500) and you're off!
+The steps to run the docker version is as follows:
+
+1. Clone the assistant repo: `git clone https://github.com/aronweiler/assistant.git`
+2. Edit the `.env.template` file, changing the following items:
+   - `OPENAI_API_KEY` - This should be the key you generate in step 5 above.
+   - `POSTGRES_`* entries can be pretty much anything you want, all of this will be local to your machine.
+   - `USER_EMAIL` - Put your email in here (required for a user on the system)
+   - `SOURCE_CONTROL_PROVIDER` - This is the provider you want to use if you are code reviewing files from URLs.  Can be either `GitHub` or `GitLab`
+   - `SOURCE_CONTROL_URL` - Currently this only supports github or gitlab (`https://gitlab.com` or `https://github.com`)
+   - `SOURCE_CONTROL_PAT` - This is a personal access token that is used to authenticate with the chosen source code provider... you can get this from the settings page of either GitHub or GitLab.
+3. Rename the `.env.template` to `.env`
+4. Using a command line, navigate to the directory where you cloned the code, and run `docker-compose up -d`
+5. Browse to http://localhost:8500
 
 ### ⚠️WARNING⚠️
 The docker container is currently used primarily by me for development, so it does **not** mount a volume for the database.  When you delete the DB docker container, **ALL OF YOUR DATA WILL BE ERASED**.
