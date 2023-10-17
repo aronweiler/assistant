@@ -21,42 +21,33 @@ class GitlabFileRetriever:
         )
 
     def retrieve_file_data(self, url):
-        url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
-        match_obj = re.match(pattern=url_re, string=url)
+        url_info = gitlab_shared.parse_url(
+            client=self._gl,
+            url=url
+        )
 
-        if match_obj is None:
-            raise Exception(f"Failed to URL match against {url}")
-
-        details = match_obj.groupdict()
-        for field in ("domain", "repo_path", "ref", "file_path"):
-            if field not in details:
-                raise Exception(f"Unable to match {field} in {url}")
-
-        domain = details["domain"]
-        if domain not in self._source_control_url:
+        if url_info['domain'] not in self._source_control_url:
             raise Exception(
-                f"URL domain ({domain}) is different than authorized instance ({self._source_control_url})"
+                f"URL domain ({url_info['domain']}) is different than authorized instance ({self._source_control_url})"
             )
 
-        repo_path = details["repo_path"]
-
         try:
-            project = self._gl.projects.get(repo_path)
+            project = self._gl.projects.get(url_info['project_id'])
         except Exception as ex:
-            raise Exception(f"Failed to retrieve project {repo_path} from server")
-
-        ref = details["ref"]
-        file_path = details["file_path"]
-
-        f = project.files.get(file_path=file_path, ref=ref)
+            raise Exception(f"Failed to retrieve project {url_info['repo_path']} ({url_info['project_id']}) from server")
+        
+        f = project.files.get(
+            file_path=url_info['file_path'],
+            ref=url_info['ref']
+        )
 
         file_content = f.decode().decode("UTF-8")
 
         return {
-            "project_id": project.get_id(),
+            "project_id": url_info['project_id'],
             "url": url,
-            "ref": ref,
-            "file_path": file_path,
+            "ref": url_info['ref'],
+            "file_path": url_info['file_path'],
             "file_content": file_content,
         }
 
