@@ -36,6 +36,22 @@ class GitlabIssueRetriever:
         return details['ref']
     
 
+    # TODO: This does not properly find any matches yet. Needs investigation.
+    @staticmethod
+    def _get_path_to_raw_results(text: str):
+        pattern = r".*\[Raw code review results\]\((?P<code_review_file_path>.*)\).*"
+        match_obj = re.match(pattern=pattern, string=text, flags=re.MULTILINE)
+
+        if match_obj is None:
+            return None
+        
+        details = match_obj.groupdict()
+        if 'code_review_file_path' not in details:
+            return None
+        
+        return details['code_review_file_path']
+    
+
     def retrieve_issue_data(self, url):
         url_info = gitlab_shared.parse_url(
             client=self._gl,
@@ -83,6 +99,10 @@ class GitlabIssueRetriever:
         sorted_issues = sorted(matching_issues, key=lambda issue: issue.iid, reverse=True)
 
         previous_issue = sorted_issues[0]
+
+        # Extract attachment containing raw code review results
+        # [Raw code review results]({{ code_review_json_file['url'] }})
+        code_review_file_path = self._get_path_to_raw_results(text=previous_issue.description)
         
         return {
             'metadata': {

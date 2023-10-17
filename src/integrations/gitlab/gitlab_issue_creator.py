@@ -81,6 +81,11 @@ class GitlabIssueCreator:
         title = f"{gitlab_shared.REVIEWER} review of {source_code_file_loc} (ref: {ref})"
 
         review_data = self._preprocess_review(review_data=review_data)
+
+        # Upload the JSON for later retrieval
+        review_data_json = json.dumps(review_data)
+        code_review_json_file = project.upload("code_review.json", filedata=review_data_json)
+
         language = review_data.get('language',"")
         description_template = self._get_template()
         description = description_template.render(
@@ -88,7 +93,8 @@ class GitlabIssueCreator:
             source_code_href=source_code_file_href,
             reviewer=gitlab_shared.REVIEWER,
             comments=review_data['comments'],
-            language_mode_syntax_highlighting=language
+            language_mode_syntax_highlighting=language,
+            code_review_json_file=code_review_json_file
         )
 
         # Debug output to file
