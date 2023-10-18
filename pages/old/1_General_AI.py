@@ -24,7 +24,6 @@ from src.documents.document_loader import load_and_split_documents
 
 # from src.runners.ui.streamlit_agent_callback import StreamlitAgentCallbackHandler
 
-from src.ai.llm_helper import get_prompt
 from src.utilities.hash_utilities import calculate_sha256
 from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandler
 

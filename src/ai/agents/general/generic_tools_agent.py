@@ -13,7 +13,7 @@ from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
 
-from src.ai.llm_helper import get_prompt, get_llm
+from src.ai.llm_helper import get_llm
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.configuration.assistant_configuration import ModelConfiguration
 
@@ -277,8 +277,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
         loaded_documents = self.get_loaded_documents()
         chat_history = self.get_chat_history()
 
-        agent_prompt = get_prompt(
-            self.model_configuration.llm_type,
+        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "generic_tools_agent",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
         ).format(
             system_prompt=system_prompt,
@@ -291,8 +291,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
         return agent_prompt
 
     def get_answer_prompt(self, user_query, helpful_context):
-        agent_prompt = get_prompt(
-            self.model_configuration.llm_type,
+        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "generic_tools_agent",
             "ANSWER_PROMPT_TEMPLATE",
         ).format(user_query=user_query, helpful_context=helpful_context)
 
@@ -307,8 +307,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
             if tool.name == tool_name:
                 tool_details = self.get_tool_string(tool=tool)
 
-        agent_prompt = get_prompt(
-            self.model_configuration.llm_type,
+        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "generic_tools_agent",
             "TOOL_USE_TEMPLATE",
         ).format(
             loaded_documents=self.get_loaded_documents(),
@@ -334,8 +334,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
             if tool.name == tool_name:
                 tool_details = self.get_tool_string(tool=tool)
 
-        agent_prompt = get_prompt(
-            self.model_configuration.llm_type,
+        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "generic_tools_agent",
             "TOOL_USE_RETRY_TEMPLATE",
         ).format(
             loaded_documents=self.get_loaded_documents(),
@@ -353,8 +353,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
         return agent_prompt
 
     def get_system_prompt(self, personality_descriptors, system_information):
-        system_prompt = get_prompt(
-            self.model_configuration.llm_type,
+        system_prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "generic_tools_agent",
             "SYSTEM_TEMPLATE",
         ).format(
             personality_descriptors=personality_descriptors,
