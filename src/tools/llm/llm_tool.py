@@ -3,7 +3,6 @@ from langchain.chains.llm import LLMChain
 from langchain.memory.readonly import ReadOnlySharedMemory
 
 from src.ai.interactions.interaction_manager import InteractionManager
-from src.ai.llm_helper import get_prompt
 from src.ai.system_info import get_system_information
 
 
@@ -26,8 +25,8 @@ class LLMTool:
 
         self.chain = LLMChain(
             llm=self.llm,
-            prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "CONVERSATIONAL_PROMPT"
+            prompt=interaction_manager.prompt_manager.get_prompt(
+                "conversational", "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
         )

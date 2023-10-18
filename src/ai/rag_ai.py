@@ -11,7 +11,8 @@ from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfiguration,
 )
 from src.ai.interactions.interaction_manager import InteractionManager
-from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.llm_helper import get_llm
+from src.ai.prompts.prompt_manager import PromptManager
 from src.ai.system_info import get_system_information
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
 from src.tools.documents.document_tool import DocumentTool
@@ -30,10 +31,12 @@ class RetrievalAugmentedGenerationAI:
         configuration: RetrievalAugmentedGenerationConfiguration,
         interaction_id: UUID,
         user_email: str,
+        prompt_manager: PromptManager,
         streaming: bool = False,
     ):
         self.configuration = configuration
         self.streaming = streaming
+        self.prompt_manager = prompt_manager
 
         self.llm = get_llm(
             self.configuration.model_configuration,
@@ -43,10 +46,11 @@ class RetrievalAugmentedGenerationAI:
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
-            interaction_id,
-            user_email,
-            self.llm,
-            self.configuration.model_configuration.max_conversation_history_tokens,
+            interaction_id=interaction_id,
+            user_email=user_email,
+            llm=self.llm,
+            prompt_manager=self.prompt_manager,
+            max_token_limit=self.configuration.model_configuration.max_conversation_history_tokens
         )
         
         memory = ReadOnlySharedMemory(
@@ -55,8 +59,8 @@ class RetrievalAugmentedGenerationAI:
         
         self.chain = LLMChain(
             llm=self.llm,
-            prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "CONVERSATIONAL_PROMPT"
+            prompt=self.prompt_manager.get_prompt(
+                "conversational", "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
         )
@@ -88,8 +92,8 @@ class RetrievalAugmentedGenerationAI:
         document_text: str,
     ) -> str:
         summary = self.llm.predict(
-            get_prompt(
-                self.configuration.model_configuration.llm_type,
+            self.prompt_manager.get_prompt(
+                "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
@@ -183,8 +187,8 @@ class RetrievalAugmentedGenerationAI:
         if self.interaction_manager.interaction_needs_summary:
             logging.debug("Interaction needs summary, generating one now")
             interaction_summary = self.llm.predict(
-                get_prompt(
-                    self.configuration.model_configuration.llm_type,
+                self.prompt_manager.get_prompt(
+                    "summary",
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )

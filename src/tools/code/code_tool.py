@@ -3,12 +3,7 @@ import os
 import logging
 from typing import List
 
-from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
-from langchain.chains import (
-    RetrievalQAWithSourcesChain,
-    StuffDocumentsChain,
-)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -17,10 +12,6 @@ from src.db.models.documents import Documents
 from src.ai.interactions.interaction_manager import InteractionManager
 
 from src.utilities.token_helper import num_tokens_from_string
-
-from src.db.models.pgvector_retriever import PGVectorRetriever
-
-from src.ai.llm_helper import get_prompt
 
 from src.tools.code.code_dependency import CodeDependency
 
@@ -44,7 +35,7 @@ class CodeTool:
         """
 
         file_model = Documents().get_file(target_file_id)
-        if file_model.file_classification.lower() != 'code':
+        if file_model.file_classification.lower() != "code":
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         dependency_graph = self.get_dependency_graph(target_file_id)
@@ -137,7 +128,7 @@ class CodeTool:
 
         documents = Documents()
         file_model = documents.get_file(target_file_id)
-        if file_model.file_classification.lower() != 'code':
+        if file_model.file_classification.lower() != "code":
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         try:
@@ -228,7 +219,7 @@ class CodeTool:
                         others.append(metadata)
 
     def get_all_code_in_file(self, target_file_id: int):
-        """Useful for getting all of the code in a loaded 'Code' file.  
+        """Useful for getting all of the code in a loaded 'Code' file.
 
         Args:
             target_file_id (int): The 'Code' classified file ID you would like to get the full code for.
@@ -236,18 +227,18 @@ class CodeTool:
         documents = Documents()
 
         file_model = documents.get_file(target_file_id)
-        if file_model.file_classification.lower() != 'code':
+        if file_model.file_classification.lower() != "code":
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         file_data = file_model.file_data.decode("utf-8")
-        
-        max_code_file_size = self.interaction_manager.tool_kwargs.get('max_code_file_size', 5000)
+
+        max_code_file_size = self.interaction_manager.tool_kwargs.get(
+            "max_code_file_size", 5000
+        )
         if num_tokens_from_string(file_data) > max_code_file_size:
             return f"File '{file_model.file_name}' is too large- please refactor it into a reasonable size!"
 
-        return (
-            f"Here is the code for the file with id: '{target_file_id}':\n```\n{file_data}\n```"
-        )
+        return f"Here is the code for the file with id: '{target_file_id}':\n```\n{file_data}\n```"
 
     def get_code_details(
         self,
@@ -255,30 +246,32 @@ class CodeTool:
         target_signature: str,
     ):
         """Useful for getting the details of a specific signature (signature cannot be blank) in a specific loaded 'Code' file (required: target_file_id).
-        
+
         !! PAY ATTENTION: This tool should only be used if you have a specific code signature you are looking for. Never use it without a signature, or with a blank signature !!
 
         Don't use this on anything that isn't classified as 'Code'.
 
         Args:
             target_file_id (int): The 'Code' classified file ID you would like to get the code details for.
-            target_signature (str): The signature (e.g. class declaration, function declaration, etc.) of the piece of code you would like to get the details for. 
+            target_signature (str): The signature (e.g. class declaration, function declaration, etc.) of the piece of code you would like to get the details for.
         """
         documents = Documents()
         get_code_details = ""
 
         try:
-            target_document_chunk = None            
+            target_document_chunk = None
             if target_file_id:
                 file = documents.get_file(target_file_id)
-                if file.file_classification.lower() != 'code':
+                if file.file_classification.lower() != "code":
                     return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
                 document_chunks = documents.get_document_chunks_by_file_id(
                     target_file_id
                 )
 
-                get_code_details = f"The code details for {target_signature or file.file_name} is:\n\n"
+                get_code_details = (
+                    f"The code details for {target_signature or file.file_name} is:\n\n"
+                )
 
                 if target_signature is None or target_signature == "":
                     return get_code_details + file.file_data.decode("utf-8")
@@ -320,8 +313,13 @@ class CodeTool:
                 # TODO: ... magic number
                 # Loop through the full metadata list and add it to the output, checking to see if we're over the arbitrary token limit of 1000
                 for doc in related_documents:
-                    max_document_chunk_size = self.interaction_manager.tool_kwargs.get('max_document_chunk_size', 1000)
-                    if num_tokens_from_string(get_code_details) > max_document_chunk_size:
+                    max_document_chunk_size = self.interaction_manager.tool_kwargs.get(
+                        "max_document_chunk_size", 1000
+                    )
+                    if (
+                        num_tokens_from_string(get_code_details)
+                        > max_document_chunk_size
+                    ):
                         break
                     metadata = doc.additional_metadata
                     if metadata["type"] != "MODULE":
@@ -338,7 +336,7 @@ class CodeTool:
                 return target_document_chunk.document_text  # get_code_details
         except Exception as e:
             logging.error(f"Error getting code details: {e}")
-            return f"There was an error getting the code details: {e}"    
+            return f"There was an error getting the code details: {e}"
 
     def create_stub_code(self, file_id: int, available_dependencies: List[str] = None):
         """Create a mock / stub version of the given code file.
@@ -349,18 +347,18 @@ class CodeTool:
         """
 
         documents_helper = Documents()
-        
+
         file_model = documents_helper.get_file(file_id)
-        if file_model.file_classification.lower() != 'code':
+        if file_model.file_classification.lower() != "code":
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
-        C_STUBBING_TEMPLATE = get_prompt(
+        C_STUBBING_TEMPLATE = self.interaction_manager.prompt_manager.get_prompt(
             self.configuration.model_configuration.llm_type, "C_STUBBING_TEMPLATE"
         )
 
-        stub_dependencies_template = get_prompt(
+        stub_dependencies_template = self.interaction_manager.prompt_manager.get_prompt(
             self.configuration.model_configuration.llm_type,
             "STUB_DEPENDENCIES_TEMPLATE",
         )

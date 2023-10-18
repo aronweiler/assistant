@@ -15,6 +15,7 @@ from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 from src.discord.conversational_bot import ConversationalBot
 
+
 def load_configuration():
     """Loads the configuration from the path"""
     rag_config_path = os.environ.get(
@@ -81,8 +82,12 @@ if __name__ == "__main__":
     discord_token = os.environ.get("DISCORD_BOT_TOKEN")
     discord_interaction_id = os.environ.get("DISCORD_INTERACTION_ID")
     discord_bot_email = os.environ.get("DISCORD_BOT_EMAIL")
-    discord_bot_target_channel_name = os.environ.get("DISCORD_BOT_TARGET_CHANNEL_NAME", "General")
-    discord_bot_conversation_template = os.environ.get("DISCORD_BOT_CONVERSATION_TEMPLATE", "DISCORD_TEMPLATE")
+    discord_bot_target_channel_name = os.environ.get(
+        "DISCORD_BOT_TARGET_CHANNEL_NAME", "General"
+    )
+    discord_bot_conversation_template = os.environ.get(
+        "DISCORD_BOT_CONVERSATION_TEMPLATE", "DISCORD_TEMPLATE"
+    )
 
     set_tool_environment_variables()
 
@@ -93,5 +98,11 @@ if __name__ == "__main__":
     # Run it!
     intents = discord.Intents.default()
     intents.message_content = True
-    client = ConversationalBot(intents=intents, configuration=configuration, llm=llm, target_channel_name=discord_bot_target_channel_name, conversation_template=discord_bot_conversation_template)
+    client = ConversationalBot(
+        intents=intents,
+        configuration=configuration,
+        llm=llm,
+        target_channel_name=discord_bot_target_channel_name,
+        conversation_template=discord_bot_conversation_template,
+    )
     client.run(discord_token)
