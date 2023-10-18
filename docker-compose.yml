@@ -24,6 +24,6 @@ services:
     container_name: discord-bot
     restart: always
     entrypoint: >
-      sh -c "if [ '$ENABLE_DISCORD_BOT' == 'true' ]; then python src/discord/bot.py; else sleep infinity; fi"
+      sh -c 'if [ "$ENABLE_DISCORD_BOT" = "true" ]; then python src/discord/bot.py; else sleep infinity; fi'
     env_file:
       - .env
