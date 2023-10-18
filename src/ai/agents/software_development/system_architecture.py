@@ -13,8 +13,6 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
 )
 
-from src.ai.llm_helper import get_prompt
-
 from src.db.models.software_development.user_needs import UserNeeds, UserNeedsModel
 from src.db.models.software_development.requirements import (
     Requirements,

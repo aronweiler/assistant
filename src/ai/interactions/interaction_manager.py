@@ -10,27 +10,11 @@ from src.db.models.interactions import Interactions
 from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
 from src.memory.token_buffer import ConversationTokenBufferMemory
 
+from src.ai.prompts.prompt_manager import PromptManager
+
 
 class InteractionManager:
     """Class that manages the interactions for the AI, including conversation history."""
-
-    interaction_id: int
-    collection_id: int = None
-
-    tool_kwargs: dict = {}
-
-    user_id: int
-    user_email: str
-    user_name: str
-    user_location: str
-
-    interaction_needs_summary: bool = True
-
-    interactions_helper: Interactions
-    conversations_helper: Conversations
-
-    postgres_chat_message_history: PostgresChatMessageHistory
-    conversation_token_buffer_memory: ConversationTokenBufferMemory
 
     @classmethod
     def set_collection_id(cls, value):
@@ -47,13 +31,29 @@ class InteractionManager:
         interaction_id: int,
         user_email: str,
         llm: BaseLanguageModel,
+        prompt_manager: PromptManager,
         max_token_limit: int = 1000,
+        collection_id: int = None,
+        tool_kwargs: dict = {},
+        user_id: int = None,
+        user_name: str = None,
+        user_location: str = None,
+        interaction_needs_summary: bool = True,
+        
     ):
         """Creates a new InteractionManager, and loads the conversation memory from the database.
 
         Args:
             interaction_id (int): The interaction ID to use to construct the interaction manager.
         """
+
+        self.prompt_manager = prompt_manager
+        self.tool_kwargs = tool_kwargs
+        self.collection_id = collection_id        
+        self.user_id = user_id
+        self.user_name = user_name
+        self.user_location = user_location
+        self.interaction_needs_summary = interaction_needs_summary
 
         if interaction_id is None:
             raise Exception("interaction_id cannot be None")
@@ -124,7 +124,7 @@ class InteractionManager:
             return 0
 
         return len(self.documents_helper.get_collection_files(self.collection_id))
-    
+
     def get_loaded_documents_for_reference(self):
         """Gets the loaded documents for the specified collection."""
 
@@ -140,7 +140,7 @@ class InteractionManager:
             f"file_id='{file.id}' ({file.file_name}, Class: '{file.file_classification}')"
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
-    
+
     def get_loaded_documents_delimited(self):
         """Gets the loaded documents for the specified collection."""
 
@@ -156,7 +156,7 @@ class InteractionManager:
             f"{file.id}:{file.file_name}"
             for file in self.documents_helper.get_collection_files(self.collection_id)
         ]
-    
+
     def get_interaction(self):
         """Gets the interaction for the specified interaction ID."""
 
@@ -191,8 +191,7 @@ class InteractionManager:
         """Creates the conversation memory for the interaction."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
-            self.interaction_id,
-            conversations=self.conversations_helper
+            self.interaction_id, conversations=self.conversations_helper
         )
 
         self.postgres_chat_message_history.user_id = self.user_id

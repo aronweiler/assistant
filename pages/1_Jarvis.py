@@ -14,6 +14,8 @@ from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 import src.ui.streamlit_shared as ui_shared
 
+from src.ai.prompts.prompt_manager import PromptManager
+
 
 class RagUI:
     def __init__(self):
@@ -26,12 +28,14 @@ class RagUI:
             "configurations/rag_configs/openai_rag.json",
         )
 
+        config = RetrievalAugmentedGenerationConfigurationLoader.from_file(
+            rag_config_path
+        )
+
         if "rag_config" not in st.session_state:
-            st.session_state[
-                "rag_config"
-            ] = RetrievalAugmentedGenerationConfigurationLoader.from_file(
-                rag_config_path
-            )
+            st.session_state["rag_config"] = config
+
+        self.prompt_manager = PromptManager(llm_type=config.model_configuration.llm_type)
 
     def set_page_config(self):
         """Sets the page configuration"""
@@ -56,6 +60,7 @@ class RagUI:
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
+                prompt_manager=self.prompt_manager,
             )
             st.session_state["rag_ai"] = rag_ai_instance
             logging.debug("load_ai: created new ai instance")
@@ -72,6 +77,7 @@ class RagUI:
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
+                pm=self.prompt_manager,
             )
             st.session_state["rag_ai"] = rag_ai_instance
 

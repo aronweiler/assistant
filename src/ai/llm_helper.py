@@ -11,6 +11,7 @@ from src.configuration.assistant_configuration import ModelConfiguration
 
 llama2_llm = None
 
+
 class LLMType(Enum):
     """Enum for the type of prompt to use."""
 
@@ -18,31 +19,18 @@ class LLMType(Enum):
     OPENAI = "openai"
     LUNA = "luna"
 
-def get_prompt(prompt_type: LLMType, prompt_name: str):
-    # Get the prompt from the right file- the folder structure looks like this:
-    # ai/prompts/{prompt_type}_prompts.py
-
-    # Get the path to the prompts folder
-    #prompts_path = os.path.join(os.path.dirname(__file__), "prompts")
-
-    # Construct the module name
-    module_name = f"src.ai.prompts.{prompt_type}_prompts"
-
-    # Import the module using importlib
-    prompt_module = importlib.import_module(module_name)
-
-    # Get the prompt from the prompt module
-    prompt = getattr(prompt_module, prompt_name)
-
-    return prompt
 
 def get_llm(model_configuration: ModelConfiguration, **kwargs):
     """Returns the LLM for the specified model configuration."""
 
     if model_configuration.llm_type == LLMType.OPENAI.value:
         return _get_openai_llm(model_configuration, **kwargs)
-    elif model_configuration.llm_type == LLMType.LLAMA2.value or model_configuration.llm_type == LLMType.LUNA.value:
+    elif (
+        model_configuration.llm_type == LLMType.LLAMA2.value
+        or model_configuration.llm_type == LLMType.LUNA.value
+    ):
         return _get_llama2_llm(model_configuration, **kwargs)
+
 
 def _get_openai_llm(model_configuration, **kwargs):
     llm = ChatOpenAI(
@@ -56,6 +44,7 @@ def _get_openai_llm(model_configuration, **kwargs):
     )
 
     return llm
+
 
 def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
     """Returns the local LLM (llama2 config) for the specified model configuration."""
@@ -75,7 +64,7 @@ def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
         temperature=model_configuration.temperature,
         n_gpu_layers=offload_layers,
         verbose=True,
-        #**kwargs
+        # **kwargs
     )
 
     return llama2_llm

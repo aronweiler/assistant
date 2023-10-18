@@ -6,16 +6,9 @@ import threading
 # include the root directory in the path so we can import the configuration
 import sys
 
-from langchain.base_language import BaseLanguageModel
-from langchain.schema import AIMessage, HumanMessage
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.ai.llm_helper import get_prompt
-from src.utilities.token_helper import num_tokens_from_string
-
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-from src.configuration.assistant_configuration import AssistantConfiguration
 
 
 class RagBot(discord.Client):
@@ -24,7 +17,7 @@ class RagBot(discord.Client):
 
     def __init__(
         self,
-        configuration: AssistantConfiguration,
+        configuration,
         ai: RetrievalAugmentedGenerationAI,
         target_channel_name: str,
         target_collection_id: int,

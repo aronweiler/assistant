@@ -11,11 +11,9 @@ from langchain.schema import AIMessage, HumanMessage
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.ai.llm_helper import get_prompt
 from src.utilities.token_helper import num_tokens_from_string
 
-from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-from src.configuration.assistant_configuration import AssistantConfiguration
+from src.ai.prompts.prompt_manager import PromptManager
 
 
 class ConversationalBot(discord.Client):
@@ -24,7 +22,7 @@ class ConversationalBot(discord.Client):
 
     def __init__(
         self,
-        configuration: AssistantConfiguration,
+        configuration,
         llm: BaseLanguageModel,
         target_channel_name: str,
         conversation_template: str = "DISCORD_TEMPLATE",
@@ -38,6 +36,7 @@ class ConversationalBot(discord.Client):
         self.configuration = configuration
         self.conversation_template = conversation_template
         self.target_channel_name = target_channel_name
+        self.prompt_manager = PromptManager(llm_type=self.configuration.model_configuration.llm_type)
 
     async def on_ready(self):
         await self.change_presence(
@@ -88,8 +87,8 @@ class ConversationalBot(discord.Client):
     async def have_conversation(self, message, template):
         memory = await self.get_conversation_memory(message)
 
-        prompt = get_prompt(
-            self.configuration.model_configuration.llm_type,
+        prompt = self.prompt_manager.get_prompt(
+            "discord",
             template,
         )
 
