@@ -186,7 +186,7 @@ class RagUI:
                                     format_func=lambda x: x.split(":")[1],
                                 )
                                 st.number_input(
-                                    "Timeout (seconds)", key="agent_timeout", value=300
+                                    "Timeout (seconds)", key="agent_timeout", value=600
                                 )
                         else:
                             st.warning("No collection selected")
