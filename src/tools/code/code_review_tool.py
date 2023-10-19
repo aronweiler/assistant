@@ -118,12 +118,12 @@ class CodeReviewTool:
         code_metadata: dict = None,
         previous_issue=None,
     ):
-        # TODO combine with other conduct code review function for common pieces
         max_code_review_token_count = self.interaction_manager.tool_kwargs.get(
             "max_code_review_token_count", 5000
         )
-        if num_tokens_from_string(file_data) > max_code_review_token_count:
-            return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
+        code_file_token_count = num_tokens_from_string(file_data)
+        if code_file_token_count > max_code_review_token_count:
+            return f"File is too large to be code reviewed ({code_file_token_count} tokens). Adjust max code review tokens, or refactor this code file so that it's smaller."
 
         code = file_data.splitlines()
         for line_num, line in enumerate(code):
@@ -211,7 +211,7 @@ class CodeReviewTool:
         )
 
 
-### This stuff probably needs to make its way back into the code review chain       
+### This stuff probably needs to make its way back into the code review chain
 # dependencies = self.code_tool.get_dependency_graph(
 #     target_file_id=target_file_id
 # )

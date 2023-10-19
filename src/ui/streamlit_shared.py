@@ -815,6 +815,11 @@ def handle_chat(main_window_container, ai_instance):
                     "agent_timeout": int(st.session_state["agent_timeout"])
                     if "agent_timeout" in st.session_state
                     else 300,
+                    "max_code_review_token_count": int(
+                        st.session_state["max_code_review_token_count"]
+                    )
+                    if "max_code_review_token_count" in st.session_state
+                    else 5000,
                     "summarization_strategy": st.session_state["summarization_strategy"]
                     if "summarization_strategy" in st.session_state
                     else "map_reduce",
