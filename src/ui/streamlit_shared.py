@@ -262,12 +262,23 @@ def get_selected_collection_name():
     return selected_collection_name
 
 
-def create_collection(name):
-    collection = Documents().create_collection(name)
+def create_collection():
+    if st.session_state["new_collection_name"]:
+        collection = Documents().create_collection(
+            st.session_state["new_collection_name"]
+        )
 
-    logging.debug(f"Created collection {collection.collection_name}")
+        logging.info(
+            f"New collection created: {collection.id} - {collection.collection_name}"
+        )
 
-    return collection.id
+        if "rag_ai" in st.session_state:
+            st.session_state.rag_ai.interaction_manager.collection_id = collection.id
+            st.session_state.rag_ai.interaction_manager.interactions_helper.update_interaction_collection(
+                get_selected_interaction_id(), collection.id
+            )
+
+        return collection.id
 
 
 def set_ingestion_settings():
@@ -376,8 +387,6 @@ def select_documents(tab, ai=None):
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
             if uploaded_files and active_collection_id:
-                collection_id = None
-
                 if active_collection_id:
                     if submit_button:
                         ingest_files(
@@ -613,7 +622,11 @@ def on_change_collection():
     )
 
 
-def create_collection_selectbox(col1, ai):
+def create_collection_selectbox(ai):
+    col1, col2 = st.columns([0.80, 0.2])
+
+    st.caption("Selected document collection:")
+
     available_collections = get_available_collections()
     selected_collection_id_index = 0
     # Find the index of the selected collection
@@ -634,6 +647,8 @@ def create_collection_selectbox(col1, ai):
         format_func=lambda x: x.split(":")[1],
         on_change=on_change_collection,
     )
+
+    col2.button("➕", key="show_create_collection")
 
 
 def refresh_messages_session_state(ai_instance):
