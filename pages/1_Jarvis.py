@@ -79,7 +79,7 @@ class RagUI:
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
-                pm=self.prompt_manager,
+                prompt_manager=self.prompt_manager,
             )
             st.session_state["rag_ai"] = rag_ai_instance
 
