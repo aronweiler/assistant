@@ -89,7 +89,7 @@ If you can answer the user's query, please return a JSON blob with the following
 Use the helpful context above to answer the user's query, which is:
 {user_query}
 
-Think this through, step by step.  Make sure to take the chat history, and the helpful context into account when answering the user's query.
+Think this through, step by step.  Make sure to take the chat history, and the helpful context into account when answering the user's query.  Sometimes the user's query can be a follow-up to something in the chat history, so be sure you are answering their full query based on the chat history.
 
 AI: Sure! Here is my response (in JSON format):
 """
