@@ -1,6 +1,7 @@
 import sys
 import os
 import logging
+import json
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
@@ -129,19 +130,55 @@ class CodeReviewTool:
         for line_num, line in enumerate(code):
             code[line_num] = f"{line_num}: {line}"
 
-        code_review_prompt = self.interaction_manager.prompt_manager.get_prompt(
-            "code_review", "CODE_REVIEW_TEMPLATE"
-        ).format(
-            code_summary="",
-            code_dependencies="",
-            code=code,
-            code_metadata=code_metadata,
-            additional_instructions=additional_instructions,
+        base_code_review_instructions = (
+            self.interaction_manager.prompt_manager.get_prompt(
+                "code_review", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
+            )
         )
 
-        results = self.llm.predict(code_review_prompt)
+        final_code_review_instructions = (
+            self.interaction_manager.prompt_manager.get_prompt(
+                "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
+            ).format(
+                code_summary="",
+                code_dependencies="",
+                code=code,
+                code_metadata=code_metadata,
+                additional_instructions=additional_instructions,
+            )
+        )
 
-        return results
+        # TODO: Refactor this so Jordan is happy
+        # ,
+        templates = [
+            "SECURITY_CODE_REVIEW_TEMPLATE",
+            "PERFORMANCE_CODE_REVIEW_TEMPLATE",
+            "MEMORY_CODE_REVIEW_TEMPLATE",
+            "CORRECTNESS_CODE_REVIEW_TEMPLATE",
+            "MAINTAINABILITY_CODE_REVIEW_TEMPLATE",
+            "RELIABILITY_CODE_REVIEW_TEMPLATE",
+        ]
+
+        review_results = {}
+        comment_results = []
+        for template in templates:
+            code_review_prompt = self.interaction_manager.prompt_manager.get_prompt(
+                "code_review", template
+            ).format(
+                base_code_review_instructions=base_code_review_instructions,
+                final_code_review_instructions=final_code_review_instructions,
+            )
+
+            data = json.loads(self.llm.predict(code_review_prompt))
+            comment_results.extend(data["comments"])
+
+        review_results = {
+            "language": data["language"],
+            "metadata": data["metadata"],
+            "comments": comment_results,
+        }
+
+        return review_results
 
     def conduct_code_review_from_url(
         self, target_url: str, additional_instructions: str = None
@@ -153,7 +190,7 @@ class CodeReviewTool:
             target_url: The URL of the file to code review
         """
         if additional_instructions:
-            additional_instructions = f"\n--- ADDITIONAL INSTRUCTIONS ---\n{additional_instructions}\n--- ADDITIONAL INSTRUCTIONS ---\n"
+            additional_instructions = f"\nIn addition to the code review instructions, here are some additional instructions from the user that you should take into account when performing this code review:\n{additional_instructions}\n"
         else:
             additional_instructions = ""
 
@@ -204,7 +241,7 @@ class CodeReviewTool:
         # Convert file data bytes to string
         file_data = file_model.file_data.decode("utf-8")
 
-        self.conduct_code_review(
+        return self.conduct_code_review(
             file_data=file_data,
             additional_instructions=additional_instructions,
             code_metadata={"filename": file_model.file_name},
