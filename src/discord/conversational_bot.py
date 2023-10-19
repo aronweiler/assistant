@@ -25,8 +25,9 @@ class ConversationalBot(discord.Client):
         configuration,
         llm: BaseLanguageModel,
         target_channel_name: str,
+        prompt_manager: PromptManager,
         conversation_template: str = "DISCORD_TEMPLATE",
-        status: str = "Chatting",
+        status: str = "Chatting",        
         *args,
         **kwargs,
     ):
@@ -36,7 +37,7 @@ class ConversationalBot(discord.Client):
         self.configuration = configuration
         self.conversation_template = conversation_template
         self.target_channel_name = target_channel_name
-        self.prompt_manager = PromptManager(llm_type=self.configuration.model_configuration.llm_type)
+        self.prompt_manager = prompt_manager
 
     async def on_ready(self):
         await self.change_presence(
@@ -88,7 +89,7 @@ class ConversationalBot(discord.Client):
         memory = await self.get_conversation_memory(message)
 
         prompt = self.prompt_manager.get_prompt(
-            "discord",
+            "discord_llm",
             template,
         )
 

@@ -7,6 +7,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from src.ai.llm_helper import get_llm
+from src.ai.prompts.prompt_manager import PromptManager
 
 from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfigurationLoader,
@@ -26,13 +27,14 @@ def load_configuration():
     return RetrievalAugmentedGenerationConfigurationLoader.from_file(rag_config_path)
 
 
-def load_rag_ai(configuration, discord_interaction_id, discord_bot_email):
+def load_rag_ai(configuration, discord_interaction_id, discord_bot_email, prompt_manager):
     """Loads the AI from the configuration"""
     return RetrievalAugmentedGenerationAI(
         configuration=configuration,
         interaction_id=discord_interaction_id,
         user_email=discord_bot_email,
         streaming=False,
+        prompt_manager=prompt_manager
     )
 
 
@@ -88,11 +90,13 @@ if __name__ == "__main__":
     discord_bot_conversation_template = os.environ.get(
         "DISCORD_BOT_CONVERSATION_TEMPLATE", "DISCORD_TEMPLATE"
     )
-
-    set_tool_environment_variables()
-
+    
     configuration = load_configuration()
-    ai = load_rag_ai(configuration, discord_interaction_id, discord_bot_email)
+    prompt_manager = PromptManager(llm_type=configuration.model_configuration.llm_type)
+
+    # set_tool_environment_variables()    
+    # rag_ai = load_rag_ai(configuration, discord_interaction_id, discord_bot_email)
+    
     llm = get_the_llm(configuration)
 
     # Run it!
@@ -103,6 +107,7 @@ if __name__ == "__main__":
         configuration=configuration,
         llm=llm,
         target_channel_name=discord_bot_target_channel_name,
+        prompt_manager=prompt_manager,
         conversation_template=discord_bot_conversation_template,
     )
     client.run(discord_token)
