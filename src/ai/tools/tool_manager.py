@@ -35,16 +35,16 @@ class ToolManager:
             "enabled_by_default": True,
             "requires_documents": True,
         },
-        "summarize_search_topic": {
-            "display_name": "Summarize Searched Topic",
-            "help_text": "Searches through all documents for the specified topic, and summarizes the results. Don't forget to set the top_k!  If the file override is set, it will use that file.",
-            "enabled_by_default": False,
-            "requires_documents": True,
-        },
+        # "summarize_search_topic": {
+        #     "display_name": "Summarize Searched Topic",
+        #     "help_text": "Performs a deep search through the loaded documents, and summarizes the results of that search.",
+        #     "enabled_by_default": True,
+        #     "requires_documents": True,
+        # },
         "summarize_entire_document": {
             "display_name": "Summarize Whole Document (⚠️ Slow / Expensive)",
             "help_text": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
-            "enabled_by_default": False,
+            "enabled_by_default": True,
             "requires_documents": True,
         },
         "list_documents": {
@@ -62,7 +62,7 @@ class ToolManager:
         "get_code_structure": {
             "display_name": "Code Structure",
             "help_text": "Gets the high-level structure of a code file.",
-            "enabled_by_default": False,
+            "enabled_by_default": True,
             "requires_documents": True,
         },
         "get_pretty_dependency_graph": {
@@ -236,13 +236,13 @@ class ToolManager:
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_loaded_documents,
             ),
-            GenericTool(
-                description="Searches through all documents for the specified topic, and summarizes the results.",
-                additional_instructions="Useful for getting a very general summary of a topic across all of the loaded documents. Do not use this tool for specific document queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
-                document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
-                function=document_tool.summarize_search_topic,
-                # return_direct=False,
-            ),
+            # GenericTool(
+            #     description="Searches through all documents for the specified topic, and summarizes the results.",
+            #     additional_instructions="Performs a deep search across the loaded documents in order to summarize a topic.  Similar to . Do not use this tool for specific document queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
+            #     document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
+            #     function=document_tool.summarize_search_topic,
+            #     # return_direct=False,
+            # ),
             GenericTool(
                 description="Summarizes an entire document.",
                 additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",

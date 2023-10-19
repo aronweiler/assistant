@@ -110,7 +110,7 @@ class DocumentTool:
     ) -> str:
         summary = self.llm.predict(
             self.interaction_manager.prompt_manager.get_prompt(
-                "document",
+                "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
@@ -148,7 +148,7 @@ class DocumentTool:
         reduce_chain = LLMChain(
             llm=self.llm,
             prompt=self.interaction_manager.prompt_manager.get_prompt(
-                "document",
+                "summary",
                 "REDUCE_SUMMARIES_PROMPT",
             ),
         )
@@ -261,11 +261,11 @@ class DocumentTool:
             llm=llm,
             chain_type="refine",
             question_prompt=self.interaction_manager.prompt_manager.get_prompt(
-                "document",
+                "summary",
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
             refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
-                "document", refine_prompt
+                "summary", refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",
