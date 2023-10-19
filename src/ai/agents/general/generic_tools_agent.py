@@ -294,7 +294,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "ANSWER_PROMPT_TEMPLATE",
-        ).format(user_query=user_query, helpful_context=helpful_context)
+        ).format(user_query=user_query, helpful_context=helpful_context, chat_history=self.get_chat_history())
 
         return agent_prompt
 
@@ -317,6 +317,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
+            chat_history=self.get_chat_history(),
             system_prompt=self.get_system_prompt(
                 "Detail oriented, organized, and logical.  Sometimes a little sarcastic and snarky.",
                 system_information,
@@ -344,6 +345,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
+            chat_history=self.get_chat_history(),
             system_prompt=self.get_system_prompt(
                 "Detail oriented, organized, and logical.  Sometimes a little sarcastic and snarky.",
                 system_information,

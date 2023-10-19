@@ -16,16 +16,6 @@ from src.ai.prompts.prompt_manager import PromptManager
 class InteractionManager:
     """Class that manages the interactions for the AI, including conversation history."""
 
-    @classmethod
-    def set_collection_id(cls, value):
-        # Class method to set the collection_id
-        cls.collection_id = value
-
-    @classmethod
-    def get_collection_id(cls):
-        # Class method to get the collection_id
-        return cls.collection_id
-
     def __init__(
         self,
         interaction_id: int,

@@ -35,7 +35,9 @@ class RagUI:
         if "rag_config" not in st.session_state:
             st.session_state["rag_config"] = config
 
-        self.prompt_manager = PromptManager(llm_type=config.model_configuration.llm_type)
+        self.prompt_manager = PromptManager(
+            llm_type=config.model_configuration.llm_type
+        )
 
     def set_page_config(self):
         """Sets the page configuration"""
@@ -77,7 +79,7 @@ class RagUI:
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
-                pm=self.prompt_manager,
+                prompt_manager=self.prompt_manager,
             )
             st.session_state["rag_ai"] = rag_ai_instance
 
@@ -97,53 +99,51 @@ class RagUI:
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
                 if "rag_ai" in st.session_state:
-                    st.caption("Selected document collection:")
-                    # This is a hack, but it works
-                    col1, col2 = st.columns([0.80, 0.2])
-                    ui_shared.create_collection_selectbox(
-                        col1, ai=st.session_state["rag_ai"]
-                    )
-
-                    with st.container():
-                        col1, col2 = st.columns(2)
-                        col1.text_input(
-                            "Collection name",
-                            key="new_collection_name",
-                            label_visibility="collapsed",
-                        )
-                        new_collection = col2.button(
-                            "Create New", key="create_collection"
-                        )
-
-                        if st.session_state["new_collection_name"] and new_collection:
-                            ui_shared.create_collection(
-                                st.session_state["new_collection_name"]
+                    # with st.container():
+                    # Create a form for the collection creation:
+                    if (
+                        "show_create_collection" in st.session_state
+                        and st.session_state.show_create_collection
+                    ):
+                        with st.form(key="new_collection", clear_on_submit=True):
+                            col1, col2 = st.columns(2)
+                            col1.text_input(
+                                "Collection name",
+                                key="new_collection_name",
+                                label_visibility="collapsed",
                             )
-                            st.rerun()
+
+                            col2.form_submit_button(
+                                "Create New Collection",
+                                type="primary",
+                                on_click=ui_shared.create_collection,
+                            )
+
+
+                    ui_shared.create_collection_selectbox(ai=st.session_state["rag_ai"])
 
                     if "rag_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()
                         if collection_id != -1:
                             loaded_docs_delimited = None
-                            if collection_id != -1:
-                                st.session_state.rag_ai.interaction_manager.collection_id = (
-                                    collection_id
-                                )
+                            st.session_state.rag_ai.interaction_manager.collection_id = (
+                                collection_id
+                            )
 
-                                loaded_docs = (
-                                    st.session_state.rag_ai.interaction_manager.get_loaded_documents_for_display()
-                                )
+                            loaded_docs = (
+                                st.session_state.rag_ai.interaction_manager.get_loaded_documents_for_display()
+                            )
 
-                                loaded_docs_delimited = (
-                                    st.session_state.rag_ai.interaction_manager.get_loaded_documents_delimited()
-                                )
+                            loaded_docs_delimited = (
+                                st.session_state.rag_ai.interaction_manager.get_loaded_documents_delimited()
+                            )
 
-                                with st.expander(
-                                    label=f"({len(loaded_docs)}) documents in {ui_shared.get_selected_collection_name()}",
-                                    expanded=False,
-                                ):
-                                    for doc in loaded_docs:
-                                        st.write(doc)
+                            with st.expander(
+                                label=f"({len(loaded_docs)}) documents in {ui_shared.get_selected_collection_name()}",
+                                expanded=False,
+                            ):
+                                for doc in loaded_docs:
+                                    st.write(doc)
 
                             st.markdown("### RAG Options")
 
@@ -193,6 +193,9 @@ class RagUI:
                                 )
                                 st.number_input(
                                     "Timeout (seconds)", key="agent_timeout", value=600
+                                )
+                                st.number_input(
+                                    "Max code review tokens", key="max_code_review_token_count", value=6000
                                 )
                         else:
                             st.warning("No collection selected")

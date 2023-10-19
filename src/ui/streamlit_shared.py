@@ -184,12 +184,7 @@ def delete_interaction(interaction_id):
 def setup_new_chat_button(tab):
     with tab.container():
         col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
-        if col1.button("New Chat", key="new_chat_button"):
-            create_interaction("Empty Chat")
-            try:
-                st.rerun()
-            except RerunException:
-                pass
+        col1.button("New Chat", key="new_chat_button", on_click=create_interaction, kwargs={"interaction_summary": "Empty Chat"})
 
         if "confirm_interaction_delete" not in st.session_state:
             st.session_state.confirm_interaction_delete = False
@@ -262,12 +257,23 @@ def get_selected_collection_name():
     return selected_collection_name
 
 
-def create_collection(name):
-    collection = Documents().create_collection(name)
+def create_collection():
+    if st.session_state["new_collection_name"]:
+        collection = Documents().create_collection(
+            st.session_state["new_collection_name"]
+        )
 
-    logging.debug(f"Created collection {collection.collection_name}")
+        logging.info(
+            f"New collection created: {collection.id} - {collection.collection_name}"
+        )
 
-    return collection.id
+        if "rag_ai" in st.session_state:
+            st.session_state.rag_ai.interaction_manager.collection_id = collection.id
+            st.session_state.rag_ai.interaction_manager.interactions_helper.update_interaction_collection(
+                get_selected_interaction_id(), collection.id
+            )
+
+        return collection.id
 
 
 def set_ingestion_settings():
@@ -371,13 +377,11 @@ def select_documents(tab, ai=None):
                 key="file_uploader",
             )
 
-            submit_button = st.form_submit_button("Ingest files", type="primary")
+            submit_button = st.form_submit_button("Ingest files", type="primary", disabled=(active_collection_id == None or active_collection_id == '-1'))
 
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
             if uploaded_files and active_collection_id:
-                collection_id = None
-
                 if active_collection_id:
                     if submit_button:
                         ingest_files(
@@ -613,7 +617,11 @@ def on_change_collection():
     )
 
 
-def create_collection_selectbox(col1, ai):
+def create_collection_selectbox(ai):
+    col1, col2 = st.columns([0.80, 0.2])
+
+    st.caption("Selected document collection:")
+
     available_collections = get_available_collections()
     selected_collection_id_index = 0
     # Find the index of the selected collection
@@ -634,6 +642,8 @@ def create_collection_selectbox(col1, ai):
         format_func=lambda x: x.split(":")[1],
         on_change=on_change_collection,
     )
+
+    col2.button("➕", key="show_create_collection")
 
 
 def refresh_messages_session_state(ai_instance):
@@ -805,6 +815,11 @@ def handle_chat(main_window_container, ai_instance):
                     "agent_timeout": int(st.session_state["agent_timeout"])
                     if "agent_timeout" in st.session_state
                     else 300,
+                    "max_code_review_token_count": int(
+                        st.session_state["max_code_review_token_count"]
+                    )
+                    if "max_code_review_token_count" in st.session_state
+                    else 5000,
                     "summarization_strategy": st.session_state["summarization_strategy"]
                     if "summarization_strategy" in st.session_state
                     else "map_reduce",

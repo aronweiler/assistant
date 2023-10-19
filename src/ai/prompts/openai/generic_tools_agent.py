@@ -18,6 +18,8 @@ Any previous conversation with the user is contained here. The chat history may 
 
 When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.  Make sure that each step contains enough information to be acted upon on it's own.  Do this by resolving coreferences, and providing any additional context that may be needed to answer the user's query in each step.
 
+Think this through, step by step.  Make sure to resolve any coreferences in the steps, so that each step can be interpreted on its own (e.g. pulling in names, urls, or other data from the chat history).
+
 All responses are JSON blobs with the following format:
 ```json
 {{
@@ -60,6 +62,11 @@ ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have bee
 The user's query is: 
 {user_query}
 
+Any previous conversation with the user is contained here. The chat history may contain context that you find useful to answer the current query.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
+
 This helpful context contains all of the information you will require to answer the query, pay attention to it carefully.
 --- HELPFUL CONTEXT ---
 {helpful_context}
@@ -82,6 +89,8 @@ If you can answer the user's query, please return a JSON blob with the following
 Use the helpful context above to answer the user's query, which is:
 {user_query}
 
+Think this through, step by step.  Make sure to take the chat history, and the helpful context into account when answering the user's query.  Sometimes the user's query can be a follow-up to something in the chat history, so be sure you are answering their full query based on the chat history.
+
 AI: Sure! Here is my response (in JSON format):
 """
 
@@ -93,6 +102,11 @@ You have access to the following loaded documents (take note of the ID of each d
 --- LOADED DOCUMENTS ---
 {loaded_documents}
 --- LOADED DOCUMENTS ---
+
+Any previous conversation with the user is contained here. The chat history may contain context that you find useful to answer the current query.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
 
 The following helpful context may contain additional information that should inform your tool use:
 --- HELPFUL CONTEXT ---
@@ -144,6 +158,11 @@ You have access to the following loaded documents (take note of the ID of each d
 --- LOADED DOCUMENTS ---
 {loaded_documents}
 --- LOADED DOCUMENTS ---
+
+Any previous conversation with the user is contained here. The chat history may contain context that you find useful to answer the current query.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
 
 Please construct a modified tool call that uses the '{tool_name}' tool, but with different arguments, or rephrased content.  
 The '{tool_name}' tool has the following details:
