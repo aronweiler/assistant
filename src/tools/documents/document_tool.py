@@ -129,7 +129,7 @@ class DocumentTool:
 
         # Is there a summary already?  If so, return that instead of re-running the summarization.
         if file.file_summary and file.file_summary != "":
-            return f"--- SUMMARY ---\n{file.file_summary}\n--- SUMMARY ---"
+            return file.file_summary
 
         # Get the document chunks
         document_chunks = documents.get_document_chunks_by_file_id(
@@ -187,7 +187,7 @@ class DocumentTool:
             file_id=file.id, summary=summary, classification=file.file_classification
         )
 
-        return f"--- SUMMARY ---\n{summary}\n--- SUMMARY ---"
+        return summary
 
     def summarize_search_topic(self, query: str, original_user_query: str):
         """Useful for getting a summary of a topic or query from the user.
