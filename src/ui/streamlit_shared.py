@@ -184,7 +184,12 @@ def delete_interaction(interaction_id):
 def setup_new_chat_button(tab):
     with tab.container():
         col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
-        col1.button("New Chat", key="new_chat_button", on_click=create_interaction, kwargs={"interaction_summary": "Empty Chat"})
+        col1.button(
+            "New Chat",
+            key="new_chat_button",
+            on_click=create_interaction,
+            kwargs={"interaction_summary": "Empty Chat"},
+        )
 
         if "confirm_interaction_delete" not in st.session_state:
             st.session_state.confirm_interaction_delete = False
@@ -377,7 +382,11 @@ def select_documents(tab, ai=None):
                 key="file_uploader",
             )
 
-            submit_button = st.form_submit_button("Ingest files", type="primary", disabled=(active_collection_id == None or active_collection_id == '-1'))
+            submit_button = st.form_submit_button(
+                "Ingest files",
+                type="primary",
+                disabled=(active_collection_id == None or active_collection_id == "-1"),
+            )
 
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 

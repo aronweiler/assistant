@@ -51,7 +51,7 @@ class ToolManager:
             "display_name": "List Documents",
             "help_text": "Lists all loaded documents.",
             "enabled_by_default": False,
-            "requires_documents": True,
+            "requires_documents": False,
         },
         "get_code_details": {
             "display_name": "Code Details",
