@@ -14,12 +14,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from src.utilities.token_helper import num_tokens_from_string
 
 from src.ai.prompts.prompt_manager import PromptManager
+from src.discord.memory_manager import get_conversation_memory
 
 
 class ConversationalBot(discord.Client):
-    memory_map: dict = {}
-    lock = threading.Lock()
-
     def __init__(
         self,
         configuration,
@@ -27,7 +25,7 @@ class ConversationalBot(discord.Client):
         target_channel_name: str,
         prompt_manager: PromptManager,
         conversation_template: str = "DISCORD_TEMPLATE",
-        status: str = "Chatting",        
+        status: str = "Chatting",
         *args,
         **kwargs,
     ):
@@ -58,70 +56,33 @@ class ConversationalBot(discord.Client):
             async with message.channel.typing():
                 await self.have_conversation(message, self.conversation_template)
 
-    async def get_conversation_memory(self, message):
-        memory = self.memory_map.get(message.channel.name.lower())
-        if memory is None:
-            self.lock.acquire()  # Acquire the lock before accessing the shared resource
-            try:
-                memory = []
-                async for msg in message.channel.history(limit=None):
-                    if msg.channel.name.lower() == message.channel.name.lower():
-                        if msg.author.display_name.startswith("Jarvis"):
-                            memory.append(AIMessage(content=msg.content))
-                        else:
-                            memory.append(
-                                HumanMessage(
-                                    content=f"{msg.author.display_name}: {msg.content}"
-                                )
-                            )
-
-                # pull the last message off the stack, because it's the message that triggered this
-                memory = memory[1:]
-                memory.reverse()
-
-                self.memory_map[message.channel.name.lower()] = memory
-            finally:
-                self.lock.release()
-
-        return memory
-
     async def have_conversation(self, message, template):
-        memory = await self.get_conversation_memory(message)
+        memory = await get_conversation_memory(self.llm, message)
 
         prompt = self.prompt_manager.get_prompt(
             "discord_llm",
             template,
         )
 
-        messages = []
-        total = 0
-        count = 0
-        for m in reversed(memory):
-            total += num_tokens_from_string(m.content)
-            if total < 500:
-                count += 1
-            else:
-                break
-
-        messages = memory[-count:]
-
         messages = [
-            f'{"" if m.type == "human" else "Jarvis:"} {m.content}' for m in messages
+            f'{"" if m.type == "human" else "Jarvis:"} {m.content}' for m in memory.buffer_as_messages
         ]
         prompt = prompt.format(
             chat_history="\n".join([m.strip() for m in messages]),
             input=f"{message.author.display_name}: {message.content}",
         )
 
-        memory.append(
+        memory.chat_memory.add_message(
             HumanMessage(content=f"{message.author.display_name}: {message.content}")
         )
 
         response = await self.llm.apredict(prompt)
 
-        if response.lower().startswith("no response necessary") or response.strip() == "":
-            logging.info("No response necessary")            
+        if (
+            response.lower().startswith("no response necessary")
+            or response.strip() == ""
+        ):
+            logging.info("No response necessary")
         else:
-            memory.append(AIMessage(content=response))
+            memory.chat_memory.add_message(AIMessage(content=response))
             await message.channel.send(response)
-            

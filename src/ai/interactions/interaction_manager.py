@@ -29,6 +29,7 @@ class InteractionManager:
         user_name: str = None,
         user_location: str = None,
         interaction_needs_summary: bool = True,
+        override_memory: ConversationTokenBufferMemory = None,
         
     ):
         """Creates a new InteractionManager, and loads the conversation memory from the database.
@@ -76,8 +77,11 @@ class InteractionManager:
         # Ensure the interaction exists
         self._ensure_interaction_exists(self.user_id)
 
-        # Create the conversation memory
-        self._create_conversation_memory(llm, max_token_limit)
+        if not override_memory:
+            # Create the conversation memory
+            self._create_default_conversation_memory(llm, max_token_limit)
+        else:
+            self.conversation_token_buffer_memory = override_memory
 
     def set_interaction_summary(self, summary: str):
         """Sets the interaction summary to the specified summary."""
@@ -177,7 +181,7 @@ class InteractionManager:
                 f"Interaction ID: {self.interaction_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
             )
 
-    def _create_conversation_memory(self, llm, max_token_limit):
+    def _create_default_conversation_memory(self, llm, max_token_limit):
         """Creates the conversation memory for the interaction."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
