@@ -33,6 +33,7 @@ class RetrievalAugmentedGenerationAI:
         user_email: str,
         prompt_manager: PromptManager,
         streaming: bool = False,
+        override_memory=None,
     ):
         self.configuration = configuration
         self.streaming = streaming
@@ -50,13 +51,14 @@ class RetrievalAugmentedGenerationAI:
             user_email=user_email,
             llm=self.llm,
             prompt_manager=self.prompt_manager,
-            max_token_limit=self.configuration.model_configuration.max_conversation_history_tokens
+            max_token_limit=self.configuration.model_configuration.max_conversation_history_tokens,
+            override_memory=override_memory,
         )
-        
+
         memory = ReadOnlySharedMemory(
             memory=self.interaction_manager.conversation_token_buffer_memory
         )
-        
+
         self.chain = LLMChain(
             llm=self.llm,
             prompt=self.prompt_manager.get_prompt(
@@ -66,8 +68,10 @@ class RetrievalAugmentedGenerationAI:
         )
 
         # The tool manager contains all of the tools available to the AI
-        self.tool_manager = ToolManager()        
-        self.tool_manager.initialize_tools(self.configuration, self.interaction_manager, self.llm)
+        self.tool_manager = ToolManager()
+        self.tool_manager.initialize_tools(
+            self.configuration, self.interaction_manager, self.llm
+        )
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -130,21 +134,21 @@ class RetrievalAugmentedGenerationAI:
 
         if self.mode == "Conversation":
             logging.debug("Running chain 'Conversation Only' mode")
-            results = self.run_chain(query=query, llm_callbacks=llm_callbacks, kwargs=kwargs)
+            results = self.run_chain(
+                query=query, llm_callbacks=llm_callbacks, kwargs=kwargs
+            )
         else:
             # Run the agent
             logging.debug("Running agent 'Auto' mode")
-            results = self.run_agent(query=query, agent_callbacks=agent_callbacks, kwargs=kwargs)
+            results = self.run_agent(
+                query=query, agent_callbacks=agent_callbacks, kwargs=kwargs
+            )
 
         # Adding this after the run so that the agent can't see it in the history
-        self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_user_message(
-            query
+        self.interaction_manager.conversation_token_buffer_memory.save_context(
+            inputs={"input": query}, outputs={"output": results}
         )
-
         logging.debug(results)
-        self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_ai_message(
-            results
-        )
 
         logging.debug("Added results to chat memory")
 
@@ -195,11 +199,11 @@ class RetrievalAugmentedGenerationAI:
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
             logging.debug(f"Generated summary: {interaction_summary}")
-            
-    def set_mode(self, mode: str):        
+
+    def set_mode(self, mode: str):
         if mode.lower().startswith("conversation"):
             # Use the LLM with a chat prompt
             self.mode = "Conversation"
-        else:    
+        else:
             # Normal mode, let the AI decide what to do (agent)
             self.mode = "Auto"
