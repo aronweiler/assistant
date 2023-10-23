@@ -11,7 +11,7 @@ from src.configuration.assistant_configuration import Destination
 from src.db.models.conversations import SearchType
 
 from src.ai.interactions.interaction_manager import InteractionManager
-from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.llm_helper import get_llm
 from src.ai.system_info import get_system_information
 from src.ai.destination_route import DestinationRoute
 from src.ai.system_info import get_system_information

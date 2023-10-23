@@ -12,7 +12,7 @@ from src.configuration.assistant_configuration import DesignDecisionGenerator as
 
 from src.ai.abstract_ai import AbstractAI
 from src.ai.interactions.interaction_manager import InteractionManager
-from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.llm_helper import get_llm
 from src.ai.system_info import get_system_information
 from src.ai.destinations.destination_base import DestinationBase
 from src.ai.destination_route import DestinationRoute
