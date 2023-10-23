@@ -92,6 +92,15 @@
       "justMyCode": true
     },
     {
+      "name": "Run Gitlab Issue Retriever",
+      "type": "python",
+      "request": "launch",
+      "program": "src/integrations/gitlab/gitlab_issue_retriever.py",
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
