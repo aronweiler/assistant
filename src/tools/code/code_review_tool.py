@@ -198,15 +198,13 @@ class CodeReviewTool:
         file_info = self.ingest_source_code_file_from_url(url=target_url)
 
         file_data = file_info["file_content"]
-
-        previous_issue = self.ingest_issue_from_url(url=target_url)
-        
         code_metadata = {
             "project_id": file_info["project_id"],
             "url": file_info["url"],
             "ref": file_info["ref"],
             "file_path": file_info["file_path"],
         }
+        previous_issue = self.ingest_issue_from_url(url=target_url)
 
         return self.conduct_code_review(
             file_data=file_data,

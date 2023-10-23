@@ -130,4 +130,4 @@ if __name__ == "__main__":
         source_control_pat=os.getenv("SOURCE_CONTROL_PAT"),
     )
 
-    issue_data = issue_retriever.retrieve_issue_data(url="https://code.medtronic.com/Ventilation/sandbox/llm-integration-prototypes/-/blob/main/samples/StateMachine/Main.cpp")
+    issue_data = issue_retriever.retrieve_issue_data(url="")
