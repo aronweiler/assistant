@@ -63,20 +63,6 @@ class CodeReviewTool:
 
     def ingest_issue_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
-        retriever = self.source_control_to_issue_retriever_map[source_control_provider.lower()]
-        if not retriever:
-            return f"Source control provider {source_control_provider} does not support issue retrieval"
-
-        retriever = retriever(
-            source_control_url=os.getenv("source_control_url"),
-            source_control_pat=os.getenv("source_control_pat"),
-        )
-
-        return retriever.retrieve_issue_data(url=url)
-
-
-    def ingest_issue_from_url(self, url):
-        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
         retriever = self.source_control_to_issue_retriever_map[
             source_control_provider.lower()
         ]
@@ -215,25 +201,12 @@ class CodeReviewTool:
 
         previous_issue = self.ingest_issue_from_url(url=target_url)
         
-        # TODO combine with other conduct code review function for common pieces
-        max_code_review_token_count = self.interaction_manager.tool_kwargs.get(
-            "max_code_review_token_count", 5000
-        )
-        if num_tokens_from_string(file_data) > max_code_review_token_count:
-            return "File is too large to be code reviewed. Adjust max code review tokens, or refactor your code."
-
-        code = file_data.splitlines()
-        for line_num, line in enumerate(code):
-            code[line_num] = f"{line_num}: {line}"
-
         code_metadata = {
             "project_id": file_info["project_id"],
             "url": file_info["url"],
             "ref": file_info["ref"],
             "file_path": file_info["file_path"],
         }
-
-        previous_issue = self.ingest_issue_from_url(url=target_url)
 
         return self.conduct_code_review(
             file_data=file_data,
