@@ -4,6 +4,7 @@ import re
 import sys
 
 import dotenv
+import requests
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -14,6 +15,7 @@ class GitlabIssueRetriever:
     def __init__(self, source_control_url, source_control_pat):
         self._logger = logging.getLogger(__name__)
         self._source_control_url = source_control_url
+        self._source_control_pat = source_control_pat
         self._gl = gitlab_shared.retrieve_gitlab_client(
             source_control_url=source_control_url,
             source_control_pat=source_control_pat,
@@ -39,8 +41,11 @@ class GitlabIssueRetriever:
     # TODO: This does not properly find any matches yet. Needs investigation.
     @staticmethod
     def _get_path_to_raw_results(text: str):
+        # Assume the file attachment text is the last line in the text
+        file_attachment_text = text.splitlines()[-1]
+
         pattern = r".*\[Raw code review results\]\((?P<code_review_file_path>.*)\).*"
-        match_obj = re.match(pattern=pattern, string=text, flags=re.MULTILINE)
+        match_obj = re.match(pattern=pattern, string=file_attachment_text)
 
         if match_obj is None:
             return None
@@ -51,6 +56,18 @@ class GitlabIssueRetriever:
         
         return details['code_review_file_path']
     
+
+    def _retrieve_raw_review_results(self, url):
+        headers = {
+            "Authorization": f"Bearer {self._source_control_pat}"
+        }
+
+        resp = requests.get(
+            url=url,
+            headers=headers
+        )
+        resp.content
+
 
     def retrieve_issue_data(self, url):
         url_info = gitlab_shared.parse_url(
@@ -101,8 +118,10 @@ class GitlabIssueRetriever:
         previous_issue = sorted_issues[0]
 
         # Extract attachment containing raw code review results
-        # [Raw code review results]({{ code_review_json_file['url'] }})
-        code_review_file_path = self._get_path_to_raw_results(text=previous_issue.description)
+        code_review_file_path_short = self._get_path_to_raw_results(text=previous_issue.description)
+        code_review_file_path_full = f"{project.web_url}{code_review_file_path_short}"
+        self._retrieve_raw_review_results(url=code_review_file_path_full)
+        
         
         return {
             'metadata': {
@@ -124,4 +143,4 @@ if __name__ == "__main__":
         source_control_pat=os.getenv("SOURCE_CONTROL_PAT"),
     )
 
-    issue_data = issue_retriever.retrieve_issue_data(url="")
+    issue_data = issue_retriever.retrieve_issue_data(url="https://code.medtronic.com/Ventilation/sandbox/llm-integration-prototypes/-/blob/main/samples/StateMachine/Main.cpp")
