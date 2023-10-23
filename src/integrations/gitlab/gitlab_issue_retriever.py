@@ -4,7 +4,6 @@ import re
 import sys
 
 import dotenv
-import requests
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -37,35 +36,6 @@ class GitlabIssueRetriever:
         
         return details['ref']
     
-
-    # @staticmethod
-    # def _get_path_to_raw_results(text: str):
-    #     # Assume the file attachment text is the last line in the text
-    #     file_attachment_text = text.splitlines()[-1]
-
-    #     pattern = r".*\[Raw code review results\]\((?P<code_review_file_path>.*)\).*"
-    #     match_obj = re.match(pattern=pattern, string=file_attachment_text)
-
-    #     if match_obj is None:
-    #         return None
-        
-    #     details = match_obj.groupdict()
-    #     if 'code_review_file_path' not in details:
-    #         return None
-        
-    #     return details['code_review_file_path']
-    
-
-    # def _retrieve_raw_review_results(self, url):
-    #     headers = {
-    #         "Authorization": f"Bearer {self._source_control_pat}"
-    #     }
-
-    #     resp = requests.get(
-    #         url=url,
-    #         headers=headers
-    #     )
-    #     resp.content
 
     def _extract_findings_from_issue(self, issue: str) -> dict:
         issue_lines = issue.splitlines()
@@ -137,13 +107,7 @@ class GitlabIssueRetriever:
         sorted_issues = sorted(matching_issues, key=lambda issue: issue.iid, reverse=True)
 
         previous_issue = sorted_issues[0]
-
-        # Extract attachment containing raw code review results
-        # code_review_file_path_short = self._get_path_to_raw_results(text=previous_issue.description)
-        # code_review_file_path_full = f"{project.web_url}{code_review_file_path_short}"
-        # self._retrieve_raw_review_results(url=code_review_file_path_full)
         findings = self._extract_findings_from_issue(issue=previous_issue.description)
-        
         
         return {
             'metadata': {
@@ -153,6 +117,7 @@ class GitlabIssueRetriever:
                 'created_at': previous_issue.created_at,
                 'url': previous_issue.web_url,
             },
+            'findings': findings
             # 'issue_obj': previous_issue
         }
 
