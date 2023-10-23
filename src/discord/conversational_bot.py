@@ -25,7 +25,7 @@ class ConversationalBot(discord.Client):
         target_channel_name: str,
         prompt_manager: PromptManager,
         conversation_template: str = "DISCORD_TEMPLATE",
-        status: str = "Chatting",
+        status: str = "the good little chatbot",
         *args,
         **kwargs,
     ):
@@ -36,6 +36,7 @@ class ConversationalBot(discord.Client):
         self.conversation_template = conversation_template
         self.target_channel_name = target_channel_name
         self.prompt_manager = prompt_manager
+        self.status = status
 
     async def on_ready(self):
         await self.change_presence(
@@ -72,17 +73,14 @@ class ConversationalBot(discord.Client):
             input=f"{message.author.display_name}: {message.content}",
         )
 
-        memory.chat_memory.add_message(
-            HumanMessage(content=f"{message.author.display_name}: {message.content}")
-        )
-
         response = await self.llm.apredict(prompt)
+        
+        memory.save_context(inputs={"input": f"{message.author.display_name}: {message.content}"}, outputs={"output": response})
 
         if (
             response.lower().startswith("no response necessary")
             or response.strip() == ""
         ):
             logging.info("No response necessary")
-        else:
-            memory.chat_memory.add_message(AIMessage(content=response))
+        else:            
             await message.channel.send(response)

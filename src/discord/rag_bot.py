@@ -34,6 +34,7 @@ class RagBot(discord.Client):
         interaction_id: int,
         prompt_manager,
         user_email: str,
+        status_message: str = "around with documents",
         *args,
         **kwargs,
     ):
@@ -47,9 +48,13 @@ class RagBot(discord.Client):
         self.interaction_id = interaction_id
         self.prompt_manager = prompt_manager
         self.user_email = user_email
+        self.status_message = status_message
 
     async def on_ready(self):
-        logging.debug("Logged on as", self.user)
+        await self.change_presence(activity=discord.Game(name=self.status_message))
+
+        logging.debug(f"Connected as: {self.user.name}")
+        logging.debug(f"Bot ID: {self.user.id}")
 
     async def on_message(self, message):
         # don't respond to ourselves
@@ -150,18 +155,23 @@ class RagBot(discord.Client):
                 logging.debug(f"Deleting temp file: {uploaded_file_path}")
                 os.remove(uploaded_file_path)             
 
-                continue
-
-            # if existing_file and overwrite_existing_files:
-            #     # Delete the document chunks
-            #     documents_helper.delete_document_chunks_by_file_id(existing_file.id)
-
-            #     # Delete the existing file
-            #     documents_helper.delete_file(existing_file.id)
+                continue            
 
             # Read the file
             with open(uploaded_file_path, "rb") as file:
                 file_data = file.read()
+                
+            # Start off with the default file classification
+            file_classification = "Document"
+            
+            # Override the classification if necessary
+            IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
+            # Get the file extension
+            file_extension = os.path.splitext(file_name)[1]
+            # Check to see if it's an image
+            if file_extension in IMAGE_TYPES:
+                # It's an image, reclassify it                   
+                file_classification = "Image"
 
             # Create the file
             logging.info(f"Creating file '{file_name}'...")
@@ -173,7 +183,7 @@ class RagBot(discord.Client):
                         file_name=file_name,
                         file_hash=calculate_sha256(uploaded_file_path),
                         file_data=file_data,
-                        file_classification="Document",
+                        file_classification=file_classification,
                     )
                 )
             )

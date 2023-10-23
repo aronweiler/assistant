@@ -20,6 +20,8 @@ from src.tools.news.g_news_tool import GNewsTool
 from src.ai.agents.code.stubbing_agent import Stubber
 from src.ai.agents.general.generic_tools_agent import GenericTool
 
+from src.tools.images.llava import LlavaTool
+
 
 class ToolManager:
     tools = {
@@ -131,6 +133,12 @@ class ToolManager:
             "enabled_by_default": True,
             "requires_documents": False,
         },
+        "query_image": {
+            "display_name": "Query Image",
+            "help_text": "Queries an image.",
+            "enabled_by_default": True,
+            "requires_documents": True,
+        },            
     }
 
     def get_enabled_tools(self) -> list[GenericTool]:
@@ -222,6 +230,10 @@ class ToolManager:
             llm=self.llm,
         )
         weather_tool = WeatherTool()
+        
+        llava_tool = LlavaTool(
+            llava_path=os.environ.get("LLAVA_PATH", None)
+        )
 
         generic_tools = [
             GenericTool(
@@ -322,13 +334,18 @@ class ToolManager:
             ),
             GenericTool(
                 description="Get a list of news headlines and article URLs for a specified term.",
-                additional_instructions="Always return the Headline, whatever summary there is, the source, and the URL.",
+                additional_instructions="When using this tool, always return the Headline, whatever summary there is, the source, and the URL.",
                 function=GNewsTool().get_news_for_topic,
             ),
             GenericTool(
                 description="Get a list of headlines and article URLs for the top news headlines.",
-                additional_instructions="Always return the Headline, whatever summary there is, the source, and the URL.",
+                additional_instructions="When using this tool, always return the Headline, whatever summary there is, the source, and the URL.",
                 function=GNewsTool().get_top_news_headlines,
+            ),
+            GenericTool(
+                description="Queries a loaded Image file.  This only works on Image classified files.",
+                additional_instructions="Never use this tool on documents that are not classified as 'Image'.  The 'query' argument should always be a stand-alone FULLY-FORMED query, no co-references, no keywords, etc., (e.g. 'What is going on in this image?', or 'Where is object X located in relation to object Y?')  .",
+                function=llava_tool.query_image,
             ),
         ]
 

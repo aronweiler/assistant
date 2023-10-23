@@ -17,6 +17,8 @@ from src.utilities.hash_utilities import calculate_sha256
 from src.documents.document_loader import load_and_split_documents
 from streamlit_extras.stylable_container import stylable_container
 
+IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
+
 
 def delete_conversation_item(id: int):
     """Deletes the conversation item with the specified id"""
@@ -486,6 +488,17 @@ def ingest_files(
                 with open(uploaded_file_path, "rb") as file:
                     file_data = file.read()
 
+                # Start off with the default file classification
+                file_classification = st.session_state.ingestion_settings.file_type
+                
+                # Override the classification if necessary
+                # Get the file extension
+                file_extension = os.path.splitext(file_name)[1]
+                # Check to see if it's an image
+                if file_extension in IMAGE_TYPES:
+                    # It's an image, reclassify it                   
+                    file_classification = "Image"
+
                 # Create the file
                 logging.info(f"Creating file '{file_name}'...")
                 files.append(
@@ -496,7 +509,7 @@ def ingest_files(
                             file_name=file_name,
                             file_hash=calculate_sha256(uploaded_file_path),
                             file_data=file_data,
-                            file_classification=st.session_state.ingestion_settings.file_type,
+                            file_classification=file_classification,
                         )
                     )
                 )
@@ -519,6 +532,16 @@ def ingest_files(
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
             )
+            
+            if documents == None:
+                st.warning(f"No documents could be extracted from these files.  Possible images detected...")
+                st.success(f"Completed ingesting {len(files)} files")               
+                status.update(
+                    label=f"✅ Ingestion complete",
+                    state="complete",
+                )
+                logging.info(f"No documents could be extracted from these files.  Possible images detected...")
+                return
 
             st.info(f"Saving {len(documents)} document chunks...")
             logging.info(f"Saving {len(documents)} document chunks...")

@@ -143,6 +143,7 @@ class RagUI:
                                 expanded=False,
                             ):
                                 for doc in loaded_docs:
+                                    # TODO: Put a thumbnail of the images here (maybe icon for documents)
                                     st.write(doc)
 
                             st.markdown("### RAG Options")
