@@ -13,7 +13,6 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.interactions.interaction_manager import InteractionManager
-from src.ai.llm_helper import get_prompt
 
 
 class DocumentTool:
@@ -65,8 +64,8 @@ class DocumentTool:
 
         qa_chain = LLMChain(
             llm=self.llm,
-            prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "QUESTION_PROMPT"
+            prompt=self.interaction_manager.prompt_manager.get_prompt(
+                "document", "QUESTION_PROMPT"
             ),
             verbose=True,
         )
@@ -76,16 +75,16 @@ class DocumentTool:
             chain_type="stuff",
             retriever=self.pgvector_retriever,
             chain_type_kwargs={
-                "prompt": get_prompt(
-                    self.configuration.model_configuration.llm_type, "QUESTION_PROMPT"
+                "prompt": self.interaction_manager.prompt_manager.get_prompt(
+                    "document", "QUESTION_PROMPT"
                 )
             },
         )
 
         combine_chain = StuffDocumentsChain(
             llm_chain=qa_chain,
-            document_prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "DOCUMENT_PROMPT"
+            document_prompt=self.interaction_manager.prompt_manager.get_prompt(
+                "document", "DOCUMENT_PROMPT"
             ),
             document_variable_name="summaries",
         )
@@ -110,8 +109,8 @@ class DocumentTool:
         document_text: str,
     ) -> str:
         summary = self.llm.predict(
-            get_prompt(
-                self.configuration.model_configuration.llm_type,
+            self.interaction_manager.prompt_manager.get_prompt(
+                "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
@@ -130,7 +129,7 @@ class DocumentTool:
 
         # Is there a summary already?  If so, return that instead of re-running the summarization.
         if file.file_summary and file.file_summary != "":
-            return f"--- SUMMARY ---\n{file.file_summary}\n--- SUMMARY ---"
+            return file.file_summary
 
         # Get the document chunks
         document_chunks = documents.get_document_chunks_by_file_id(
@@ -148,8 +147,8 @@ class DocumentTool:
 
         reduce_chain = LLMChain(
             llm=self.llm,
-            prompt=get_prompt(
-                self.configuration.model_configuration.llm_type,
+            prompt=self.interaction_manager.prompt_manager.get_prompt(
+                "summary",
                 "REDUCE_SUMMARIES_PROMPT",
             ),
         )
@@ -188,7 +187,7 @@ class DocumentTool:
             file_id=file.id, summary=summary, classification=file.file_classification
         )
 
-        return f"--- SUMMARY ---\n{summary}\n--- SUMMARY ---"
+        return summary
 
     def summarize_search_topic(self, query: str, original_user_query: str):
         """Useful for getting a summary of a topic or query from the user.
@@ -237,11 +236,11 @@ class DocumentTool:
     #     # chain = load_summarize_chain(
     #     #     llm=llm,
     #     #     chain_type="refine",
-    #     #     question_prompt=get_prompt(
-    #     #         self.configuration.model_configuration.llm_type, "DETAILED_SUMMARIZE_PROMPT"
+    #     #     question_prompt=self.interaction_manager.prompt_manager.get_prompt(
+    #     #         "document", "DETAILED_SUMMARIZE_PROMPT"
     #     #     ),
-    #     #     refine_prompt=get_prompt(
-    #     #         self.configuration.model_configuration.llm_type, "SIMPLE_REFINE_PROMPT"
+    #     #     refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
+    #     #         "document", "SIMPLE_REFINE_PROMPT"
     #     #     ),
     #     #     return_intermediate_steps=True,
     #     #     input_key="input_documents",
@@ -261,12 +260,12 @@ class DocumentTool:
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=get_prompt(
-                self.configuration.model_configuration.llm_type,
+            question_prompt=self.interaction_manager.prompt_manager.get_prompt(
+                "summary",
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
-            refine_prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, refine_prompt
+            refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
+                "summary", refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",

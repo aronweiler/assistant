@@ -11,7 +11,8 @@ from src.configuration.assistant_configuration import (
     RetrievalAugmentedGenerationConfiguration,
 )
 from src.ai.interactions.interaction_manager import InteractionManager
-from src.ai.llm_helper import get_llm, get_prompt
+from src.ai.llm_helper import get_llm
+from src.ai.prompts.prompt_manager import PromptManager
 from src.ai.system_info import get_system_information
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
 from src.tools.documents.document_tool import DocumentTool
@@ -30,10 +31,13 @@ class RetrievalAugmentedGenerationAI:
         configuration: RetrievalAugmentedGenerationConfiguration,
         interaction_id: UUID,
         user_email: str,
+        prompt_manager: PromptManager,
         streaming: bool = False,
+        override_memory=None,
     ):
         self.configuration = configuration
         self.streaming = streaming
+        self.prompt_manager = prompt_manager
 
         self.llm = get_llm(
             self.configuration.model_configuration,
@@ -43,27 +47,31 @@ class RetrievalAugmentedGenerationAI:
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
-            interaction_id,
-            user_email,
-            self.llm,
-            self.configuration.model_configuration.max_conversation_history_tokens,
+            interaction_id=interaction_id,
+            user_email=user_email,
+            llm=self.llm,
+            prompt_manager=self.prompt_manager,
+            max_token_limit=self.configuration.model_configuration.max_conversation_history_tokens,
+            override_memory=override_memory,
         )
-        
+
         memory = ReadOnlySharedMemory(
             memory=self.interaction_manager.conversation_token_buffer_memory
         )
-        
+
         self.chain = LLMChain(
             llm=self.llm,
-            prompt=get_prompt(
-                self.configuration.model_configuration.llm_type, "CONVERSATIONAL_PROMPT"
+            prompt=self.prompt_manager.get_prompt(
+                "conversational", "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
         )
 
         # The tool manager contains all of the tools available to the AI
-        self.tool_manager = ToolManager()        
-        self.tool_manager.initialize_tools(self.configuration, self.interaction_manager, self.llm)
+        self.tool_manager = ToolManager()
+        self.tool_manager.initialize_tools(
+            self.configuration, self.interaction_manager, self.llm
+        )
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -88,8 +96,8 @@ class RetrievalAugmentedGenerationAI:
         document_text: str,
     ) -> str:
         summary = self.llm.predict(
-            get_prompt(
-                self.configuration.model_configuration.llm_type,
+            self.prompt_manager.get_prompt(
+                "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
@@ -126,21 +134,21 @@ class RetrievalAugmentedGenerationAI:
 
         if self.mode == "Conversation":
             logging.debug("Running chain 'Conversation Only' mode")
-            results = self.run_chain(query=query, llm_callbacks=llm_callbacks, kwargs=kwargs)
+            results = self.run_chain(
+                query=query, llm_callbacks=llm_callbacks, kwargs=kwargs
+            )
         else:
             # Run the agent
             logging.debug("Running agent 'Auto' mode")
-            results = self.run_agent(query=query, agent_callbacks=agent_callbacks, kwargs=kwargs)
+            results = self.run_agent(
+                query=query, agent_callbacks=agent_callbacks, kwargs=kwargs
+            )
 
         # Adding this after the run so that the agent can't see it in the history
-        self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_user_message(
-            query
+        self.interaction_manager.conversation_token_buffer_memory.save_context(
+            inputs={"input": query}, outputs={"output": results}
         )
-
         logging.debug(results)
-        self.interaction_manager.conversation_token_buffer_memory.chat_memory.add_ai_message(
-            results
-        )
 
         logging.debug("Added results to chat memory")
 
@@ -183,19 +191,19 @@ class RetrievalAugmentedGenerationAI:
         if self.interaction_manager.interaction_needs_summary:
             logging.debug("Interaction needs summary, generating one now")
             interaction_summary = self.llm.predict(
-                get_prompt(
-                    self.configuration.model_configuration.llm_type,
+                self.prompt_manager.get_prompt(
+                    "summary",
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
             logging.debug(f"Generated summary: {interaction_summary}")
-            
-    def set_mode(self, mode: str):        
+
+    def set_mode(self, mode: str):
         if mode.lower().startswith("conversation"):
             # Use the LLM with a chat prompt
             self.mode = "Conversation"
-        else:    
+        else:
             # Normal mode, let the AI decide what to do (agent)
             self.mode = "Auto"

@@ -35,23 +35,23 @@ class ToolManager:
             "enabled_by_default": True,
             "requires_documents": True,
         },
-        "summarize_search_topic": {
-            "display_name": "Summarize Searched Topic",
-            "help_text": "Searches through all documents for the specified topic, and summarizes the results. Don't forget to set the top_k!  If the file override is set, it will use that file.",
-            "enabled_by_default": False,
-            "requires_documents": True,
-        },
+        # "summarize_search_topic": {
+        #     "display_name": "Summarize Searched Topic",
+        #     "help_text": "Performs a deep search through the loaded documents, and summarizes the results of that search.",
+        #     "enabled_by_default": True,
+        #     "requires_documents": True,
+        # },
         "summarize_entire_document": {
             "display_name": "Summarize Whole Document (⚠️ Slow / Expensive)",
             "help_text": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
-            "enabled_by_default": False,
+            "enabled_by_default": True,
             "requires_documents": True,
         },
         "list_documents": {
             "display_name": "List Documents",
             "help_text": "Lists all loaded documents.",
             "enabled_by_default": False,
-            "requires_documents": True,
+            "requires_documents": False,
         },
         "get_code_details": {
             "display_name": "Code Details",
@@ -62,7 +62,7 @@ class ToolManager:
         "get_code_structure": {
             "display_name": "Code Structure",
             "help_text": "Gets the high-level structure of a code file.",
-            "enabled_by_default": False,
+            "enabled_by_default": True,
             "requires_documents": True,
         },
         "get_pretty_dependency_graph": {
@@ -231,18 +231,18 @@ class ToolManager:
             ),
             GenericTool(
                 description="Searches the loaded documents for a query.",
-                additional_instructions="Searches the loaded files (or the specified file when target_file_id is set) for the given query. The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.",
+                additional_instructions="Searches the loaded files (or the specified file when target_file_id is set) for the given query. The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.  Note: This tool only looks at a small subset of the document content in its search, it is not good for getting large chunks of content.",
                 #The `search_type` parameter tells the tool what kind of search to perform.  You can perform a similarity search (default, 'Similarity'), which looks for similarity in the meaning of phrases.  Or it can perform a keyword search ('Keyword'), which matches a keyword or phrase.  Think carefully about which search_type to use.
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_loaded_documents,
             ),
-            GenericTool(
-                description="Searches through all documents for the specified topic, and summarizes the results.",
-                additional_instructions="Useful for getting a very general summary of a topic across all of the loaded documents. Do not use this tool for specific document queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
-                document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
-                function=document_tool.summarize_search_topic,
-                # return_direct=False,
-            ),
+            # GenericTool(
+            #     description="Searches through all documents for the specified topic, and summarizes the results.",
+            #     additional_instructions="Performs a deep search across the loaded documents in order to summarize a topic.  Similar to . Do not use this tool for specific document queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
+            #     document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
+            #     function=document_tool.summarize_search_topic,
+            #     # return_direct=False,
+            # ),
             GenericTool(
                 description="Summarizes an entire document.",
                 additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
@@ -289,13 +289,13 @@ class ToolManager:
             GenericTool(
                 description="Performs a code review of a specified code file.",
                 function=code_review_tool.conduct_code_review_from_file_id,
-                additional_instructions="Use this tool for conducting a code review on a loaded code file.",
+                additional_instructions="Use this tool for conducting a code review on a loaded code file.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
                 return_direct=False,
             ),
             GenericTool(
                 description="Performs a code review of a specified code file.",
                 function=code_review_tool.conduct_code_review_from_url,
-                additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.",
+                additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
                 return_direct=False,
             ),
             GenericTool(
