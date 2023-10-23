@@ -17,7 +17,6 @@ from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 from src.discord.conversational_bot import ConversationalBot
 from src.discord.rag_bot import RagBot
-from src.discord.llava_bot import LlavaBot
 
 
 def load_configuration():

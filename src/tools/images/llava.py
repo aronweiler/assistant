@@ -5,13 +5,25 @@ from src.db.models.documents import Documents
 from src.ai.interactions.interaction_manager import InteractionManager
 
 # TODO: Make this configurable
-LLAVA_CMD = '{llava_exe} -m H:\LLM\llava-v1.5-7b\ggml-model-q5_k.gguf --mmproj H:\LLM\llava-v1.5-7b\mmproj-model-f16.gguf --temp 0.1 -ngl 50 -p "{prompt}" --image "{image_path}"'
+LLAVA_CMD = '{llava_path} -m {llava_model} --mmproj {llava_mmproj} --temp {llava_temp} -ngl {llava_gpu_layers} -p "{prompt}" --image "{image_path}"'
 
 
 class LlavaTool:
-    def __init__(self, llava_path: str) -> None:
-        self.llava_path = llava_path
+    def __init__(
+        self,
+        llava_path: str,
+        llava_model: str,
+        llava_mmproj: str,
+        llava_temp: float,
+        llava_gpu_layers: int,
+    ):
         self.document_helper = Documents()
+
+        self.llava_path = llava_path
+        self.llava_model = llava_model
+        self.llava_mmproj = llava_mmproj
+        self.llava_temp = llava_temp
+        self.llava_gpu_layers = llava_gpu_layers
 
     def query_image(self, target_file_id: int, query: str) -> str:
         """Queries the image with the given query
@@ -39,7 +51,13 @@ class LlavaTool:
 
         # Now, run the query
         command = LLAVA_CMD.format(
-            llava_exe=self.llava_path, prompt=query, image_path=temp_file_path
+            llava_path=self.llava_path,
+            prompt=query,
+            image_path=temp_file_path,
+            llava_model=self.llava_model,
+            llava_mmproj=self.llava_mmproj,
+            llava_temp=self.llava_temp,
+            llava_gpu_layers=self.llava_gpu_layers,
         )
 
         # Execute the command

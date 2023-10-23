@@ -232,7 +232,11 @@ class ToolManager:
         weather_tool = WeatherTool()
         
         llava_tool = LlavaTool(
-            llava_path=os.environ.get("LLAVA_PATH", None)
+            llava_path=os.environ.get("LLAVA_PATH", None),
+            llava_model=os.environ.get("LLAVA_MODEL", None),
+            llava_mmproj=os.environ.get("LLAVA_MMPROJ", None),
+            llava_temp=float(os.environ.get("LLAVA_TEMP", 0.1)),
+            llava_gpu_layers=int(os.environ.get("LLAVA_GPU_LAYERS", 50)),
         )
 
         generic_tools = [
