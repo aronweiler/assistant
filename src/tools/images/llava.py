@@ -39,7 +39,7 @@ class LlavaTool:
         file = self.document_helper.get_file(target_file_id)
 
         # Write the file data to a temporary file
-        temp_file_path = f"/temp_images/{file.file_name}"
+        temp_file_path = f"temp_images/{file.file_name}"
 
         # If the file does not exist, create it.
         if not os.path.exists(temp_file_path):
