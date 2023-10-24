@@ -14,6 +14,7 @@ class GitlabIssueRetriever:
     def __init__(self, source_control_url, source_control_pat):
         self._logger = logging.getLogger(__name__)
         self._source_control_url = source_control_url
+        self._source_control_pat = source_control_pat
         self._gl = gitlab_shared.retrieve_gitlab_client(
             source_control_url=source_control_url,
             source_control_pat=source_control_pat,
@@ -36,21 +37,28 @@ class GitlabIssueRetriever:
         return details['ref']
     
 
-    # TODO: This does not properly find any matches yet. Needs investigation.
-    @staticmethod
-    def _get_path_to_raw_results(text: str):
-        pattern = r".*\[Raw code review results\]\((?P<code_review_file_path>.*)\).*"
-        match_obj = re.match(pattern=pattern, string=text, flags=re.MULTILINE)
+    def _extract_findings_from_issue(self, issue: str) -> dict:
+        issue_lines = issue.splitlines()
 
-        if match_obj is None:
-            return None
+        tmp_dict = {}
+        state = 0
+        count = 0
+        for line in issue_lines:
+            if state == 0:
+                if line.startswith('1.'):
+                    state = 1
+                    tmp_dict[count] = [line]
+            elif state == 1:
+                if line.startswith('1.'):
+                    count += 1
+                    tmp_dict[count] = [line]
+                else:
+                    tmp_dict[count].append(line)
+
+        findings = {item_number: "\n".join(text) for item_number, text in tmp_dict.items()}
         
-        details = match_obj.groupdict()
-        if 'code_review_file_path' not in details:
-            return None
-        
-        return details['code_review_file_path']
-    
+        return findings
+
 
     def retrieve_issue_data(self, url):
         url_info = gitlab_shared.parse_url(
@@ -99,10 +107,7 @@ class GitlabIssueRetriever:
         sorted_issues = sorted(matching_issues, key=lambda issue: issue.iid, reverse=True)
 
         previous_issue = sorted_issues[0]
-
-        # Extract attachment containing raw code review results
-        # [Raw code review results]({{ code_review_json_file['url'] }})
-        code_review_file_path = self._get_path_to_raw_results(text=previous_issue.description)
+        findings = self._extract_findings_from_issue(issue=previous_issue.description)
         
         return {
             'metadata': {
@@ -112,6 +117,7 @@ class GitlabIssueRetriever:
                 'created_at': previous_issue.created_at,
                 'url': previous_issue.web_url,
             },
+            'findings': findings
             # 'issue_obj': previous_issue
         }
 
