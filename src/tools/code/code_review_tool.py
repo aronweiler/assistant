@@ -59,6 +59,7 @@ class CodeReviewTool:
         )
 
         return file_retriever.retrieve_file_data(url=url)
+    
 
     def ingest_issue_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
@@ -203,7 +204,6 @@ class CodeReviewTool:
             "ref": file_info["ref"],
             "file_path": file_info["file_path"],
         }
-
         previous_issue = self.ingest_issue_from_url(url=target_url)
 
         return self.conduct_code_review(
