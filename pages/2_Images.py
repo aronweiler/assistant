@@ -7,7 +7,8 @@ from io import StringIO
 
 LLAVA_CMD = '{llava_path} -m {llava_model} --mmproj {llava_mmproj} --temp {llava_temp} -ngl {llava_gpu_layers} -p "{prompt}" --image "{image_path}"'
 
-
+st.title("Jarvis Images - ⚠️ Experimental ⚠️")
+st.markdown("- Read the [LLaVA README](https://github.com/aronweiler/assistant/blob/main/LlaVA.md)")
 
 def extract_text(input):
     pattern = r"prompt: '(.+?)'\n\n(.*?)\n\nmain:"

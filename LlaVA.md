@@ -9,7 +9,10 @@ From the llama.cpp dir, run the following:
 - `cmake .. -DLLAMA_CUBLAS=ON`
 - `cmake --build . --config Release`
 
-# Run image inference directly
+## Download the LLaVA Model(s)
+- https://huggingface.co/mys
+
+## Run image inference directly
 From the Release directory created when building:
 - `llava.exe -m H:\LLM\llava-v1.5-7b\llava-1.5-7b-ggml-model-q5_k.gguf --mmproj H:\LLM\llava-v1.5-7b\llava-1.5-7b-mmproj-model-f16.gguf --temp 0.1 -ngl 50 -p "<prompt text>" --image "<image path>"`
 
