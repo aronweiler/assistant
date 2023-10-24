@@ -3,17 +3,19 @@ from uuid import UUID
 
 from langchain.schema.chat_history import BaseChatMessageHistory
 from langchain.schema.messages import BaseMessage
-from langchain.schema.messages import HumanMessage, AIMessage, SystemMessage, FunctionMessage
+from langchain.schema.messages import (
+    HumanMessage,
+    AIMessage,
+    SystemMessage,
+    FunctionMessage,
+)
 
 from src.db.models.conversations import Conversations, ConversationModel
 from src.db.models.domain.conversation_role_type import ConversationRoleType
 
+
 class PostgresChatMessageHistory(BaseChatMessageHistory):
     """Chat message history stored in Postgres."""
-
-    interaction_id: UUID
-    conversations: Conversations
-    user_id: int
 
     def __init__(self, interaction_id: UUID, conversations: Conversations):
         """Initialize the PostgresChatMessageHistory.
@@ -25,11 +27,13 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         self.interaction_id = interaction_id
         self.conversations = conversations
 
+        self.user_id: int = None
+
     @property
     def messages(self) -> List[BaseMessage]:
         """A list of Messages stored in the DB."""
-        #return self.chat_messages    
-        chat_messages = []       
+        # return self.chat_messages
+        chat_messages = []
         messages = self.conversations.get_conversations_for_interaction(
             self.interaction_id
         )
@@ -53,7 +57,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             message: A BaseMessage object to store.
         """
 
-        if type(message) == HumanMessage:            
+        if type(message) == HumanMessage:
             role_type = ConversationRoleType.USER
         elif type(message) == AIMessage:
             role_type = ConversationRoleType.ASSISTANT
@@ -64,14 +68,16 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         else:
             raise ValueError("Unknown message type")
 
-        self.conversations.add_conversation(ConversationModel(            
-            interaction_id=self.interaction_id,
-            conversation_text=message.content,
-            conversation_role_type=role_type,
-            user_id=self.user_id,
-        ))
+        self.conversations.add_conversation(
+            ConversationModel(
+                interaction_id=self.interaction_id,
+                conversation_text=message.content,
+                conversation_role_type=role_type,
+                user_id=self.user_id,
+            )
+        )
 
-        #self.chat_messages.append(message)
+        # self.chat_messages.append(message)
 
     def clear(self) -> None:
         """Clear memory contents."""

@@ -242,7 +242,7 @@ class ToolManager:
         generic_tools = [
             GenericTool(
                 description="Uses an LLM to analyze data.",
-                additional_instructions="Best used at the end of a chain of tools.  This tool is useful for when you want to generate a response from data you have gathered, such as after searching for various topics, or taking information from disparate sources in order to combine it into an answer for the user.",
+                additional_instructions="Best used at the end of a chain of tools.  This tool is useful for when you want to generate a response from data you have gathered, such as after searching for various topics, or taking information from disparate sources in order to combine it into an answer for the user.  IMPORTANT: This tool does not have access to documents, or any data outside of what you pass in the 'data_to_analyze' argument.",
                 function=llm_tool.analyze_with_llm,
             ),
             GenericTool(

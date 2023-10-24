@@ -681,15 +681,19 @@ def create_collection_selectbox(ai):
 def refresh_messages_session_state(ai_instance):
     """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
 
-    buffer_messages = (
+    entire_chat_history = (
+        ai_instance.interaction_manager.conversation_token_buffer_memory.chat_memory.messages
+    )
+
+    messages_in_memory = (
         ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
     )
 
-    print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
+    logging.info(f"Length of `messages_in_memory` retrieved from AI: {str(len(messages_in_memory))}")
 
     st.session_state["messages"] = []
 
-    for message in buffer_messages:
+    for message in entire_chat_history:
         if message.type == "human":
             st.session_state["messages"].append(
                 {
@@ -697,6 +701,7 @@ def refresh_messages_session_state(ai_instance):
                     "content": message.content,
                     "avatar": "🗣️",
                     "id": message.additional_kwargs["id"],
+                    "in_memory": message in messages_in_memory,
                 }
             )
         else:
@@ -706,6 +711,7 @@ def refresh_messages_session_state(ai_instance):
                     "content": message.content,
                     "avatar": "🤖",
                     "id": message.additional_kwargs["id"],
+                    "in_memory": message in messages_in_memory,
                 }
             )
 
@@ -753,7 +759,14 @@ def show_old_messages(ai_instance):
                     key=str(uuid.uuid4()),
                 )
 
-            col1.markdown(message["content"])
+            content = message["content"]
+            
+            if message["in_memory"]:
+                content = f"*🐘 :green[Message in chat memory]*\n\n{content}"
+            else:
+                content = f"*🙊 :red[Message not in chat memory]*\n\n{content}"
+                
+            col1.markdown(content)
 
 
 def handle_chat(main_window_container, ai_instance):

@@ -10,8 +10,8 @@ LLAVA_CMD = '{llava_path} -m {llava_model} --mmproj {llava_mmproj} --temp {llava
 st.title("Jarvis Images - ⚠️ Experimental ⚠️")
 st.markdown("- Read the [LLaVA README](https://github.com/aronweiler/assistant/blob/main/LlaVA.md)")
 
-def extract_text(input):
-    pattern = r"prompt: '(.+?)'\n\n(.*?)\n\nmain:"
+def extract_text(input:str, prompt:str):
+    pattern = r"prompt: '(.*?)'\n\n(.*?)main:"
 
     match = re.search(pattern=pattern, string=input, flags=re.DOTALL)
 
@@ -19,8 +19,13 @@ def extract_text(input):
         extracted_text = match.group(1).strip()
         return extracted_text
     else:
-        return input
-
+        # Somehow the fucking regex doesn't work, and there goes 45 minutes of my life
+        
+        start_index = input.find(f"prompt: '{prompt}'")
+        end_index = input.find("main: image encoded")
+        
+        # Return the input between the start and end index
+        return input[start_index:end_index].strip()
 
 
 def query_image(file_name: int, query: str) -> str:
@@ -43,7 +48,7 @@ def query_image(file_name: int, query: str) -> str:
     # Execute the command
     result = subprocess.run(command, shell=True, capture_output=True)
 
-    return extract_text(input=result.stdout.decode("utf-8"))
+    return extract_text(input=result.stdout.decode("utf-8"), prompt=query)
 
 
 with st.sidebar.container():
