@@ -18,25 +18,26 @@ from src.ai.prompts.prompt_manager import PromptManager
 
 
 class RagUI:
-    def __init__(self):
-        self.user_email = None
+    def __init__(self, user_email: str = None):
+        self.user_email = user_email
 
     def load_configuration(self):
         """Loads the configuration from the path"""
-        rag_config_path = os.environ.get(
-            "RAG_CONFIG_PATH",
-            "configurations/rag_configs/openai_rag.json",
-        )
-
-        config = RetrievalAugmentedGenerationConfigurationLoader.from_file(
-            rag_config_path
-        )
-
+        
         if "rag_config" not in st.session_state:
+            rag_config_path = os.environ.get(
+                "RAG_CONFIG_PATH",
+                "configurations/rag_configs/openai_rag.json",
+            )
+
+            config = RetrievalAugmentedGenerationConfigurationLoader.from_file(
+                rag_config_path
+            )
+                    
             st.session_state["rag_config"] = config
 
         self.prompt_manager = PromptManager(
-            llm_type=config.model_configuration.llm_type
+            llm_type=st.session_state.rag_config.model_configuration.llm_type
         )
 
     def set_page_config(self):
@@ -73,7 +74,7 @@ class RagUI:
             logging.debug(
                 f"load_ai: AI instance exists, but need to change interaction ID from {str(st.session_state['rag_ai'].interaction_manager.interaction_id)} to {selected_interaction_id}"
             )
-            # We have an AI instance, but we need to change the interaction id
+            # We have an AI instance, but we need to change the interaction (conversation) id
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["rag_config"],
                 interaction_id=selected_interaction_id,
@@ -82,6 +83,8 @@ class RagUI:
                 prompt_manager=self.prompt_manager,
             )
             st.session_state["rag_ai"] = rag_ai_instance
+        else:
+            logging.debug("load_ai: AI instance exists, no need to change interaction ID")
 
     def create_collections_container(self, main_window_container):
         css_style = """{
@@ -214,19 +217,18 @@ if __name__ == "__main__":
 
     try:
         logging.debug("Starting Jarvis")
-        rag_ui = RagUI()
+        # Get the user from the environment variables
+        user_email = os.environ.get("USER_EMAIL", None)        
+        logging.debug(f"User email: {user_email}")
+        
+        rag_ui = RagUI(user_email=user_email)
 
         # Always comes first!
         logging.debug("Loading configuration")
         rag_ui.load_configuration()
 
         logging.debug("Setting page config")
-        rag_ui.set_page_config()
-
-        # Get the user from the environment variables
-        user_email = os.environ.get("USER_EMAIL", None)
-        rag_ui.user_email = user_email
-        logging.debug(f"User email: {user_email}")
+        rag_ui.set_page_config()        
 
         if not user_email:
             raise ValueError("USER_EMAIL environment variable not set")
@@ -255,7 +257,7 @@ if __name__ == "__main__":
 
             ui_shared.handle_chat(col1, st.session_state["rag_ai"])
 
-            ui_shared.show_version()
+            ui_shared.show_version()            
     except Exception as e:
         # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
         # And after wasting 20 minutes of my life on this, I am done.

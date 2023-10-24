@@ -70,7 +70,7 @@ col1, col2 = st.columns(2)
 # Does the last-uploaded file exist?
 if os.path.isfile("temp/file.jpg"):
     image = Image.open("temp/file.jpg")
-    col1.image(image, caption="Uploaded file", use_column_width=True)
+    col1.image(image, caption="Uploaded file", width=500)
 
     query = st.chat_input("Enter a query for the image")
     
