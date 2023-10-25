@@ -230,7 +230,7 @@ class CodeTool:
         if file_model.file_classification.lower() != "code":
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
-        file_data = file_model.file_data.decode("utf-8")
+        file_data = documents.get_file_data(file_model.id).decode("utf-8")
 
         max_code_file_size = self.interaction_manager.tool_kwargs.get(
             "max_code_file_size", 5000
@@ -274,7 +274,7 @@ class CodeTool:
                 )
 
                 if target_signature is None or target_signature == "":
-                    return get_code_details + file.file_data.decode("utf-8")
+                    return get_code_details + documents.get_file_data(file.id).decode("utf-8")
 
                 # Find the document chunk that matches the target signature
                 for doc in document_chunks:

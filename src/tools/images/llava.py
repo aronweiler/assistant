@@ -47,7 +47,7 @@ class LlavaTool:
             os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
             with open(temp_file_path, "wb") as f:
-                f.write(file.file_data)
+                f.write(self.document_helper.get_file_data(file.id))
 
         # Now, run the query
         command = LLAVA_CMD.format(

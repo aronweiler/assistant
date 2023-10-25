@@ -504,18 +504,17 @@ def ingest_files(
 
                 # Create the file
                 logging.info(f"Creating file '{file_name}'...")
-                files.append(
-                    documents_helper.create_file(
-                        FileModel(
-                            user_id=st.session_state.user_id,
-                            collection_id=active_collection_id,
-                            file_name=file_name,
-                            file_hash=calculate_sha256(uploaded_file_path),
-                            file_data=file_data,
-                            file_classification=file_classification,
-                        )
+                file_model = documents_helper.create_file(
+                    FileModel(
+                        user_id=st.session_state.user_id,
+                        collection_id=active_collection_id,
+                        file_name=file_name,
+                        file_hash=calculate_sha256(uploaded_file_path),
+                        file_classification=file_classification,
                     )
                 )
+                documents_helper.set_file_data(file_model.id, file_data)
+                files.append(file_model)
 
             if not files or len(files) == 0:
                 st.warning("Nothing to split... bye!")

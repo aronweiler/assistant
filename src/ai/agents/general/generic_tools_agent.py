@@ -329,11 +329,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
     def get_tool_use_retry_prompt(
         self, step, previous_tool_attempts, user_query, system_information
     ):
-        tool_name = step["tool"]
-        tool_details = ""
-        for tool in self.tools:
-            if tool.name == tool_name:
-                tool_details = self.get_tool_string(tool=tool)
+        available_tools = self.get_available_tool_descriptions(self.tools)
 
         agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
@@ -341,8 +337,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         ).format(
             loaded_documents=self.get_loaded_documents(),
             previous_tool_attempts=previous_tool_attempts,
-            tool_name=tool_name,
-            tool_details=tool_details,
+            available_tool_descriptions=available_tools,
             tool_use_description=step["step_description"],
             user_query=user_query,
             chat_history=self.get_chat_history(),

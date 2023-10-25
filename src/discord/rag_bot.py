@@ -88,11 +88,15 @@ class RagBot(discord.Client):
 
                             with open(file_path, "wb") as f:
                                 f.write(data)
-                                
+
                     uploaded_file_paths.append(file_path)
-                                
+
                 # Process the files
-                await self.load_files(uploaded_file_paths=uploaded_file_paths, root_temp_dir=root_temp_dir, message=message)
+                await self.load_files(
+                    uploaded_file_paths=uploaded_file_paths,
+                    root_temp_dir=root_temp_dir,
+                    message=message,
+                )
 
             if message.content.strip() != "":
                 async with message.channel.typing():
@@ -100,19 +104,19 @@ class RagBot(discord.Client):
                     response: str = rag_ai.query(
                         query=message.content, collection_id=self.target_collection_id
                     )
-                    
+
                     # Sometimes the response can be over 2000 characters, so we need to split it
                     # into multiple messages, and send them one at a time
                     text_splitter = RecursiveCharacterTextSplitter(
                         separators=["\n", ".", "?", "!"],
-                        chunk_size = 1000,
-                        chunk_overlap  = 0,
-                        length_function = len
+                        chunk_size=1000,
+                        chunk_overlap=0,
+                        length_function=len,
                     )
-                    
+
                     responses = text_splitter.split_text(response)
-                    
-                    for rsp in responses:                    
+
+                    for rsp in responses:
                         await message.channel.send(rsp)
 
     async def load_rag_ai(self, message) -> RetrievalAugmentedGenerationAI:
@@ -128,8 +132,8 @@ class RagBot(discord.Client):
             override_memory=memory,
         )
 
-    async def load_files(self, uploaded_file_paths, root_temp_dir, message):    
-        documents_helper = Documents()    
+    async def load_files(self, uploaded_file_paths, root_temp_dir, message):
+        documents_helper = Documents()
         user_id = Users().get_user_by_email(self.user_email).id
         logging.info(f"Processing {len(uploaded_file_paths)} files...")
         # First see if there are any files we can't load
@@ -148,56 +152,59 @@ class RagBot(discord.Client):
             )
 
             if existing_file:
-                await message.channel.send(f"File '{file_name}' already exists, and overwrite is not enabled.  Ignoring...")
+                await message.channel.send(
+                    f"File '{file_name}' already exists, and overwrite is not enabled.  Ignoring..."
+                )
                 logging.warning(
                     f"File '{file_name}' already exists, and overwrite is not enabled"
                 )
                 logging.debug(f"Deleting temp file: {uploaded_file_path}")
-                os.remove(uploaded_file_path)             
+                os.remove(uploaded_file_path)
 
-                continue            
+                continue
 
             # Read the file
             with open(uploaded_file_path, "rb") as file:
                 file_data = file.read()
-                
+
             # Start off with the default file classification
             file_classification = "Document"
-            
+
             # Override the classification if necessary
             IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
             # Get the file extension
             file_extension = os.path.splitext(file_name)[1]
             # Check to see if it's an image
             if file_extension in IMAGE_TYPES:
-                # It's an image, reclassify it                   
+                # It's an image, reclassify it
                 file_classification = "Image"
 
             # Create the file
             logging.info(f"Creating file '{file_name}'...")
-            files.append(
-                documents_helper.create_file(
-                    FileModel(
-                        user_id=user_id,
-                        collection_id=self.target_collection_id,
-                        file_name=file_name,
-                        file_hash=calculate_sha256(uploaded_file_path),
-                        file_data=file_data,
-                        file_classification=file_classification,
-                    )
+            file = documents_helper.create_file(
+                FileModel(
+                    user_id=user_id,
+                    collection_id=self.target_collection_id,
+                    file_name=file_name,
+                    file_hash=calculate_sha256(uploaded_file_path),
+                    file_classification=file_classification,
                 )
             )
+            documents_helper.set_file_data(file.id, file_data)
+            files.append(file)
 
         if not files or len(files) == 0:
             logging.warning("No files to ingest")
-            await message.channel.send("It looks like I couldn't split (or read) any of the files that you uploaded.")
+            await message.channel.send(
+                "It looks like I couldn't split (or read) any of the files that you uploaded."
+            )
             return
 
         logging.info("Splitting documents...")
 
         is_code = False
 
-        # Pass the root temp dir to the ingestion function        
+        # Pass the root temp dir to the ingestion function
         documents = load_and_split_documents(
             document_directory=root_temp_dir,
             split_documents=True,
@@ -205,11 +212,11 @@ class RagBot(discord.Client):
             chunk_size=500,
             chunk_overlap=50,
         )
-        
+
         if not documents or len(documents) == 0:
             logging.warning("No documents to ingest")
             return
-        
+
         logging.info(f"Saving {len(documents)} document chunks...")
 
         # For each document, create the file if it doesn't exist and then the document chunks
@@ -222,11 +229,11 @@ class RagBot(discord.Client):
             # Get the file reference
             file = next((f for f in files if f.file_name == file_name), None)
 
-            if not file:                
+            if not file:
                 logging.error(
                     f"Could not find file '{file_name}' in the database after uploading"
                 )
-                break            
+                break
 
             # Create the document chunks
             logging.info(f"Inserting document chunk for file '{file_name}'...")
@@ -243,9 +250,10 @@ class RagBot(discord.Client):
                 )
             )
 
-       
         logging.info(
             f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
-        )   
-        
-        await message.channel.send(f"Successfully ingested {len(documents)} document chunks from {len(files)} files")
+        )
+
+        await message.channel.send(
+            f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
+        )

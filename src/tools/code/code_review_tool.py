@@ -239,7 +239,7 @@ class CodeReviewTool:
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         # Convert file data bytes to string
-        file_data = file_model.file_data.decode("utf-8")
+        file_data = documents.get_file_data(file_model.id).decode("utf-8")
 
         return self.conduct_code_review(
             file_data=file_data,
