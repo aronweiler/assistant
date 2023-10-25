@@ -17,6 +17,8 @@ from src.utilities.hash_utilities import calculate_sha256
 from src.documents.document_loader import load_and_split_documents
 from streamlit_extras.stylable_container import stylable_container
 
+IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
+
 
 def delete_conversation_item(id: int):
     """Deletes the conversation item with the specified id"""
@@ -58,6 +60,9 @@ class IngestionSettings:
 
 def set_user_id_from_email(user_email):
     """Sets the user_id in the session state from the user's email"""
+    if "user_id" in st.session_state:
+        return
+
     users_helper = Users()
 
     user = users_helper.get_user_by_email(user_email)
@@ -486,20 +491,30 @@ def ingest_files(
                 with open(uploaded_file_path, "rb") as file:
                     file_data = file.read()
 
+                # Start off with the default file classification
+                file_classification = st.session_state.ingestion_settings.file_type
+
+                # Override the classification if necessary
+                # Get the file extension
+                file_extension = os.path.splitext(file_name)[1]
+                # Check to see if it's an image
+                if file_extension in IMAGE_TYPES:
+                    # It's an image, reclassify it
+                    file_classification = "Image"
+
                 # Create the file
                 logging.info(f"Creating file '{file_name}'...")
-                files.append(
-                    documents_helper.create_file(
-                        FileModel(
-                            user_id=st.session_state.user_id,
-                            collection_id=active_collection_id,
-                            file_name=file_name,
-                            file_hash=calculate_sha256(uploaded_file_path),
-                            file_data=file_data,
-                            file_classification=st.session_state.ingestion_settings.file_type,
-                        )
+                file_model = documents_helper.create_file(
+                    FileModel(
+                        user_id=st.session_state.user_id,
+                        collection_id=active_collection_id,
+                        file_name=file_name,
+                        file_hash=calculate_sha256(uploaded_file_path),
+                        file_classification=file_classification,
                     )
                 )
+                documents_helper.set_file_data(file_model.id, file_data)
+                files.append(file_model)
 
             if not files or len(files) == 0:
                 st.warning("Nothing to split... bye!")
@@ -519,6 +534,20 @@ def ingest_files(
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
             )
+
+            if documents == None:
+                st.warning(
+                    f"No documents could be extracted from these files.  Possible images detected..."
+                )
+                st.success(f"Completed ingesting {len(files)} files")
+                status.update(
+                    label=f"✅ Ingestion complete",
+                    state="complete",
+                )
+                logging.info(
+                    f"No documents could be extracted from these files.  Possible images detected..."
+                )
+                return
 
             st.info(f"Saving {len(documents)} document chunks...")
             logging.info(f"Saving {len(documents)} document chunks...")
@@ -658,15 +687,21 @@ def create_collection_selectbox(ai):
 def refresh_messages_session_state(ai_instance):
     """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
 
-    buffer_messages = (
+    entire_chat_history = (
+        ai_instance.interaction_manager.conversation_token_buffer_memory.chat_memory.messages
+    )
+
+    messages_in_memory = (
         ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
     )
 
-    print(f"Length of messages retrieved from AI: {str(len(buffer_messages))}")
+    logging.info(
+        f"Counts for --- `messages_in_memory`: {str(len(messages_in_memory))}, `entire_chat_history`: {str(len(entire_chat_history))}"
+    )
 
     st.session_state["messages"] = []
 
-    for message in buffer_messages:
+    for message in entire_chat_history:
         if message.type == "human":
             st.session_state["messages"].append(
                 {
@@ -674,6 +709,7 @@ def refresh_messages_session_state(ai_instance):
                     "content": message.content,
                     "avatar": "🗣️",
                     "id": message.additional_kwargs["id"],
+                    "in_memory": message in messages_in_memory,
                 }
             )
         else:
@@ -683,6 +719,7 @@ def refresh_messages_session_state(ai_instance):
                     "content": message.content,
                     "avatar": "🤖",
                     "id": message.additional_kwargs["id"],
+                    "in_memory": message in messages_in_memory,
                 }
             )
 
@@ -692,7 +729,31 @@ def show_old_messages(ai_instance):
 
     for message in st.session_state["messages"]:
         with st.chat_message(message["role"], avatar=message["avatar"]):
-            col1, col2, col3 = st.columns([0.98, 0.1, 0.1])
+            # TODO: Put better (faster) deleting of conversation items in place.. maybe checkboxes?
+            # def select_conversation_item(message, **kwargs):
+            #     message['selected'] = True if "selected" not in message else not message["selected"]
+
+            # col1, col2 = st.container().columns([0.01, 0.99])
+            # col1.checkbox(
+            #     label="Select",
+            #     key=f"conversation_item_{message['id']}",
+            #     value=False if "selected" not in message else message["selected"],
+            #     kwargs={"message": message},
+            #     on_change=select_conversation_item,
+            #     label_visibility="collapsed",
+            #     help="Select this conversation item",
+            # )
+
+            if message["in_memory"]:
+                in_memory = "*🐘 :green[Message in chat memory]*"
+            else:
+                in_memory = "*🙊 :red[Message not in chat memory]*"
+
+            col1, col2, col3 = st.container().columns([0.10, 0.01, 0.01])
+
+            col1.markdown(in_memory)
+
+            st.markdown(message["content"])
 
             if (
                 f"confirm_conversation_item_delete_{message['id']}"
@@ -729,8 +790,6 @@ def show_old_messages(ai_instance):
                     kwargs={"val": False, "id": message["id"]},
                     key=str(uuid.uuid4()),
                 )
-
-            col1.markdown(message["content"])
 
 
 def handle_chat(main_window_container, ai_instance):

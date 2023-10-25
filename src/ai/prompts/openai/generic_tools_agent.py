@@ -16,9 +16,11 @@ Any previous conversation with the user is contained here. The chat history may 
 {chat_history}
 --- CHAT HISTORY ---
 
-When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.  Make sure that each step contains enough information to be acted upon on it's own.  Do this by resolving coreferences, and providing any additional context that may be needed to answer the user's query in each step.
+When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.
 
-Think this through, step by step.  Make sure to resolve any coreferences in the steps, so that each step can be interpreted on its own (e.g. pulling in names, urls, or other data from the chat history).
+Take a step back, think it through step-by-step, and make sure that each step you provide contains enough information to be acted upon on it's own with the goal of arriving at a final answer to the user's query.  Do this by resolving co-references, and providing any additional context that may be needed to answer the user's query in each step.
+
+Think this through, step by step.  Make sure to resolve any co-references in the steps, so that each step can be interpreted on its own (e.g. pulling in names, urls, or other data from the chat history).
 
 All responses are JSON blobs with the following format:
 ```json
@@ -48,7 +50,7 @@ If you can answer the user's query directly, or the user's query is just convers
 }}
 ```
 
-Now take a deep breath, and read the user's query very carefully. I need you to decide whether to answer the user's query directly, or decompose a list of steps.
+Now read the user's query very carefully, take a deep breath and think this through step-by-step. I need you to decide whether to answer the user's query directly, or decompose a list of steps.
 
 --- USER QUERY ---
 {user_query}
@@ -164,15 +166,14 @@ Any previous conversation with the user is contained here. The chat history may 
 {chat_history}
 --- CHAT HISTORY ---
 
-Please construct a modified tool call that uses the '{tool_name}' tool, but with different arguments, or rephrased content.  
-The '{tool_name}' tool has the following details:
---- TOOL DETAILS ---
-{tool_details}
---- TOOL DETAILS ---
+Please construct a new tool call that uses the one of the following tools.  The tool call should be different han the previous tool call.
+--- AVAILABLE TOOLS ---
+{available_tool_descriptions}
+--- AVAILABLE TOOLS ---
 
-Pay close attention to the required arguments for this tool, and make sure to include them in the JSON output.
+Pay close attention to the required arguments for the chosen tool, and make sure to include them in the JSON output.
 
-The goal is to attempt to retry the previous failed tool calls with a modified tool call that uses the '{tool_name}' tool, but with different arguments, or rephrased content, in order to get better results.  
+The goal is to attempt to retry the previous failed tool calls with a modified tool call that uses a different tool or the same tool with different arguments, in order to get better results.  
 
 Your output should follow this JSON format:
 
@@ -189,7 +190,7 @@ For example, if the tool is 'get_weather', and the tool arguments are 'location'
 }}
 ```
 
-The loaded documents and the previous tool call contain additional information that should inform your tool use.  For example, if the tool arguments require a file ID, then you should use the file ID of a loaded document. The previous tool call contains information on how the tool was called the last time- use this to make sure you call the tool in a different manner this time.
+The loaded documents and the previous tool calls contain additional information that should inform your tool use.  For example, if the tool arguments require a file ID, then you should use the file ID of a loaded document. The previous tool call contains information on how the tool was called the last time- use this to make sure you call the tool in a different manner this time.
 
 The following is the original user query we're trying to answer, use this to inform your tool use:
 {user_query}
@@ -201,9 +202,11 @@ Here are the previous tool calls that were made:
 
 Take a deep breath and examine the previous tool calls carefully.  
 
-Think about the previous tool calls, and construct a new tool call that attempts to answer the user's query, but with different or rephrased arguments than the previous tool calls.  Be creative in your approach, and try to think of a different way to use the tool to answer the user's query.
+Think about the previous tool calls, take a step back, and construct a new tool call that attempts to answer the user's query, but with different or rephrased arguments than the previous tool calls.  Be creative in your approach, and try to think of a different way to use the tool to answer the user's query.
 
-AI: Sure! I will think about this carefully.  Here is my response containing a modified tool call that is different than the previous tool calls (in JSON format):
+AI: Sure! I will think about this carefully.  I've taken a step back, and will approach this problem in a different way.  
+
+Here is my response containing a modified tool call that is different than the previous tool calls (in JSON format):
 """
 
 SYSTEM_TEMPLATE = """I'd like you to act as a personal assistant. It's important that you provide detailed and accurate assistance to me. 

@@ -50,7 +50,6 @@ def load_rag_ai(
         user_email=discord_bot_email,
     )
 
-
 def get_the_llm(configuration):
     configuration.model_configuration.temperature = 1.0
 
@@ -76,6 +75,7 @@ def set_tool_environment_variables():
     os.environ["get_time"] = "True"
     os.environ["get_news_for_topic"] = "True"
     os.environ["get_top_news_headlines"] = "True"
+    os.environ["query_image"] = "True"
 
     # Tools I want to disable for this discord bot
     os.environ["get_weather"] = "False"
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             collection_id=discord_collection_id,
             prompt_manager=prompt_manager,
         )
-    else:
+    elif discord_bot_type.lower() == "conversational":
         client = load_conversational_ai(
             configuration=configuration,
             intents=intents,

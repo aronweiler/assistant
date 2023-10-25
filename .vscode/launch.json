@@ -19,6 +19,22 @@
       "justMyCode": true
     },
     {
+      "name": "Discord Llava Bot",
+      "type": "python",
+      "request": "launch",
+      "program": "src/discord/bot.py",
+      "args": ["--logging_level=DEBUG"],
+      "env": {
+        "DISCORD_BOT_TARGET_CHANNEL_NAME": "images",
+        "DISCORD_BOT_CONVERSATION_TEMPLATE": "DISCORD_IMAGE_TEMPLATE",
+        "DISCORD_BOT_TYPE": "RAG",
+        "DISCORD_COLLECTION_ID": "26",
+        "DISCORD_INTERACTION_ID": "0e53ef35-d487-4680-8fc9-ac4329d80601"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Discord Conversation Bot",
       "type": "python",
       "request": "launch",
@@ -107,6 +123,15 @@
       "type": "python",
       "request": "launch",
       "program": "src/integrations/gitlab/gitlab_file_retriever.py",
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Run Gitlab Issue Retriever",
+      "type": "python",
+      "request": "launch",
+      "program": "src/integrations/gitlab/gitlab_issue_retriever.py",
       "args": [],
       "console": "integratedTerminal",
       "justMyCode": true

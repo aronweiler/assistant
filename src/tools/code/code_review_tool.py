@@ -59,6 +59,7 @@ class CodeReviewTool:
         )
 
         return file_retriever.retrieve_file_data(url=url)
+    
 
     def ingest_issue_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
@@ -203,7 +204,6 @@ class CodeReviewTool:
             "ref": file_info["ref"],
             "file_path": file_info["file_path"],
         }
-
         previous_issue = self.ingest_issue_from_url(url=target_url)
 
         return self.conduct_code_review(
@@ -239,7 +239,7 @@ class CodeReviewTool:
             return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
 
         # Convert file data bytes to string
-        file_data = file_model.file_data.decode("utf-8")
+        file_data = documents.get_file_data(file_model.id).decode("utf-8")
 
         return self.conduct_code_review(
             file_data=file_data,

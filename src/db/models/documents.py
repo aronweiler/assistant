@@ -66,6 +66,19 @@ class Documents(VectorDatabase):
             session.commit()
 
             return FileModel.from_database_model(file)
+        
+    def set_file_data(self, file_id: int, file_data) -> FileModel:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+            file.file_data = file_data
+            session.commit()
+
+            return FileModel.from_database_model(file)        
+        
+    def get_file_data(self, file_id: int) -> Any:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+            return file.file_data    
 
     def update_file_summary_and_class(
         self,
