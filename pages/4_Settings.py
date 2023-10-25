@@ -31,21 +31,81 @@ def settings_page():
         tools_settings()
 
 
+def generate_model_settings(name, config):
+    with st.expander(
+            label=f"{config['display_name']} Model Settings",
+            expanded=False
+        ):
+            st.selectbox(
+                label="Model",
+                options=["openai","llama"],
+                key=f"{name}-model"
+            )
+
+            st.slider(
+                label="Temperature",
+                key=f"{name}-temperature",
+                min_value=0.,
+                max_value=1.,
+                step=0.01,
+                value=0.
+            )
+
+            st.number_input(
+                label="Max Retries",
+                key=f"{name}-max-retries",
+                min_value=0,
+                max_value=5,
+                value=3,
+                step=1
+            )
+
+            st.write("Max supported tokens is 16384")
+
+            st.number_input(
+                label="Max Conversation History Tokens",
+                key=f"{name}-max-conversation-history-tokens",
+                min_value=0,
+                max_value=4096,
+                value=4096,
+                step=1
+            )
+
+            st.number_input(
+                label="Max Completion Tokens",
+                key=f"{name}-max-completion-tokens",
+                min_value=0,
+                max_value=6096,
+                value=6096,
+                step=1
+            )
+
+
 def tools_settings():
     tool_manager = ToolManager()
 
     tools = tool_manager.get_all_tools()
 
     # Create a toggle to enable/disable each tool
-    for tool in tools:
+    for tool_name, tool_config in tools.items():
         st.toggle(
-            tools[tool]["display_name"],
-            help=tools[tool]["help_text"],
-            value=tool_manager.is_tool_enabled(tool),
-            key=tool,
+            tool_config["display_name"],
+            help=tool_config["help_text"],
+            value=tool_manager.is_tool_enabled(tool_name),
+            key=tool_name,
             on_change=tool_manager.toggle_tool,
-            kwargs={"tool_name": tool},
+            kwargs={"tool_name": tool_name},
         )
+
+        generate_model_settings(
+            name=tool_name,
+            config=tool_config
+        )
+
+
+        
+        
+
 
 def general_settings():
     source_control_options = ["GitLab", "GitHub"]
