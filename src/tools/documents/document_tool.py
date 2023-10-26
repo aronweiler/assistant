@@ -1,3 +1,5 @@
+from typing import List
+
 from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.chains import (
@@ -7,6 +9,8 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+
+from src.utilities.token_helper import num_tokens_from_string
 
 from src.db.models.conversations import SearchType
 from src.db.models.documents import Documents
@@ -28,8 +32,9 @@ class DocumentTool:
 
     def search_loaded_documents(
         self,
-        query: str,
-        original_user_input: str,
+        semantic_similarity_query: str,
+        keywords_list: List[str],
+        user_query: str,
         target_file_id: int = None,
     ):
         """Searches the loaded files (or the specified file when target_file_id is set) for the given query.
@@ -38,77 +43,80 @@ class DocumentTool:
         IMPORTANT: If the user has not asked you to look in a specific file, don't use target_file_id.
 
         Args:
-            query (str): The query to search the loaded documents for (can be a modified version of the original_user_input for searching).
+            similarity_query (str): The query to search the loaded documents for (can be a modified version of the original_user_input for searching).
+            keywords_list (str): A keyword version of the query to search the loaded documents for
             original_user_input (str): The original user input.  Make sure this is not modified by you!
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
+
+        target_file_id = self.interaction_manager.tool_kwargs.get(
+            "override_file", target_file_id
+        )
+
+        keyword_documents = (
+            self.interaction_manager.documents_helper.search_document_embeddings(
+                search_query=keywords_list,
+                collection_id=self.interaction_manager.collection_id,
+                search_type=SearchType.Keyword,
+                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                target_file_id=target_file_id,
+            )
+        )
+
+        similarity_documents = (
+            self.interaction_manager.documents_helper.search_document_embeddings(
+                search_query=semantic_similarity_query,
+                collection_id=self.interaction_manager.collection_id,
+                search_type=SearchType.Similarity,
+                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                target_file_id=target_file_id,
+            )
+        )
+
+        # De-dupe the documents
+        combined_documents = []
+        document_ids = []
+        for document in keyword_documents:
+            if document.id not in document_ids:
+                combined_documents.append(document)
+                document_ids.append(document.id)
+
+        for document in similarity_documents:
+            if document.id not in document_ids:
+                combined_documents.append(document)
+                document_ids.append(document.id)
+
+        prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "document", "QUESTION_PROMPT_TEMPLATE"
+        )
+
+        # prompt_tokens = num_tokens_from_string(prompt + original_user_input)
+
+        # Examine each of the documents to see if they have anything relating to the original query
+        # TODO: Split the documents up into chunks that fit within the max tokens - the completion no matter what the top_k is
+
+        summaries = []
+
+        for document in combined_documents:
+            page_or_line = (
+                f"page='{document.additional_metadata['page']}'"
+                if "page" in document.additional_metadata
+                else f"line='{document.additional_metadata['start_line']}'"
+            )
+            summaries.append(
+                f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}', {page_or_line}"
+            )
+
+        prompt = prompt.format(summaries="\n\n".join(summaries), question=user_query)
 
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.search_loaded_documents.__name__
         )
 
-        search_kwargs = {
-            "interaction_id": self.interaction_manager.interaction_id,
-            "collection_id": self.interaction_manager.collection_id,
-            "top_k": self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-            "search_type": self.interaction_manager.tool_kwargs.get(
-                "search_method", SearchType.Similarity
-            ),
-            "target_file_id": self.interaction_manager.tool_kwargs.get(
-                "override_file", target_file_id
-            ),
-        }
+        result = llm.predict(prompt)
 
-        documents_helper = Documents()
-
-        # Create the documents class for the retriever
-        self.pgvector_retriever = PGVectorRetriever(
-            vectorstore=documents_helper,
-            search_kwargs=search_kwargs,
-        )
-
-        qa_chain = LLMChain(
-            llm=llm,
-            prompt=self.interaction_manager.prompt_manager.get_prompt(
-                "document", "QUESTION_PROMPT"
-            ),
-            verbose=True,
-        )
-
-        qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
-            llm=llm,
-            chain_type="stuff",
-            retriever=self.pgvector_retriever,
-            chain_type_kwargs={
-                "prompt": self.interaction_manager.prompt_manager.get_prompt(
-                    "document", "QUESTION_PROMPT"
-                )
-            },
-        )
-
-        combine_chain = StuffDocumentsChain(
-            llm_chain=qa_chain,
-            document_prompt=self.interaction_manager.prompt_manager.get_prompt(
-                "document", "DOCUMENT_PROMPT"
-            ),
-            document_variable_name="summaries",
-        )
-
-        qa_with_sources.combine_documents_chain = combine_chain
-        qa_with_sources.return_source_documents = True
-
-        results = qa_with_sources({"question": query})
-
-        if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
-            response = llm.predict(
-                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
-            )
-        else:
-            sources = f"\nSources: {results['sources']}" if results["sources"] else ""
-            response = f"{results['answer']}{sources}"
-
-        return response
+        return result
 
     def generate_detailed_document_chunk_summary(
         self,
