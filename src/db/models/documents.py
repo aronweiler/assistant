@@ -4,7 +4,7 @@ import os
 from typing import List, Any
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlalchemy import func, select, column, cast
+from sqlalchemy import func, select, column, cast, or_
 
 import pgvector.sqlalchemy
 
@@ -55,13 +55,14 @@ class Documents(VectorDatabase):
 
     def get_collections(self) -> List[DocumentCollectionModel]:
         with self.session_context(self.Session()) as session:
-            collections = session.query(DocumentCollection).all()
+            collections = session.query(DocumentCollection.id, DocumentCollection.collection_name, DocumentCollection.record_created).all()
 
             return [DocumentCollectionModel.from_database_model(c) for c in collections]
 
-    def create_file(self, file: FileModel) -> FileModel:
+    def create_file(self, file: FileModel, file_data) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = file.to_database_model()
+            file.file_data = file_data
             session.add(file)
             session.commit()
 
@@ -244,10 +245,22 @@ class Documents(VectorDatabase):
 
             if search_type == SearchType.Keyword:
                 # TODO: Do better key word search
-                query = query.filter(func.lower(Document.document_text).contains(func.lower(search_query)))
+                #select(sometable.c.text.match("search string"))
+                #val = select(Document.id).where(Document.document_text.match(search_query))
+                #query = query.filter(func.lower(Document.document_text).contains(func.lower(search_query)))
+                
+                if type(search_query) == str:
+                    search_query = [search_query]             
+                       
+                query = query.filter(or_(func.lower(Document.document_text).contains(func.lower(kword)) for kword in search_query))
+                #query = query.filter(func.lower(Document.document_text).contains(func.lower(keyword)) | func.lower(Document.document_text_summary).contains(func.lower(keyword)))
+                
                 # query = query.filter(
                 #     Document.document_text.ilike(search_query) # Would rather use this, but can't get it working atm
                 # ).limit(top_k)
+                
+                # for row in session.execute(val):
+                #     print(row)
 
                 return [
                     DocumentModel.from_database_model(d) for d in query.all()[:top_k]
@@ -369,22 +382,22 @@ class Documents(VectorDatabase):
 if __name__ == "__main__":
     document_helper = Documents()
 
-    similarity_documents = document_helper.search_document_embeddings(
-        search_query="hello",
-        search_type=SearchType.Similarity,
-        collection_id=6,
-        top_k=5,
-    )
+    # similarity_documents = document_helper.search_document_embeddings(
+    #     search_query="hello",
+    #     search_type=SearchType.Similarity,
+    #     collection_id=6,
+    #     top_k=5,
+    # )
 
-    for doc in similarity_documents:
-        print(f"Chunk: {doc.id}, Doc: {doc.document_name}")
-        print("---------------")
+    # for doc in similarity_documents:
+    #     print(f"Chunk: {doc.id}, Doc: {doc.document_name}")
+    #     print("---------------")
 
 
     keyword_documents = document_helper.search_document_embeddings(
-        search_query="hello",
+        search_query=["Truvian", "Becton Dickinson", "Aron"],
         search_type=SearchType.Keyword,
-        collection_id=6,
+        collection_id=2,
         top_k=5,
     )
 

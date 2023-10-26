@@ -1,5 +1,7 @@
 import logging
 import os
+from threading import Timer
+import time
 import uuid
 
 import streamlit as st
@@ -227,7 +229,12 @@ def setup_new_chat_button(tab):
 
 
 def get_available_collections():
+    # Time the operation:
+    start_time = time.time()    
     collections = Documents().get_collections()
+    total_time = time.time() - start_time
+    
+    logging.info(f"get_available_collections() took {total_time} seconds")
 
     # Create a dictionary of collection id to collection summary
     collections_list = [
@@ -511,9 +518,9 @@ def ingest_files(
                         file_name=file_name,
                         file_hash=calculate_sha256(uploaded_file_path),
                         file_classification=file_classification,
-                    )
+                    ),
+                    file_data
                 )
-                documents_helper.set_file_data(file_model.id, file_data)
                 files.append(file_model)
 
             if not files or len(files) == 0:
