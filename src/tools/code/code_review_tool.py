@@ -116,6 +116,7 @@ class CodeReviewTool:
     def conduct_code_review(
         self,
         file_data: str,
+        llm,
         additional_instructions: str = None,
         code_metadata: dict = None,
         previous_issue=None,
@@ -149,8 +150,6 @@ class CodeReviewTool:
             )
         )
 
-        # TODO: Refactor this so Jordan is happy
-        # ,
         templates = [
             "SECURITY_CODE_REVIEW_TEMPLATE",
             "PERFORMANCE_CODE_REVIEW_TEMPLATE",
@@ -159,8 +158,6 @@ class CodeReviewTool:
             "MAINTAINABILITY_CODE_REVIEW_TEMPLATE",
             "RELIABILITY_CODE_REVIEW_TEMPLATE",
         ]
-
-        
 
         review_results = {}
         comment_results = []
