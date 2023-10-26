@@ -95,8 +95,7 @@ class VoiceRunner(Runner):
             with self.users.session_context(self.users.Session()) as session:
                 user = self.users.get_user_by_email(
                     session,
-                    wake_word_model.user_information.user_email,
-                    eager_load=[User.user_settings],
+                    wake_word_model.user_information.user_email
                 )
 
                 if user is None:
@@ -198,11 +197,7 @@ class VoiceRunner(Runner):
         with self.users.session_context(self.users.Session()) as session:
             conversation_user = self.users.get_user_by_email(
                 session,
-                wake_model.user_information.user_email,
-                eager_load=[
-                    User.user_settings,
-                    # User.conversations
-                ],
+                wake_model.user_information.user_email
             )            
 
             if conversation_user is None:

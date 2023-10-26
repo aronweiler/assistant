@@ -188,9 +188,9 @@ class RagBot(discord.Client):
                     file_name=file_name,
                     file_hash=calculate_sha256(uploaded_file_path),
                     file_classification=file_classification,
-                )
+                ),
+                file_data
             )
-            documents_helper.set_file_data(file.id, file_data)
             files.append(file)
 
         if not files or len(files) == 0:
