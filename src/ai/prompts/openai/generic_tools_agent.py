@@ -1,11 +1,5 @@
 PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """{system_prompt}
 
-You have access the following tools that you can use by returning the appropriately formatted JSON. Don't make up tools, only ever use the tools that are listed here. If a query does not require the use of a tool (such as when it is conversational, or you know the answer), you can return a final_answer to the user instead.  If there are no tools available, or if none of the available tools suit your purpose, you should give a final_answer instead of using a tool that does not fit the purpose.
-
---- AVAILABLE TOOLS ---
-{available_tool_descriptions}
---- AVAILABLE TOOLS ---
-
 The loaded documents that you have access to are below.  Pay close attention to the Class of document it is.  Some tools can only be used with certain classes of documents.
 --- LOADED DOCUMENTS ---
 {loaded_documents}
@@ -49,6 +43,12 @@ If you can answer the user's query directly, or the user's query is just convers
   "final_answer": "<<your complete answer to the query, or your response to a conversation>>"
 }}
 ```
+
+You have access the following tools that you can use by returning the appropriately formatted JSON. Don't make up tools, only ever use the tools that are listed here. If a query does not require the use of a tool (such as when it is conversational, or you know the answer), you can return a final_answer to the user instead.  If there are no tools available, or if none of the available tools suit your purpose, you should give a final_answer instead of using a tool that does not fit the purpose.
+
+--- AVAILABLE TOOLS ---
+{available_tool_descriptions}
+--- AVAILABLE TOOLS ---
 
 Now read the user's query very carefully, take a deep breath and think this through step-by-step. I need you to decide whether to answer the user's query directly, or decompose a list of steps.
 

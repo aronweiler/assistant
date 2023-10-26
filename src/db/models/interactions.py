@@ -56,22 +56,34 @@ class Interactions(VectorDatabase):
             session.commit()
 
     def get_interaction(
-        self, id: UUID, eager_load: List[InstrumentedAttribute[Any]] = []
+        self, id: UUID
     ) -> InteractionModel:
         with self.session_context(self.Session()) as session:
-            query = session.query(Interaction).filter(Interaction.id == id)
-
-            query = super().eager_load(query, eager_load)
+            query = session.query(
+                Interaction.interaction_summary,
+                Interaction.needs_summary,
+                Interaction.last_selected_collection_id,
+                Interaction.user_id,
+                Interaction.id,
+                Interaction.is_deleted,
+                Interaction.record_created,
+            ).filter(Interaction.id == id)
 
             return InteractionModel.from_database_model(query.first())
 
     def get_interactions_by_user_id(
-        self, user_id: int, eager_load: List[InstrumentedAttribute[Any]] = []
+        self, user_id: int
     ) -> List[InteractionModel]:
         with self.session_context(self.Session()) as session:
-            query = session.query(Interaction).filter(Interaction.user_id == user_id, Interaction.is_deleted == False)
-
-            query = super().eager_load(query, eager_load)
+            query = session.query(Interaction.interaction_summary,
+                Interaction.needs_summary,
+                Interaction.last_selected_collection_id,
+                Interaction.user_id,
+                Interaction.id,
+                Interaction.is_deleted,
+                Interaction.record_created,).filter(
+                Interaction.user_id == user_id, Interaction.is_deleted == False
+            )
 
             return [InteractionModel.from_database_model(i) for i in query.all()]
 

@@ -122,7 +122,7 @@ class RagUI:
                                 on_click=ui_shared.create_collection,
                             )
 
-
+                    logging.debug("Creating collection selectbox")
                     ui_shared.create_collection_selectbox(ai=st.session_state["rag_ai"])
 
                     if "rag_ai" in st.session_state:

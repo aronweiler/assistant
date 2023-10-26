@@ -4,7 +4,7 @@ import os
 from typing import List, Any
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlalchemy import func, select, column, cast
+from sqlalchemy import func, select, column, cast, or_
 
 import pgvector.sqlalchemy
 
@@ -36,7 +36,11 @@ class Documents(VectorDatabase):
     def get_collection(self, collection_id) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = (
-                session.query(DocumentCollection)
+                session.query(
+                    DocumentCollection.id,
+                    DocumentCollection.collection_name,
+                    DocumentCollection.record_created,
+                )
                 .filter(DocumentCollection.id == collection_id)
                 .first()
             )
@@ -46,7 +50,11 @@ class Documents(VectorDatabase):
     def get_collection_by_name(self, collection_name) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = (
-                session.query(DocumentCollection)
+                session.query(
+                    DocumentCollection.id,
+                    DocumentCollection.collection_name,
+                    DocumentCollection.record_created,
+                )
                 .filter(DocumentCollection.collection_name == collection_name)
                 .first()
             )
@@ -55,30 +63,39 @@ class Documents(VectorDatabase):
 
     def get_collections(self) -> List[DocumentCollectionModel]:
         with self.session_context(self.Session()) as session:
-            collections = session.query(DocumentCollection).all()
+            collections = session.query(
+                DocumentCollection.id,
+                DocumentCollection.collection_name,
+                DocumentCollection.record_created,
+            ).all()
 
             return [DocumentCollectionModel.from_database_model(c) for c in collections]
 
-    def create_file(self, file: FileModel) -> FileModel:
+    def create_file(self, file: FileModel, file_data) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = file.to_database_model()
+            file.file_data = file_data
             session.add(file)
             session.commit()
 
             return FileModel.from_database_model(file)
-        
+
     def set_file_data(self, file_id: int, file_data) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = session.query(File).filter(File.id == file_id).first()
             file.file_data = file_data
             session.commit()
 
-            return FileModel.from_database_model(file)        
-        
+            return FileModel.from_database_model(file)
+
     def get_file_data(self, file_id: int) -> Any:
         with self.session_context(self.Session()) as session:
-            file = session.query(File).filter(File.id == file_id).first()
-            return file.file_data    
+            file = (
+                session.query(File.id, File.file_data)
+                .filter(File.id == file_id)
+                .first()
+            )
+            return file.file_data
 
     def update_file_summary_and_class(
         self,
@@ -97,20 +114,53 @@ class Documents(VectorDatabase):
     def get_files_in_collection(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
             files = (
-                session.query(File).filter(File.collection_id == collection_id).all()
+                session.query(
+                    File.collection_id,
+                    File.user_id,
+                    File.file_name,
+                    File.file_hash,
+                    File.id,
+                    File.file_classification,
+                    File.file_summary,
+                    File.record_created,
+                )
+                .filter(File.collection_id == collection_id)
+                .all()
             )
 
             return [FileModel.from_database_model(f) for f in files]
 
     def get_file(self, file_id) -> FileModel:
         with self.session_context(self.Session()) as session:
-            file = session.query(File).filter(File.id == file_id).first()
+            file = (
+                session.query(
+                    File.collection_id,
+                    File.user_id,
+                    File.file_name,
+                    File.file_hash,
+                    File.id,
+                    File.file_classification,
+                    File.file_summary,
+                    File.record_created,
+                )
+                .filter(File.id == file_id)
+                .first()
+            )
 
             return FileModel.from_database_model(file)
 
     def get_all_files(self) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
-            files = session.query(File).all()
+            files = session.query(
+                File.collection_id,
+                File.user_id,
+                File.file_name,
+                File.file_hash,
+                File.id,
+                File.file_classification,
+                File.file_summary,
+                File.record_created,
+            ).all()
 
             return [FileModel.from_database_model(f) for f in files]
 
@@ -124,7 +174,16 @@ class Documents(VectorDatabase):
     def get_file_by_name(self, file_name, collection_id) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = (
-                session.query(File)
+                session.query(
+                    File.collection_id,
+                    File.user_id,
+                    File.file_name,
+                    File.file_hash,
+                    File.id,
+                    File.file_classification,
+                    File.file_summary,
+                    File.record_created,
+                )
                 .filter(File.file_name == file_name)
                 .filter(File.collection_id == collection_id)
                 .first()
@@ -140,27 +199,51 @@ class Documents(VectorDatabase):
                 raise ValueError(f"File with ID '{target_file_id}' does not exist")
 
             documents = (
-                session.query(Document).filter(Document.file_id == file.id).all()
+                session.query(
+                    Document.collection_id,
+                    Document.file_id,
+                    Document.user_id,
+                    Document.document_text,
+                    Document.document_name,
+                    Document.document_text_summary,
+                    Document.document_text_has_summary,
+                    Document.id,
+                    Document.additional_metadata,
+                    Document.record_created,
+                )
+                .filter(Document.file_id == file.id)
+                .all()
             )
 
             return [DocumentModel.from_database_model(d) for d in documents]
-        
+
     def get_document_summaries(self, target_file_id) -> List[str]:
         with self.session_context(self.Session()) as session:
-            file = session.query(File).filter(File.id == target_file_id).first()
+            file = session.query(File.id).filter(File.id == target_file_id).first()
 
             if file is None:
                 raise ValueError(f"File with ID '{target_file_id}' does not exist")
 
             documents = (
-                session.query(Document).filter(Document.file_id == file.id).all()
+                session.query(
+                    Document.collection_id,
+                    Document.file_id,
+                    Document.document_text_summary,
+                    Document.document_text_has_summary,
+                    Document.record_created,
+                )
+                .filter(
+                    Document.file_id == file.id,
+                    Document.document_text_has_summary == True,
+                )
+                .all()
             )
 
             return [d.document_text_summary for d in documents]
 
     def delete_document_chunks_by_file_id(self, target_file_id) -> None:
         with self.session_context(self.Session()) as session:
-            file = session.query(File).filter(File.id == target_file_id).first()
+            file = session.query(File.id).filter(File.id == target_file_id).first()
 
             if file is None:
                 raise ValueError(f"File with ID '{target_file_id}' does not exist")
@@ -179,7 +262,18 @@ class Documents(VectorDatabase):
     def get_collection_files(self, collection_id) -> List[FileModel]:
         with self.session_context(self.Session()) as session:
             files = (
-                session.query(File).filter(File.collection_id == collection_id).all()
+                session.query(
+                    File.collection_id,
+                    File.user_id,
+                    File.file_name,
+                    File.file_hash,
+                    File.id,
+                    File.file_classification,
+                    File.file_summary,
+                    File.record_created,
+                )
+                .filter(File.collection_id == collection_id)
+                .all()
             )
 
             return [FileModel.from_database_model(f) for f in files]
@@ -231,7 +325,18 @@ class Documents(VectorDatabase):
 
         with self.session_context(self.Session()) as session:
             # Before searching, pre-filter the query to only include conversations that match the single inputs
-            query = session.query(Document)
+            query = session.query(
+                Document.collection_id,
+                Document.file_id,
+                Document.user_id,
+                Document.document_text,
+                Document.document_name,
+                Document.document_text_summary,
+                Document.document_text_has_summary,
+                Document.id,
+                Document.additional_metadata,
+                Document.record_created,
+            )
 
             if collection_id is not None:
                 query = query.filter(Document.collection_id == collection_id)
@@ -244,10 +349,16 @@ class Documents(VectorDatabase):
 
             if search_type == SearchType.Keyword:
                 # TODO: Do better key word search
-                query = query.filter(func.lower(Document.document_text).contains(func.lower(search_query)))
-                # query = query.filter(
-                #     Document.document_text.ilike(search_query) # Would rather use this, but can't get it working atm
-                # ).limit(top_k)
+
+                if type(search_query) == str:
+                    search_query = [search_query]
+
+                query = query.filter(
+                    or_(
+                        func.lower(Document.document_text).contains(func.lower(kword))
+                        for kword in search_query
+                    )
+                )
 
                 return [
                     DocumentModel.from_database_model(d) for d in query.all()[:top_k]
@@ -300,11 +411,19 @@ class Documents(VectorDatabase):
             return sorted_dict_list
 
         text_embeddings_dict = [
-            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1], "l2_distance": d[2]}
+            {
+                "document": DocumentModel.from_database_model(d[0]),
+                "distance": d[1],
+                "l2_distance": d[2],
+            }
             for d in text_embedding_results
         ]
         text_summary_embeddings_dict = [
-            {"document": DocumentModel.from_database_model(d[0]), "distance": d[1], "l2_distance": d[2]}
+            {
+                "document": DocumentModel.from_database_model(d[0]),
+                "distance": d[1],
+                "l2_distance": d[2],
+            }
             for d in text_summary_embedding_results
         ]
 
@@ -333,7 +452,7 @@ class Documents(VectorDatabase):
         )
 
         # Now the list contains a sorted and de-duped combination of the two lists, but it may be longer than the top_k
-        # Return the list limited to the original top_k        
+        # Return the list limited to the original top_k
         return combined_list[:top_k]
 
     def _get_nearest_neighbors(
@@ -369,22 +488,21 @@ class Documents(VectorDatabase):
 if __name__ == "__main__":
     document_helper = Documents()
 
-    similarity_documents = document_helper.search_document_embeddings(
-        search_query="hello",
-        search_type=SearchType.Similarity,
-        collection_id=6,
-        top_k=5,
-    )
+    # similarity_documents = document_helper.search_document_embeddings(
+    #     search_query="hello",
+    #     search_type=SearchType.Similarity,
+    #     collection_id=6,
+    #     top_k=5,
+    # )
 
-    for doc in similarity_documents:
-        print(f"Chunk: {doc.id}, Doc: {doc.document_name}")
-        print("---------------")
-
+    # for doc in similarity_documents:
+    #     print(f"Chunk: {doc.id}, Doc: {doc.document_name}")
+    #     print("---------------")
 
     keyword_documents = document_helper.search_document_embeddings(
-        search_query="hello",
+        search_query=["Truvian", "Becton Dickinson", "Aron"],
         search_type=SearchType.Keyword,
-        collection_id=6,
+        collection_id=2,
         top_k=5,
     )
 

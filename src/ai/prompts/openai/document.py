@@ -12,7 +12,7 @@ With over 20 years of experience in the software industry, I bring to the table 
 broad range of project management and product development skills- from customer
 interactions for user needs gathering and analysis, to requirements, specifications,
 architecture, design, planning, and implementation.
-SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='1'
+SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='1' 
 
 CONTENT: 
 SEPT 2002 – JUL 2004
@@ -24,7 +24,7 @@ employee, managed several projects with multiple programmers, developed
 applications from beginning to end independently, participated in training other
 developers on the .NET architecture as well as testing and maintaining new and
 existing applications.
-SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='5'
+SOURCE: file_id='1234', file_name='aron weiler resume.pdf', page='5' 
 
 Question: describe the job Aron had in 2004
 
@@ -51,7 +51,7 @@ class LLMType(Enum):
     LLAMA2 = "llama2"
     OPENAI = "openai"
     LUNA = "luna"
-SOURCE: file_id='1234', file_name='my_code_file.py', line='17'
+SOURCE: file_id='1234', file_name='my_code_file.py', line='17' 
 
 CONTENT: 
 # Abstract class for destinations
@@ -59,7 +59,7 @@ class DestinationBase(ABC):
     @abstractmethod
     def run(self, input: str, collection_id: str = None, llm_callbacks: list = [], agent_callbacks: list = []):
         pass
-SOURCE: file_id='1234', file_name='my_code_file.py', line='5'
+SOURCE: file_id='1234', file_name='my_code_file.py', line='5' 
 
 Question: What abstract class is used for destinations?
 

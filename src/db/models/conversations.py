@@ -46,7 +46,6 @@ class Conversations(VectorDatabase):
         search_type: SearchType,
         associated_user_id: int,
         interaction_id: Union[UUID, None] = None,
-        eager_load: List[InstrumentedAttribute[Any]] = [],
         top_k=10,
         return_deleted=False,
     ) -> List[ConversationModel]:
@@ -61,8 +60,6 @@ class Conversations(VectorDatabase):
                 if interaction_id is not None
                 else True,
             )
-
-            query = super().eager_load(query, eager_load)
 
             if type(search_type) == str:
                 search_type = SearchType(search_type)
@@ -93,17 +90,27 @@ class Conversations(VectorDatabase):
 
         with self.session_context(self.Session()) as session:
             query = (
-                session.query(Conversation)
+                session.query(
+                    Conversation.interaction_id,
+                    Conversation.conversation_text,
+                    Conversation.user_id,
+                    Conversation.id,
+                    Conversation.record_created,
+                    Conversation.conversation_role_type_id,
+                    Conversation.additional_metadata,
+                    Conversation.exception,
+                    Conversation.is_deleted,
+                )
                 .filter(
                     Conversation.interaction_id == interaction_id,
                     (Conversation.is_deleted == False)
                     if return_deleted == False
                     else True,
-                ) 
+                )
                 .order_by(Conversation.record_created)
             )
 
-            query = super().eager_load(query, [Conversation.conversation_role_type])
+            #query = super().eager_load(query, [Conversation.conversation_role_type])
 
             return [
                 ConversationModel.from_database_model(c) for c in query.limit(top_k)
@@ -113,9 +120,17 @@ class Conversations(VectorDatabase):
         self, associated_user_id: int, top_k: int = None
     ) -> List[ConversationModel]:
         with self.session_context(self.Session()) as session:
-            query = session.query(Conversation).filter(
-                Conversation.user_id == associated_user_id
-            )
+            query = session.query(
+                Conversation.interaction_id,
+                Conversation.conversation_text,
+                Conversation.user_id,
+                Conversation.conversation_role_type,
+                Conversation.id,
+                Conversation.record_created,
+                Conversation.additional_metadata,
+                Conversation.exception,
+                Conversation.is_deleted,
+            ).filter(Conversation.user_id == associated_user_id)
 
             query = super().eager_load(query, [Conversation.conversation_role_type])
 
