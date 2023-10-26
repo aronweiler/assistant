@@ -14,18 +14,18 @@ from src.ai.interactions.interaction_manager import InteractionManager
 from src.utilities.token_helper import num_tokens_from_string
 
 from src.tools.code.code_dependency import CodeDependency
+from src.ai.llm_helper import get_tool_llm
 
 
 class CodeTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
+        interaction_manager: InteractionManager
     ):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
+
 
     def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
@@ -379,10 +379,15 @@ class CodeTool:
         #         code=doc.document_text,
         #         stub_dependencies_template=stub_dependencies,
         #     )
-        #     stubbed_code.append(self.llm.predict(prompt))
+        #     stubbed_code.append(llm.predict(prompt))
         # full_stubbed_code = "\n\n".join(stubbed_code)
 
         stubbed_code = "Could not stub code, no MODULE type found!"
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.create_stub_code.__name__
+        )
 
         for doc in documents:
             if doc.additional_metadata["type"] == "MODULE":
@@ -390,7 +395,7 @@ class CodeTool:
                     code=doc.document_text,
                     stub_dependencies_template=stub_dependencies,
                 )
-                stubbed_code = self.llm.predict(prompt)
+                stubbed_code = llm.predict(prompt)
                 break
 
         return {

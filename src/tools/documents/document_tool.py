@@ -13,6 +13,7 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_tool_llm
 
 
 class DocumentTool:
@@ -20,11 +21,10 @@ class DocumentTool:
         self,
         configuration,
         interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
     ):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
+
 
     def search_loaded_documents(
         self,
@@ -42,6 +42,12 @@ class DocumentTool:
             original_user_input (str): The original user input.  Make sure this is not modified by you!
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.search_loaded_documents.__name__
+        )
+
         search_kwargs = {
             "interaction_id": self.interaction_manager.interaction_id,
             "collection_id": self.interaction_manager.collection_id,
@@ -63,7 +69,7 @@ class DocumentTool:
         )
 
         qa_chain = LLMChain(
-            llm=self.llm,
+            llm=llm,
             prompt=self.interaction_manager.prompt_manager.get_prompt(
                 "document", "QUESTION_PROMPT"
             ),
@@ -71,7 +77,7 @@ class DocumentTool:
         )
 
         qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
-            llm=self.llm,
+            llm=llm,
             chain_type="stuff",
             retriever=self.pgvector_retriever,
             chain_type_kwargs={
@@ -95,7 +101,7 @@ class DocumentTool:
         results = qa_with_sources({"question": query})
 
         if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
-            response = self.llm.predict(
+            response = llm.predict(
                 f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{results['answer']}\n\nORIGINAL QUERY:\n{original_user_input}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
             )
         else:
@@ -107,8 +113,9 @@ class DocumentTool:
     def generate_detailed_document_chunk_summary(
         self,
         document_text: str,
+        llm
     ) -> str:
-        summary = self.llm.predict(
+        summary = llm.predict(
             self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
@@ -136,17 +143,23 @@ class DocumentTool:
             target_file_id=target_file_id
         )
 
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_entire_document.__name__
+        )
+
         # Are there already document chunk summaries?
         for chunk in document_chunks:
             if not chunk.document_text_has_summary:
                 # Summarize the chunk
                 summary_chunk = self.generate_detailed_document_chunk_summary(
-                    chunk.document_text
+                    document_text=chunk.document_text,
+                    llm=llm
                 )
                 documents.set_document_text_summary(chunk.id, summary_chunk)
 
         reduce_chain = LLMChain(
-            llm=self.llm,
+            llm=llm,
             prompt=self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "REDUCE_SUMMARIES_PROMPT",
@@ -222,34 +235,20 @@ class DocumentTool:
                 )
             )
 
-        summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_search_topic.__name__
+        )
+
+        summary = self.refine_summarize(llm=llm, query=query, docs=docs)
 
         if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
-            summary = self.llm.predict(
+            summary = llm.predict(
                 f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
             )
 
         return summary
 
-    # def map_reduce_summarize(self, query, llm, docs):
-    #     pass
-    #     # chain = load_summarize_chain(
-    #     #     llm=llm,
-    #     #     chain_type="refine",
-    #     #     question_prompt=self.interaction_manager.prompt_manager.get_prompt(
-    #     #         "document", "DETAILED_SUMMARIZE_PROMPT"
-    #     #     ),
-    #     #     refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
-    #     #         "document", "SIMPLE_REFINE_PROMPT"
-    #     #     ),
-    #     #     return_intermediate_steps=True,
-    #     #     input_key="input_documents",
-    #     #     output_key="output_text",
-    #     # )
-
-    #     # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
-
-    #     # return result["output_text"]
 
     def refine_summarize(self, llm, docs, query: str | None = None):
         if query is None:
@@ -281,6 +280,7 @@ class DocumentTool:
             )
 
         return result["output_text"]
+
 
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.

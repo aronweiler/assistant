@@ -7,7 +7,7 @@ from streamlit_extras.stylable_container import stylable_container
 
 
 from src.configuration.assistant_configuration import (
-    RetrievalAugmentedGenerationConfigurationLoader,
+    ApplicationConfigurationLoader,
 )
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
@@ -24,20 +24,18 @@ class RagUI:
     def load_configuration(self):
         """Loads the configuration from the path"""
         
-        if "rag_config" not in st.session_state:
-            rag_config_path = os.environ.get(
-                "RAG_CONFIG_PATH",
-                "configurations/rag_configs/openai_rag.json",
+        if "app_config" not in st.session_state:
+            app_config_path = os.environ.get(
+                "APP_CONFIG_PATH",
+                "configurations/app_configs/config.json",
             )
 
-            config = RetrievalAugmentedGenerationConfigurationLoader.from_file(
-                rag_config_path
+            st.session_state["app_config"] = ApplicationConfigurationLoader.from_file(
+                app_config_path
             )
                     
-            st.session_state["rag_config"] = config
-
         self.prompt_manager = PromptManager(
-            llm_type=st.session_state.rag_config.model_configuration.llm_type
+            llm_type=st.session_state.app_config['jarvis_ai']['model_configuration']['llm_type']
         )
 
     def set_page_config(self):
@@ -59,7 +57,7 @@ class RagUI:
             # First time loading the page
             logging.debug("load_ai: no ai in session state, creating a new one")
             rag_ai_instance = RetrievalAugmentedGenerationAI(
-                configuration=st.session_state["rag_config"],
+                configuration=st.session_state["app_config"],
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
@@ -76,7 +74,7 @@ class RagUI:
             )
             # We have an AI instance, but we need to change the interaction (conversation) id
             rag_ai_instance = RetrievalAugmentedGenerationAI(
-                configuration=st.session_state["rag_config"],
+                configuration=st.session_state["app_config"],
                 interaction_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,

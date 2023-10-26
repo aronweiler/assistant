@@ -3,21 +3,21 @@ import streamlit as st
 import os
 
 from src.configuration.assistant_configuration import (
-    RetrievalAugmentedGenerationConfigurationLoader,
+    ApplicationConfigurationLoader,
 )
 
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.tools.tool_manager import ToolManager
 
 
-def get_rag_configuration():
+def get_app_configuration():
     """Loads the configuration from the path"""
-    rag_config_path = os.environ.get(
-        "RAG_CONFIG_PATH",
-        "configurations/rag_configs/openai_rag.json",
+    app_config_path = os.environ.get(
+        "APP_CONFIG_PATH",
+        "configurations/app_configs/config.json",
     )
 
-    return RetrievalAugmentedGenerationConfigurationLoader.from_file(rag_config_path)
+    return ApplicationConfigurationLoader.from_file(app_config_path)
 
 
 def settings_page():
@@ -33,56 +33,59 @@ def settings_page():
 
 def generate_model_settings(name, config):
     with st.expander(
-            label=f"{config['display_name']} Model Settings",
-            expanded=False
-        ):
-            st.selectbox(
-                label="Model",
-                options=["openai","llama"],
-                key=f"{name}-model"
-            )
+        label=f"{config['display_name']} Model Settings",
+        expanded=False
+    ):
+        st.selectbox(
+            label="Model",
+            options=["openai","llama"],
+            key=f"{name}-model"
+        )
 
-            st.slider(
-                label="Temperature",
-                key=f"{name}-temperature",
-                min_value=0.,
-                max_value=1.,
-                step=0.01,
-                value=0.
-            )
+        st.slider(
+            label="Temperature",
+            key=f"{name}-temperature",
+            min_value=0.,
+            max_value=1.,
+            step=0.01,
+            value=0.
+        )
 
-            st.number_input(
-                label="Max Retries",
-                key=f"{name}-max-retries",
-                min_value=0,
-                max_value=5,
-                value=3,
-                step=1
-            )
+        st.number_input(
+            label="Max Retries",
+            key=f"{name}-max-retries",
+            min_value=0,
+            max_value=5,
+            value=3,
+            step=1
+        )
 
-            st.write("Max supported tokens is 16384")
+        st.write("Max supported tokens is 16384")
 
-            st.number_input(
-                label="Max Conversation History Tokens",
-                key=f"{name}-max-conversation-history-tokens",
-                min_value=0,
-                max_value=4096,
-                value=4096,
-                step=1
-            )
+        st.number_input(
+            label="Max Conversation History Tokens",
+            key=f"{name}-max-conversation-history-tokens",
+            min_value=0,
+            max_value=4096,
+            value=4096,
+            step=1
+        )
 
-            st.number_input(
-                label="Max Completion Tokens",
-                key=f"{name}-max-completion-tokens",
-                min_value=0,
-                max_value=6096,
-                value=6096,
-                step=1
-            )
+        st.number_input(
+            label="Max Completion Tokens",
+            key=f"{name}-max-completion-tokens",
+            min_value=0,
+            max_value=6096,
+            value=6096,
+            step=1
+        )
 
 
 def tools_settings():
-    tool_manager = ToolManager()
+    configuration = get_app_configuration()
+    tool_manager = ToolManager(
+        configuration=configuration
+    )
 
     tools = tool_manager.get_all_tools()
 
@@ -97,14 +100,11 @@ def tools_settings():
             kwargs={"tool_name": tool_name},
         )
 
-        generate_model_settings(
-            name=tool_name,
-            config=tool_config
-        )
-
-
-        
-        
+        if 'model_configuration' in configuration['tool_configurations'][tool_name]:
+            generate_model_settings(
+                name=tool_name,
+                config=tool_config
+            )
 
 
 def general_settings():

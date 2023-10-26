@@ -15,6 +15,7 @@ from langchain.schema.language_model import BaseLanguageModel
 
 
 from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_tool_llm
 
 from src.db.models.domain.file_model import FileModel
 from src.db.models.documents import Documents
@@ -27,10 +28,8 @@ class SpreadsheetsTool:
     def __init__(
         self,
         configuration,
-        llm: BaseLanguageModel,
         interaction_manager: InteractionManager,
     ):
-        self.llm = llm
         self.interaction_manager = interaction_manager
         self.configuration = configuration
         self.callbacks = []
@@ -56,7 +55,12 @@ class SpreadsheetsTool:
     def query_spreadsheet_pandas(self, query: str, target_file_id: int):
         file = self.document_helper.get_file(target_file_id)
 
-        agent = self.create_pandas_agent(llm=self.llm, files=[file])
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.query_spreadsheet_pandas.__name__
+        )
+        
+        agent = self.create_pandas_agent(llm=llm, files=[file])
 
         # self.callbacks is set outside of this class
         results = agent.run(query, callbacks=self.callbacks)

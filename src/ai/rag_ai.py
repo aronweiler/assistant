@@ -22,13 +22,9 @@ from src.ai.tools.tool_manager import ToolManager
 class RetrievalAugmentedGenerationAI:
     """A RAG AI"""
 
-    llm: BaseLanguageModel = None
-    configuration: RetrievalAugmentedGenerationConfiguration
-    mode: str = "Auto"
-
     def __init__(
         self,
-        configuration: RetrievalAugmentedGenerationConfiguration,
+        configuration,
         interaction_id: UUID,
         user_email: str,
         prompt_manager: PromptManager,
@@ -38,9 +34,10 @@ class RetrievalAugmentedGenerationAI:
         self.configuration = configuration
         self.streaming = streaming
         self.prompt_manager = prompt_manager
+        self.mode = "Auto"
 
         self.llm = get_llm(
-            self.configuration.model_configuration,
+            self.configuration['jarvis_ai']['model_configuration'],
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
         )
@@ -68,7 +65,9 @@ class RetrievalAugmentedGenerationAI:
         )
 
         # The tool manager contains all of the tools available to the AI
-        self.tool_manager = ToolManager()
+        self.tool_manager = ToolManager(
+            configuration=self.configuration
+        )
         self.tool_manager.initialize_tools(
             self.configuration, self.interaction_manager, self.llm
         )

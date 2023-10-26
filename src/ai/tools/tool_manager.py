@@ -141,6 +141,9 @@ class ToolManager:
         },            
     }
 
+    def __init__(self, configuration):
+        self.configuration = configuration
+
     def get_enabled_tools(self) -> list[GenericTool]:
         # Filter the list by tools that are enabled in the environment (or their defaults)
         tools_that_should_be_enabled = [
@@ -163,10 +166,10 @@ class ToolManager:
 
     def is_tool_enabled(self, tool_name) -> bool:
         # See if this tool name is in the environment
-        val = os.environ.get(tool_name, None)
-        if val is not None:
+        config = self.configuration['tool_configurations'].get(tool_name, None)
+        if config is not None:
             # If it is, use the value
-            return val.lower() == "true"
+            return config.get('enabled', False)
         else:
             # If it's not, use the default from the tool
             for tool in self.tools:
@@ -190,28 +193,23 @@ class ToolManager:
     def initialize_tools(
         self,
         configuration,
-        interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
+        interaction_manager: InteractionManager
     ) -> None:
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
 
         """Used to create the actual tools in the tool set."""
         document_tool = DocumentTool(
             configuration=configuration,
-            interaction_manager=interaction_manager,
-            llm=llm,
+            interaction_manager=interaction_manager
         )
         spreadsheet_tool = SpreadsheetsTool(
             configuration=configuration,
-            interaction_manager=interaction_manager,
-            llm=llm,
+            interaction_manager=interaction_manager
         )
         code_tool = CodeTool(
             configuration=configuration,
             interaction_manager=interaction_manager,
-            llm=llm,
         )
         stubber_tool = Stubber(
             code_tool=code_tool,
@@ -221,13 +219,11 @@ class ToolManager:
         )
         code_review_tool = CodeReviewTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager,
-            llm=self.llm,
+            interaction_manager=self.interaction_manager
         )
         llm_tool = LLMTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
-            llm=self.llm,
         )
         weather_tool = WeatherTool()
         

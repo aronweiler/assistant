@@ -1,0 +1,144 @@
+{
+  "jarvis_ai": {
+    "model_configuration": {
+      "llm_type": "openai",
+      "model": "gpt-3.5-turbo-16k",
+      "temperature": 0,
+      "max_retries": 3,
+      "max_model_supported_tokens": 16384,
+      "max_conversation_history_tokens": 4096,
+      "max_completion_tokens": 6096
+    }
+  },
+  "tool_configurations": {
+    "default": {
+      "enabled": true,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "analyze_with_llm": {
+      "enabled": true,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "search_loaded_documents": {
+      "enabled": true,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "summarize_entire_document": {
+      "enabled": false,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "list_documents": {
+      "enabled": false
+    },
+    "get_code_details": {
+      "enabled": false
+    },
+    "get_code_structure": {
+      "enabled": false
+    },
+    "get_pretty_dependency_graph": {
+      "enabled": false
+    },
+    "create_stubs": {
+      "enabled": false,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "get_all_code_in_file": {
+      "enabled": false
+    },
+    "conduct_code_review_from_file_id": {
+      "enabled": false,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "conduct_code_review_from_url": {
+      "enabled": false,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "create_code_review_issue_tool": {
+      "enabled": false
+    },
+    "query_spreadsheet": {
+      "enabled": false,
+      "model_configuration": {
+        "llm_type": "openai",
+        "model": "gpt-3.5-turbo-16k",
+        "temperature": 0,
+        "max_retries": 3,
+        "max_model_supported_tokens": 16384,
+        "max_conversation_history_tokens": 4096,
+        "max_completion_tokens": 6096
+      }
+    },
+    "get_weather": {
+      "enabled": false
+    },
+    "get_time": {
+      "enabled": false
+    },
+    "get_news_for_topic": {
+      "enabled": false
+    },
+    "get_top_news_headlines": {
+      "enabled": false
+    },
+    "query_image": {
+      "enabled": false
+    }
+  }
+}

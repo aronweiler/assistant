@@ -133,27 +133,27 @@ class SoftwareDevelopmentConfigurationLoader:
 
         return software_development_configuration
     
-class RetrievalAugmentedGenerationConfigurationLoader:
+class ApplicationConfigurationLoader:
+
     @staticmethod
     def from_file(file_path):
         with open(file_path, "r") as file:
             config_data = json.load(file)
-            return RetrievalAugmentedGenerationConfigurationLoader.from_dict(config_data)
 
-    @staticmethod
-    def from_string(json_string):
-        config_data = json.loads(json_string)
-        return RetrievalAugmentedGenerationConfigurationLoader.from_dict(config_data)
+        return config_data
 
-    @staticmethod
-    def from_dict(config_dict):
-        retrieval_augmented_generation_data = config_dict.get("retrieval_augmented_generation_configuration", {})
-        retrieval_augmented_generation_configuration = RetrievalAugmentedGenerationConfiguration(
-            retrieval_augmented_generation_configuration=retrieval_augmented_generation_data
-        )
+    # @staticmethod
+    # def from_string(json_string):
+    #     config_data = json.loads(json_string)
+    #     return ApplicationConfigurationLoader.from_dict(config_data)
 
-        return retrieval_augmented_generation_configuration
+    # @staticmethod
+    # def from_dict(config_dict):
+    #     configuration = ApplicationConfigurationLoader(
+    #         configuration=config_dict
+    #     )
 
+    #     return configuration
 
 
 # Example usage
