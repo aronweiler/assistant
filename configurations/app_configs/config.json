@@ -87,7 +87,7 @@
       "enabled": false
     },
     "conduct_code_review_from_file_id": {
-      "enabled": false,
+      "enabled": true,
       "model_configuration": {
         "llm_type": "openai",
         "model": "gpt-3.5-turbo-16k",
@@ -99,7 +99,7 @@
       }
     },
     "conduct_code_review_from_url": {
-      "enabled": false,
+      "enabled": true,
       "model_configuration": {
         "llm_type": "openai",
         "model": "gpt-3.5-turbo-16k",

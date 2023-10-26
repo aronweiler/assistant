@@ -28,7 +28,7 @@ class LLMTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.summarize_entire_document.__name__
+            func_name=self.analyze_with_llm.__name__
         )
 
         self.chain = LLMChain(
