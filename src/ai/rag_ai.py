@@ -8,7 +8,8 @@ from langchain.chains.llm import LLMChain
 from langchain.memory.readonly import ReadOnlySharedMemory
 
 from src.configuration.assistant_configuration import (
-    RetrievalAugmentedGenerationConfiguration,
+    ModelConfiguration,
+    # RetrievalAugmentedGenerationConfiguration,
 )
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm
@@ -48,7 +49,7 @@ class RetrievalAugmentedGenerationAI:
             user_email=user_email,
             llm=self.llm,
             prompt_manager=self.prompt_manager,
-            max_token_limit=self.configuration.model_configuration.max_conversation_history_tokens,
+            max_token_limit=self.configuration['jarvis_ai']['model_configuration']['max_conversation_history_tokens'],
             override_memory=override_memory,
         )
 
@@ -69,15 +70,16 @@ class RetrievalAugmentedGenerationAI:
             configuration=self.configuration
         )
         self.tool_manager.initialize_tools(
-            self.configuration, self.interaction_manager, self.llm
+            self.configuration, self.interaction_manager
         )
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
 
+        model_configuration = ModelConfiguration(**self.configuration['jarvis_ai']['model_configuration'])
         agent = GenericToolsAgent(
             tools=tools,
-            model_configuration=self.configuration.model_configuration,
+            model_configuration=model_configuration,
             interaction_manager=self.interaction_manager,
         )
 

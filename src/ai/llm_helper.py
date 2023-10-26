@@ -25,6 +25,9 @@ class LLMType(Enum):
 def get_llm(model_configuration: ModelConfiguration, **kwargs):
     """Returns the LLM for the specified model configuration."""
 
+    if type(model_configuration) == dict:
+        model_configuration = ModelConfiguration(**model_configuration)
+
     if model_configuration.llm_type == LLMType.OPENAI.value:
         return _get_openai_llm(model_configuration, **kwargs)
     elif (
