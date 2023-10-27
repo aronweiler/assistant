@@ -21,7 +21,7 @@ An intelligent assistant.  This is a work in progress.
 # Running the UI in Docker
 In order to install the assistant using Docker, you'll need the following:
 
-- Docker (probably Docker Desktop) installed and running on your computer
+- Docker (probably [Docker Desktop](https://www.docker.com/products/docker-desktop/)) installed and running on your computer
 - Git
 - A web browser
 - An OpenAI Account and API key (or local models)
