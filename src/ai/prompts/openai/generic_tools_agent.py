@@ -5,11 +5,6 @@ The loaded documents that you have access to are below.  Pay close attention to 
 {loaded_documents}
 --- LOADED DOCUMENTS ---
 
-Any previous conversation with the user is contained here. The chat history may contain context that you find useful to answer the current query.
---- CHAT HISTORY ---
-{chat_history}
---- CHAT HISTORY ---
-
 When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.
 
 Take a step back, think it through step-by-step, and make sure that each step you provide contains enough information to be acted upon on it's own with the goal of arriving at a final answer to the user's query.  Do this by resolving co-references, and providing any additional context that may be needed to answer the user's query in each step.
@@ -49,6 +44,11 @@ You have access the following tools that you can use by returning the appropriat
 --- AVAILABLE TOOLS ---
 {available_tool_descriptions}
 --- AVAILABLE TOOLS ---
+
+Any previous conversation with the user is contained here. The chat history may contain context that you find useful to answer the current query.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
 
 Now read the user's query very carefully, take a deep breath and think this through step-by-step. I need you to decide whether to answer the user's query directly, or decompose a list of steps.
 
