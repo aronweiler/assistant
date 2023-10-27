@@ -1,0 +1,30 @@
+{
+  "GPT 4": {
+    "model_configuration": {
+      "llm_type": "openai",
+      "model": "gpt-4",
+      "max_model_supported_tokens": 8192 
+    }
+  },
+  "GPT 4 (32K)": {
+    "model_configuration": {
+      "llm_type": "openai",
+      "model": "gpt-4-32k",
+      "max_model_supported_tokens": 32768  
+    }
+  },
+  "GPT 3.5 Turbo (16K)": {
+    "model_configuration": {
+      "llm_type": "openai",
+      "model": "gpt-3.5-turbo-16k",
+      "max_model_supported_tokens": 16384
+    }
+  },
+  "GPT 3.5 Turbo": {
+    "model_configuration": {
+      "llm_type": "openai",
+      "model": "gpt-3.5-turbo",
+      "max_model_supported_tokens": 4097 
+    }
+  }  
+}
