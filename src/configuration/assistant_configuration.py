@@ -38,7 +38,15 @@ class ModelConfiguration:
 
 class Destination:
     def __init__(
-        self, name, module, class_name, description, system_prompt, model_configuration, is_default=False, requires_documents=False
+        self,
+        name,
+        module,
+        class_name,
+        description,
+        system_prompt,
+        model_configuration,
+        is_default=False,
+        requires_documents=False,
     ):
         self.name = name
         self.module = module
@@ -49,6 +57,7 @@ class Destination:
         self.system_prompt = system_prompt
         self.model_configuration = ModelConfiguration(**model_configuration)
 
+
 class GeneralAI:
     def __init__(self, model_configuration, destination_routes):
         self.model_configuration = ModelConfiguration(**model_configuration)
@@ -56,26 +65,38 @@ class GeneralAI:
         for route in destination_routes:
             self.destination_routes.append(route)
 
+
 class DesignDecisionGenerator:
     def __init__(self, design_decision_configuration):
-        self.model_configuration = ModelConfiguration(**design_decision_configuration['model_configuration'])
+        self.model_configuration = ModelConfiguration(
+            **design_decision_configuration["model_configuration"]
+        )
+
 
 class RequirementBreakdown:
     def __init__(self, requirement_breakdown_configuration):
-        self.model_configuration = ModelConfiguration(**requirement_breakdown_configuration['model_configuration'])
+        self.model_configuration = ModelConfiguration(
+            **requirement_breakdown_configuration["model_configuration"]
+        )
+
 
 class AssistantConfiguration:
     def __init__(self, general_ai):
         self.general_ai = general_ai
+
 
 class SoftwareDevelopmentConfiguration:
     def __init__(self, design_decision_generator, requirement_breakdown):
         self.design_decision_generator = design_decision_generator
         self.requirement_breakdown = requirement_breakdown
 
+
 class RetrievalAugmentedGenerationConfiguration:
     def __init__(self, retrieval_augmented_generation_configuration):
-        self.model_configuration = ModelConfiguration(**retrieval_augmented_generation_configuration['model_configuration'])
+        self.model_configuration = ModelConfiguration(
+            **retrieval_augmented_generation_configuration["model_configuration"]
+        )
+
 
 class AssistantConfigurationLoader:
     @staticmethod
@@ -107,7 +128,8 @@ class AssistantConfigurationLoader:
         )
 
         return assistant_configuration
-    
+
+
 class SoftwareDevelopmentConfigurationLoader:
     @staticmethod
     def from_file(file_path):
@@ -122,19 +144,23 @@ class SoftwareDevelopmentConfigurationLoader:
 
     @staticmethod
     def from_dict(config_dict):
-        software_development_data = config_dict.get("software_development_configuration", {})
+        software_development_data = config_dict.get(
+            "software_development_configuration", {}
+        )
         design_decisions_data = software_development_data.get("design_decisions", {})
-        requirement_breakdown_data = software_development_data.get("requirement_breakdown", [])
+        requirement_breakdown_data = software_development_data.get(
+            "requirement_breakdown", []
+        )
 
         software_development_configuration = SoftwareDevelopmentConfiguration(
             design_decision_generator=DesignDecisionGenerator(design_decisions_data),
-            requirement_breakdown=RequirementBreakdown(requirement_breakdown_data)
+            requirement_breakdown=RequirementBreakdown(requirement_breakdown_data),
         )
 
         return software_development_configuration
-    
-class ApplicationConfigurationLoader:
 
+
+class ApplicationConfigurationLoader:
     @staticmethod
     def from_file(file_path):
         with open(file_path, "r") as file:
@@ -142,18 +168,10 @@ class ApplicationConfigurationLoader:
 
         return config_data
 
-    # @staticmethod
-    # def from_string(json_string):
-    #     config_data = json.loads(json_string)
-    #     return ApplicationConfigurationLoader.from_dict(config_data)
-
-    # @staticmethod
-    # def from_dict(config_dict):
-    #     configuration = ApplicationConfigurationLoader(
-    #         configuration=config_dict
-    #     )
-
-    #     return configuration
+    @staticmethod
+    def save_to_file(config_data, file_path):
+        with open(file_path, "w") as file:
+            json.dump(config_data, file, indent=4)
 
 
 # Example usage
@@ -165,7 +183,7 @@ if __name__ == "__main__":
     config = AssistantConfigurationLoader.from_file(json_file_path)
     # config = AssistantConfigurationLoader.from_string(json_string)
 
-    print(config.general_ai.model_configuration.llm_type)    
+    print(config.general_ai.model_configuration.llm_type)
     print(config.general_ai.model_configuration.model)
     print(config.general_ai.model_configuration.temperature)
 

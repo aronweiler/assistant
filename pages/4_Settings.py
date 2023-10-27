@@ -1,4 +1,5 @@
 import logging
+import threading
 import streamlit as st
 import os
 
@@ -31,106 +32,130 @@ def get_available_models():
 
 def settings_page():
     st.title("Settings")
-    settings_tab, tools_tab = st.tabs(["General Settings", "Tools"])
+    settings_tab, jarvis_ai, tools_tab = st.tabs(
+        ["General Settings", "Jarvis AI", "Tools"]
+    )
 
     with settings_tab:
         general_settings()
+
+    with jarvis_ai:
+        jarvis_ai_settings()
 
     with tools_tab:
         tools_settings()
 
 
-def generate_model_settings(
-    tool_name, tool_details, tool_configuration, available_models
-):
+def jarvis_ai_settings():
+    generate_model_settings(
+        tool_name="jarvis",
+        tool_configuration=get_app_configuration()["jarvis_ai"],
+        available_models=get_available_models(),
+    )
+
+    model_configuration, needs_saving = model_needs_saving(
+        tool_name="jarvis",
+        existing_tool_configuration=get_app_configuration()["jarvis_ai"],
+        needs_saving=False,
+    )
+
+    if needs_saving:
+        st.toast(f"Saving Jarvis AI settings...")
+        save_jarvis_settings_to_file(
+            model_configuration=model_configuration,
+        )
+
+
+def generate_model_settings(tool_name, tool_configuration, available_models):
     available_model_names = [
         {available_models[m]["model_configuration"]["model"]: m}
         for m in available_models.keys()
     ]
 
-    # index = next((i for i, item in enumerate(available_models.keys()) if available_models[item]["model_configuration"]["model"] == "gpt-3.5-turbo-16k"), None)
-
-    with st.expander(
-        label=f"{tool_details['display_name']} Model Settings", expanded=False
-    ):
-        col1, col2, col3 = st.columns(3)
-        col1.selectbox(
-            label="Model",
-            options=available_model_names,
-            format_func=lambda x: list(x.values())[0],
-            index=next(
-                (
-                    i
-                    for i, item in enumerate(available_models.keys())
-                    if available_models[item]["model_configuration"]["model"]
-                    == tool_configuration["model_configuration"]["model"]
-                ),
-                None,
-            ),
-            key=f"{tool_name}-model",
-        )
-
-        col2.slider(
-            label="Temperature",
-            key=f"{tool_name}-temperature",
-            min_value=0.0,
-            max_value=1.0,
-            step=0.10,
-            value=float(tool_configuration["model_configuration"]["temperature"]),
-        )
-
-        col3.slider(
-            label="Max Retries",
-            key=f"{tool_name}-max-retries",
-            min_value=0,
-            max_value=5,
-            value=tool_configuration["model_configuration"]["max_retries"],
-            step=1,
-        )
-
-        max_supported_tokens = int(
-            available_models[list(st.session_state[f"{tool_name}-model"].values())[0]][
-                "model_configuration"
-            ]["max_model_supported_tokens"]
-        )
-
-        def update_sliders(max_supported_tokens, history_tokens, completion_tokens):
-            available_tokens = max_supported_tokens - history_tokens
-            if available_tokens < 0:
-                history_tokens = max_supported_tokens
-                completion_tokens = 0
-            elif available_tokens < completion_tokens:
-                history_tokens = max_supported_tokens - completion_tokens
-
-            return history_tokens, completion_tokens
-
-        history_tokens, completion_tokens = st.slider(
-            "Token Allocation",
-            0,
-            max_supported_tokens,
+    col1, col2, col3 = st.columns(3)
+    col1.selectbox(
+        label="Model",
+        options=available_model_names,
+        format_func=lambda x: list(x.values())[0],
+        index=next(
             (
-                int(
-                    tool_configuration["model_configuration"][
-                        "max_conversation_history_tokens"
-                    ]
-                ),
-                int(tool_configuration["model_configuration"]["max_completion_tokens"]),
+                i
+                for i, item in enumerate(available_models.keys())
+                if available_models[item]["model_configuration"]["model"]
+                == tool_configuration["model_configuration"]["model"]
             ),
-            key=f"{tool_name}-token-allocation"
-        )
+            None,
+        ),
+        key=f"{tool_name}-model",
+    )
 
-        history_tokens, completion_tokens = update_sliders(
-            max_supported_tokens, history_tokens, completion_tokens
-        )
+    col2.slider(
+        label="Temperature",
+        key=f"{tool_name}-temperature",
+        min_value=0.0,
+        max_value=1.0,
+        step=0.10,
+        value=float(tool_configuration["model_configuration"]["temperature"]),
+    )
 
-        prompt_tokens = max_supported_tokens - (history_tokens + completion_tokens)
-        desired_prompt_tokens = int(0.25 * max_supported_tokens)
-        
-        st.markdown(f"You have an available pool of **{max_supported_tokens}** tokens.  You are currently using **{history_tokens}** for conversation history and **{completion_tokens}** for completion.")
-        st.markdown(f"These settings leave {':red[**only ' if prompt_tokens < desired_prompt_tokens else ':green[**'}{prompt_tokens}**] available for prompt tokens.")
-        
-        if(prompt_tokens < desired_prompt_tokens):
-            st.markdown(f":red[*It is recommended that you leave at least {desired_prompt_tokens} tokens for prompt generation.*]")
+    col3.slider(
+        label="Max Retries",
+        key=f"{tool_name}-max-retries",
+        min_value=0,
+        max_value=5,
+        value=tool_configuration["model_configuration"]["max_retries"],
+        step=1,
+    )
+
+    max_supported_tokens = int(
+        available_models[list(st.session_state[f"{tool_name}-model"].values())[0]][
+            "model_configuration"
+        ]["max_model_supported_tokens"]
+    )
+
+    def update_sliders(max_supported_tokens, history_tokens, completion_tokens):
+        available_tokens = max_supported_tokens - history_tokens
+        if available_tokens < 0:
+            history_tokens = max_supported_tokens
+            completion_tokens = 0
+        elif available_tokens < completion_tokens:
+            history_tokens = max_supported_tokens - completion_tokens
+
+        return history_tokens, completion_tokens
+
+    history_tokens, completion_tokens = st.slider(
+        "Token Allocation",
+        0,
+        max_supported_tokens,
+        (
+            int(
+                tool_configuration["model_configuration"][
+                    "max_conversation_history_tokens"
+                ]
+            ),
+            int(tool_configuration["model_configuration"]["max_completion_tokens"]),
+        ),
+        key=f"{tool_name}-token-allocation",
+    )
+
+    history_tokens, completion_tokens = update_sliders(
+        max_supported_tokens, history_tokens, completion_tokens
+    )
+
+    prompt_tokens = max_supported_tokens - (history_tokens + completion_tokens)
+    desired_prompt_tokens = int(0.25 * max_supported_tokens)
+
+    st.markdown(
+        f"You have an available pool of **{max_supported_tokens}** tokens.  You are currently using **{history_tokens}** for conversation history and **{completion_tokens}** for completion."
+    )
+    st.markdown(
+        f"These settings leave {':red[**only ' if prompt_tokens < desired_prompt_tokens else ':green[**'}{prompt_tokens}**] available for prompt tokens."
+    )
+
+    if prompt_tokens < desired_prompt_tokens:
+        st.markdown(
+            f":red[*It is recommended that you leave at least {desired_prompt_tokens} tokens for prompt generation.*]"
+        )
 
 
 def tools_settings():
@@ -144,23 +169,148 @@ def tools_settings():
     # Create a toggle to enable/disable each tool
     for tool_name, tool_details in tools.items():
         tool_configuration = configuration["tool_configurations"][tool_name]
-
-        st.toggle(
+        col1, col2 = st.columns([3, 7])
+        col1.toggle(
             tool_details["display_name"],
-            help=tool_details["help_text"],
             value=tool_manager.is_tool_enabled(tool_name),
             key=tool_name,
             on_change=tool_manager.toggle_tool,
             kwargs={"tool_name": tool_name},
         )
+        col2.markdown(tool_details["help_text"])
 
         if "model_configuration" in configuration["tool_configurations"][tool_name]:
-            generate_model_settings(
+            with st.expander(
+                label=f"{tool_details['display_name']} Model Settings", expanded=False
+            ):
+                generate_model_settings(
+                    tool_name=tool_name,
+                    tool_configuration=tool_configuration,
+                    available_models=available_models,
+                )
+
+        st.divider()
+
+    save_tool_settings(tools, configuration)
+
+
+def save_tool_settings(tools, configuration):
+    # Iterate through all of the tools and save their settings
+    for tool_name, tool_details in tools.items():
+        existing_tool_configuration = configuration["tool_configurations"][tool_name]
+
+        # Only save if the settings are different
+        needs_saving = False
+
+        enabled = st.session_state[tool_name]
+        if enabled != existing_tool_configuration["enabled"]:
+            needs_saving = True
+
+        model_configuration, needs_saving = model_needs_saving(
+            tool_name, existing_tool_configuration, needs_saving
+        )
+
+        if needs_saving:
+            st.toast(f"Saving {tool_name} settings...")
+            save_tool_settings_to_file(
                 tool_name=tool_name,
-                tool_details=tool_details,
-                tool_configuration=tool_configuration,
-                available_models=available_models,
+                enabled=enabled,
+                model_configuration=model_configuration,
             )
+
+
+def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
+    model_configuration = None
+    if "model_configuration" in existing_tool_configuration:
+        # Get the model configuration from the UI
+
+        model = list(st.session_state[f"{tool_name}-model"])[0]
+        model_friendly_name = st.session_state[f"{tool_name}-model"][
+            list(st.session_state[f"{tool_name}-model"])[0]
+        ]
+        max_model_supported_tokens = int(
+            get_available_models()[model_friendly_name]["model_configuration"][
+                "max_model_supported_tokens"
+            ]
+        )
+        llm_type = get_available_models()[model_friendly_name]["model_configuration"][
+            "llm_type"
+        ]
+        if model != existing_tool_configuration["model_configuration"]["model"]:
+            needs_saving = True
+        (
+            max_conversation_history_tokens,
+            max_completion_tokens,
+        ) = st.session_state[f"{tool_name}-token-allocation"]
+        if (
+            max_conversation_history_tokens
+            != existing_tool_configuration["model_configuration"][
+                "max_conversation_history_tokens"
+            ]
+        ):
+            needs_saving = True
+        if (
+            max_completion_tokens
+            != existing_tool_configuration["model_configuration"][
+                "max_completion_tokens"
+            ]
+        ):
+            needs_saving = True
+        max_retries = st.session_state[f"{tool_name}-max-retries"]
+        if (
+            max_retries
+            != existing_tool_configuration["model_configuration"]["max_retries"]
+        ):
+            needs_saving = True
+
+        temperature = st.session_state[f"{tool_name}-temperature"]
+        if (
+            temperature
+            != existing_tool_configuration["model_configuration"]["temperature"]
+        ):
+            needs_saving = True
+
+        model_configuration = {
+            "llm_type": llm_type,
+            "model": model,
+            "temperature": temperature,
+            "max_retries": max_retries,
+            "max_model_supported_tokens": max_model_supported_tokens,
+            "max_conversation_history_tokens": max_conversation_history_tokens,
+            "max_completion_tokens": max_completion_tokens,
+        }
+
+    return model_configuration, needs_saving
+
+
+def save_jarvis_settings_to_file(model_configuration):
+    configuration = get_app_configuration()
+
+    if model_configuration:
+        configuration["jarvis_ai"]["model_configuration"] = model_configuration
+
+    app_config_path = os.environ.get(
+        "APP_CONFIG_PATH",
+        "configurations/app_configs/config.json",
+    )
+
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+
+
+def save_tool_settings_to_file(tool_name, enabled, model_configuration):
+    configuration = get_app_configuration()
+    configuration["tool_configurations"][tool_name]["enabled"] = enabled
+    if model_configuration:
+        configuration["tool_configurations"][tool_name][
+            "model_configuration"
+        ] = model_configuration
+
+    app_config_path = os.environ.get(
+        "APP_CONFIG_PATH",
+        "configurations/app_configs/config.json",
+    )
+
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
 
 
 def general_settings():
