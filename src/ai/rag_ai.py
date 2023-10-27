@@ -144,6 +144,10 @@ class RetrievalAugmentedGenerationAI:
             results = self.run_agent(
                 query=query, agent_callbacks=agent_callbacks, kwargs=kwargs
             )
+            
+        # if results is a list, collapse it into a single string
+        if isinstance(results, list):
+            results = "\n".join(results)
 
         # Adding this after the run so that the agent can't see it in the history
         self.interaction_manager.conversation_token_buffer_memory.save_context(
