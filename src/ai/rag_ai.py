@@ -38,13 +38,21 @@ class RetrievalAugmentedGenerationAI:
         self.mode = "Auto"
 
         self.llm = get_llm(
-            self.configuration['jarvis_ai']['model_configuration'],
+            self.configuration["jarvis_ai"]["model_configuration"],
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
+            model_kwargs={
+                "frequency_penalty": 1.5,
+                "presence_penalty": 1.5,
+            },
         )
-        
-        max_conversation_history_tokens = self.configuration['jarvis_ai']['model_configuration']['max_conversation_history_tokens']
-        uses_conversation_history = self.configuration['jarvis_ai']['model_configuration']['uses_conversation_history']
+
+        max_conversation_history_tokens = self.configuration["jarvis_ai"][
+            "model_configuration"
+        ]["max_conversation_history_tokens"]
+        uses_conversation_history = self.configuration["jarvis_ai"][
+            "model_configuration"
+        ]["uses_conversation_history"]
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
@@ -70,17 +78,15 @@ class RetrievalAugmentedGenerationAI:
         )
 
         # The tool manager contains all of the tools available to the AI
-        self.tool_manager = ToolManager(
-            configuration=self.configuration
-        )
-        self.tool_manager.initialize_tools(
-            self.configuration, self.interaction_manager
-        )
+        self.tool_manager = ToolManager(configuration=self.configuration)
+        self.tool_manager.initialize_tools(self.configuration, self.interaction_manager)
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
 
-        model_configuration = ModelConfiguration(**self.configuration['jarvis_ai']['model_configuration'])
+        model_configuration = ModelConfiguration(
+            **self.configuration["jarvis_ai"]["model_configuration"]
+        )
         agent = GenericToolsAgent(
             tools=tools,
             model_configuration=model_configuration,
@@ -96,35 +102,10 @@ class RetrievalAugmentedGenerationAI:
 
         return agent_executor
 
-    def generate_detailed_document_chunk_summary(
-        self,
-        document_text: str,
-    ) -> str:
-        summary = self.llm.predict(
-            self.prompt_manager.get_prompt(
-                "summary",
-                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text)
-        )
-        return summary
-
-    def generate_detailed_document_summary(
-        self,
-        file_id: int,
-    ) -> str:
-        document_tool = DocumentTool(
-            self.configuration, self.interaction_manager, self.llm
-        )
-        document_summary = document_tool.summarize_entire_document(file_id)
-
-        return document_summary
-
     def query(
         self,
         query: str,
         collection_id: int = None,
-        agent_callbacks: List = [],
-        llm_callbacks: List = [],
         kwargs: dict = {},
     ):
         # Set the document collection id on the interaction manager
@@ -140,15 +121,14 @@ class RetrievalAugmentedGenerationAI:
         if self.mode == "Conversation":
             logging.debug("Running chain 'Conversation Only' mode")
             results = self.run_chain(
-                query=query, llm_callbacks=llm_callbacks, kwargs=kwargs
+                query=query,
+                kwargs=kwargs,
             )
         else:
             # Run the agent
             logging.debug("Running agent 'Auto' mode")
-            results = self.run_agent(
-                query=query, agent_callbacks=agent_callbacks, kwargs=kwargs
-            )
-            
+            results = self.run_agent(query=query, kwargs=kwargs)
+
         # if results is a list, collapse it into a single string
         if isinstance(results, list):
             results = "\n".join(results)
@@ -163,7 +143,7 @@ class RetrievalAugmentedGenerationAI:
 
         return results
 
-    def run_chain(self, query: str, llm_callbacks: List = [], kwargs: dict = {}):
+    def run_chain(self, query: str, kwargs: dict = {}):
         return self.chain.run(
             system_prompt="You are a friendly AI who's purpose it is to engage a user in conversation.  Try to mirror their emotional state, and answer their questions.  If you don't know the answer, don't make anything up, just say you don't know.",
             input=query,
@@ -176,10 +156,10 @@ class RetrievalAugmentedGenerationAI:
             loaded_documents="\n".join(
                 self.interaction_manager.get_loaded_documents_for_display()
             ),
-            callbacks=llm_callbacks,
+            callbacks=self.interaction_manager.llm_callbacks,
         )
 
-    def run_agent(self, query: str, agent_callbacks: List = [], kwargs: dict = {}):
+    def run_agent(self, query: str, kwargs: dict = {}):
         timeout = kwargs.get("agent_timeout", 300)
         logging.debug(f"Creating agent with {timeout} second timeout")
         agent = self.create_agent(agent_timeout=timeout)
@@ -193,7 +173,7 @@ class RetrievalAugmentedGenerationAI:
             ),
             user_name=self.interaction_manager.user_name,
             user_email=self.interaction_manager.user_email,
-            callbacks=agent_callbacks,
+            callbacks=self.interaction_manager.agent_callbacks,
         )
 
     def check_summary(self, query):

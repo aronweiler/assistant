@@ -253,7 +253,7 @@ if __name__ == "__main__":
                 ai=st.session_state["rag_ai"], tab=files_and_settings
             )
 
-            ui_shared.handle_chat(col1, st.session_state["rag_ai"])
+            ui_shared.handle_chat(col1, st.session_state["rag_ai"], st.session_state["app_config"])
 
             ui_shared.show_version()            
     except Exception as e:

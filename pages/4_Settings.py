@@ -31,7 +31,15 @@ def get_available_models():
 
 
 def settings_page():
+    st.set_page_config(
+            page_title="Jarvis - Settings",
+            page_icon="⚙️",
+            layout="centered",
+            initial_sidebar_state="expanded",
+        )
+    
     st.title("Settings")
+    
     settings_tab, jarvis_ai, tools_tab = st.tabs(
         ["General Settings", "Jarvis AI", "Tools"]
     )
@@ -54,22 +62,32 @@ def jarvis_ai_settings():
         "Note: To some extent, the settings here will filter down- for instance, since the chat memory of the underlying tool models inherits from the top-level model, the chat memory will be limited to the number of tokens set here."
     )
     st.divider()
+    
+    needs_saving = False
+    
+    jarvis_config = get_app_configuration()["jarvis_ai"]
+    
+    st.toggle(label="Show LLM Thoughts", value=jarvis_config.get("show_llm_thoughts", False), key="show_llm_thoughts")
+    
+    if st.session_state["show_llm_thoughts"] != jarvis_config.get("show_llm_thoughts", False):
+        needs_saving = True
 
     generate_model_settings(
         tool_name="jarvis",
-        tool_configuration=get_app_configuration()["jarvis_ai"],
+        tool_configuration=jarvis_config,
         available_models=get_available_models(),
     )
 
     model_configuration, needs_saving = model_needs_saving(
         tool_name="jarvis",
-        existing_tool_configuration=get_app_configuration()["jarvis_ai"],
-        needs_saving=False,
+        existing_tool_configuration=jarvis_config,
+        needs_saving=needs_saving,
     )
 
     if needs_saving:
         st.toast(f"Saving Jarvis AI settings...")
         save_jarvis_settings_to_file(
+            show_llm_thoughts=st.session_state["show_llm_thoughts"],
             model_configuration=model_configuration,
         )
 
@@ -316,18 +334,25 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
     return model_configuration, needs_saving
 
 
-def save_jarvis_settings_to_file(model_configuration):
+def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration):
     configuration = get_app_configuration()
 
+    configuration["jarvis_ai"]['show_llm_thoughts'] = show_llm_thoughts
+
     if model_configuration:
-        configuration["jarvis_ai"]["model_configuration"] = model_configuration
+        configuration["jarvis_ai"]["model_configuration"] = model_configuration        
 
     app_config_path = os.environ.get(
         "APP_CONFIG_PATH",
         "configurations/app_configs/config.json",
     )
 
-    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)    
+    
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
+        
+    st.session_state["app_config"] = configuration
 
 
 def save_tool_settings_to_file(tool_name, enabled, model_configuration):
@@ -344,6 +369,11 @@ def save_tool_settings_to_file(tool_name, enabled, model_configuration):
     )
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+    
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
+        
+    st.session_state["app_config"] = configuration
 
 
 def general_settings():

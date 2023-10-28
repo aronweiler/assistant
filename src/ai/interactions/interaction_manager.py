@@ -62,6 +62,9 @@ class InteractionManager:
         self.conversations_helper = Conversations()
         self.users_helper = Users()
         self.documents_helper = Documents()
+        
+        self.agent_callbacks = []
+        self.llm_callbacks = []
 
         # Get the user
         user = self.users_helper.get_user_by_email(user_email)

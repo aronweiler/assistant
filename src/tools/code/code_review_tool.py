@@ -44,7 +44,6 @@ class CodeReviewTool:
         self.configuration = configuration
         self.interaction_manager = interaction_manager
 
-
     def ingest_source_code_file_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
         file_retriever = self.source_control_to_file_retriever_map[
@@ -59,7 +58,6 @@ class CodeReviewTool:
         )
 
         return file_retriever.retrieve_file_data(url=url)
-    
 
     def ingest_issue_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
@@ -169,7 +167,12 @@ class CodeReviewTool:
                 final_code_review_instructions=final_code_review_instructions,
             )
 
-            data = json.loads(llm.predict(code_review_prompt))
+            data = json.loads(
+                llm.predict(
+                    code_review_prompt,
+                    callbacks=self.interaction_manager.agent_callbacks,
+                )
+            )
             comment_results.extend(data["comments"])
 
         review_results = {
@@ -207,7 +210,8 @@ class CodeReviewTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.conduct_code_review_from_url.__name__
+            func_name=self.conduct_code_review_from_url.__name__,
+            streaming=True,
         )
 
         return self.conduct_code_review(
@@ -215,7 +219,7 @@ class CodeReviewTool:
             additional_instructions=additional_instructions,
             code_metadata=code_metadata,
             previous_issue=previous_issue,
-            llm=llm
+            llm=llm,
         )
 
     def conduct_code_review_from_file_id(
@@ -248,14 +252,15 @@ class CodeReviewTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.conduct_code_review_from_file_id.__name__
+            func_name=self.conduct_code_review_from_file_id.__name__,
+            streaming=True,
         )
 
         return self.conduct_code_review(
             file_data=file_data,
             additional_instructions=additional_instructions,
             code_metadata={"filename": file_model.file_name},
-            llm=llm
+            llm=llm,
         )
 
 

@@ -37,14 +37,13 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs):
         return _get_llama2_llm(model_configuration, **kwargs)
 
 
-def get_tool_llm(configuration: dict, func_name: str):
+def get_tool_llm(configuration: dict, func_name: str, **kwargs):
     tool_config = configuration_utilities.get_tool_configuration(
-        configuration=configuration,
-        func_name=func_name
+        configuration=configuration, func_name=func_name
     )
 
     return get_llm(
-        model_configuration=tool_config['model_configuration']
+        model_configuration=tool_config["model_configuration"], **kwargs
     )
 
 

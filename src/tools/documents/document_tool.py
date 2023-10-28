@@ -29,7 +29,6 @@ class DocumentTool:
         self.configuration = configuration
         self.interaction_manager = interaction_manager
 
-
     def search_loaded_documents(
         self,
         semantic_similarity_query: str,
@@ -111,23 +110,25 @@ class DocumentTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.search_loaded_documents.__name__
+            func_name=self.search_loaded_documents.__name__,
+            streaming=True,
+            model_kwargs={
+                "frequency_penalty": 1.5,
+                "presence_penalty": 1.5,
+            },
         )
 
-        result = llm.predict(prompt)
+        result = llm.predict(prompt, callbacks=self.interaction_manager.agent_callbacks)
 
         return result
 
-    def generate_detailed_document_chunk_summary(
-        self,
-        document_text: str,
-        llm
-    ) -> str:
+    def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
         summary = llm.predict(
             self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text)
+            ).format(text=document_text),
+            callbacks=self.interaction_manager.agent_callbacks,
         )
         return summary
 
@@ -153,7 +154,12 @@ class DocumentTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.summarize_entire_document.__name__
+            func_name=self.summarize_entire_document.__name__,
+            streaming=True,
+            model_kwargs={
+                "frequency_penalty": 1.5,
+                "presence_penalty": 1.5,
+            },
         )
 
         # Are there already document chunk summaries?
@@ -161,8 +167,7 @@ class DocumentTool:
             if not chunk.document_text_has_summary:
                 # Summarize the chunk
                 summary_chunk = self.generate_detailed_document_chunk_summary(
-                    document_text=chunk.document_text,
-                    llm=llm
+                    document_text=chunk.document_text, llm=llm
                 )
                 documents.set_document_text_summary(chunk.id, summary_chunk)
 
@@ -245,18 +250,23 @@ class DocumentTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.summarize_search_topic.__name__
+            func_name=self.summarize_search_topic.__name__,
+            streaming=True,
+            model_kwargs={
+                "frequency_penalty": 1.5,
+                "presence_penalty": 1.5,
+            },
         )
 
         summary = self.refine_summarize(llm=llm, query=query, docs=docs)
 
         if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
             summary = llm.predict(
-                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
+                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n",
+                callbacks=self.interaction_manager.agent_callbacks,
             )
 
         return summary
-
 
     def refine_summarize(self, llm, docs, query: str | None = None):
         if query is None:
@@ -288,7 +298,6 @@ class DocumentTool:
             )
 
         return result["output_text"]
-
 
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.

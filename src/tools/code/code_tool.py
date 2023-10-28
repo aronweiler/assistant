@@ -18,14 +18,9 @@ from src.ai.llm_helper import get_tool_llm
 
 
 class CodeTool:
-    def __init__(
-        self,
-        configuration,
-        interaction_manager: InteractionManager
-    ):
+    def __init__(self, configuration, interaction_manager: InteractionManager):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-
 
     def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
@@ -274,7 +269,9 @@ class CodeTool:
                 )
 
                 if target_signature is None or target_signature == "":
-                    return get_code_details + documents.get_file_data(file.id).decode("utf-8")
+                    return get_code_details + documents.get_file_data(file.id).decode(
+                        "utf-8"
+                    )
 
                 # Find the document chunk that matches the target signature
                 for doc in document_chunks:
@@ -386,7 +383,8 @@ class CodeTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.create_stub_code.__name__
+            func_name=self.create_stub_code.__name__,
+            streaming=True,
         )
 
         for doc in documents:
@@ -395,7 +393,9 @@ class CodeTool:
                     code=doc.document_text,
                     stub_dependencies_template=stub_dependencies,
                 )
-                stubbed_code = llm.predict(prompt)
+                stubbed_code = llm.predict(
+                    prompt, callbacks=self.interaction_manager.agent_callbacks
+                )
                 break
 
         return {

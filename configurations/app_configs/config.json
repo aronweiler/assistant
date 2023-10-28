@@ -1,10 +1,11 @@
 {
     "jarvis_ai": {
+        "show_llm_thoughts": true,
         "model_configuration": {
             "llm_type": "openai",
             "model": "gpt-3.5-turbo-16k",
             "temperature": 0.7,
-            "max_retries": 5,
+            "max_retries": 3,
             "max_model_supported_tokens": 16384,
             "uses_conversation_history": true,
             "max_conversation_history_tokens": 1001,
@@ -26,7 +27,7 @@
             }
         },
         "analyze_with_llm": {
-            "enabled": true,
+            "enabled": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-4",
@@ -34,8 +35,8 @@
                 "max_retries": 3,
                 "max_model_supported_tokens": 8192,
                 "uses_conversation_history": true,
-                "max_conversation_history_tokens": 88,
-                "max_completion_tokens": 3803
+                "max_conversation_history_tokens": 575,
+                "max_completion_tokens": 4072
             }
         },
         "search_loaded_documents": {

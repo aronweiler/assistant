@@ -230,10 +230,10 @@ def setup_new_chat_button(tab):
 
 def get_available_collections():
     # Time the operation:
-    start_time = time.time()    
+    start_time = time.time()
     collections = Documents().get_collections()
     total_time = time.time() - start_time
-    
+
     logging.info(f"get_available_collections() took {total_time} seconds")
 
     # Create a dictionary of collection id to collection summary
@@ -519,7 +519,7 @@ def ingest_files(
                         file_hash=calculate_sha256(uploaded_file_path),
                         file_classification=file_classification,
                     ),
-                    file_data
+                    file_data,
                 )
                 files.append(file_model)
 
@@ -799,7 +799,7 @@ def show_old_messages(ai_instance):
                 )
 
 
-def handle_chat(main_window_container, ai_instance):
+def handle_chat(main_window_container, ai_instance, configuration):
     with main_window_container.container():
         # Get the AI instance from session state
         if not ai_instance:
@@ -854,20 +854,28 @@ def handle_chat(main_window_container, ai_instance):
             st.chat_message("user", avatar="👤").markdown(prompt)
 
             with st.chat_message("assistant", avatar="🤖"):
-                thought_container = st.container()
-                llm_container = st.container().empty()
-                llm_callback = StreamingOnlyCallbackHandler(llm_container)
                 agent_callbacks = []
                 llm_callbacks = []
-                # callbacks.append(results_callback)
-                agent_callbacks.append(
-                    StreamlitCallbackHandler(
-                        parent_container=thought_container,
-                        expand_new_thoughts=True,
-                        collapse_completed_thoughts=True,
+
+                thought_container = st.container()
+                llm_container = st.container().empty()
+                
+                llm_callback = StreamingOnlyCallbackHandler(llm_container)
+
+                if configuration["jarvis_ai"].get("show_llm_thoughts", False):                   
+
+                    # callbacks.append(results_callback)
+                    agent_callbacks.append(
+                        StreamlitCallbackHandler(
+                            parent_container=thought_container,
+                            expand_new_thoughts=True,
+                            collapse_completed_thoughts=True,
+                        )
                     )
-                )
-                llm_callbacks.append(llm_callback)
+                    llm_callbacks.append(llm_callback)
+                else:
+                    # Show some kind of indicator that the AI is thinking
+                    llm_container.info(icon="🤖", body="Thinking...")
 
                 collection_id = get_selected_collection_id()
 
@@ -905,11 +913,12 @@ def handle_chat(main_window_container, ai_instance):
                 logging.debug(f"kwargs: {kwargs}")
 
                 try:
+                    ai_instance.interaction_manager.agent_callbacks = agent_callbacks
+                    ai_instance.interaction_manager.llm_callbacks = llm_callbacks
+
                     result = ai_instance.query(
                         query=prompt,
                         collection_id=collection_id if collection_id != -1 else None,
-                        agent_callbacks=agent_callbacks,
-                        llm_callbacks=llm_callbacks,
                         kwargs=kwargs,
                     )
                 except Exception as e:

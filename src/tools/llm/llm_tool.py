@@ -23,7 +23,13 @@ class LLMTool:
         """Uses an LLM to answer a query.  This is useful for when you want to just generate a response from an LLM with the given query."""
 
         llm = get_tool_llm(
-            configuration=self.configuration, func_name=self.analyze_with_llm.__name__
+            configuration=self.configuration,
+            func_name=self.analyze_with_llm.__name__,
+            streaming=True,
+            model_kwargs={
+                "frequency_penalty": 1.5,
+                "presence_penalty": 1.5,
+            },
         )
 
         uses_conversation_history = self.configuration["tool_configurations"][
@@ -44,12 +50,23 @@ class LLMTool:
             )
 
             # This dumbass shit is due to a miss on langchain's part
-            for i in range(0, len(self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages), 2):
-                message1 = self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[i]
-                message2 = self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[i + 1]
+            for i in range(
+                0,
+                len(
+                    self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+                ),
+                2,
+            ):
+                message1 = self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[
+                    i
+                ]
+                message2 = self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[
+                    i + 1
+                ]
 
                 token_memory.save_context(
-                    inputs={"input": message1.content}, outputs={"output": message2.content}
+                    inputs={"input": message1.content},
+                    outputs={"output": message2.content},
                 )
 
             memory = ReadOnlySharedMemory(memory=token_memory)
