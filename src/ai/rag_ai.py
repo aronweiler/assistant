@@ -42,6 +42,9 @@ class RetrievalAugmentedGenerationAI:
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
         )
+        
+        max_conversation_history_tokens = self.configuration['jarvis_ai']['model_configuration']['max_conversation_history_tokens']
+        uses_conversation_history = self.configuration['jarvis_ai']['model_configuration']['uses_conversation_history']
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
@@ -49,7 +52,8 @@ class RetrievalAugmentedGenerationAI:
             user_email=user_email,
             llm=self.llm,
             prompt_manager=self.prompt_manager,
-            max_token_limit=self.configuration['jarvis_ai']['model_configuration']['max_conversation_history_tokens'],
+            max_conversation_history_tokens=max_conversation_history_tokens,
+            uses_conversation_history=uses_conversation_history,
             override_memory=override_memory,
         )
 

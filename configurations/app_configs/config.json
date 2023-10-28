@@ -34,12 +34,12 @@
                 "max_retries": 3,
                 "max_model_supported_tokens": 8192,
                 "uses_conversation_history": true,
-                "max_conversation_history_tokens": 477,
+                "max_conversation_history_tokens": 88,
                 "max_completion_tokens": 3803
             }
         },
         "search_loaded_documents": {
-            "enabled": false,
+            "enabled": true,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -52,7 +52,7 @@
             }
         },
         "summarize_entire_document": {
-            "enabled": true,
+            "enabled": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -135,16 +135,16 @@
             }
         },
         "get_weather": {
-            "enabled": false
+            "enabled": true
         },
         "get_time": {
-            "enabled": false
+            "enabled": true
         },
         "get_news_for_topic": {
-            "enabled": false
+            "enabled": true
         },
         "get_top_news_headlines": {
-            "enabled": false
+            "enabled": true
         },
         "query_image": {
             "enabled": true

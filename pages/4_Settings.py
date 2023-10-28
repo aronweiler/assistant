@@ -47,6 +47,14 @@ def settings_page():
 
 
 def jarvis_ai_settings():
+    st.markdown(
+        "This section allows you to configure the main Jarvis AI.  These settings will apply to the top-level model used for all interactions."
+    )
+    st.markdown(
+        "Note: To some extent, the settings here will filter down- for instance, since the chat memory of the underlying tool models inherits from the top-level model, the chat memory will be limited to the number of tokens set here."
+    )
+    st.divider()
+
     generate_model_settings(
         tool_name="jarvis",
         tool_configuration=get_app_configuration()["jarvis_ai"],
@@ -113,6 +121,18 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         ]["max_model_supported_tokens"]
     )
 
+    st_sucks_col1, st_sucks_col2 = st.columns([4, 6])
+
+    st_sucks_col1.toggle(
+        "Use Conversation History",
+        value=tool_configuration["model_configuration"]["uses_conversation_history"],
+        key=f"{tool_name}-uses-conversation-history",
+    )
+    st_sucks_col2.markdown("Turn this on to use conversation history for the model.")
+    st_sucks_col2.markdown(
+        "*Note: This will not give memory to the tools that do not use it.*"
+    )
+
     def update_sliders(max_supported_tokens, history_tokens, completion_tokens):
         available_tokens = max_supported_tokens - history_tokens
         if available_tokens < 0:
@@ -136,6 +156,7 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
             int(tool_configuration["model_configuration"]["max_completion_tokens"]),
         ),
         key=f"{tool_name}-token-allocation",
+        disabled=st.session_state[f"{tool_name}-uses-conversation-history"] is False,
     )
 
     history_tokens, completion_tokens = update_sliders(
@@ -238,10 +259,21 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
         ]
         if model != existing_tool_configuration["model_configuration"]["model"]:
             needs_saving = True
+
+        uses_conversation_history = st.session_state[f"{tool_name}-uses-conversation-history"]
+        if (
+            uses_conversation_history
+            != existing_tool_configuration["model_configuration"][
+                "uses_conversation_history"
+            ]
+        ):
+            needs_saving = True
+
         (
             max_conversation_history_tokens,
             max_completion_tokens,
         ) = st.session_state[f"{tool_name}-token-allocation"]
+
         if (
             max_conversation_history_tokens
             != existing_tool_configuration["model_configuration"][
@@ -276,6 +308,7 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
             "temperature": temperature,
             "max_retries": max_retries,
             "max_model_supported_tokens": max_model_supported_tokens,
+            "uses_conversation_history": uses_conversation_history,
             "max_conversation_history_tokens": max_conversation_history_tokens,
             "max_completion_tokens": max_completion_tokens,
         }

@@ -9,6 +9,7 @@ class ModelConfiguration:
         temperature,
         max_retries,
         max_model_supported_tokens,
+        uses_conversation_history,
         max_conversation_history_tokens,
         max_completion_tokens,
     ):
@@ -17,23 +18,9 @@ class ModelConfiguration:
         self.temperature = temperature
         self.max_retries = max_retries
         self.max_model_supported_tokens = max_model_supported_tokens
+        self.uses_conversation_history = uses_conversation_history
         self.max_conversation_history_tokens = max_conversation_history_tokens
         self.max_completion_tokens = max_completion_tokens
-
-    # @classmethod
-    # def from_file(cls, file_path):
-    #     with open(file_path, 'r') as file:
-    #         config_data = json.load(file)
-
-    #     return cls(
-    #         llm_type=config_data["llm_type"],
-    #         model=config_data["model"],
-    #         temperature=config_data["temperature"],
-    #         max_retries=config_data["max_retries"],
-    #         max_model_supported_tokens=config_data["max_model_supported_tokens"],
-    #         max_conversation_history_tokens=config_data["max_conversation_history_tokens"],
-    #         max_completion_tokens=config_data["max_completion_tokens"]
-    #     )
 
 
 class Destination:
