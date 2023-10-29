@@ -11,7 +11,7 @@ from src.ai.llm_helper import get_llm
 from src.ai.prompts.prompt_manager import PromptManager
 
 from src.configuration.assistant_configuration import (
-    RetrievalAugmentedGenerationConfigurationLoader,
+    ApplicationConfigurationLoader,
 )
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
@@ -21,12 +21,9 @@ from src.discord.rag_bot import RagBot
 
 def load_configuration():
     """Loads the configuration from the path"""
-    rag_config_path = os.environ.get(
-        "RAG_CONFIG_PATH",
-        "configurations/rag_configs/openai_rag.json",
-    )
+    app_config_path = ui_shared.get_app_config_path()
 
-    return RetrievalAugmentedGenerationConfigurationLoader.from_file(rag_config_path)
+    return ApplicationConfigurationLoader.from_file(app_config_path)
 
 
 def load_rag_ai(
@@ -58,8 +55,8 @@ def get_the_llm(configuration):
         tags=["jarvis-discord-bot"],
         streaming=False,
         model_kwargs={
-            "frequency_penalty": 1.5,
-            "presence_penalty": 1.5,
+            "frequency_penalty": 0.9,
+            "presence_penalty": 0.6,
         },
     )
 

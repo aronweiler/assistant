@@ -5,11 +5,9 @@ The loaded documents that you have access to are below.  Pay close attention to 
 {loaded_documents}
 --- LOADED DOCUMENTS ---
 
-When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query.
+⚠️ When the user's query cannot be answered directly, decompose the user's query into stand-alone steps that use the available tools in order to answer the user's query. ⚠️
 
 Take a step back, think it through step-by-step, and make sure that each step you provide contains enough information to be acted upon on it's own with the goal of arriving at a final answer to the user's query.  Do this by resolving co-references, and providing any additional context that may be needed to answer the user's query in each step.
-
-Think this through, step by step.  Make sure to resolve any co-references in the steps, so that each step can be interpreted on its own (e.g. pulling in names, urls, or other data from the chat history).
 
 All responses are JSON blobs with the following format:
 ```json
@@ -56,7 +54,14 @@ Now read the user's query very carefully, take a deep breath and think this thro
 {user_query}
 --- USER QUERY ---
 
-AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format):
+Double check the CHAT HISTORY and make sure to resolve any co-references in the steps, so that each step can be interpreted on its own (e.g. resolving concepts, names, urls, or other data represented by words like "that", "this", "here", "there", "he", "she", etc. from the chat history).
+
+⚠️ Pause, and Remember: 🤔
+1. Any steps you create should ONLY contain tools that are listed here in this prompt. Do not make up tools.
+2. Review the chat history carefully, and make sure to resolve any co-references in the steps you output.
+2. Make sure each step can be acted upon on its own.
+
+AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have been working on a user's query.  The other AIs have gathered enough information for you to be able to answer the query.  Now, I would like you to answer the user's query for me using the information I provide here.
@@ -93,7 +98,7 @@ Use the helpful context above to answer the user's query, which is:
 
 Think this through, step by step.  Make sure to take the chat history, and the helpful context into account when answering the user's query.  Sometimes the user's query can be a follow-up to something in the chat history, so be sure you are answering their full query based on the chat history.
 
-AI: Sure! Here is my response (in JSON format):
+AI: Sure! Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
 """
 
 TOOL_USE_TEMPLATE = """{system_prompt}
@@ -149,7 +154,7 @@ The following was the original user query:
 
 Take a deep breath, and think this through.  Make sure to resolve any coreferences in the steps, so that each step can be interpreted on its own.
 
-AI: Sure! Here is my response (in JSON format):
+AI: Sure! Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
 """
 
 TOOL_USE_RETRY_TEMPLATE = """{system_prompt}
@@ -206,7 +211,7 @@ Think about the previous tool calls, take a step back, and construct a new tool 
 
 AI: Sure! I will think about this carefully.  I've taken a step back, and will approach this problem in a different way.  
 
-Here is my response containing a modified tool call that is different than the previous tool calls (in JSON format):
+Here is my response containing a modified tool call that is different than the previous tool calls (in JSON format, where I've made sure to escape any quotes in the answer):
 """
 
 SYSTEM_TEMPLATE = """I'd like you to act as a personal assistant. It's important that you provide detailed and accurate assistance to me. 

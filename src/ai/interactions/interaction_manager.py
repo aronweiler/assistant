@@ -22,7 +22,8 @@ class InteractionManager:
         user_email: str,
         llm: BaseLanguageModel,
         prompt_manager: PromptManager,
-        max_token_limit: int = 1000,
+        max_conversation_history_tokens: int = 1000,
+        uses_conversation_history: bool = True,
         collection_id: int = None,
         tool_kwargs: dict = {},
         user_id: int = None,
@@ -30,7 +31,6 @@ class InteractionManager:
         user_location: str = None,
         interaction_needs_summary: bool = True,
         override_memory: ConversationTokenBufferMemory = None,
-        
     ):
         """Creates a new InteractionManager, and loads the conversation memory from the database.
 
@@ -40,7 +40,7 @@ class InteractionManager:
 
         self.prompt_manager = prompt_manager
         self.tool_kwargs = tool_kwargs
-        self.collection_id = collection_id        
+        self.collection_id = collection_id
         self.user_id = user_id
         self.user_name = user_name
         self.user_location = user_location
@@ -62,6 +62,9 @@ class InteractionManager:
         self.conversations_helper = Conversations()
         self.users_helper = Users()
         self.documents_helper = Documents()
+        
+        self.agent_callbacks = []
+        self.llm_callbacks = []
 
         # Get the user
         user = self.users_helper.get_user_by_email(user_email)
@@ -79,7 +82,10 @@ class InteractionManager:
 
         if not override_memory:
             # Create the conversation memory
-            self._create_default_conversation_memory(llm, max_token_limit)
+            if uses_conversation_history:
+                self._create_default_conversation_memory(
+                    llm, max_conversation_history_tokens
+                )
         else:
             self.conversation_token_buffer_memory = override_memory
 
@@ -181,7 +187,7 @@ class InteractionManager:
                 f"Interaction ID: {self.interaction_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
             )
 
-    def _create_default_conversation_memory(self, llm, max_token_limit):
+    def _create_default_conversation_memory(self, llm, max_conversation_history_tokens):
         """Creates the conversation memory for the interaction."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
@@ -195,7 +201,7 @@ class InteractionManager:
             memory_key="chat_history",
             input_key="input",
             chat_memory=self.postgres_chat_message_history,
-            max_token_limit=max_token_limit,
+            max_token_limit=max_conversation_history_tokens,
         )
 
         self.conversation_token_buffer_memory.human_prefix = (
@@ -203,5 +209,5 @@ class InteractionManager:
         )
 
         logging.info(
-            f"Conversation memory created for interaction {self.interaction_id}, with max token limit {max_token_limit}"
+            f"Conversation memory created for interaction {self.interaction_id}, with max_conversation_history_tokens limit {max_conversation_history_tokens}"
         )

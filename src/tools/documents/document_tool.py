@@ -17,6 +17,7 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_tool_llm
 
 
 class DocumentTool:
@@ -24,11 +25,9 @@ class DocumentTool:
         self,
         configuration,
         interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
     ):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
 
     def search_loaded_documents(
         self,
@@ -52,26 +51,32 @@ class DocumentTool:
         target_file_id = self.interaction_manager.tool_kwargs.get(
             "override_file", target_file_id
         )
+        
+        search_type =  self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
 
-        keyword_documents = (
-            self.interaction_manager.documents_helper.search_document_embeddings(
-                search_query=keywords_list,
-                collection_id=self.interaction_manager.collection_id,
-                search_type=SearchType.Keyword,
-                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-                target_file_id=target_file_id,
+        keyword_documents = []
+        if search_type == "Hybrid" or search_type == "Keyword":
+            keyword_documents = (
+                self.interaction_manager.documents_helper.search_document_embeddings(
+                    search_query=keywords_list,
+                    collection_id=self.interaction_manager.collection_id,
+                    search_type=SearchType.Keyword,
+                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    target_file_id=target_file_id,
+                )
             )
-        )
 
-        similarity_documents = (
-            self.interaction_manager.documents_helper.search_document_embeddings(
-                search_query=semantic_similarity_query,
-                collection_id=self.interaction_manager.collection_id,
-                search_type=SearchType.Similarity,
-                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-                target_file_id=target_file_id,
+        similarity_documents = []
+        if search_type == "Hybrid" or search_type == "Similarity":
+            similarity_documents = (
+                self.interaction_manager.documents_helper.search_document_embeddings(
+                    search_query=semantic_similarity_query,
+                    collection_id=self.interaction_manager.collection_id,
+                    search_type=SearchType.Similarity,
+                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    target_file_id=target_file_id,
+                )
             )
-        )
 
         # De-dupe the documents
         combined_documents = []
@@ -109,19 +114,23 @@ class DocumentTool:
 
         prompt = prompt.format(summaries="\n\n".join(summaries), question=user_query)
 
-        result = self.llm.predict(prompt)
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.search_loaded_documents.__name__,
+            streaming=True,
+        )
+
+        result = llm.predict(prompt, callbacks=self.interaction_manager.agent_callbacks)
 
         return result
 
-    def generate_detailed_document_chunk_summary(
-        self,
-        document_text: str,
-    ) -> str:
-        summary = self.llm.predict(
+    def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
+        summary = llm.predict(
             self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text)
+            ).format(text=document_text),
+            callbacks=self.interaction_manager.agent_callbacks,
         )
         return summary
 
@@ -145,17 +154,23 @@ class DocumentTool:
             target_file_id=target_file_id
         )
 
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_entire_document.__name__,
+            streaming=True
+        )
+
         # Are there already document chunk summaries?
         for chunk in document_chunks:
             if not chunk.document_text_has_summary:
                 # Summarize the chunk
                 summary_chunk = self.generate_detailed_document_chunk_summary(
-                    chunk.document_text
+                    document_text=chunk.document_text, llm=llm
                 )
                 documents.set_document_text_summary(chunk.id, summary_chunk)
 
         reduce_chain = LLMChain(
-            llm=self.llm,
+            llm=llm,
             prompt=self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "REDUCE_SUMMARIES_PROMPT",
@@ -214,7 +229,7 @@ class DocumentTool:
             search_query=query,
             collection_id=self.interaction_manager.collection_id,
             search_type=self.interaction_manager.tool_kwargs.get(
-                "search_method", SearchType.Similarity
+                "search_type", SearchType.Similarity
             ),
             target_file_id=self.interaction_manager.tool_kwargs.get(
                 "override_file", None
@@ -231,34 +246,15 @@ class DocumentTool:
                 )
             )
 
-        summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_search_topic.__name__,
+            streaming=True
+        )
 
-        if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
-            summary = self.llm.predict(
-                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
-            )
+        summary = self.refine_summarize(llm=llm, query=query, docs=docs)
 
         return summary
-
-    # def map_reduce_summarize(self, query, llm, docs):
-    #     pass
-    #     # chain = load_summarize_chain(
-    #     #     llm=llm,
-    #     #     chain_type="refine",
-    #     #     question_prompt=self.interaction_manager.prompt_manager.get_prompt(
-    #     #         "document", "DETAILED_SUMMARIZE_PROMPT"
-    #     #     ),
-    #     #     refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
-    #     #         "document", "SIMPLE_REFINE_PROMPT"
-    #     #     ),
-    #     #     return_intermediate_steps=True,
-    #     #     input_key="input_documents",
-    #     #     output_key="output_text",
-    #     # )
-
-    #     # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
-
-    #     # return result["output_text"]
 
     def refine_summarize(self, llm, docs, query: str | None = None):
         if query is None:

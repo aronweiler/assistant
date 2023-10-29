@@ -59,8 +59,6 @@
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
-        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/openai_config.json",
-        "SOFTWARE_DEV_CONFIG_PATH": "configurations/software_development/openai_config.json",
         "POSTGRES_HOST": "localhost",
         "LIBRE_OFFICE_PATH": "/Program Files/LibreOffice/program/soffice.exe"
       },
@@ -76,8 +74,6 @@
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
-        "ASSISTANT_CONFIG_PATH": "configurations/console_configs/homework_openai_config.json",
-        "SOFTWARE_DEV_CONFIG_PATH": "configurations/software_development/openai_config.json",
         "POSTGRES_HOST": "localhost",
         "POSTGRES_PORT": "6969",
         "LIBRE_OFFICE_PATH": "/Program Files/LibreOffice/program/soffice.exe",

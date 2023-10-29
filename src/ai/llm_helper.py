@@ -9,6 +9,8 @@ from langchain.llms.llamacpp import LlamaCpp
 from src.utilities.openai_utilities import get_openai_api_key
 from src.configuration.assistant_configuration import ModelConfiguration
 
+import src.utilities.configuration_utilities as configuration_utilities
+
 llama2_llm = None
 
 
@@ -23,6 +25,9 @@ class LLMType(Enum):
 def get_llm(model_configuration: ModelConfiguration, **kwargs):
     """Returns the LLM for the specified model configuration."""
 
+    if type(model_configuration) == dict:
+        model_configuration = ModelConfiguration(**model_configuration)
+
     if model_configuration.llm_type == LLMType.OPENAI.value:
         return _get_openai_llm(model_configuration, **kwargs)
     elif (
@@ -30,6 +35,16 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs):
         or model_configuration.llm_type == LLMType.LUNA.value
     ):
         return _get_llama2_llm(model_configuration, **kwargs)
+
+
+def get_tool_llm(configuration: dict, func_name: str, **kwargs):
+    tool_config = configuration_utilities.get_tool_configuration(
+        configuration=configuration, func_name=func_name
+    )
+
+    return get_llm(
+        model_configuration=tool_config["model_configuration"], **kwargs
+    )
 
 
 def _get_openai_llm(model_configuration, **kwargs):

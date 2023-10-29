@@ -64,7 +64,6 @@ class GenericToolsAgent(BaseMultiActionAgent):
     tools: list = None
     previous_work: str = None
     llm: BaseLanguageModel = None
-    callbacks: list = None
     streaming: bool = True
     step_plans: dict = None
     step_index: int = -1
@@ -102,8 +101,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
             self.llm = get_llm(
                 model_configuration=self.model_configuration,
                 tags=["generic_tools"],
-                callbacks=kwargs["callbacks"],
-                streaming=self.streaming,
+                callbacks=self.interaction_manager.agent_callbacks,
+                streaming=self.streaming                
             )
 
             plan_steps_prompt = self.get_plan_steps_prompt(
@@ -114,10 +113,16 @@ class GenericToolsAgent(BaseMultiActionAgent):
             )
 
             # Save the step plans for future reference
-            self.step_plans = self.parse_json(self.llm.predict(plan_steps_prompt))
+            self.step_plans = self.parse_json(
+                text=self.llm.predict(
+                    plan_steps_prompt,
+                    callbacks=self.interaction_manager.agent_callbacks,
+                ),
+                llm=self.llm
+            )
             # Make sure we're starting at the beginning
             self.step_index = 0
-            
+
             if "final_answer" in self.step_plans:
                 return AgentFinish(
                     return_values={"output": self.step_plans["final_answer"]},
@@ -143,9 +148,11 @@ class GenericToolsAgent(BaseMultiActionAgent):
                 helpful_context=self.get_helpful_context(intermediate_steps),
             )
 
-            answer_response = self.llm.predict(answer_prompt)
+            answer_response = self.llm.predict(
+                answer_prompt, callbacks=self.interaction_manager.agent_callbacks
+            )
 
-            answer = self.parse_json(answer_response)
+            answer = self.parse_json(text=answer_response, llm=self.llm)
 
             # If answer is a fail, we need to retry the last step with the added context from the tool failure
             if isinstance(answer, dict):
@@ -163,10 +170,12 @@ class GenericToolsAgent(BaseMultiActionAgent):
 
                     self.current_retries += 1
                     self.step_index -= 1
-                    
+
                     # Reconstruct the tool use prompt with the new context to try to get around the failure
-                    action = self.prompt_and_predict_tool_use_retry(intermediate_steps, **kwargs)   
-                    #action.log = f"Failed... retrying ({self.current_retries})"
+                    action = self.prompt_and_predict_tool_use_retry(
+                        intermediate_steps, **kwargs
+                    )
+                    # action.log = f"Failed... retrying ({self.current_retries})"
 
                     logging.info(
                         f"Failed... retrying ({self.current_retries}): {answer_response}"
@@ -194,8 +203,10 @@ class GenericToolsAgent(BaseMultiActionAgent):
         """
 
         raise NotImplementedError("Async plan not implemented.")
-    
-    def prompt_and_predict_tool_use(self, intermediate_steps, **kwargs: Any) -> AgentAction:
+
+    def prompt_and_predict_tool_use(
+        self, intermediate_steps, **kwargs: Any
+    ) -> AgentAction:
         # Create the first tool use prompt
         tool_use_prompt = self.get_tool_use_prompt(
             step=self.step_plans["steps"][self.step_index],
@@ -204,49 +215,65 @@ class GenericToolsAgent(BaseMultiActionAgent):
             system_information=kwargs["system_information"],
         )
 
-        action_json = self.parse_json(self.llm.predict(tool_use_prompt))
+        action_json = self.parse_json(
+            text=self.llm.predict(
+                tool_use_prompt, callbacks=self.interaction_manager.agent_callbacks
+            ),
+            llm=self.llm
+        )
 
         action = AgentAction(
             tool=action_json["tool"],
-            tool_input=action_json["tool_args"]
-            if "tool_args" in action_json
-            else {},
-            log=action_json["tool_use_description"],
+            tool_input=action_json["tool_args"] if "tool_args" in action_json else {},
+            log=action_json["tool_use_description"] if "tool_use_description" in action_json else "Could not find tool_use_description in response.",
         )
-        
+
         return action
-    
-    def prompt_and_predict_tool_use_retry(self, intermediate_steps, **kwargs: Any) -> AgentAction:
+
+    def prompt_and_predict_tool_use_retry(
+        self, intermediate_steps, **kwargs: Any
+    ) -> AgentAction:
         # Create the first tool use prompt
         tool_use_prompt = self.get_tool_use_retry_prompt(
             step=self.step_plans["steps"][self.step_index],
-            previous_tool_attempts=self.get_tool_calls_from_failed_steps(intermediate_steps),
+            previous_tool_attempts=self.get_tool_calls_from_failed_steps(
+                intermediate_steps
+            ),
             user_query=kwargs["input"],
             system_information=kwargs["system_information"],
         )
 
-        action_json = self.parse_json(self.llm.predict(tool_use_prompt))
+        action_json = self.parse_json(
+            text=self.llm.predict(
+                tool_use_prompt, callbacks=self.interaction_manager.agent_callbacks
+            ),
+            llm=self.llm
+        )
 
         action = AgentAction(
             tool=action_json["tool"],
-            tool_input=action_json["tool_args"]
-            if "tool_args" in action_json
-            else {},
+            tool_input=action_json["tool_args"] if "tool_args" in action_json else {},
             log=action_json["tool_use_description"],
         )
-        
+
         return action
-    
+
     def get_tool_calls_from_failed_steps(self, intermediate_steps):
         context = ""
         for step in intermediate_steps:
             if step[1] is not None:
-                context += json.dumps({"tool_use_description": intermediate_steps[-1][0].log, "tool": intermediate_steps[-1][0].tool, "tool_args": intermediate_steps[-1][0].tool_input})
+                context += json.dumps(
+                    {
+                        "tool_use_description": intermediate_steps[-1][0].log,
+                        "tool": intermediate_steps[-1][0].tool,
+                        "tool_args": intermediate_steps[-1][0].tool_input,
+                    }
+                )
                 context += "\nReturned: " + step[1]
-                        
+
         return context
 
-    def parse_json(self, text: str) -> dict:
+    def parse_json(self, text: str, llm: BaseLanguageModel) -> dict:
         pattern = re.compile(r"```(?:json)?\n(.*?)```", re.DOTALL)
         try:
             action_match = pattern.search(text)
@@ -259,13 +286,23 @@ class GenericToolsAgent(BaseMultiActionAgent):
                 # Just return this as the answer??
                 return {"answer": text}
         except Exception as e:
-            raise Exception(f"Could not parse LLM output: {text}") from e
+            if llm:
+                llm_fixed_json = llm.predict(f"The following is badly formatted JSON, please fix it (only fix the JSON, do not otherwise modify the content):\n{text}\n\nAI: Sure, here is the fixed JSON (without modifying the content):\n")
+                self.parse_json(llm_fixed_json, None)
+            else:
+                raise Exception(f"Could not parse LLM output: {text}") from e
 
     def get_helpful_context(self, intermediate_steps):
         if not intermediate_steps or len(intermediate_steps) == 0:
             return "No helpful context, sorry!"
 
-        return "\n----\n".join([f"using the `{s[0].tool}` tool returned:\n'{s[1]}'" for s in intermediate_steps if s[1] is not None])
+        return "\n----\n".join(
+            [
+                f"using the `{s[0].tool}` tool returned:\n'{s[1]}'"
+                for s in intermediate_steps
+                if s[1] is not None
+            ]
+        )
 
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email
@@ -294,7 +331,11 @@ class GenericToolsAgent(BaseMultiActionAgent):
         agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "ANSWER_PROMPT_TEMPLATE",
-        ).format(user_query=user_query, helpful_context=helpful_context, chat_history=self.get_chat_history())
+        ).format(
+            user_query=user_query,
+            helpful_context=helpful_context,
+            chat_history=self.get_chat_history(),
+        )
 
         return agent_prompt
 
@@ -325,7 +366,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         )
 
         return agent_prompt
-    
+
     def get_tool_use_retry_prompt(
         self, step, previous_tool_attempts, user_query, system_information
     ):

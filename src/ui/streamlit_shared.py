@@ -7,6 +7,11 @@ import uuid
 import streamlit as st
 from streamlit.runtime.scriptrunner import RerunException
 
+from src.configuration.assistant_configuration import (
+    ApplicationConfigurationLoader,
+)
+
+
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.interactions import Interactions
@@ -20,6 +25,31 @@ from src.documents.document_loader import load_and_split_documents
 from streamlit_extras.stylable_container import stylable_container
 
 IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
+
+
+def get_app_config_path():
+    app_config_path = os.environ.get(
+        "APP_CONFIG_PATH",
+        "configurations/app_configs/config.json",
+    )
+
+    return app_config_path
+
+
+def get_app_configuration():
+    """Loads the configuration from the path"""
+    app_config_path = get_app_config_path()
+
+    return ApplicationConfigurationLoader.from_file(app_config_path)
+
+
+def get_available_models():
+    available_models_path = os.environ.get(
+        "AVAILABLE_MODELS",
+        "configurations/available_models.json",
+    )
+
+    return ApplicationConfigurationLoader.from_file(available_models_path)
 
 
 def delete_conversation_item(id: int):
@@ -75,9 +105,13 @@ def load_conversation_selectbox(load_ai_callback, tab):
     """Loads the interaction selectbox"""
 
     try:
+        interaction_pairs = get_interaction_pairs()
+        if interaction_pairs is None:
+            return
+
         tab.selectbox(
             "Select Conversation",
-            get_interaction_pairs(),
+            interaction_pairs,
             key="interaction_summary_selectbox",
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
@@ -104,7 +138,10 @@ def get_interaction_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions = None
 
-    interactions = Interactions().get_interactions_by_user_id(st.session_state.user_id)
+    if "user_id" in st.session_state:
+        interactions = Interactions().get_interactions_by_user_id(
+            st.session_state.user_id
+        )
 
     if not interactions:
         return None
@@ -230,10 +267,10 @@ def setup_new_chat_button(tab):
 
 def get_available_collections():
     # Time the operation:
-    start_time = time.time()    
+    start_time = time.time()
     collections = Documents().get_collections()
     total_time = time.time() - start_time
-    
+
     logging.info(f"get_available_collections() took {total_time} seconds")
 
     # Create a dictionary of collection id to collection summary
@@ -519,7 +556,7 @@ def ingest_files(
                         file_hash=calculate_sha256(uploaded_file_path),
                         file_classification=file_classification,
                     ),
-                    file_data
+                    file_data,
                 )
                 files.append(file_model)
 
@@ -663,9 +700,11 @@ def on_change_collection():
 
 
 def create_collection_selectbox(ai):
+    st.markdown("Selected document collection:")
+    
     col1, col2 = st.columns([0.80, 0.2])
-
-    st.caption("Selected document collection:")
+    
+    st.caption("The document collection selected here determines which documents are used to answer questions.")
 
     available_collections = get_available_collections()
     selected_collection_id_index = 0
@@ -799,7 +838,7 @@ def show_old_messages(ai_instance):
                 )
 
 
-def handle_chat(main_window_container, ai_instance):
+def handle_chat(main_window_container, ai_instance, configuration):
     with main_window_container.container():
         # Get the AI instance from session state
         if not ai_instance:
@@ -828,23 +867,63 @@ def handle_chat(main_window_container, ai_instance):
 """
 
     with stylable_container(key="enabled_tools_container", css_styles=css_style):
-        col1, col2, col3 = st.columns([0.06, 0.15, 0.7])
+        col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 2, 1, 2])
 
         col1.markdown(
-            f'<div align="left"><b>AI Mode:</b></div>', unsafe_allow_html=True
+            f'<div align="right"><b>AI Mode:</b></div>', unsafe_allow_html=True
         )
 
-        def set_mode():
-            mode = st.session_state["mode"]
-            ai_instance.set_mode(mode)
+        ai_modes = ["Auto", "Conversation Only"]
 
         col2.selectbox(
             label="Mode",
             label_visibility="collapsed",
-            options=["Auto", "Conversation Only"],
-            key="mode",
+            options=ai_modes,
+            index=ai_modes.index(
+                get_app_configuration()["jarvis_ai"].get("ai_mode", "Auto")
+            ),
+            key="ai_mode",
             help="Select the mode to use. 'Auto' will automatically switch between 'Conversation Only' and 'Tool Using AI' based on the user's input.",
-            on_change=set_mode,
+            on_change=set_ai_mode,
+        )
+
+        col3.markdown(
+            f'<div align="right"><b>Frequency Penalty:</b></div>',
+            unsafe_allow_html=True,
+        )
+
+        col4.slider(
+            label="Frequency Penalty",
+            label_visibility="collapsed",
+            key="frequency_penalty",
+            min_value=-2.0,
+            max_value=2.0,
+            value=float(
+                get_app_configuration()["jarvis_ai"].get("frequency_penalty", 0)
+            ),
+            step=0.1,
+            help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
+            on_change=set_frequency_penalty,
+            disabled=st.session_state["ai_mode"] != "Conversation Only",
+        )
+
+        col5.markdown(
+            f'<div align="right"><b>Presence Penalty:</b></div>', unsafe_allow_html=True
+        )
+
+        col6.slider(
+            label="Presence Penalty",
+            label_visibility="collapsed",
+            key="presence_penalty",
+            min_value=-2.0,
+            max_value=2.0,
+            value=float(
+                get_app_configuration()["jarvis_ai"].get("presence_penalty", 0.6)
+            ),
+            step=0.1,
+            help="The higher the penalty, the more variety of words will be introduced in the completion.",
+            on_change=set_presence_penalty,
+            disabled=st.session_state["ai_mode"] != "Conversation Only",
         )
 
     if prompt:
@@ -854,20 +933,25 @@ def handle_chat(main_window_container, ai_instance):
             st.chat_message("user", avatar="👤").markdown(prompt)
 
             with st.chat_message("assistant", avatar="🤖"):
-                thought_container = st.container()
-                llm_container = st.container().empty()
-                llm_callback = StreamingOnlyCallbackHandler(llm_container)
                 agent_callbacks = []
                 llm_callbacks = []
-                # callbacks.append(results_callback)
-                agent_callbacks.append(
-                    StreamlitCallbackHandler(
+
+                thought_container = st.container()
+                llm_container = st.container().empty()
+
+                if configuration["jarvis_ai"].get("show_llm_thoughts", False):
+                    llm_callback = StreamingOnlyCallbackHandler(llm_container)
+                    agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
                         expand_new_thoughts=True,
                         collapse_completed_thoughts=True,
                     )
-                )
-                llm_callbacks.append(llm_callback)
+
+                    agent_callbacks.append(agent_callback)
+                    llm_callbacks.append(llm_callback)
+                else:
+                    # Show some kind of indicator that the AI is thinking
+                    llm_container.info(icon="🤖", body="Thinking...")
 
                 collection_id = get_selected_collection_id()
 
@@ -877,8 +961,8 @@ def handle_chat(main_window_container, ai_instance):
                     "search_top_k": int(st.session_state["search_top_k"])
                     if "search_top_k" in st.session_state
                     else 5,
-                    "search_method": st.session_state["search_method"]
-                    if "search_method" in st.session_state
+                    "search_type": st.session_state["search_type"]
+                    if "search_type" in st.session_state
                     else "Similarity",
                     "use_pandas": st.session_state["use_pandas"]
                     if "use_pandas" in st.session_state
@@ -895,22 +979,18 @@ def handle_chat(main_window_container, ai_instance):
                     )
                     if "max_code_review_token_count" in st.session_state
                     else 5000,
-                    "summarization_strategy": st.session_state["summarization_strategy"]
-                    if "summarization_strategy" in st.session_state
-                    else "map_reduce",
-                    "re_run_user_query": st.session_state["re_run_user_query"]
-                    if "re_run_user_query" in st.session_state
-                    else True,
                 }
                 logging.debug(f"kwargs: {kwargs}")
 
                 try:
+                    ai_instance.interaction_manager.agent_callbacks = agent_callbacks
+                    ai_instance.interaction_manager.llm_callbacks = llm_callbacks
+
                     result = ai_instance.query(
                         query=prompt,
                         collection_id=collection_id if collection_id != -1 else None,
-                        agent_callbacks=agent_callbacks,
-                        llm_callbacks=llm_callbacks,
-                        kwargs=kwargs,
+                        ai_mode=st.session_state["ai_mode"],
+                        kwargs=kwargs,                        
                     )
                 except Exception as e:
                     logging.error(f"Error querying AI: {e}")
@@ -924,3 +1004,38 @@ def handle_chat(main_window_container, ai_instance):
                 # logging.debug(
                 #     f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
                 # )
+
+
+def set_jarvis_ai_config_element(key, value):
+    configuration = get_app_configuration()
+
+    configuration["jarvis_ai"][key] = value
+
+    ApplicationConfigurationLoader.save_to_file(configuration, get_app_config_path())
+
+    st.session_state["app_config"] = configuration
+
+
+def set_search_type():
+    set_jarvis_ai_config_element("search_type", st.session_state["search_type"])
+
+
+def set_search_top_k():
+    set_jarvis_ai_config_element("search_top_k", st.session_state["search_top_k"])
+
+
+def set_frequency_penalty():
+    set_jarvis_ai_config_element(
+        "frequency_penalty", st.session_state["frequency_penalty"]
+    )
+
+
+def set_presence_penalty():
+    set_jarvis_ai_config_element(
+        "presence_penalty", st.session_state["presence_penalty"]
+    )
+
+def set_ai_mode():
+    set_jarvis_ai_config_element(
+        "ai_mode", st.session_state["ai_mode"]
+    )

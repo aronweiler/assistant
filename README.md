@@ -133,8 +133,6 @@ This is a chat bot interface that has memory, tools, and other fun stuff.
 
 ![Streamlit UI](documentation/streamlit.png)
 
-You need to set the `ASSISTANT_CONFIG_PATH` environment variable before running this command.  See the [launch.json](.vscode/launch.json) file for examples.
-
 Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
 
 Use any config that has an `ai` section, such as: `configurations/console_configs/openai_config.json`*

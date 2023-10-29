@@ -5,6 +5,7 @@ import json
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
+from src.ai.llm_helper import get_tool_llm
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -39,11 +40,9 @@ class CodeReviewTool:
         self,
         configuration,
         interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
     ):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
 
     def ingest_source_code_file_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
@@ -59,7 +58,6 @@ class CodeReviewTool:
         )
 
         return file_retriever.retrieve_file_data(url=url)
-    
 
     def ingest_issue_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
@@ -116,6 +114,7 @@ class CodeReviewTool:
     def conduct_code_review(
         self,
         file_data: str,
+        llm,
         additional_instructions: str = None,
         code_metadata: dict = None,
         previous_issue=None,
@@ -149,8 +148,6 @@ class CodeReviewTool:
             )
         )
 
-        # TODO: Refactor this so Jordan is happy
-        # ,
         templates = [
             "SECURITY_CODE_REVIEW_TEMPLATE",
             "PERFORMANCE_CODE_REVIEW_TEMPLATE",
@@ -170,7 +167,12 @@ class CodeReviewTool:
                 final_code_review_instructions=final_code_review_instructions,
             )
 
-            data = json.loads(self.llm.predict(code_review_prompt))
+            data = json.loads(
+                llm.predict(
+                    code_review_prompt,
+                    callbacks=self.interaction_manager.agent_callbacks,
+                )
+            )
             comment_results.extend(data["comments"])
 
         review_results = {
@@ -206,11 +208,18 @@ class CodeReviewTool:
         }
         previous_issue = self.ingest_issue_from_url(url=target_url)
 
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.conduct_code_review_from_url.__name__,
+            streaming=True,
+        )
+
         return self.conduct_code_review(
             file_data=file_data,
             additional_instructions=additional_instructions,
             code_metadata=code_metadata,
             previous_issue=previous_issue,
+            llm=llm,
         )
 
     def conduct_code_review_from_file_id(
@@ -241,10 +250,17 @@ class CodeReviewTool:
         # Convert file data bytes to string
         file_data = documents.get_file_data(file_model.id).decode("utf-8")
 
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.conduct_code_review_from_file_id.__name__,
+            streaming=True,
+        )
+
         return self.conduct_code_review(
             file_data=file_data,
             additional_instructions=additional_instructions,
             code_metadata={"filename": file_model.file_name},
+            llm=llm,
         )
 
 
