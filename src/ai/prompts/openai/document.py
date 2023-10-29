@@ -87,33 +87,25 @@ DOCUMENT_PROMPT = PromptTemplate(
     input_variables=["page_content", "page", "filename", "file_id"],
 )
 
-SEARCH_ENTIRE_DOCUMENT_TEMPLATE = """You are part of a loop that I am running to search through a long document (split into chunks) and collect information that will help me answer some question(s).  Your job is to find any information that may be relevant to the question(s).
+SEARCH_ENTIRE_DOCUMENT_TEMPLATE = """You are a detail oriented master researcher, and are running a search through a long document (split into chunks) and collecting information that will help answer some QUESTION(S).  Your job is to examine the provided DOCUMENT CHUNKS and find any information that may be relevant to the QUESTION(S).
 
-Below is a scratchpad that we will use to attempt to answer the questions(s) after we look at all of the documents.  This is for you to store relevant information. Please take what is already in the scratchpad and ADD any information you find that is relevant to the question(s).  If you do not find any relevant information, please return the scratchpad without any modification.  You should never remove information from the scratchpad.
-
---- SCRATCHPAD ---
-{existing_information}
---- SCRATCHPAD ---
-
-The current context is the current portion of the document that is being searched. You should search through the current context to find information relevant to the question(s).
---- CURRENT CONTEXT ---
+Here is the current portion of the document you are looking at:
+--- DOCUMENT CHUNKS ---
 {previous_context}
 {current_context}
---- CURRENT CONTEXT ---
+--- DOCUMENT CHUNKS ---
 
-Take a deep breath, and read the question(s) carefully.  
+Take a deep breath, and read the QUESTION(S) carefully.  If you find any information that may be of relevance to the QUESTION(S), be sure to include it in your response.
 
-Find any information in the context related to the question(s).  
+--- QUESTION(S) ---
 {questions}
+--- QUESTION(S) ---
 
-If you find any information that may be of relevance to the question(s), be sure to include it in your response (updated scratchpad).
+If the DOCUMENT CHUNKS does not contain any information relevant to the QUESTION(S), please respond ONLY with: "NO RELEVANT INFORMATION".
 
-Slow down and re-read the current context.  Does the current context contain any information relevant to the question(s)? If so, please update the scratchpad in your response, adding the new information you have discovered that can help construct an ultimate answer.  
+IMPORTANT: Only return information from the DOCUMENT CHUNKS that may be relevant to the QUESTION(S), do not make your own judgments of the data, nor add any commentary.  Another AI will look at your work and answer the QUESTION(S) using the data you have provided.
 
-If the current context does not contain any information relevant to the question, please respond only by returning the data in the scratchpad without any modification.
+In the past, you have made mistakes where you have missed information relevant to the QUESTION(S). So, please take it line-by-line, and carefully analyze and consider all the information in the DOCUMENT CHUNKS before providing a response.
 
-IMPORTANT: Make sure that you do not duplicate information in the scratchpad.  If you find information that is already in the scratchpad, please do not add it again.  
-
-AI: Sure! Here is my updated scratchpad, where I have only added information relevant to the question(s) (if I didn't find anything, I will return the scratchpad without any modification):
---- SCRATCHPAD ---
+AI: Sure! Here is the information that I have found that may be relevant to the QUESTION(S), or "NO RELEVANT INFORMATION" if there is no information that could possibly be used to answer to the QUESTION(S):
 """

@@ -255,7 +255,7 @@ class ToolManager:
             ),
             GenericTool(
                 description="Exhaustively searches a single document for one or more queries.",
-                additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text.",                
+                additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",                
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_entire_document,
             ),

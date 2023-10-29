@@ -302,6 +302,8 @@ class DocumentTool:
 
         documents = Documents()
 
+        file = documents.get_file(target_file_id)
+
         # Get the document chunks
         document_chunks = documents.get_document_chunks_by_file_id(
             target_file_id=target_file_id
@@ -324,7 +326,6 @@ class DocumentTool:
             streaming=True,
         )
 
-        existing_information = "Nothing yet"
         questions = "- " + "\n-".join(queries)
         prompt = self.interaction_manager.prompt_manager.get_prompt(
             "document", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
@@ -332,27 +333,31 @@ class DocumentTool:
 
         document_chunks_length = len(document_chunks)
 
+        intermediate_results = []
         index = 0
         while index < document_chunks_length:
             previous_context = (
-                document_chunks[index - 1].document_text if index > 0 else ""
+                f"CHUNK {index - 1}:\n{document_chunks[index - 1].document_text}\nSOURCE: file_id='{document_chunks[index - 1].file_id}', file_name='{document_chunks[index - 1].document_name}', {self.get_page_or_line(document_chunks[index - 1])}\n----"
+                if index > 0
+                else ""
             )
 
             document_texts = []
 
             while True:
-                document_texts.append(document_chunks[index].document_text)
+                document_texts.append(
+                    f"CHUNK {index}:\n{document_chunks[index].document_text}\nSOURCE: file_id='{document_chunks[index].file_id}', file_name='{document_chunks[index].document_name}', {self.get_page_or_line(document_chunks[index])}"
+                )
+
                 # Get the approximate number of tokens in the prompt
                 current_prompt_text = (
                     prompt
                     + "\n"
                     + questions
                     + "\n"
-                    + existing_information
-                    + "\n"
                     + previous_context
                     + "\n"
-                    + "\n".join(document_texts)
+                    + "\n----\n".join(document_texts)
                 )
 
                 total_tokens = num_tokens_from_string(current_prompt_text)
@@ -363,19 +368,28 @@ class DocumentTool:
                     break
 
             formatted_prompt = prompt.format(
-                existing_information=existing_information,
                 questions=questions,
                 previous_context=previous_context,
-                current_context="\n".join(document_texts),
+                current_context="\n----\n".join(document_texts),
             )
 
-            existing_information = llm.predict(
+            answer = llm.predict(
                 formatted_prompt,
                 callbacks=self.interaction_manager.agent_callbacks,
             )
 
-            existing_information = existing_information.replace(
-                "--- SCRATCHPAD ---", ""
-            )
+            if not answer.lower().startswith("no relevant information"):
+                intermediate_results.append(answer)
 
-        return existing_information
+        result = (
+            f"Searching the document, '{file.file_name}', yielded the following data:\n"
+            + "\n".join(intermediate_results)
+        )
+
+        return result
+
+    def get_page_or_line(self, document):
+        if "page" in document.additional_metadata:
+            return f"page='{document.additional_metadata['page']}'"
+        else:
+            return f"line='{document.additional_metadata['start_line']}'"
