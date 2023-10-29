@@ -8,9 +8,14 @@
             "max_retries": 3,
             "max_model_supported_tokens": 16384,
             "uses_conversation_history": true,
-            "max_conversation_history_tokens": 1001,
-            "max_completion_tokens": 6096
-        }
+            "max_conversation_history_tokens": 2048,
+            "max_completion_tokens": 4096
+        },
+        "search_type": "Similarity",
+        "search_top_k": 12,
+        "frequency_penalty": 0.3,
+        "presence_penalty": 0.7,
+        "ai_mode": "Auto"
     },
     "tool_configurations": {
         "default": {
@@ -29,14 +34,14 @@
         "analyze_with_llm": {
             "enabled": false,
             "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4",
-                "temperature": 0.0,
+                "llm_type": "llama2",
+                "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
+                "temperature": 1.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 8192,
+                "max_model_supported_tokens": 4096,
                 "uses_conversation_history": true,
-                "max_conversation_history_tokens": 575,
-                "max_completion_tokens": 4072
+                "max_conversation_history_tokens": 495,
+                "max_completion_tokens": 1565
             }
         },
         "search_loaded_documents": {
