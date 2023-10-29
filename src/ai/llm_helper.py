@@ -52,7 +52,7 @@ def _get_openai_llm(model_configuration, **kwargs):
         model=model_configuration.model,
         temperature=model_configuration.temperature,
         max_retries=model_configuration.max_retries,
-        max_tokens=model_configuration.max_completion_tokens,
+        max_tokens=model_configuration.max_completion_tokens if model_configuration.max_completion_tokens > 0 else None,
         openai_api_key=get_openai_api_key(),
         verbose=True,
         **kwargs
@@ -75,7 +75,7 @@ def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
     llama2_llm = LlamaCpp(
         model_path=model_configuration.model,
         n_ctx=model_configuration.max_model_supported_tokens,
-        max_tokens=model_configuration.max_completion_tokens,
+        max_tokens=model_configuration.max_completion_tokens if model_configuration.max_completion_tokens > 0 else None,
         temperature=model_configuration.temperature,
         n_gpu_layers=offload_layers,
         verbose=True,

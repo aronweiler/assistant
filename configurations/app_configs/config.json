@@ -57,6 +57,19 @@
                 "max_completion_tokens": 6096
             }
         },
+        "search_entire_document": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": -1,
+                "max_completion_tokens": 0
+            }
+        },
         "summarize_entire_document": {
             "enabled": false,
             "model_configuration": {

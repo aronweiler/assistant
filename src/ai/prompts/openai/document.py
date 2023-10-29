@@ -86,3 +86,34 @@ DOCUMENT_PROMPT = PromptTemplate(
     template=DOCUMENT_PROMPT_TEMPLATE,
     input_variables=["page_content", "page", "filename", "file_id"],
 )
+
+SEARCH_ENTIRE_DOCUMENT_TEMPLATE = """You are part of a loop that I am running to search through a long document (split into chunks) and collect information that will help me answer some question(s).  Your job is to find any information that may be relevant to the question(s).
+
+Below is a scratchpad that we will use to attempt to answer the questions(s) after we look at all of the documents.  This is for you to store relevant information. Please take what is already in the scratchpad and ADD any information you find that is relevant to the question(s).  If you do not find any relevant information, please return the scratchpad without any modification.  You should never remove information from the scratchpad.
+
+--- SCRATCHPAD ---
+{existing_information}
+--- SCRATCHPAD ---
+
+The current context is the current portion of the document that is being searched. You should search through the current context to find information relevant to the question(s).
+--- CURRENT CONTEXT ---
+{previous_context}
+{current_context}
+--- CURRENT CONTEXT ---
+
+Take a deep breath, and read the question(s) carefully.  
+
+Find any information in the context related to the question(s).  
+{questions}
+
+If you find any information that may be of relevance to the question(s), be sure to include it in your response (updated scratchpad).
+
+Slow down and re-read the current context.  Does the current context contain any information relevant to the question(s)? If so, please update the scratchpad in your response, adding the new information you have discovered that can help construct an ultimate answer.  
+
+If the current context does not contain any information relevant to the question, please respond only by returning the data in the scratchpad without any modification.
+
+IMPORTANT: Make sure that you do not duplicate information in the scratchpad.  If you find information that is already in the scratchpad, please do not add it again.  
+
+AI: Sure! Here is my updated scratchpad, where I have only added information relevant to the question(s) (if I didn't find anything, I will return the scratchpad without any modification):
+--- SCRATCHPAD ---
+"""

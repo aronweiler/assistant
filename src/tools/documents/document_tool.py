@@ -18,6 +18,7 @@ from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_tool_llm
+import src.utilities.configuration_utilities as configuration_utilities
 
 
 class DocumentTool:
@@ -51,8 +52,8 @@ class DocumentTool:
         target_file_id = self.interaction_manager.tool_kwargs.get(
             "override_file", target_file_id
         )
-        
-        search_type =  self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
+
+        search_type = self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
 
         keyword_documents = []
         if search_type == "Hybrid" or search_type == "Keyword":
@@ -157,7 +158,7 @@ class DocumentTool:
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.summarize_entire_document.__name__,
-            streaming=True
+            streaming=True,
         )
 
         # Are there already document chunk summaries?
@@ -249,7 +250,7 @@ class DocumentTool:
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.summarize_search_topic.__name__,
-            streaming=True
+            streaming=True,
         )
 
         summary = self.refine_summarize(llm=llm, query=query, docs=docs)
@@ -295,3 +296,86 @@ class DocumentTool:
         return "The loaded documents I have access to are:\n\n-" + "\n-".join(
             self.interaction_manager.get_loaded_documents_for_display()
         )
+
+    def search_entire_document(self, target_file_id: int, queries: List[str]):
+        """Search the entire document."""
+
+        documents = Documents()
+
+        # Get the document chunks
+        document_chunks = documents.get_document_chunks_by_file_id(
+            target_file_id=target_file_id
+        )
+
+        tool_config = configuration_utilities.get_tool_configuration(
+            configuration=self.configuration,
+            func_name=self.search_entire_document.__name__,
+        )
+
+        # TODO: Figure out the right amount of prompt tokens- currently too many causes the LLM to miss things.
+        # max_prompt_tokens = (
+        #     tool_config["model_configuration"]["max_model_supported_tokens"] * 0.75
+        # )
+        max_prompt_tokens = 1000
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.search_entire_document.__name__,
+            streaming=True,
+        )
+
+        existing_information = "Nothing yet"
+        questions = "- " + "\n-".join(queries)
+        prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "document", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
+        )
+
+        document_chunks_length = len(document_chunks)
+
+        index = 0
+        while index < document_chunks_length:
+            previous_context = (
+                document_chunks[index - 1].document_text if index > 0 else ""
+            )
+
+            document_texts = []
+
+            while True:
+                document_texts.append(document_chunks[index].document_text)
+                # Get the approximate number of tokens in the prompt
+                current_prompt_text = (
+                    prompt
+                    + "\n"
+                    + questions
+                    + "\n"
+                    + existing_information
+                    + "\n"
+                    + previous_context
+                    + "\n"
+                    + "\n".join(document_texts)
+                )
+
+                total_tokens = num_tokens_from_string(current_prompt_text)
+
+                index += 1
+
+                if total_tokens >= max_prompt_tokens or index >= document_chunks_length:
+                    break
+
+            formatted_prompt = prompt.format(
+                existing_information=existing_information,
+                questions=questions,
+                previous_context=previous_context,
+                current_context="\n".join(document_texts),
+            )
+
+            existing_information = llm.predict(
+                formatted_prompt,
+                callbacks=self.interaction_manager.agent_callbacks,
+            )
+
+            existing_information = existing_information.replace(
+                "--- SCRATCHPAD ---", ""
+            )
+
+        return existing_information
