@@ -26,5 +26,12 @@
       "model": "gpt-3.5-turbo",
       "max_model_supported_tokens": 4097 
     }
-  }  
+  },
+  "LLaMA 2": {
+    "model_configuration": {
+      "llm_type": "llama2",
+      "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
+      "max_model_supported_tokens": 4096
+    }
+  }    
 }
