@@ -37,6 +37,12 @@ class ToolManager:
             "enabled_by_default": True,
             "requires_documents": True,
         },
+        "search_entire_document": {
+            "display_name": "Search Entire Document",
+            "help_text": "Exhaustively searches a single document for one or more queries. ⚠️ This can be slow and expensive, as it will process the entire target document.",
+            "enabled_by_default": False,
+            "requires_documents": True,
+        },
         # "summarize_search_topic": {
         #     "display_name": "Summarize Searched Topic",
         #     "help_text": "Performs a deep search through the loaded documents, and summarizes the results of that search.",
@@ -44,8 +50,8 @@ class ToolManager:
         #     "requires_documents": True,
         # },
         "summarize_entire_document": {
-            "display_name": "Summarize Whole Document (⚠️ Slow / Expensive)",
-            "help_text": "Summarizes an entire document using one of the summarization methods.  This is slow and expensive, so use it sparingly.",
+            "display_name": "Summarize Whole Document ( Slow / Expensive)",
+            "help_text": "Summarizes an entire document using one of the summarization methods.  ⚠️ If you did not ingest your documents with the summary turned on, this can be slow and expensive, as it will process the entire document.",
             "enabled_by_default": True,
             "requires_documents": True,
         },
@@ -244,9 +250,14 @@ class ToolManager:
             GenericTool(
                 description="Searches the loaded documents for a query.",
                 additional_instructions="Searches the loaded files (or the specified file when target_file_id is set).  The user's input should be reworded to be both a keyword search (keywords_list: list of important keywords) and a semantic similarity search query (semantic_similarity_query: a meaningful phrase).  user_query should be a succinctly phrased version of the original user input (phrased as the ultimate question to answer). The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.  Note: This tool only looks at a small subset of the document content in its search, it is not good for getting large chunks of content.",
-                #The `search_type` parameter tells the tool what kind of search to perform.  You can perform a similarity search (default, 'Similarity'), which looks for similarity in the meaning of phrases.  Or it can perform a keyword search ('Keyword'), which matches a keyword or phrase.  Think carefully about which search_type to use.
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_loaded_documents,
+            ),
+            GenericTool(
+                description="Exhaustively searches a single document for one or more queries.",
+                additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",                
+                document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
+                function=document_tool.search_entire_document,
             ),
             # GenericTool(
             #     description="Searches through all documents for the specified topic, and summarizes the results.",

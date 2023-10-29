@@ -13,22 +13,16 @@ from src.ai.tools.tool_manager import ToolManager
 import src.ui.streamlit_shared as ui_shared
 
 
-
-
-
-
-
-
 def settings_page():
     st.set_page_config(
-            page_title="Jarvis - Settings",
-            page_icon="⚙️",
-            layout="centered",
-            initial_sidebar_state="expanded",
-        )
-    
+        page_title="Jarvis - Settings",
+        page_icon="⚙️",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
+
     st.title("Settings")
-    
+
     settings_tab, jarvis_ai, tools_tab = st.tabs(
         ["General Settings", "Jarvis AI", "Tools"]
     )
@@ -51,14 +45,20 @@ def jarvis_ai_settings():
         "Note: To some extent, the settings here will filter down- for instance, since the chat memory of the underlying tool models inherits from the top-level model, the chat memory will be limited to the number of tokens set here."
     )
     st.divider()
-    
+
     needs_saving = False
-    
+
     jarvis_config = ui_shared.get_app_configuration()["jarvis_ai"]
-    
-    st.toggle(label="Show LLM Thoughts", value=jarvis_config.get("show_llm_thoughts", False), key="show_llm_thoughts")
-    
-    if st.session_state["show_llm_thoughts"] != jarvis_config.get("show_llm_thoughts", False):
+
+    st.toggle(
+        label="Show LLM Thoughts",
+        value=jarvis_config.get("show_llm_thoughts", False),
+        key="show_llm_thoughts",
+    )
+
+    if st.session_state["show_llm_thoughts"] != jarvis_config.get(
+        "show_llm_thoughts", False
+    ):
         needs_saving = True
 
     generate_model_settings(
@@ -257,17 +257,19 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
             list(st.session_state[f"{tool_name}-model"])[0]
         ]
         max_model_supported_tokens = int(
-            ui_shared.get_available_models()[model_friendly_name]["model_configuration"][
-                "max_model_supported_tokens"
-            ]
+            ui_shared.get_available_models()[model_friendly_name][
+                "model_configuration"
+            ]["max_model_supported_tokens"]
         )
-        llm_type = ui_shared.get_available_models()[model_friendly_name]["model_configuration"][
-            "llm_type"
-        ]
+        llm_type = ui_shared.get_available_models()[model_friendly_name][
+            "model_configuration"
+        ]["llm_type"]
         if model != existing_tool_configuration["model_configuration"]["model"]:
             needs_saving = True
 
-        uses_conversation_history = st.session_state[f"{tool_name}-uses-conversation-history"]
+        uses_conversation_history = st.session_state[
+            f"{tool_name}-uses-conversation-history"
+        ]
         if (
             uses_conversation_history
             != existing_tool_configuration["model_configuration"][
@@ -326,18 +328,18 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
 def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration):
     configuration = ui_shared.get_app_configuration()
 
-    configuration["jarvis_ai"]['show_llm_thoughts'] = show_llm_thoughts
+    configuration["jarvis_ai"]["show_llm_thoughts"] = show_llm_thoughts
 
     if model_configuration:
-        configuration["jarvis_ai"]["model_configuration"] = model_configuration        
+        configuration["jarvis_ai"]["model_configuration"] = model_configuration
 
     app_config_path = ui_shared.get_app_config_path()
 
-    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)    
-    
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+
     if "rag_ai" in st.session_state:
         del st.session_state["rag_ai"]
-        
+
     st.session_state["app_config"] = configuration
 
 
@@ -352,10 +354,10 @@ def save_tool_settings_to_file(tool_name, enabled, model_configuration):
     app_config_path = ui_shared.get_app_config_path()
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
-    
+
     if "rag_ai" in st.session_state:
         del st.session_state["rag_ai"]
-        
+
     st.session_state["app_config"] = configuration
 
 
