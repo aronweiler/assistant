@@ -51,26 +51,32 @@ class DocumentTool:
         target_file_id = self.interaction_manager.tool_kwargs.get(
             "override_file", target_file_id
         )
+        
+        search_type =  self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
 
-        keyword_documents = (
-            self.interaction_manager.documents_helper.search_document_embeddings(
-                search_query=keywords_list,
-                collection_id=self.interaction_manager.collection_id,
-                search_type=SearchType.Keyword,
-                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-                target_file_id=target_file_id,
+        keyword_documents = []
+        if search_type == "Hybrid" or search_type == "Keyword":
+            keyword_documents = (
+                self.interaction_manager.documents_helper.search_document_embeddings(
+                    search_query=keywords_list,
+                    collection_id=self.interaction_manager.collection_id,
+                    search_type=SearchType.Keyword,
+                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    target_file_id=target_file_id,
+                )
             )
-        )
 
-        similarity_documents = (
-            self.interaction_manager.documents_helper.search_document_embeddings(
-                search_query=semantic_similarity_query,
-                collection_id=self.interaction_manager.collection_id,
-                search_type=SearchType.Similarity,
-                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-                target_file_id=target_file_id,
+        similarity_documents = []
+        if search_type == "Hybrid" or search_type == "Similarity":
+            similarity_documents = (
+                self.interaction_manager.documents_helper.search_document_embeddings(
+                    search_query=semantic_similarity_query,
+                    collection_id=self.interaction_manager.collection_id,
+                    search_type=SearchType.Similarity,
+                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    target_file_id=target_file_id,
+                )
             )
-        )
 
         # De-dupe the documents
         combined_documents = []
@@ -112,10 +118,6 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.search_loaded_documents.__name__,
             streaming=True,
-            model_kwargs={
-                "frequency_penalty": 1.5,
-                "presence_penalty": 1.5,
-            },
         )
 
         result = llm.predict(prompt, callbacks=self.interaction_manager.agent_callbacks)
@@ -155,11 +157,7 @@ class DocumentTool:
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.summarize_entire_document.__name__,
-            streaming=True,
-            model_kwargs={
-                "frequency_penalty": 1.5,
-                "presence_penalty": 1.5,
-            },
+            streaming=True
         )
 
         # Are there already document chunk summaries?
@@ -231,7 +229,7 @@ class DocumentTool:
             search_query=query,
             collection_id=self.interaction_manager.collection_id,
             search_type=self.interaction_manager.tool_kwargs.get(
-                "search_method", SearchType.Similarity
+                "search_type", SearchType.Similarity
             ),
             target_file_id=self.interaction_manager.tool_kwargs.get(
                 "override_file", None
@@ -251,20 +249,10 @@ class DocumentTool:
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.summarize_search_topic.__name__,
-            streaming=True,
-            model_kwargs={
-                "frequency_penalty": 1.5,
-                "presence_penalty": 1.5,
-            },
+            streaming=True
         )
 
         summary = self.refine_summarize(llm=llm, query=query, docs=docs)
-
-        if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
-            summary = llm.predict(
-                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n",
-                callbacks=self.interaction_manager.agent_callbacks,
-            )
 
         return summary
 

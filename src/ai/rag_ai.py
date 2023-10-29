@@ -35,15 +35,14 @@ class RetrievalAugmentedGenerationAI:
         self.configuration = configuration
         self.streaming = streaming
         self.prompt_manager = prompt_manager
-        self.mode = "Auto"
 
         self.llm = get_llm(
             self.configuration["jarvis_ai"]["model_configuration"],
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
-            model_kwargs={
-                "frequency_penalty": 1.5,
-                "presence_penalty": 1.5,
+            model_kwargs={                
+                "frequency_penalty": self.configuration["jarvis_ai"].get("frequency_penalty", 0.0),
+                "presence_penalty": self.configuration["jarvis_ai"].get("presence_penalty", 0.6),
             },
         )
 
@@ -106,6 +105,7 @@ class RetrievalAugmentedGenerationAI:
         self,
         query: str,
         collection_id: int = None,
+        ai_mode:str = "Auto",
         kwargs: dict = {},
     ):
         # Set the document collection id on the interaction manager
@@ -118,7 +118,7 @@ class RetrievalAugmentedGenerationAI:
         logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
 
-        if self.mode == "Conversation":
+        if ai_mode == "Conversation Only":
             logging.debug("Running chain 'Conversation Only' mode")
             results = self.run_chain(
                 query=query,
@@ -188,11 +188,3 @@ class RetrievalAugmentedGenerationAI:
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
             logging.debug(f"Generated summary: {interaction_summary}")
-
-    def set_mode(self, mode: str):
-        if mode.lower().startswith("conversation"):
-            # Use the LLM with a chat prompt
-            self.mode = "Conversation"
-        else:
-            # Normal mode, let the AI decide what to do (agent)
-            self.mode = "Auto"

@@ -10,24 +10,13 @@ from src.configuration.assistant_configuration import (
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.tools.tool_manager import ToolManager
 
-
-def get_app_configuration():
-    """Loads the configuration from the path"""
-    app_config_path = os.environ.get(
-        "APP_CONFIG_PATH",
-        "configurations/app_configs/config.json",
-    )
-
-    return ApplicationConfigurationLoader.from_file(app_config_path)
+import src.ui.streamlit_shared as ui_shared
 
 
-def get_available_models():
-    available_models_path = os.environ.get(
-        "AVAILABLE_MODELS",
-        "configurations/available_models.json",
-    )
 
-    return ApplicationConfigurationLoader.from_file(available_models_path)
+
+
+
 
 
 def settings_page():
@@ -65,7 +54,7 @@ def jarvis_ai_settings():
     
     needs_saving = False
     
-    jarvis_config = get_app_configuration()["jarvis_ai"]
+    jarvis_config = ui_shared.get_app_configuration()["jarvis_ai"]
     
     st.toggle(label="Show LLM Thoughts", value=jarvis_config.get("show_llm_thoughts", False), key="show_llm_thoughts")
     
@@ -75,7 +64,7 @@ def jarvis_ai_settings():
     generate_model_settings(
         tool_name="jarvis",
         tool_configuration=jarvis_config,
-        available_models=get_available_models(),
+        available_models=ui_shared.get_available_models(),
     )
 
     model_configuration, needs_saving = model_needs_saving(
@@ -198,12 +187,12 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
 
 
 def tools_settings():
-    configuration = get_app_configuration()
+    configuration = ui_shared.get_app_configuration()
     tool_manager = ToolManager(configuration=configuration)
 
     tools = tool_manager.get_all_tools()
 
-    available_models = get_available_models()
+    available_models = ui_shared.get_available_models()
 
     # Create a toggle to enable/disable each tool
     for tool_name, tool_details in tools.items():
@@ -268,11 +257,11 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
             list(st.session_state[f"{tool_name}-model"])[0]
         ]
         max_model_supported_tokens = int(
-            get_available_models()[model_friendly_name]["model_configuration"][
+            ui_shared.get_available_models()[model_friendly_name]["model_configuration"][
                 "max_model_supported_tokens"
             ]
         )
-        llm_type = get_available_models()[model_friendly_name]["model_configuration"][
+        llm_type = ui_shared.get_available_models()[model_friendly_name]["model_configuration"][
             "llm_type"
         ]
         if model != existing_tool_configuration["model_configuration"]["model"]:
@@ -335,17 +324,14 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
 
 
 def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration):
-    configuration = get_app_configuration()
+    configuration = ui_shared.get_app_configuration()
 
     configuration["jarvis_ai"]['show_llm_thoughts'] = show_llm_thoughts
 
     if model_configuration:
         configuration["jarvis_ai"]["model_configuration"] = model_configuration        
 
-    app_config_path = os.environ.get(
-        "APP_CONFIG_PATH",
-        "configurations/app_configs/config.json",
-    )
+    app_config_path = ui_shared.get_app_config_path()
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)    
     
@@ -356,17 +342,14 @@ def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration):
 
 
 def save_tool_settings_to_file(tool_name, enabled, model_configuration):
-    configuration = get_app_configuration()
+    configuration = ui_shared.get_app_configuration()
     configuration["tool_configurations"][tool_name]["enabled"] = enabled
     if model_configuration:
         configuration["tool_configurations"][tool_name][
             "model_configuration"
         ] = model_configuration
 
-    app_config_path = os.environ.get(
-        "APP_CONFIG_PATH",
-        "configurations/app_configs/config.json",
-    )
+    app_config_path = ui_shared.get_app_config_path()
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
     

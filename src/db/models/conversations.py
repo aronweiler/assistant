@@ -107,7 +107,7 @@ class Conversations(VectorDatabase):
                     if return_deleted == False
                     else True,
                 )
-                .order_by(Conversation.record_created)
+                .order_by(Conversation.id)
             )
 
             #query = super().eager_load(query, [Conversation.conversation_role_type])
@@ -134,7 +134,7 @@ class Conversations(VectorDatabase):
 
             query = super().eager_load(query, [Conversation.conversation_role_type])
 
-            query = query.order_by(Conversation.record_created).all()
+            query = query.order_by(Conversation.id).all()
 
             return [
                 ConversationModel.from_database_model(c) for c in query.limit(top_k)

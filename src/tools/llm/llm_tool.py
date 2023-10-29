@@ -27,8 +27,8 @@ class LLMTool:
             func_name=self.analyze_with_llm.__name__,
             streaming=True,
             model_kwargs={
-                "frequency_penalty": 1.5,
-                "presence_penalty": 1.5,
+                "frequency_penalty": 0.7,
+                "presence_penalty": 0.6,
             },
         )
 

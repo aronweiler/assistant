@@ -21,10 +21,7 @@ from src.discord.rag_bot import RagBot
 
 def load_configuration():
     """Loads the configuration from the path"""
-    app_config_path = os.environ.get(
-        "APP_CONFIG_PATH",
-        "configurations/app_configs/config.json",
-    )
+    app_config_path = ui_shared.get_app_config_path()
 
     return ApplicationConfigurationLoader.from_file(app_config_path)
 
@@ -58,8 +55,8 @@ def get_the_llm(configuration):
         tags=["jarvis-discord-bot"],
         streaming=False,
         model_kwargs={
-            "frequency_penalty": 1.5,
-            "presence_penalty": 1.5,
+            "frequency_penalty": 0.9,
+            "presence_penalty": 0.6,
         },
     )
 

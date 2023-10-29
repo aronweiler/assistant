@@ -25,10 +25,7 @@ class RagUI:
         """Loads the configuration from the path"""
         
         if "app_config" not in st.session_state:
-            app_config_path = os.environ.get(
-                "APP_CONFIG_PATH",
-                "configurations/app_configs/config.json",
-            )
+            app_config_path = ui_shared.get_app_config_path()
 
             st.session_state["app_config"] = ApplicationConfigurationLoader.from_file(
                 app_config_path
@@ -147,40 +144,25 @@ class RagUI:
                                     # TODO: Put a thumbnail of the images here (maybe icon for documents)
                                     st.write(doc)
 
-                            st.markdown("### RAG Options")
+                            st.markdown("### Options")
 
-                            with st.expander("Search"):  # , expanded=expanded):
+                            with st.expander("Search", expanded=True):  # , expanded=expanded):
+                                search_types = ["Similarity", "Keyword", "Hybrid"]
                                 st.radio(
-                                    "Text search method",
-                                    ["Similarity", "Keyword"],
-                                    key="search_method",
-                                    index=0,
+                                    label="Text search method",
+                                    options=search_types,
+                                    key="search_type",                                    
+                                    index=search_types.index(st.session_state["app_config"]["jarvis_ai"].get("search_type", "Similarity")),
+                                    on_change=ui_shared.set_search_type,
                                 )
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
                                     value=10,
-                                )
-                                st.selectbox(
-                                    "Summarization strategy",
-                                    ["map_reduce", "refine"],
-                                    key="summarization_strategy",
-                                )
-                                st.toggle(
-                                    "Re-run user query after search / summarization",
-                                    help="This will re-run the user query after the search and summarization is complete.  This can sometimes yield better results, but it can also hide data you may find relevant.",
-                                    value=False,
-                                    key="re_run_user_query",
+                                    on_change=ui_shared.set_search_top_k,
                                 )
 
-                            with st.expander("Spreadsheets"):
-                                st.toggle(
-                                    "Use Pandas for Spreadsheets",
-                                    key="use_pandas",
-                                    value=True,
-                                )
-
-                            with st.expander("General"):
+                            with st.expander("Advanced"):
                                 options = []
                                 if loaded_docs_delimited:
                                     options = [d for d in loaded_docs_delimited]
@@ -198,6 +180,12 @@ class RagUI:
                                 )
                                 st.number_input(
                                     "Max code review tokens", key="max_code_review_token_count", value=6000
+                                )
+                                
+                                st.toggle(
+                                    "Use Pandas for Spreadsheets",
+                                    key="use_pandas",
+                                    value=True,
                                 )
                         else:
                             st.warning("No collection selected")

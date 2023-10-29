@@ -225,7 +225,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
         action = AgentAction(
             tool=action_json["tool"],
             tool_input=action_json["tool_args"] if "tool_args" in action_json else {},
-            log=action_json["tool_use_description"],
+            log=action_json["tool_use_description"] if "tool_use_description" in action_json else "Could not find tool_use_description in response.",
         )
 
         return action
