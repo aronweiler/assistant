@@ -11,6 +11,7 @@ from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
 )
 
+from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
@@ -116,6 +117,64 @@ def load_conversation_selectbox(load_ai_callback, tab):
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
         )
+
+        col1, col2, col3 = tab.columns([0.15, 0.5, 0.25])
+
+        # col3
+        if col3.button(
+            "✏️",
+            key="edit_interaction",
+            help="Edit this conversation name",
+            use_container_width=False,
+        ):
+            
+
+            selected_interaction_pair = st.session_state.get(
+                "interaction_summary_selectbox"
+            )
+
+            with tab.form(key="edit_interaction_name_form", clear_on_submit=True):
+                #col1a, col2a = tab.columns(2)
+                st.text_input(
+                    "Edit conversation name",
+                    key="new_interaction_name",
+                    value=selected_interaction_pair.split(":")[1],
+                )
+
+                st.form_submit_button(
+                    label="Save",
+                    #key="save_interaction_name",
+                    help="Click to save",
+                    type="primary",                    
+                    on_click=update_interaction_name,
+                )
+
+        if "confirm_interaction_delete" not in st.session_state:
+            st.session_state.confirm_interaction_delete = False
+
+        if st.session_state.confirm_interaction_delete == False:
+            col1.button(
+                "🗑️",
+                help="Delete this conversation?",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": True},
+                key=str(uuid.uuid4()),
+            )
+        else:
+            col2.button(
+                "✅",
+                help="Click to confirm delete",
+                key=str(uuid.uuid4()),
+                on_click=delete_interaction,
+                kwargs={"interaction_id": get_selected_interaction_id()},
+            )
+            col1.button(
+                "❌",
+                help="Click to cancel delete",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": False},
+                key=str(uuid.uuid4()),
+            )
 
     except Exception as e:
         logging.error(f"Error loading interaction selectbox: {e}")
@@ -234,33 +293,6 @@ def setup_new_chat_button(tab):
             on_click=create_interaction,
             kwargs={"interaction_summary": "Empty Chat"},
         )
-
-        if "confirm_interaction_delete" not in st.session_state:
-            st.session_state.confirm_interaction_delete = False
-
-        if st.session_state.confirm_interaction_delete == False:
-            col2.button(
-                "🗑️",
-                help="Delete this conversation?",
-                on_click=set_confirm_interaction_delete,
-                kwargs={"val": True},
-                key=str(uuid.uuid4()),
-            )
-        else:
-            col2.button(
-                "✅",
-                help="Click to confirm delete",
-                key=str(uuid.uuid4()),
-                on_click=delete_interaction,
-                kwargs={"interaction_id": get_selected_interaction_id()},
-            )
-            col3.button(
-                "❌",
-                help="Click to cancel delete",
-                on_click=set_confirm_interaction_delete,
-                kwargs={"val": False},
-                key=str(uuid.uuid4()),
-            )
 
         tab.divider()
 
@@ -701,10 +733,12 @@ def on_change_collection():
 
 def create_collection_selectbox(ai):
     st.markdown("Selected document collection:")
-    
+
     col1, col2 = st.columns([0.80, 0.2])
-    
-    st.caption("The document collection selected here determines which documents are used to answer questions.")
+
+    st.caption(
+        "The document collection selected here determines which documents are used to answer questions."
+    )
 
     available_collections = get_available_collections()
     selected_collection_id_index = 0
@@ -990,7 +1024,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                         query=prompt,
                         collection_id=collection_id if collection_id != -1 else None,
                         ai_mode=st.session_state["ai_mode"],
-                        kwargs=kwargs,                        
+                        kwargs=kwargs,
                     )
                 except Exception as e:
                     logging.error(f"Error querying AI: {e}")
@@ -1035,7 +1069,18 @@ def set_presence_penalty():
         "presence_penalty", st.session_state["presence_penalty"]
     )
 
+
 def set_ai_mode():
-    set_jarvis_ai_config_element(
-        "ai_mode", st.session_state["ai_mode"]
+    set_jarvis_ai_config_element("ai_mode", st.session_state["ai_mode"])
+
+
+def update_interaction_name():
+    interaction_id = get_selected_interaction_id()
+    interaction_name = st.session_state["new_interaction_name"]
+
+    ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
+    ai.interaction_manager.interactions_helper.update_interaction_summary(
+        interaction_id=interaction_id,
+        interaction_summary=interaction_name,
+        needs_summary=False,
     )
