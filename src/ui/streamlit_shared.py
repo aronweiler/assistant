@@ -700,9 +700,11 @@ def on_change_collection():
 
 
 def create_collection_selectbox(ai):
+    st.markdown("Selected document collection:")
+    
     col1, col2 = st.columns([0.80, 0.2])
-
-    st.caption("Selected document collection:")
+    
+    st.caption("The document collection selected here determines which documents are used to answer questions.")
 
     available_collections = get_available_collections()
     selected_collection_id_index = 0
