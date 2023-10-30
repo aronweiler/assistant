@@ -54,7 +54,7 @@ Run the following commands in a terminal window in the same directory as the Jar
 *Note: After updating you will need to re-enable/disable any tools that you previously changed on the Settings page.*
 
 
-# ⚠️ WARNING ⚠️
+## ⚠️ DATABASE CONTAINER WARNING ⚠️
 The docker container that has the database in it is currently used primarily by me for development, so it does **not** mount a volume for the database.  
 When you delete the DB docker container, **ALL OF YOUR DATA WILL BE ERASED**.
 
