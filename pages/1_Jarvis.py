@@ -158,7 +158,7 @@ class RagUI:
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
-                                    value=10,
+                                    value=st.session_state["app_config"]["jarvis_ai"].get("search_top_k", 10),
                                     on_change=ui_shared.set_search_top_k,
                                 )
 
