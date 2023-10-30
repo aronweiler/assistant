@@ -234,7 +234,6 @@ if __name__ == "__main__":
             col1, col2 = st.columns([0.65, 0.35])
 
             rag_ui.load_ai()
-            ui_shared.setup_new_chat_button(conversations)
             rag_ui.create_collections_container(col2)
 
             ui_shared.select_documents(

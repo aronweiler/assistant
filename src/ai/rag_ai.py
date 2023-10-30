@@ -188,3 +188,27 @@ class RetrievalAugmentedGenerationAI:
             self.interaction_manager.set_interaction_summary(interaction_summary)
             self.interaction_manager.interaction_needs_summary = False
             logging.debug(f"Generated summary: {interaction_summary}")
+
+    # Required by the Jarvis UI when ingesting files
+    def generate_detailed_document_chunk_summary(
+        self,
+        document_text: str,
+    ) -> str:
+        summary = self.llm.predict(
+            self.prompt_manager.get_prompt(
+                "summary",
+                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+            ).format(text=document_text)
+        )
+        return summary
+
+    def generate_detailed_document_summary(
+        self,
+        file_id: int,
+    ) -> str:
+        document_tool = DocumentTool(
+            self.configuration, self.interaction_manager
+        )
+        document_summary = document_tool.summarize_entire_document(file_id)
+
+        return document_summary

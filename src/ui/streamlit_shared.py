@@ -120,10 +120,18 @@ def load_conversation_selectbox(load_ai_callback, tab):
             on_change=load_ai_callback,
         )
 
-        col1, col2, col3 = tab.columns([0.15, 0.5, 0.25])
+        col1, col2, col3, col4 = tab.columns([0.15, 0.35, 0.15, 0.25])
+
+        col3.button(
+            "➕",
+            help="Create a new conversation",
+            key="new_chat_button",
+            on_click=create_interaction,
+            kwargs={"interaction_summary": "Empty Chat"},
+        )
 
         # col3
-        if col3.button(
+        if col4.button(
             "✏️",
             key="edit_interaction",
             help="Edit this conversation name",
@@ -178,6 +186,8 @@ def load_conversation_selectbox(load_ai_callback, tab):
 
     except Exception as e:
         logging.error(f"Error loading interaction selectbox: {e}")
+
+    tab.divider()
 
 
 def set_confirm_interaction_delete(val):
@@ -282,19 +292,6 @@ def delete_interaction(interaction_id):
     conversations_helper.delete_conversation_by_interaction_id(interaction_id)
 
     set_confirm_interaction_delete(False)
-
-
-def setup_new_chat_button(tab):
-    with tab.container():
-        col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
-        col1.button(
-            "New Chat",
-            key="new_chat_button",
-            on_click=create_interaction,
-            kwargs={"interaction_summary": "Empty Chat"},
-        )
-
-        tab.divider()
 
 
 def get_available_collections():
@@ -439,7 +436,7 @@ def select_documents(tab, ai=None):
             )
 
             st.toggle(
-                "Split documents",
+                "Split documents by tokens (default is by page)",
                 key="split_documents",
                 value=st.session_state.ingestion_settings.split_documents,
             )
