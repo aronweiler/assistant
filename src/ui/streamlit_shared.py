@@ -5,6 +5,8 @@ import time
 import uuid
 
 import streamlit as st
+import requests
+
 from streamlit.runtime.scriptrunner import RerunException
 
 from src.configuration.assistant_configuration import (
@@ -715,9 +717,33 @@ def show_version():
     # Read the version from the version file
     version = ""
     with open("version.txt", "r") as f:
-        version = f.read()
+        version = f.read().strip()
 
-    st.sidebar.info(f"Version: {version}")
+    # Try to get the main version from my github repo, and if it's different, show an update message
+    try:
+        response = requests.get(
+            "https://raw.githubusercontent.com/aronweiler/assistant/main/version.txt"
+        )
+        if response.status_code == 200:
+            latest_version = response.text.strip()
+            if latest_version != version:
+                st.sidebar.warning(
+                    f"⚠️ You are running a version of Jarvis that is not the release version."
+                )
+                st.sidebar.markdown(
+                    f"You are running **{version}**, and the release version is **{latest_version}**."
+                )
+                st.sidebar.markdown(
+                    "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-in-docker)"
+                )
+            else:
+                st.sidebar.info(f"Version: {version}")
+        else:
+            st.sidebar.info(f"Version: {version}")
+
+    except Exception as e:
+        logging.error(f"Error checking for latest version: {e}")
+        st.sidebar.info(f"Version: {version}")
 
 
 def on_change_collection():

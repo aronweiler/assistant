@@ -1,7 +1,9 @@
 from src.db.database.creation_utilities import CreationUtilities
 from src.db.models.vector_database import VectorDatabase
+import src.ui.streamlit_shared as ui_shared
 
 import streamlit as st
+
 
 def verify_database():
     """Verifies that the database is set up correctly"""
@@ -31,6 +33,8 @@ st.set_page_config(
 st.write("# About Jarvis 🤖")
 
 st.sidebar.success("Select an AI above.")
+
+ui_shared.show_version()
 
 st.markdown(
     """
