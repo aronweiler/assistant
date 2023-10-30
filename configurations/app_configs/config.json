@@ -46,6 +46,17 @@
         },
         "search_loaded_documents": {
             "enabled": true,
+            "refactor_prompt_settings": [
+                {
+                    "name": "Split Prompt",
+                    "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
+                    "type": "int",
+                    "value": 2,
+                    "min": 1,
+                    "max": 5,
+                    "step": 1
+                }
+            ],
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -125,7 +136,7 @@
             }
         },
         "conduct_code_review_from_url": {
-            "enabled": false,
+            "enabled": true,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",

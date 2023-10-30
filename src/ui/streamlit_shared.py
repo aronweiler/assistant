@@ -5,6 +5,8 @@ import time
 import uuid
 
 import streamlit as st
+import requests
+
 from streamlit.runtime.scriptrunner import RerunException
 
 from src.configuration.assistant_configuration import (
@@ -127,14 +129,12 @@ def load_conversation_selectbox(load_ai_callback, tab):
             help="Edit this conversation name",
             use_container_width=False,
         ):
-            
-
             selected_interaction_pair = st.session_state.get(
                 "interaction_summary_selectbox"
             )
 
             with tab.form(key="edit_interaction_name_form", clear_on_submit=True):
-                #col1a, col2a = tab.columns(2)
+                # col1a, col2a = tab.columns(2)
                 st.text_input(
                     "Edit conversation name",
                     key="new_interaction_name",
@@ -143,9 +143,9 @@ def load_conversation_selectbox(load_ai_callback, tab):
 
                 st.form_submit_button(
                     label="Save",
-                    #key="save_interaction_name",
+                    # key="save_interaction_name",
                     help="Click to save",
-                    type="primary",                    
+                    type="primary",
                     on_click=update_interaction_name,
                 )
 
@@ -717,9 +717,33 @@ def show_version():
     # Read the version from the version file
     version = ""
     with open("version.txt", "r") as f:
-        version = f.read()
+        version = f.read().strip()
 
-    st.sidebar.info(f"Version: {version}")
+    # Try to get the main version from my github repo, and if it's different, show an update message
+    try:
+        response = requests.get(
+            "https://raw.githubusercontent.com/aronweiler/assistant/main/version.txt"
+        )
+        if response.status_code == 200:
+            latest_version = response.text.strip()
+            if latest_version != version:
+                st.sidebar.warning(
+                    f"⚠️ You are running a version of Jarvis that is not the release version."
+                )
+                st.sidebar.markdown(
+                    f"You are running **{version}**, and the release version is **{latest_version}**."
+                )
+                st.sidebar.markdown(
+                    "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-in-docker)"
+                )
+            else:
+                st.sidebar.info(f"Version: {version}")
+        else:
+            st.sidebar.info(f"Version: {version}")
+
+    except Exception as e:
+        logging.error(f"Error checking for latest version: {e}")
+        st.sidebar.info(f"Version: {version}")
 
 
 def on_change_collection():

@@ -1,5 +1,7 @@
 from typing import List
 
+import json
+
 from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.chains import (
@@ -49,10 +51,81 @@ class DocumentTool:
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
 
+        # Do we override the file ID?
         target_file_id = self.interaction_manager.tool_kwargs.get(
             "override_file", target_file_id
         )
 
+        try:
+            # Get the number of additional prompts that should be created to search the loaded documents
+            refactor_prompt_settings = self.configuration["tool_configurations"][
+                self.search_loaded_documents.__name__
+            ]["refactor_prompt_settings"]
+
+            split_prompts = 0
+            for setting in refactor_prompt_settings:
+                if setting["name"] == "Split Prompt":
+                    split_prompts = setting["value"]
+                    break
+
+            # If there are more than 0 additional prompts, we need to create them
+            if split_prompts > 1:
+                llm = get_tool_llm(
+                    configuration=self.configuration,
+                    func_name=self.search_loaded_documents.__name__,
+                    streaming=True,
+                    # Crank up the frequency and presence penalties to make the LLM give us more variety
+                    model_kwargs={
+                        "frequency_penalty": 0.7,
+                        "presence_penalty": 0.9,
+                    },
+                )
+
+                additional_prompt_prompt = (
+                    self.interaction_manager.prompt_manager.get_prompt(
+                        "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
+                    )
+                )
+
+                split_prompts = llm.predict(
+                    additional_prompt_prompt.format(
+                        additional_prompts=split_prompts,
+                        user_query=user_query,
+                    ),
+                    callbacks=self.interaction_manager.agent_callbacks,
+                )
+
+                split_prompts = json.loads(split_prompts)
+
+                results = []
+                for prompt in split_prompts["prompts"]:
+                    results.append(
+                        self._search_loaded_documents(
+                            semantic_similarity_query=prompt['semantic_similarity_query'],
+                            keywords_list=prompt['keywords_list'],
+                            user_query=prompt['query'],
+                            target_file_id=target_file_id,
+                        )
+                    )
+
+                return "\n".join(results)
+        except:
+            pass
+
+        return self._search_loaded_documents(
+            semantic_similarity_query=semantic_similarity_query,
+            keywords_list=keywords_list,
+            user_query=user_query,
+            target_file_id=target_file_id,
+        )
+
+    def _search_loaded_documents(
+        self,
+        semantic_similarity_query: str,
+        keywords_list: List[str],
+        user_query: str,
+        target_file_id: int = None,
+    ):
         search_type = self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
 
         keyword_documents = []
@@ -104,13 +177,9 @@ class DocumentTool:
         summaries = []
 
         for document in combined_documents:
-            page_or_line = (
-                f"page='{document.additional_metadata['page']}'"
-                if "page" in document.additional_metadata
-                else f"line='{document.additional_metadata['start_line']}'"
-            )
+            page_or_line = self.get_page_or_line(document)
             summaries.append(
-                f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}', {page_or_line}"
+                f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}' {page_or_line}"
             )
 
         prompt = prompt.format(summaries="\n\n".join(summaries), question=user_query)
@@ -337,7 +406,7 @@ class DocumentTool:
         index = 0
         while index < document_chunks_length:
             previous_context = (
-                f"CHUNK {index - 1}:\n{document_chunks[index - 1].document_text}\nSOURCE: file_id='{document_chunks[index - 1].file_id}', file_name='{document_chunks[index - 1].document_name}', {self.get_page_or_line(document_chunks[index - 1])}\n----"
+                f"CHUNK {index - 1}:\n{document_chunks[index - 1].document_text}\nSOURCE: file_id='{document_chunks[index - 1].file_id}', file_name='{document_chunks[index - 1].document_name}' {self.get_page_or_line(document_chunks[index - 1])}\n----"
                 if index > 0
                 else ""
             )
@@ -346,7 +415,7 @@ class DocumentTool:
 
             while True:
                 document_texts.append(
-                    f"CHUNK {index}:\n{document_chunks[index].document_text}\nSOURCE: file_id='{document_chunks[index].file_id}', file_name='{document_chunks[index].document_name}', {self.get_page_or_line(document_chunks[index])}"
+                    f"CHUNK {index}:\n{document_chunks[index].document_text}\nSOURCE: file_id='{document_chunks[index].file_id}', file_name='{document_chunks[index].document_name}' {self.get_page_or_line(document_chunks[index])}"
                 )
 
                 # Get the approximate number of tokens in the prompt
@@ -391,5 +460,7 @@ class DocumentTool:
     def get_page_or_line(self, document):
         if "page" in document.additional_metadata:
             return f"page='{document.additional_metadata['page']}'"
-        else:
+        elif "start_line" in document.additional_metadata:
             return f"line='{document.additional_metadata['start_line']}'"
+        else:
+            return ""
