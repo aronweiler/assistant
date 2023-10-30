@@ -213,7 +213,7 @@ def tools_settings():
             in configuration["tool_configurations"][tool_name]
         ):
             with st.expander(
-                label=f"{tool_details['display_name']} Prompt Refactoring Settings",
+                label=f"✍️ {tool_details['display_name']} Prompt Refactoring Settings",
                 expanded=False,
             ):
                 refactor_prompt_settings = configuration["tool_configurations"][
@@ -224,7 +224,7 @@ def tools_settings():
                         f"{refactor_prompt_setting['name']}-refactor-prompt"
                     )
                     if refactor_prompt_setting["type"] == "int":
-                        col2.number_input(
+                        st.number_input(
                             label=refactor_prompt_setting["name"],
                             value=refactor_prompt_setting["value"],
                             key=f"{refactor_prompt_setting['name']}-refactor-prompt",
@@ -238,10 +238,13 @@ def tools_settings():
                                 "session_state_key": session_state_key,
                             },
                         )
+                        
+                    st.markdown(refactor_prompt_setting["description"])
+                        
 
         if "model_configuration" in configuration["tool_configurations"][tool_name]:
             with st.expander(
-                label=f"{tool_details['display_name']} Model Settings", expanded=False
+                label=f"⚙️ {tool_details['display_name']} Model Settings", expanded=False
             ):
                 generate_model_settings(
                     tool_name=tool_name,

@@ -56,58 +56,68 @@ class DocumentTool:
             "override_file", target_file_id
         )
 
-        # The number of additional prompts that should be created to search
-        additional_prompts = self.interaction_manager.tool_kwargs.get(
-            "additional_prompts", 0
-        )
+        try:
+            # Get the number of additional prompts that should be created to search the loaded documents
+            refactor_prompt_settings = self.configuration["tool_configurations"][
+                self.search_loaded_documents.__name__
+            ]["refactor_prompt_settings"]
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.search_loaded_documents.__name__,
-            streaming=True,
-            # Crank up the frequency and presence penalties to make the LLM give us more variety
-            kwargs={
-                "model_kwargs": {"frequency_penalty": 1.0, "presence_penalty": 0.9}
-            },
-        )
+            split_prompts = 0
+            for setting in refactor_prompt_settings:
+                if setting["name"] == "Split Prompt":
+                    split_prompts = setting["value"]
+                    break
 
-        if additional_prompts > 0:
-            additional_prompt_prompt = (
-                self.interaction_manager.prompt_manager.get_prompt(
-                    "document", "ADDITIONAL_PROMPT_TEMPLATE"
+            # If there are more than 0 additional prompts, we need to create them
+            if split_prompts > 1:
+                llm = get_tool_llm(
+                    configuration=self.configuration,
+                    func_name=self.search_loaded_documents.__name__,
+                    streaming=True,
+                    # Crank up the frequency and presence penalties to make the LLM give us more variety
+                    model_kwargs={
+                        "frequency_penalty": 0.7,
+                        "presence_penalty": 0.9,
+                    },
                 )
-            )
 
-            split_prompts = llm.predict(
-                additional_prompt_prompt.format(
-                    additional_prompts=additional_prompts,
-                    user_query=user_query,
-                ),
-                callbacks=self.interaction_manager.agent_callbacks,
-            )
-
-            split_prompts = json.loads(split_prompts)
-
-            results = []
-            for _ in range(additional_prompts):
-                results.append(
-                    self._search_loaded_documents(
-                        semantic_similarity_query=semantic_similarity_query,
-                        keywords_list=keywords_list,
-                        user_query=user_query,
-                        target_file_id=target_file_id,
+                additional_prompt_prompt = (
+                    self.interaction_manager.prompt_manager.get_prompt(
+                        "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
 
-            return "\n".join(results)
+                split_prompts = llm.predict(
+                    additional_prompt_prompt.format(
+                        additional_prompts=split_prompts,
+                        user_query=user_query,
+                    ),
+                    callbacks=self.interaction_manager.agent_callbacks,
+                )
 
-        else:
-            return self._search_loaded_documents(
-                semantic_similarity_query=semantic_similarity_query,
-                keywords_list=keywords_list,
-                user_query=user_query,
-                target_file_id=target_file_id,
-            )
+                split_prompts = json.loads(split_prompts)
+
+                results = []
+                for prompt in split_prompts["prompts"]:
+                    results.append(
+                        self._search_loaded_documents(
+                            semantic_similarity_query=prompt['semantic_similarity_query'],
+                            keywords_list=prompt['keywords_list'],
+                            user_query=prompt['query'],
+                            target_file_id=target_file_id,
+                        )
+                    )
+
+                return "\n".join(results)
+        except:
+            pass
+
+        return self._search_loaded_documents(
+            semantic_similarity_query=semantic_similarity_query,
+            keywords_list=keywords_list,
+            user_query=user_query,
+            target_file_id=target_file_id,
+        )
 
     def _search_loaded_documents(
         self,
