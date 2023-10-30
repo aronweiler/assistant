@@ -127,14 +127,12 @@ def load_conversation_selectbox(load_ai_callback, tab):
             help="Edit this conversation name",
             use_container_width=False,
         ):
-            
-
             selected_interaction_pair = st.session_state.get(
                 "interaction_summary_selectbox"
             )
 
             with tab.form(key="edit_interaction_name_form", clear_on_submit=True):
-                #col1a, col2a = tab.columns(2)
+                # col1a, col2a = tab.columns(2)
                 st.text_input(
                     "Edit conversation name",
                     key="new_interaction_name",
@@ -143,9 +141,9 @@ def load_conversation_selectbox(load_ai_callback, tab):
 
                 st.form_submit_button(
                     label="Save",
-                    #key="save_interaction_name",
+                    # key="save_interaction_name",
                     help="Click to save",
-                    type="primary",                    
+                    type="primary",
                     on_click=update_interaction_name,
                 )
 

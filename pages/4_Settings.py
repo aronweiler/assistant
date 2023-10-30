@@ -207,6 +207,38 @@ def tools_settings():
         )
         col2.markdown(tool_details["help_text"])
 
+        # If we're refactoring prompts, get the settings and show the widget
+        if (
+            "refactor_prompt_settings"
+            in configuration["tool_configurations"][tool_name]
+        ):
+            with st.expander(
+                label=f"{tool_details['display_name']} Prompt Refactoring Settings",
+                expanded=False,
+            ):
+                refactor_prompt_settings = configuration["tool_configurations"][
+                    tool_name
+                ]["refactor_prompt_settings"]
+                for refactor_prompt_setting in refactor_prompt_settings:
+                    session_state_key = (
+                        f"{refactor_prompt_setting['name']}-refactor-prompt"
+                    )
+                    if refactor_prompt_setting["type"] == "int":
+                        col2.number_input(
+                            label=refactor_prompt_setting["name"],
+                            value=refactor_prompt_setting["value"],
+                            key=f"{refactor_prompt_setting['name']}-refactor-prompt",
+                            min_value=refactor_prompt_setting["min"],
+                            max_value=refactor_prompt_setting["max"],
+                            step=refactor_prompt_setting["step"],
+                            on_change=save_refactor_prompt_setting,
+                            kwargs={
+                                "tool_name": tool_name,
+                                "setting_name": refactor_prompt_setting["name"],
+                                "session_state_key": session_state_key,
+                            },
+                        )
+
         if "model_configuration" in configuration["tool_configurations"][tool_name]:
             with st.expander(
                 label=f"{tool_details['display_name']} Model Settings", expanded=False
@@ -350,6 +382,26 @@ def save_tool_settings_to_file(tool_name, enabled, model_configuration):
         configuration["tool_configurations"][tool_name][
             "model_configuration"
         ] = model_configuration
+
+    app_config_path = ui_shared.get_app_config_path()
+
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
+
+    st.session_state["app_config"] = configuration
+
+
+def save_refactor_prompt_setting(tool_name, setting_name, session_state_key):
+    configuration = ui_shared.get_app_configuration()
+    settings = configuration["tool_configurations"][tool_name][
+        "refactor_prompt_settings"
+    ]
+    for setting in settings:
+        if setting["name"] == setting_name:
+            setting["value"] = st.session_state[session_state_key]
+            break
 
     app_config_path = ui_shared.get_app_config_path()
 
