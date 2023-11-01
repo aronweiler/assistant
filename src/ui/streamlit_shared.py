@@ -514,8 +514,12 @@ def ingest_files(
         state="running",
     )
 
+    ingest_progress_bar = st.progress(text="Uploading files...", value=0)
+
     # First upload the files to our temp directory
-    uploaded_file_paths, root_temp_dir = upload_files(uploaded_files, status)
+    uploaded_file_paths, root_temp_dir = upload_files(
+        uploaded_files, status, ingest_progress_bar
+    )
 
     with status.container():
         with st.empty():
@@ -524,6 +528,14 @@ def ingest_files(
             # First see if there are any files we can't load
             files = []
             for uploaded_file_path in uploaded_file_paths:
+                ingest_progress_bar.progress(
+                    calculate_progress(
+                        len(uploaded_file_paths),
+                        uploaded_file_paths.index(uploaded_file_path) + 1,
+                    ),
+                    text=f"Uploading file {uploaded_file_paths.index(uploaded_file_path) + 1} of {len(uploaded_file_paths)}",
+                )
+
                 # Get the file name
                 file_name = (
                     uploaded_file_path.replace(root_temp_dir, "").strip("/").strip("\\")
@@ -592,6 +604,11 @@ def ingest_files(
             if not files or len(files) == 0:
                 st.warning("Nothing to split... bye!")
                 logging.warning("No files to ingest")
+                ingest_progress_bar.empty()
+                status.update(
+                    label=f"⚠️ Ingestion complete (with warnings)",
+                    state="complete",
+                )
                 return
 
             st.info("Splitting documents...")
@@ -622,14 +639,22 @@ def ingest_files(
                 )
                 return
 
-            st.info(f"Saving {len(documents)} document chunks...")
-            logging.info(f"Saving {len(documents)} document chunks...")
+            document_chunk_length = len(documents)
+            st.info(f"Saving {document_chunk_length} document chunks...")
+            logging.info(f"Saving {document_chunk_length} document chunks...")
 
             # For each document, create the file if it doesn't exist and then the document chunks
+            current_chunk = 0
             for document in documents:
+                current_chunk += 1
                 # Get the file name without the root_temp_dir (preserving any subdirectories)
                 file_name = (
                     document.metadata["filename"].replace(root_temp_dir, "").strip("/")
+                )
+
+                ingest_progress_bar.progress(
+                    calculate_progress(len(documents), current_chunk),
+                    text=f"Processing document {current_chunk} of {document_chunk_length}",
                 )
 
                 # Get the file reference
@@ -687,14 +712,33 @@ def ingest_files(
                 state="complete",
             )
 
+            ingest_progress_bar.empty()
 
-def upload_files(uploaded_files, status):
+    # Done!
+    st.balloons()
+
+
+def calculate_progress(total_size, current_position):
+    """
+    Calculate progress as a percentage within the range of 0-100.
+    """
+    progress = (current_position / total_size) * 100
+    return int(min(progress, 100))
+
+
+def upload_files(uploaded_files, status, ingest_progress_bar):
     root_temp_dir = "temp/" + str(uuid.uuid4())
 
     # First upload all of the files- this needs to be done before we process them, in case there are inter-dependencies
     uploaded_file_paths = []
     with status.empty():
         for uploaded_file in uploaded_files:
+            ingest_progress_bar.progress(
+                calculate_progress(
+                    len(uploaded_files), uploaded_files.index(uploaded_file) + 1
+                ),
+                text=f"Uploading file {uploaded_files.index(uploaded_file) + 1} of {len(uploaded_files)}",
+            )
             st.info(f"Uploading file: {uploaded_file.name}")
 
             file_path = os.path.join(root_temp_dir, uploaded_file.name)
