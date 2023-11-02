@@ -15,6 +15,8 @@ from src.configuration.assistant_configuration import (
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
+from src.utilities.configuration_utilities import get_app_configuration, get_app_config_path
+
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.interactions import Interactions
@@ -28,22 +30,6 @@ from src.documents.document_loader import load_and_split_documents
 from streamlit_extras.stylable_container import stylable_container
 
 IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
-
-
-def get_app_config_path():
-    app_config_path = os.environ.get(
-        "APP_CONFIG_PATH",
-        "configurations/app_configs/config.json",
-    )
-
-    return app_config_path
-
-
-def get_app_configuration():
-    """Loads the configuration from the path"""
-    app_config_path = get_app_config_path()
-
-    return ApplicationConfigurationLoader.from_file(app_config_path)
 
 
 def get_available_models():
@@ -304,7 +290,8 @@ def get_available_collections():
 
     # Create a dictionary of collection id to collection summary
     collections_list = [
-        f"{collection.id}:{collection.collection_name}" for collection in collections
+        f"{collection.id}:{collection.collection_name} - {collection.collection_type}"
+        for collection in collections
     ]
 
     collections_list.insert(0, "-1:---")
@@ -342,8 +329,10 @@ def get_selected_collection_name():
 
 def create_collection():
     if st.session_state["new_collection_name"]:
+        collection_type = st.session_state.get("new_collection_type", "Local (HF)")
+
         collection = Documents().create_collection(
-            st.session_state["new_collection_name"]
+            st.session_state["new_collection_name"], collection_type
         )
 
         logging.info(

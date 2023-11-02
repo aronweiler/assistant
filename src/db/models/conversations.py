@@ -17,9 +17,9 @@ class Conversations(VectorDatabase):
                 return
 
             db_conversation = conversation.to_database_model()
-            db_conversation.embedding = self.get_embedding(
-                conversation.conversation_text
-            )
+            # db_conversation.embedding = self.get_embedding(
+            #     conversation.conversation_text
+            # )
 
             session.add(db_conversation)
             session.commit()

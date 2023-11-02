@@ -57,5 +57,5 @@ class DocumentModel:
             document_name=db_document.document_name,
             document_text_summary=db_document.document_text_summary,
             document_text_has_summary=db_document.document_text_has_summary,
-            record_created=db_document.record_created
+            record_created=db_document.record_created,
         )

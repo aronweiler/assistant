@@ -69,8 +69,8 @@ streamlit-tree-select
 
 # The following are things that I am not using yet, but I want to keep track of them
 # Embeddings 
-# sentence_transformers
-# InstructorEmbedding
+sentence_transformers
+InstructorEmbedding
 
 # API
 # fastapi

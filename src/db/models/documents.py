@@ -16,17 +16,22 @@ from src.db.database.models import (
     File,
 )
 
-from src.db.database.models import EMBEDDING_DIMENSIONS
 from src.db.models.vector_database import VectorDatabase, SearchType
 from src.db.models.domain.document_collection_model import DocumentCollectionModel
 from src.db.models.domain.document_model import DocumentModel
 from src.db.models.domain.file_model import FileModel
 
+from src.ai.embeddings_helper import get_embedding
+
 
 class Documents(VectorDatabase):
-    def create_collection(self, collection_name) -> DocumentCollectionModel:
+    def create_collection(
+        self, collection_name, collection_type
+    ) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
-            collection = DocumentCollection(collection_name=collection_name)
+            collection = DocumentCollection(
+                collection_name=collection_name, collection_type=collection_type
+            )
 
             session.add(collection)
             session.commit()
@@ -40,6 +45,7 @@ class Documents(VectorDatabase):
                     DocumentCollection.id,
                     DocumentCollection.collection_name,
                     DocumentCollection.record_created,
+                    DocumentCollection.collection_type,
                 )
                 .filter(DocumentCollection.id == collection_id)
                 .first()
@@ -54,6 +60,7 @@ class Documents(VectorDatabase):
                     DocumentCollection.id,
                     DocumentCollection.collection_name,
                     DocumentCollection.record_created,
+                    DocumentCollection.collection_type,
                 )
                 .filter(DocumentCollection.collection_name == collection_name)
                 .first()
@@ -67,6 +74,7 @@ class Documents(VectorDatabase):
                 DocumentCollection.id,
                 DocumentCollection.collection_name,
                 DocumentCollection.record_created,
+                DocumentCollection.collection_type,
             ).all()
 
             return [DocumentCollectionModel.from_database_model(c) for c in collections]
@@ -280,11 +288,17 @@ class Documents(VectorDatabase):
 
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
-            embedding = self.get_embedding(document.document_text)
+            embedding = get_embedding(
+                text=document.document_text,
+                collection_type=document.collection_type,
+                instruction="Represent the document for retrieval: ",
+            )
             document_text_summary_embedding = None
             if document.document_text_summary.strip() != "":
-                document_text_summary_embedding = self.get_embedding(
-                    document.document_text_summary
+                document_text_summary_embedding = get_embedding(
+                    document.document_text_summary,
+                    collection_type=document.collection_type,
+                    instruction="Represent the summary for retrieval: ",
                 )
             document = document.to_database_model()
             document.embedding = embedding
@@ -295,12 +309,20 @@ class Documents(VectorDatabase):
 
             return DocumentModel.from_database_model(document)
 
-    def set_document_text_summary(self, document_id: int, document_text_summary):
+    def set_document_text_summary(
+        self, document_id: int, document_text_summary: str, collection_id: int
+    ):
+        collection_type = self.get_collection(
+            collection_id=collection_id
+        ).collection_type
+        
         with self.session_context(self.Session()) as session:
             document_text_summary_embedding = None
             if document_text_summary.strip() != "":
-                document_text_summary_embedding = self.get_embedding(
-                    document_text_summary
+                document_text_summary_embedding = get_embedding(
+                    document_text_summary,
+                    collection_type=collection_type,
+                    instruction="Represent the summary for retrieval: ",
                 )
 
                 session.query(Document).filter(Document.id == document_id).update(
@@ -322,6 +344,10 @@ class Documents(VectorDatabase):
         top_k=10,
     ) -> List[DocumentModel]:
         # # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
+
+        collection_type = self.get_collection(
+            collection_id=collection_id
+        ).collection_type
 
         with self.session_context(self.Session()) as session:
             # Before searching, pre-filter the query to only include conversations that match the single inputs
@@ -365,7 +391,11 @@ class Documents(VectorDatabase):
                 ]
 
             elif search_type == SearchType.Similarity:
-                query_embedding = self.get_embedding(search_query)
+                query_embedding = get_embedding(
+                    text=search_query,
+                    collection_type=collection_type,
+                    instruction="Represent the query for retrieval: ",
+                )
 
                 document_text_embedding_results = self._get_nearest_neighbors(
                     session=session,

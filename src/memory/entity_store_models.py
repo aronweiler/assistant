@@ -13,7 +13,6 @@ from sqlalchemy.orm import relationship
 
 from pgvector.sqlalchemy import Vector
 
-EMBEDDING_DIMENSIONS = 1536
 
 
 class Base(DeclarativeBase):
@@ -34,7 +33,7 @@ class Entity(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     entity_key: Mapped[str] = mapped_column(unique=True)
     date_created: Mapped[datetime] = mapped_column(default=datetime.now())
-    embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    embedding = Column(Vector(), nullable=True)
 
     details: Mapped[List[EntityDetails]] = relationship(
         secondary=association_table, back_populates="entities"
@@ -48,7 +47,7 @@ class EntityDetails(Base):
     entity_value: Mapped[str] = mapped_column()
     date_created: Mapped[datetime] = mapped_column(default=datetime.now())
     date_updated: Mapped[datetime] = mapped_column(default=datetime.now())
-    embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    embedding = Column(Vector(), nullable=True)
 
     entities: Mapped[List[Entity]] = relationship(
         secondary=association_table, back_populates="details", viewonly=True
