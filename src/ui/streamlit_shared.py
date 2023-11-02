@@ -5,7 +5,15 @@ import time
 import uuid
 
 import streamlit as st
+import requests
+
 from streamlit.runtime.scriptrunner import RerunException
+
+from src.configuration.assistant_configuration import (
+    ApplicationConfigurationLoader,
+)
+
+from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
@@ -20,6 +28,31 @@ from src.documents.document_loader import load_and_split_documents
 from streamlit_extras.stylable_container import stylable_container
 
 IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
+
+
+def get_app_config_path():
+    app_config_path = os.environ.get(
+        "APP_CONFIG_PATH",
+        "configurations/app_configs/config.json",
+    )
+
+    return app_config_path
+
+
+def get_app_configuration():
+    """Loads the configuration from the path"""
+    app_config_path = get_app_config_path()
+
+    return ApplicationConfigurationLoader.from_file(app_config_path)
+
+
+def get_available_models():
+    available_models_path = os.environ.get(
+        "AVAILABLE_MODELS",
+        "configurations/available_models.json",
+    )
+
+    return ApplicationConfigurationLoader.from_file(available_models_path)
 
 
 def delete_conversation_item(id: int):
@@ -75,16 +108,86 @@ def load_conversation_selectbox(load_ai_callback, tab):
     """Loads the interaction selectbox"""
 
     try:
+        interaction_pairs = get_interaction_pairs()
+        if interaction_pairs is None:
+            return
+
         tab.selectbox(
             "Select Conversation",
-            get_interaction_pairs(),
+            interaction_pairs,
             key="interaction_summary_selectbox",
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
         )
 
+        col1, col2, col3, col4 = tab.columns([0.15, 0.35, 0.15, 0.25])
+
+        col3.button(
+            "➕",
+            help="Create a new conversation",
+            key="new_chat_button",
+            on_click=create_interaction,
+            kwargs={"interaction_summary": "Empty Chat"},
+        )
+
+        # col3
+        if col4.button(
+            "✏️",
+            key="edit_interaction",
+            help="Edit this conversation name",
+            use_container_width=False,
+        ):
+            selected_interaction_pair = st.session_state.get(
+                "interaction_summary_selectbox"
+            )
+
+            with tab.form(key="edit_interaction_name_form", clear_on_submit=True):
+                # col1a, col2a = tab.columns(2)
+                st.text_input(
+                    "Edit conversation name",
+                    key="new_interaction_name",
+                    value=selected_interaction_pair.split(":")[1],
+                )
+
+                st.form_submit_button(
+                    label="Save",
+                    # key="save_interaction_name",
+                    help="Click to save",
+                    type="primary",
+                    on_click=update_interaction_name,
+                )
+
+        if "confirm_interaction_delete" not in st.session_state:
+            st.session_state.confirm_interaction_delete = False
+
+        if st.session_state.confirm_interaction_delete == False:
+            col1.button(
+                "🗑️",
+                help="Delete this conversation?",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": True},
+                key=str(uuid.uuid4()),
+            )
+        else:
+            col2.button(
+                "✅",
+                help="Click to confirm delete",
+                key=str(uuid.uuid4()),
+                on_click=delete_interaction,
+                kwargs={"interaction_id": get_selected_interaction_id()},
+            )
+            col1.button(
+                "❌",
+                help="Click to cancel delete",
+                on_click=set_confirm_interaction_delete,
+                kwargs={"val": False},
+                key=str(uuid.uuid4()),
+            )
+
     except Exception as e:
         logging.error(f"Error loading interaction selectbox: {e}")
+
+    tab.divider()
 
 
 def set_confirm_interaction_delete(val):
@@ -104,7 +207,10 @@ def get_interaction_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions = None
 
-    interactions = Interactions().get_interactions_by_user_id(st.session_state.user_id)
+    if "user_id" in st.session_state:
+        interactions = Interactions().get_interactions_by_user_id(
+            st.session_state.user_id
+        )
 
     if not interactions:
         return None
@@ -188,52 +294,12 @@ def delete_interaction(interaction_id):
     set_confirm_interaction_delete(False)
 
 
-def setup_new_chat_button(tab):
-    with tab.container():
-        col1, col2, col3 = tab.columns([0.5, 0.25, 0.25])
-        col1.button(
-            "New Chat",
-            key="new_chat_button",
-            on_click=create_interaction,
-            kwargs={"interaction_summary": "Empty Chat"},
-        )
-
-        if "confirm_interaction_delete" not in st.session_state:
-            st.session_state.confirm_interaction_delete = False
-
-        if st.session_state.confirm_interaction_delete == False:
-            col2.button(
-                "🗑️",
-                help="Delete this conversation?",
-                on_click=set_confirm_interaction_delete,
-                kwargs={"val": True},
-                key=str(uuid.uuid4()),
-            )
-        else:
-            col2.button(
-                "✅",
-                help="Click to confirm delete",
-                key=str(uuid.uuid4()),
-                on_click=delete_interaction,
-                kwargs={"interaction_id": get_selected_interaction_id()},
-            )
-            col3.button(
-                "❌",
-                help="Click to cancel delete",
-                on_click=set_confirm_interaction_delete,
-                kwargs={"val": False},
-                key=str(uuid.uuid4()),
-            )
-
-        tab.divider()
-
-
 def get_available_collections():
     # Time the operation:
-    start_time = time.time()    
+    start_time = time.time()
     collections = Documents().get_collections()
     total_time = time.time() - start_time
-    
+
     logging.info(f"get_available_collections() took {total_time} seconds")
 
     # Create a dictionary of collection id to collection summary
@@ -370,7 +436,7 @@ def select_documents(tab, ai=None):
             )
 
             st.toggle(
-                "Split documents",
+                "Split documents by tokens (default is by page)",
                 key="split_documents",
                 value=st.session_state.ingestion_settings.split_documents,
             )
@@ -448,8 +514,12 @@ def ingest_files(
         state="running",
     )
 
+    ingest_progress_bar = st.progress(text="Uploading files...", value=0)
+
     # First upload the files to our temp directory
-    uploaded_file_paths, root_temp_dir = upload_files(uploaded_files, status)
+    uploaded_file_paths, root_temp_dir = upload_files(
+        uploaded_files, status, ingest_progress_bar
+    )
 
     with status.container():
         with st.empty():
@@ -458,6 +528,14 @@ def ingest_files(
             # First see if there are any files we can't load
             files = []
             for uploaded_file_path in uploaded_file_paths:
+                ingest_progress_bar.progress(
+                    calculate_progress(
+                        len(uploaded_file_paths),
+                        uploaded_file_paths.index(uploaded_file_path) + 1,
+                    ),
+                    text=f"Uploading file {uploaded_file_paths.index(uploaded_file_path) + 1} of {len(uploaded_file_paths)}",
+                )
+
                 # Get the file name
                 file_name = (
                     uploaded_file_path.replace(root_temp_dir, "").strip("/").strip("\\")
@@ -519,13 +597,18 @@ def ingest_files(
                         file_hash=calculate_sha256(uploaded_file_path),
                         file_classification=file_classification,
                     ),
-                    file_data
+                    file_data,
                 )
                 files.append(file_model)
 
             if not files or len(files) == 0:
                 st.warning("Nothing to split... bye!")
                 logging.warning("No files to ingest")
+                ingest_progress_bar.empty()
+                status.update(
+                    label=f"⚠️ Ingestion complete (with warnings)",
+                    state="complete",
+                )
                 return
 
             st.info("Splitting documents...")
@@ -556,14 +639,22 @@ def ingest_files(
                 )
                 return
 
-            st.info(f"Saving {len(documents)} document chunks...")
-            logging.info(f"Saving {len(documents)} document chunks...")
+            document_chunk_length = len(documents)
+            st.info(f"Saving {document_chunk_length} document chunks...")
+            logging.info(f"Saving {document_chunk_length} document chunks...")
 
             # For each document, create the file if it doesn't exist and then the document chunks
+            current_chunk = 0
             for document in documents:
+                current_chunk += 1
                 # Get the file name without the root_temp_dir (preserving any subdirectories)
                 file_name = (
                     document.metadata["filename"].replace(root_temp_dir, "").strip("/")
+                )
+
+                ingest_progress_bar.progress(
+                    calculate_progress(len(documents), current_chunk),
+                    text=f"Processing document {current_chunk} of {document_chunk_length}",
                 )
 
                 # Get the file reference
@@ -621,14 +712,33 @@ def ingest_files(
                 state="complete",
             )
 
+            ingest_progress_bar.empty()
 
-def upload_files(uploaded_files, status):
+    # Done!
+    st.balloons()
+
+
+def calculate_progress(total_size, current_position):
+    """
+    Calculate progress as a percentage within the range of 0-100.
+    """
+    progress = (current_position / total_size) * 100
+    return int(min(progress, 100))
+
+
+def upload_files(uploaded_files, status, ingest_progress_bar):
     root_temp_dir = "temp/" + str(uuid.uuid4())
 
     # First upload all of the files- this needs to be done before we process them, in case there are inter-dependencies
     uploaded_file_paths = []
     with status.empty():
         for uploaded_file in uploaded_files:
+            ingest_progress_bar.progress(
+                calculate_progress(
+                    len(uploaded_files), uploaded_files.index(uploaded_file) + 1
+                ),
+                text=f"Uploading file {uploaded_files.index(uploaded_file) + 1} of {len(uploaded_files)}",
+            )
             st.info(f"Uploading file: {uploaded_file.name}")
 
             file_path = os.path.join(root_temp_dir, uploaded_file.name)
@@ -648,9 +758,33 @@ def show_version():
     # Read the version from the version file
     version = ""
     with open("version.txt", "r") as f:
-        version = f.read()
+        version = f.read().strip()
 
-    st.sidebar.info(f"Version: {version}")
+    # Try to get the main version from my github repo, and if it's different, show an update message
+    try:
+        response = requests.get(
+            "https://raw.githubusercontent.com/aronweiler/assistant/main/version.txt"
+        )
+        if response.status_code == 200:
+            latest_version = response.text.strip()
+            if latest_version != version:
+                st.sidebar.warning(
+                    f"⚠️ You are running a version of Jarvis that is not the release version."
+                )
+                st.sidebar.markdown(
+                    f"You are running **{version}**, and the release version is **{latest_version}**."
+                )
+                st.sidebar.markdown(
+                    "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-in-docker)"
+                )
+            else:
+                st.sidebar.info(f"Version: {version}")
+        else:
+            st.sidebar.info(f"Version: {version}")
+
+    except Exception as e:
+        logging.error(f"Error checking for latest version: {e}")
+        st.sidebar.info(f"Version: {version}")
 
 
 def on_change_collection():
@@ -663,9 +797,13 @@ def on_change_collection():
 
 
 def create_collection_selectbox(ai):
+    st.markdown("Selected document collection:")
+
     col1, col2 = st.columns([0.80, 0.2])
 
-    st.caption("Selected document collection:")
+    st.caption(
+        "The document collection selected here determines which documents are used to answer questions."
+    )
 
     available_collections = get_available_collections()
     selected_collection_id_index = 0
@@ -799,7 +937,7 @@ def show_old_messages(ai_instance):
                 )
 
 
-def handle_chat(main_window_container, ai_instance):
+def handle_chat(main_window_container, ai_instance, configuration):
     with main_window_container.container():
         # Get the AI instance from session state
         if not ai_instance:
@@ -828,23 +966,63 @@ def handle_chat(main_window_container, ai_instance):
 """
 
     with stylable_container(key="enabled_tools_container", css_styles=css_style):
-        col1, col2, col3 = st.columns([0.06, 0.15, 0.7])
+        col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 2, 1, 2])
 
         col1.markdown(
-            f'<div align="left"><b>AI Mode:</b></div>', unsafe_allow_html=True
+            f'<div align="right"><b>AI Mode:</b></div>', unsafe_allow_html=True
         )
 
-        def set_mode():
-            mode = st.session_state["mode"]
-            ai_instance.set_mode(mode)
+        ai_modes = ["Auto", "Conversation Only"]
 
         col2.selectbox(
             label="Mode",
             label_visibility="collapsed",
-            options=["Auto", "Conversation Only"],
-            key="mode",
+            options=ai_modes,
+            index=ai_modes.index(
+                get_app_configuration()["jarvis_ai"].get("ai_mode", "Auto")
+            ),
+            key="ai_mode",
             help="Select the mode to use. 'Auto' will automatically switch between 'Conversation Only' and 'Tool Using AI' based on the user's input.",
-            on_change=set_mode,
+            on_change=set_ai_mode,
+        )
+
+        col3.markdown(
+            f'<div align="right"><b>Frequency Penalty:</b></div>',
+            unsafe_allow_html=True,
+        )
+
+        col4.slider(
+            label="Frequency Penalty",
+            label_visibility="collapsed",
+            key="frequency_penalty",
+            min_value=-2.0,
+            max_value=2.0,
+            value=float(
+                get_app_configuration()["jarvis_ai"].get("frequency_penalty", 0)
+            ),
+            step=0.1,
+            help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
+            on_change=set_frequency_penalty,
+            disabled=st.session_state["ai_mode"] != "Conversation Only",
+        )
+
+        col5.markdown(
+            f'<div align="right"><b>Presence Penalty:</b></div>', unsafe_allow_html=True
+        )
+
+        col6.slider(
+            label="Presence Penalty",
+            label_visibility="collapsed",
+            key="presence_penalty",
+            min_value=-2.0,
+            max_value=2.0,
+            value=float(
+                get_app_configuration()["jarvis_ai"].get("presence_penalty", 0.6)
+            ),
+            step=0.1,
+            help="The higher the penalty, the more variety of words will be introduced in the completion.",
+            on_change=set_presence_penalty,
+            disabled=st.session_state["ai_mode"] != "Conversation Only",
         )
 
     if prompt:
@@ -854,20 +1032,25 @@ def handle_chat(main_window_container, ai_instance):
             st.chat_message("user", avatar="👤").markdown(prompt)
 
             with st.chat_message("assistant", avatar="🤖"):
-                thought_container = st.container()
-                llm_container = st.container().empty()
-                llm_callback = StreamingOnlyCallbackHandler(llm_container)
                 agent_callbacks = []
                 llm_callbacks = []
-                # callbacks.append(results_callback)
-                agent_callbacks.append(
-                    StreamlitCallbackHandler(
+
+                thought_container = st.container()
+                llm_container = st.container().empty()
+
+                if configuration["jarvis_ai"].get("show_llm_thoughts", False):
+                    llm_callback = StreamingOnlyCallbackHandler(llm_container)
+                    agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
                         expand_new_thoughts=True,
                         collapse_completed_thoughts=True,
                     )
-                )
-                llm_callbacks.append(llm_callback)
+
+                    agent_callbacks.append(agent_callback)
+                    llm_callbacks.append(llm_callback)
+                else:
+                    # Show some kind of indicator that the AI is thinking
+                    llm_container.info(icon="🤖", body="Thinking...")
 
                 collection_id = get_selected_collection_id()
 
@@ -877,8 +1060,8 @@ def handle_chat(main_window_container, ai_instance):
                     "search_top_k": int(st.session_state["search_top_k"])
                     if "search_top_k" in st.session_state
                     else 5,
-                    "search_method": st.session_state["search_method"]
-                    if "search_method" in st.session_state
+                    "search_type": st.session_state["search_type"]
+                    if "search_type" in st.session_state
                     else "Similarity",
                     "use_pandas": st.session_state["use_pandas"]
                     if "use_pandas" in st.session_state
@@ -895,21 +1078,17 @@ def handle_chat(main_window_container, ai_instance):
                     )
                     if "max_code_review_token_count" in st.session_state
                     else 5000,
-                    "summarization_strategy": st.session_state["summarization_strategy"]
-                    if "summarization_strategy" in st.session_state
-                    else "map_reduce",
-                    "re_run_user_query": st.session_state["re_run_user_query"]
-                    if "re_run_user_query" in st.session_state
-                    else True,
                 }
                 logging.debug(f"kwargs: {kwargs}")
 
                 try:
+                    ai_instance.interaction_manager.agent_callbacks = agent_callbacks
+                    ai_instance.interaction_manager.llm_callbacks = llm_callbacks
+
                     result = ai_instance.query(
                         query=prompt,
                         collection_id=collection_id if collection_id != -1 else None,
-                        agent_callbacks=agent_callbacks,
-                        llm_callbacks=llm_callbacks,
+                        ai_mode=st.session_state["ai_mode"],
                         kwargs=kwargs,
                     )
                 except Exception as e:
@@ -924,3 +1103,49 @@ def handle_chat(main_window_container, ai_instance):
                 # logging.debug(
                 #     f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
                 # )
+
+
+def set_jarvis_ai_config_element(key, value):
+    configuration = get_app_configuration()
+
+    configuration["jarvis_ai"][key] = value
+
+    ApplicationConfigurationLoader.save_to_file(configuration, get_app_config_path())
+
+    st.session_state["app_config"] = configuration
+
+
+def set_search_type():
+    set_jarvis_ai_config_element("search_type", st.session_state["search_type"])
+
+
+def set_search_top_k():
+    set_jarvis_ai_config_element("search_top_k", st.session_state["search_top_k"])
+
+
+def set_frequency_penalty():
+    set_jarvis_ai_config_element(
+        "frequency_penalty", st.session_state["frequency_penalty"]
+    )
+
+
+def set_presence_penalty():
+    set_jarvis_ai_config_element(
+        "presence_penalty", st.session_state["presence_penalty"]
+    )
+
+
+def set_ai_mode():
+    set_jarvis_ai_config_element("ai_mode", st.session_state["ai_mode"])
+
+
+def update_interaction_name():
+    interaction_id = get_selected_interaction_id()
+    interaction_name = st.session_state["new_interaction_name"]
+
+    ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
+    ai.interaction_manager.interactions_helper.update_interaction_summary(
+        interaction_id=interaction_id,
+        interaction_summary=interaction_name,
+        needs_summary=False,
+    )

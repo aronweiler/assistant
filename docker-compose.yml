@@ -18,6 +18,8 @@ services:
       - .env
     ports:
       - 8500:8500
+    volumes:
+      - ./tmp/assistant-ui-config/:/config/
 
   discord-bot:
     image: aronweiler/assistant:latest

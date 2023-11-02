@@ -1,5 +1,7 @@
 from typing import List
 
+import json
+
 from langchain.chains.llm import LLMChain
 from langchain.base_language import BaseLanguageModel
 from langchain.chains import (
@@ -17,6 +19,8 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.llm_helper import get_tool_llm
+import src.utilities.configuration_utilities as configuration_utilities
 
 
 class DocumentTool:
@@ -24,11 +28,9 @@ class DocumentTool:
         self,
         configuration,
         interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
     ):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
 
     def search_loaded_documents(
         self,
@@ -49,29 +51,106 @@ class DocumentTool:
             target_file_id (int, optional): The file_id if you want to search a specific file. Defaults to None which searches all files.
         """
 
+        # Do we override the file ID?
         target_file_id = self.interaction_manager.tool_kwargs.get(
             "override_file", target_file_id
         )
 
-        keyword_documents = (
-            self.interaction_manager.documents_helper.search_document_embeddings(
-                search_query=keywords_list,
-                collection_id=self.interaction_manager.collection_id,
-                search_type=SearchType.Keyword,
-                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-                target_file_id=target_file_id,
-            )
+        try:
+            # Get the number of additional prompts that should be created to search the loaded documents
+            refactor_prompt_settings = self.configuration["tool_configurations"][
+                self.search_loaded_documents.__name__
+            ]["refactor_prompt_settings"]
+
+            split_prompts = 0
+            for setting in refactor_prompt_settings:
+                if setting["name"] == "Split Prompt":
+                    split_prompts = setting["value"]
+                    break
+
+            # If there are more than 0 additional prompts, we need to create them
+            if split_prompts > 1:
+                llm = get_tool_llm(
+                    configuration=self.configuration,
+                    func_name=self.search_loaded_documents.__name__,
+                    streaming=True,
+                    # Crank up the frequency and presence penalties to make the LLM give us more variety
+                    model_kwargs={
+                        "frequency_penalty": 0.7,
+                        "presence_penalty": 0.9,
+                    },
+                )
+
+                additional_prompt_prompt = (
+                    self.interaction_manager.prompt_manager.get_prompt(
+                        "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
+                    )
+                )
+
+                split_prompts = llm.predict(
+                    additional_prompt_prompt.format(
+                        additional_prompts=split_prompts,
+                        user_query=user_query,
+                    ),
+                    callbacks=self.interaction_manager.agent_callbacks,
+                )
+
+                split_prompts = json.loads(split_prompts)
+
+                results = []
+                for prompt in split_prompts["prompts"]:
+                    results.append(
+                        self._search_loaded_documents(
+                            semantic_similarity_query=prompt['semantic_similarity_query'],
+                            keywords_list=prompt['keywords_list'],
+                            user_query=prompt['query'],
+                            target_file_id=target_file_id,
+                        )
+                    )
+
+                return "\n".join(results)
+        except:
+            pass
+
+        return self._search_loaded_documents(
+            semantic_similarity_query=semantic_similarity_query,
+            keywords_list=keywords_list,
+            user_query=user_query,
+            target_file_id=target_file_id,
         )
 
-        similarity_documents = (
-            self.interaction_manager.documents_helper.search_document_embeddings(
-                search_query=semantic_similarity_query,
-                collection_id=self.interaction_manager.collection_id,
-                search_type=SearchType.Similarity,
-                top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
-                target_file_id=target_file_id,
+    def _search_loaded_documents(
+        self,
+        semantic_similarity_query: str,
+        keywords_list: List[str],
+        user_query: str,
+        target_file_id: int = None,
+    ):
+        search_type = self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
+
+        keyword_documents = []
+        if search_type == "Hybrid" or search_type == "Keyword":
+            keyword_documents = (
+                self.interaction_manager.documents_helper.search_document_embeddings(
+                    search_query=keywords_list,
+                    collection_id=self.interaction_manager.collection_id,
+                    search_type=SearchType.Keyword,
+                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    target_file_id=target_file_id,
+                )
             )
-        )
+
+        similarity_documents = []
+        if search_type == "Hybrid" or search_type == "Similarity":
+            similarity_documents = (
+                self.interaction_manager.documents_helper.search_document_embeddings(
+                    search_query=semantic_similarity_query,
+                    collection_id=self.interaction_manager.collection_id,
+                    search_type=SearchType.Similarity,
+                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    target_file_id=target_file_id,
+                )
+            )
 
         # De-dupe the documents
         combined_documents = []
@@ -98,30 +177,30 @@ class DocumentTool:
         summaries = []
 
         for document in combined_documents:
-            page_or_line = (
-                f"page='{document.additional_metadata['page']}'"
-                if "page" in document.additional_metadata
-                else f"line='{document.additional_metadata['start_line']}'"
-            )
+            page_or_line = self.get_page_or_line(document)
             summaries.append(
-                f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}', {page_or_line}"
+                f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}' {page_or_line}"
             )
 
         prompt = prompt.format(summaries="\n\n".join(summaries), question=user_query)
 
-        result = self.llm.predict(prompt)
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.search_loaded_documents.__name__,
+            streaming=True,
+        )
+
+        result = llm.predict(prompt, callbacks=self.interaction_manager.agent_callbacks)
 
         return result
 
-    def generate_detailed_document_chunk_summary(
-        self,
-        document_text: str,
-    ) -> str:
-        summary = self.llm.predict(
+    def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
+        summary = llm.predict(
             self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text)
+            ).format(text=document_text),
+            callbacks=self.interaction_manager.agent_callbacks,
         )
         return summary
 
@@ -145,17 +224,23 @@ class DocumentTool:
             target_file_id=target_file_id
         )
 
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_entire_document.__name__,
+            streaming=True,
+        )
+
         # Are there already document chunk summaries?
         for chunk in document_chunks:
             if not chunk.document_text_has_summary:
                 # Summarize the chunk
                 summary_chunk = self.generate_detailed_document_chunk_summary(
-                    chunk.document_text
+                    document_text=chunk.document_text, llm=llm
                 )
                 documents.set_document_text_summary(chunk.id, summary_chunk)
 
         reduce_chain = LLMChain(
-            llm=self.llm,
+            llm=llm,
             prompt=self.interaction_manager.prompt_manager.get_prompt(
                 "summary",
                 "REDUCE_SUMMARIES_PROMPT",
@@ -214,7 +299,7 @@ class DocumentTool:
             search_query=query,
             collection_id=self.interaction_manager.collection_id,
             search_type=self.interaction_manager.tool_kwargs.get(
-                "search_method", SearchType.Similarity
+                "search_type", SearchType.Similarity
             ),
             target_file_id=self.interaction_manager.tool_kwargs.get(
                 "override_file", None
@@ -231,34 +316,15 @@ class DocumentTool:
                 )
             )
 
-        summary = self.refine_summarize(llm=self.llm, query=query, docs=docs)
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_search_topic.__name__,
+            streaming=True,
+        )
 
-        if self.interaction_manager.tool_kwargs.get("re_run_user_query", False):
-            summary = self.llm.predict(
-                f"Using the following context derived by searching documents, answer the user's original query.\n\nCONTEXT:\n{summary}\n\nORIGINAL QUERY:\n{original_user_query}\n\nAI: I have examined the context above and have determined the following (my response in Markdown):\n"
-            )
+        summary = self.refine_summarize(llm=llm, query=query, docs=docs)
 
         return summary
-
-    # def map_reduce_summarize(self, query, llm, docs):
-    #     pass
-    #     # chain = load_summarize_chain(
-    #     #     llm=llm,
-    #     #     chain_type="refine",
-    #     #     question_prompt=self.interaction_manager.prompt_manager.get_prompt(
-    #     #         "document", "DETAILED_SUMMARIZE_PROMPT"
-    #     #     ),
-    #     #     refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
-    #     #         "document", "SIMPLE_REFINE_PROMPT"
-    #     #     ),
-    #     #     return_intermediate_steps=True,
-    #     #     input_key="input_documents",
-    #     #     output_key="output_text",
-    #     # )
-
-    #     # result = chain({"input_documents": docs, "query": query}, return_only_outputs=True)
-
-    #     # return result["output_text"]
 
     def refine_summarize(self, llm, docs, query: str | None = None):
         if query is None:
@@ -299,3 +365,102 @@ class DocumentTool:
         return "The loaded documents I have access to are:\n\n-" + "\n-".join(
             self.interaction_manager.get_loaded_documents_for_display()
         )
+
+    def search_entire_document(self, target_file_id: int, queries: List[str]):
+        """Search the entire document."""
+
+        documents = Documents()
+
+        file = documents.get_file(target_file_id)
+
+        # Get the document chunks
+        document_chunks = documents.get_document_chunks_by_file_id(
+            target_file_id=target_file_id
+        )
+
+        tool_config = configuration_utilities.get_tool_configuration(
+            configuration=self.configuration,
+            func_name=self.search_entire_document.__name__,
+        )
+
+        # TODO: Figure out the right amount of prompt tokens- currently too many causes the LLM to miss things.
+        # max_prompt_tokens = (
+        #     tool_config["model_configuration"]["max_model_supported_tokens"] * 0.75
+        # )
+        max_prompt_tokens = 1000
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.search_entire_document.__name__,
+            streaming=True,
+        )
+
+        questions = "- " + "\n-".join(queries)
+        prompt = self.interaction_manager.prompt_manager.get_prompt(
+            "document", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
+        )
+
+        document_chunks_length = len(document_chunks)
+
+        intermediate_results = []
+        index = 0
+        while index < document_chunks_length:
+            previous_context = (
+                f"CHUNK {index - 1}:\n{document_chunks[index - 1].document_text}\nSOURCE: file_id='{document_chunks[index - 1].file_id}', file_name='{document_chunks[index - 1].document_name}' {self.get_page_or_line(document_chunks[index - 1])}\n----"
+                if index > 0
+                else ""
+            )
+
+            document_texts = []
+
+            while True:
+                document_texts.append(
+                    f"CHUNK {index}:\n{document_chunks[index].document_text}\nSOURCE: file_id='{document_chunks[index].file_id}', file_name='{document_chunks[index].document_name}' {self.get_page_or_line(document_chunks[index])}"
+                )
+
+                # Get the approximate number of tokens in the prompt
+                current_prompt_text = (
+                    prompt
+                    + "\n"
+                    + questions
+                    + "\n"
+                    + previous_context
+                    + "\n"
+                    + "\n----\n".join(document_texts)
+                )
+
+                total_tokens = num_tokens_from_string(current_prompt_text)
+
+                index += 1
+
+                if total_tokens >= max_prompt_tokens or index >= document_chunks_length:
+                    break
+
+            formatted_prompt = prompt.format(
+                questions=questions,
+                previous_context=previous_context,
+                current_context="\n----\n".join(document_texts),
+            )
+
+            answer = llm.predict(
+                formatted_prompt,
+                callbacks=self.interaction_manager.agent_callbacks,
+            )
+
+            if not answer.lower().startswith("no relevant information"):
+                intermediate_results.append(answer)
+
+        result = (
+            f"Searching the document, '{file.file_name}', yielded the following data:\n"
+            + "\n".join(intermediate_results)
+        )
+
+        return result
+
+    def get_page_or_line(self, document):
+        if "page" in document.additional_metadata:
+            return f"page='{document.additional_metadata['page']}'"
+        elif "start_line" in document.additional_metadata:
+            return f"line='{document.additional_metadata['start_line']}'"
+        else:
+            return ""

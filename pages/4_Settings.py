@@ -1,51 +1,420 @@
 import logging
+import threading
 import streamlit as st
 import os
 
 from src.configuration.assistant_configuration import (
-    RetrievalAugmentedGenerationConfigurationLoader,
+    ApplicationConfigurationLoader,
 )
 
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.tools.tool_manager import ToolManager
 
-
-def get_rag_configuration():
-    """Loads the configuration from the path"""
-    rag_config_path = os.environ.get(
-        "RAG_CONFIG_PATH",
-        "configurations/rag_configs/openai_rag.json",
-    )
-
-    return RetrievalAugmentedGenerationConfigurationLoader.from_file(rag_config_path)
+import src.ui.streamlit_shared as ui_shared
 
 
 def settings_page():
+    st.set_page_config(
+        page_title="Jarvis - Settings",
+        page_icon="⚙️",
+        layout="centered",
+        initial_sidebar_state="expanded",
+    )
+
     st.title("Settings")
-    settings_tab, tools_tab = st.tabs(["General Settings", "Tools"])
+
+    settings_tab, jarvis_ai, tools_tab = st.tabs(
+        ["General Settings", "Jarvis AI", "Tools"]
+    )
 
     with settings_tab:
         general_settings()
+
+    with jarvis_ai:
+        jarvis_ai_settings()
 
     with tools_tab:
         tools_settings()
 
 
+def jarvis_ai_settings():
+    st.markdown(
+        "This section allows you to configure the main Jarvis AI.  These settings will apply to the top-level model used for all interactions."
+    )
+    st.markdown(
+        "Note: To some extent, the settings here will filter down- for instance, since the chat memory of the underlying tool models inherits from the top-level model, the chat memory will be limited to the number of tokens set here."
+    )
+    st.divider()
+
+    needs_saving = False
+
+    jarvis_config = ui_shared.get_app_configuration()["jarvis_ai"]
+
+    st.toggle(
+        label="Show LLM Thoughts",
+        value=jarvis_config.get("show_llm_thoughts", False),
+        key="show_llm_thoughts",
+    )
+
+    if st.session_state["show_llm_thoughts"] != jarvis_config.get(
+        "show_llm_thoughts", False
+    ):
+        needs_saving = True
+
+    generate_model_settings(
+        tool_name="jarvis",
+        tool_configuration=jarvis_config,
+        available_models=ui_shared.get_available_models(),
+    )
+
+    model_configuration, needs_saving = model_needs_saving(
+        tool_name="jarvis",
+        existing_tool_configuration=jarvis_config,
+        needs_saving=needs_saving,
+    )
+
+    if needs_saving:
+        st.toast(f"Saving Jarvis AI settings...")
+        save_jarvis_settings_to_file(
+            show_llm_thoughts=st.session_state["show_llm_thoughts"],
+            model_configuration=model_configuration,
+        )
+
+
+def generate_model_settings(tool_name, tool_configuration, available_models):
+    available_model_names = [
+        {available_models[m]["model_configuration"]["model"]: m}
+        for m in available_models.keys()
+    ]
+
+    col1, col2, col3 = st.columns(3)
+    col1.selectbox(
+        label="Model",
+        options=available_model_names,
+        format_func=lambda x: list(x.values())[0],
+        index=next(
+            (
+                i
+                for i, item in enumerate(available_models.keys())
+                if available_models[item]["model_configuration"]["model"]
+                == tool_configuration["model_configuration"]["model"]
+            ),
+            None,
+        ),
+        key=f"{tool_name}-model",
+    )
+
+    col2.slider(
+        label="Temperature",
+        key=f"{tool_name}-temperature",
+        min_value=0.0,
+        max_value=1.0,
+        step=0.10,
+        value=float(tool_configuration["model_configuration"]["temperature"]),
+    )
+
+    col3.slider(
+        label="Max Retries",
+        key=f"{tool_name}-max-retries",
+        min_value=0,
+        max_value=5,
+        value=tool_configuration["model_configuration"]["max_retries"],
+        step=1,
+    )
+
+    max_supported_tokens = int(
+        available_models[list(st.session_state[f"{tool_name}-model"].values())[0]][
+            "model_configuration"
+        ]["max_model_supported_tokens"]
+    )
+
+    st_sucks_col1, st_sucks_col2 = st.columns([4, 6])
+
+    st_sucks_col1.toggle(
+        "Use Conversation History",
+        value=tool_configuration["model_configuration"]["uses_conversation_history"],
+        key=f"{tool_name}-uses-conversation-history",
+    )
+    st_sucks_col2.markdown("Turn this on to use conversation history for the model.")
+    st_sucks_col2.markdown(
+        "*Note: This will not give memory to the tools that do not use it.*"
+    )
+
+    def update_sliders(max_supported_tokens, history_tokens, completion_tokens):
+        available_tokens = max_supported_tokens - history_tokens
+        if available_tokens < 0:
+            history_tokens = max_supported_tokens
+            completion_tokens = 0
+        elif available_tokens < completion_tokens:
+            history_tokens = max_supported_tokens - completion_tokens
+
+        return history_tokens, completion_tokens
+
+    history_tokens, completion_tokens = st.slider(
+        "Token Allocation",
+        0,
+        max_supported_tokens,
+        (
+            int(
+                tool_configuration["model_configuration"][
+                    "max_conversation_history_tokens"
+                ]
+            ),
+            int(tool_configuration["model_configuration"]["max_completion_tokens"]),
+        ),
+        key=f"{tool_name}-token-allocation",
+        disabled=st.session_state[f"{tool_name}-uses-conversation-history"] is False,
+    )
+
+    history_tokens, completion_tokens = update_sliders(
+        max_supported_tokens, history_tokens, completion_tokens
+    )
+
+    prompt_tokens = max_supported_tokens - (history_tokens + completion_tokens)
+    desired_prompt_tokens = int(0.25 * max_supported_tokens)
+
+    st.markdown(
+        f"You have an available pool of **{max_supported_tokens}** tokens.  You are currently using **{history_tokens}** for conversation history and **{completion_tokens}** for completion."
+    )
+    st.markdown(
+        f"These settings leave {':red[**only ' if prompt_tokens < desired_prompt_tokens else ':green[**'}{prompt_tokens}**] available for prompt tokens."
+    )
+
+    if prompt_tokens < desired_prompt_tokens:
+        st.markdown(
+            f":red[*It is recommended that you leave at least {desired_prompt_tokens} tokens for prompt generation.*]"
+        )
+
+
 def tools_settings():
-    tool_manager = ToolManager()
+    configuration = ui_shared.get_app_configuration()
+    tool_manager = ToolManager(configuration=configuration)
 
     tools = tool_manager.get_all_tools()
 
+    available_models = ui_shared.get_available_models()
+
     # Create a toggle to enable/disable each tool
-    for tool in tools:
-        st.toggle(
-            tools[tool]["display_name"],
-            help=tools[tool]["help_text"],
-            value=tool_manager.is_tool_enabled(tool),
-            key=tool,
+    for tool_name, tool_details in tools.items():
+        tool_configuration = configuration["tool_configurations"][tool_name]
+        col1, col2 = st.columns([3, 7])
+        col1.toggle(
+            tool_details["display_name"],
+            value=tool_manager.is_tool_enabled(tool_name),
+            key=tool_name,
             on_change=tool_manager.toggle_tool,
-            kwargs={"tool_name": tool},
+            kwargs={"tool_name": tool_name},
         )
+        col2.markdown(tool_details["help_text"])
+
+        # If we're refactoring prompts, get the settings and show the widget
+        if (
+            "refactor_prompt_settings"
+            in configuration["tool_configurations"][tool_name]
+        ):
+            with st.expander(
+                label=f"✍️ {tool_details['display_name']} Prompt Refactoring Settings",
+                expanded=False,
+            ):
+                refactor_prompt_settings = configuration["tool_configurations"][
+                    tool_name
+                ]["refactor_prompt_settings"]
+                for refactor_prompt_setting in refactor_prompt_settings:
+                    session_state_key = (
+                        f"{refactor_prompt_setting['name']}-refactor-prompt"
+                    )
+                    if refactor_prompt_setting["type"] == "int":
+                        st.number_input(
+                            label=refactor_prompt_setting["name"],
+                            value=refactor_prompt_setting["value"],
+                            key=f"{refactor_prompt_setting['name']}-refactor-prompt",
+                            min_value=refactor_prompt_setting["min"],
+                            max_value=refactor_prompt_setting["max"],
+                            step=refactor_prompt_setting["step"],
+                            on_change=save_refactor_prompt_setting,
+                            kwargs={
+                                "tool_name": tool_name,
+                                "setting_name": refactor_prompt_setting["name"],
+                                "session_state_key": session_state_key,
+                            },
+                        )
+                        
+                    st.markdown(refactor_prompt_setting["description"])
+                        
+
+        if "model_configuration" in configuration["tool_configurations"][tool_name]:
+            with st.expander(
+                label=f"⚙️ {tool_details['display_name']} Model Settings", expanded=False
+            ):
+                generate_model_settings(
+                    tool_name=tool_name,
+                    tool_configuration=tool_configuration,
+                    available_models=available_models,
+                )
+
+        st.divider()
+
+    save_tool_settings(tools, configuration)
+
+
+def save_tool_settings(tools, configuration):
+    # Iterate through all of the tools and save their settings
+    for tool_name, tool_details in tools.items():
+        existing_tool_configuration = configuration["tool_configurations"][tool_name]
+
+        # Only save if the settings are different
+        needs_saving = False
+
+        enabled = st.session_state[tool_name]
+        if enabled != existing_tool_configuration["enabled"]:
+            needs_saving = True
+
+        model_configuration, needs_saving = model_needs_saving(
+            tool_name, existing_tool_configuration, needs_saving
+        )
+
+        if needs_saving:
+            st.toast(f"Saving {tool_name} settings...")
+            save_tool_settings_to_file(
+                tool_name=tool_name,
+                enabled=enabled,
+                model_configuration=model_configuration,
+            )
+
+
+def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
+    model_configuration = None
+    if "model_configuration" in existing_tool_configuration:
+        # Get the model configuration from the UI
+
+        model = list(st.session_state[f"{tool_name}-model"])[0]
+        model_friendly_name = st.session_state[f"{tool_name}-model"][
+            list(st.session_state[f"{tool_name}-model"])[0]
+        ]
+        max_model_supported_tokens = int(
+            ui_shared.get_available_models()[model_friendly_name][
+                "model_configuration"
+            ]["max_model_supported_tokens"]
+        )
+        llm_type = ui_shared.get_available_models()[model_friendly_name][
+            "model_configuration"
+        ]["llm_type"]
+        if model != existing_tool_configuration["model_configuration"]["model"]:
+            needs_saving = True
+
+        uses_conversation_history = st.session_state[
+            f"{tool_name}-uses-conversation-history"
+        ]
+        if (
+            uses_conversation_history
+            != existing_tool_configuration["model_configuration"][
+                "uses_conversation_history"
+            ]
+        ):
+            needs_saving = True
+
+        (
+            max_conversation_history_tokens,
+            max_completion_tokens,
+        ) = st.session_state[f"{tool_name}-token-allocation"]
+
+        if (
+            max_conversation_history_tokens
+            != existing_tool_configuration["model_configuration"][
+                "max_conversation_history_tokens"
+            ]
+        ):
+            needs_saving = True
+        if (
+            max_completion_tokens
+            != existing_tool_configuration["model_configuration"][
+                "max_completion_tokens"
+            ]
+        ):
+            needs_saving = True
+        max_retries = st.session_state[f"{tool_name}-max-retries"]
+        if (
+            max_retries
+            != existing_tool_configuration["model_configuration"]["max_retries"]
+        ):
+            needs_saving = True
+
+        temperature = st.session_state[f"{tool_name}-temperature"]
+        if (
+            temperature
+            != existing_tool_configuration["model_configuration"]["temperature"]
+        ):
+            needs_saving = True
+
+        model_configuration = {
+            "llm_type": llm_type,
+            "model": model,
+            "temperature": temperature,
+            "max_retries": max_retries,
+            "max_model_supported_tokens": max_model_supported_tokens,
+            "uses_conversation_history": uses_conversation_history,
+            "max_conversation_history_tokens": max_conversation_history_tokens,
+            "max_completion_tokens": max_completion_tokens,
+        }
+
+    return model_configuration, needs_saving
+
+
+def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration):
+    configuration = ui_shared.get_app_configuration()
+
+    configuration["jarvis_ai"]["show_llm_thoughts"] = show_llm_thoughts
+
+    if model_configuration:
+        configuration["jarvis_ai"]["model_configuration"] = model_configuration
+
+    app_config_path = ui_shared.get_app_config_path()
+
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
+
+    st.session_state["app_config"] = configuration
+
+
+def save_tool_settings_to_file(tool_name, enabled, model_configuration):
+    configuration = ui_shared.get_app_configuration()
+    configuration["tool_configurations"][tool_name]["enabled"] = enabled
+    if model_configuration:
+        configuration["tool_configurations"][tool_name][
+            "model_configuration"
+        ] = model_configuration
+
+    app_config_path = ui_shared.get_app_config_path()
+
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
+
+    st.session_state["app_config"] = configuration
+
+
+def save_refactor_prompt_setting(tool_name, setting_name, session_state_key):
+    configuration = ui_shared.get_app_configuration()
+    settings = configuration["tool_configurations"][tool_name][
+        "refactor_prompt_settings"
+    ]
+    for setting in settings:
+        if setting["name"] == setting_name:
+            setting["value"] = st.session_state[session_state_key]
+            break
+
+    app_config_path = ui_shared.get_app_config_path()
+
+    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
+
+    st.session_state["app_config"] = configuration
+
 
 def general_settings():
     source_control_options = ["GitLab", "GitHub"]

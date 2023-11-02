@@ -21,7 +21,7 @@ An intelligent assistant.  This is a work in progress.
 # Running the UI in Docker
 In order to install the assistant using Docker, you'll need the following:
 
-- Docker (probably Docker Desktop) installed and running on your computer
+- Docker ([Docker Desktop](https://www.docker.com/products/docker-desktop/) is what I use) installed and running on your computer
 - Git
 - A web browser
 - An OpenAI Account and API key (or local models)
@@ -40,8 +40,23 @@ The steps to run the docker version is as follows:
 4. Using a command line, navigate to the directory where you cloned the code, and run `docker-compose up -d`
 5. Browse to http://localhost:8500
 
-### ⚠️WARNING⚠️
-The docker container is currently used primarily by me for development, so it does **not** mount a volume for the database.  When you delete the DB docker container, **ALL OF YOUR DATA WILL BE ERASED**.
+## Updating Jarvis in Docker
+
+*🥳 Following these update instructions **WILL NOT ERASE YOUR DATA** 🥳*
+ 
+Run the following commands in a terminal window in the same directory as the Jarvis `docker-compose.yml`:
+- `docker-compose down assistant-ui`
+- `docker pull aronweiler/assistant:latest` 
+  - Alternatively, you can use the version number in place of `latest`, e.g. `docker pull aronweiler/assistant:0.45`
+- `docker-compose up -d assistant-ui`
+- Navigate to http://localhost:8500
+  
+*Note: After updating you will need to re-enable/disable any tools that you previously changed on the Settings page.*
+
+
+## ⚠️ DATABASE CONTAINER WARNING ⚠️
+The docker container that has the database in it is currently used primarily by me for development, so it does **not** mount a volume for the database.  
+When you delete the DB docker container, **ALL OF YOUR DATA WILL BE ERASED**.
 
 Feel free to alter this behavior on your instance, if you like.
 
@@ -132,8 +147,6 @@ This will allow you to interact with the AI assistant through the console.
 This is a chat bot interface that has memory, tools, and other fun stuff. 
 
 ![Streamlit UI](documentation/streamlit.png)
-
-You need to set the `ASSISTANT_CONFIG_PATH` environment variable before running this command.  See the [launch.json](.vscode/launch.json) file for examples.
 
 Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
 

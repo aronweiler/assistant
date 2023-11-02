@@ -9,6 +9,8 @@ from langchain.llms.llamacpp import LlamaCpp
 from src.utilities.openai_utilities import get_openai_api_key
 from src.configuration.assistant_configuration import ModelConfiguration
 
+import src.utilities.configuration_utilities as configuration_utilities
+
 llama2_llm = None
 
 
@@ -23,6 +25,9 @@ class LLMType(Enum):
 def get_llm(model_configuration: ModelConfiguration, **kwargs):
     """Returns the LLM for the specified model configuration."""
 
+    if type(model_configuration) == dict:
+        model_configuration = ModelConfiguration(**model_configuration)
+
     if model_configuration.llm_type == LLMType.OPENAI.value:
         return _get_openai_llm(model_configuration, **kwargs)
     elif (
@@ -32,12 +37,22 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs):
         return _get_llama2_llm(model_configuration, **kwargs)
 
 
+def get_tool_llm(configuration: dict, func_name: str, **kwargs):
+    tool_config = configuration_utilities.get_tool_configuration(
+        configuration=configuration, func_name=func_name
+    )
+
+    return get_llm(
+        model_configuration=tool_config["model_configuration"], **kwargs
+    )
+
+
 def _get_openai_llm(model_configuration, **kwargs):
     llm = ChatOpenAI(
         model=model_configuration.model,
         temperature=model_configuration.temperature,
         max_retries=model_configuration.max_retries,
-        max_tokens=model_configuration.max_completion_tokens,
+        max_tokens=model_configuration.max_completion_tokens if model_configuration.max_completion_tokens > 0 else None,
         openai_api_key=get_openai_api_key(),
         verbose=True,
         **kwargs
@@ -60,7 +75,7 @@ def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
     llama2_llm = LlamaCpp(
         model_path=model_configuration.model,
         n_ctx=model_configuration.max_model_supported_tokens,
-        max_tokens=model_configuration.max_completion_tokens,
+        max_tokens=model_configuration.max_completion_tokens if model_configuration.max_completion_tokens > 0 else None,
         temperature=model_configuration.temperature,
         n_gpu_layers=offload_layers,
         verbose=True,

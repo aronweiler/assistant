@@ -14,18 +14,13 @@ from src.ai.interactions.interaction_manager import InteractionManager
 from src.utilities.token_helper import num_tokens_from_string
 
 from src.tools.code.code_dependency import CodeDependency
+from src.ai.llm_helper import get_tool_llm
 
 
 class CodeTool:
-    def __init__(
-        self,
-        configuration,
-        interaction_manager: InteractionManager,
-        llm: BaseLanguageModel,
-    ):
+    def __init__(self, configuration, interaction_manager: InteractionManager):
         self.configuration = configuration
         self.interaction_manager = interaction_manager
-        self.llm = llm
 
     def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
@@ -274,7 +269,9 @@ class CodeTool:
                 )
 
                 if target_signature is None or target_signature == "":
-                    return get_code_details + documents.get_file_data(file.id).decode("utf-8")
+                    return get_code_details + documents.get_file_data(file.id).decode(
+                        "utf-8"
+                    )
 
                 # Find the document chunk that matches the target signature
                 for doc in document_chunks:
@@ -379,10 +376,16 @@ class CodeTool:
         #         code=doc.document_text,
         #         stub_dependencies_template=stub_dependencies,
         #     )
-        #     stubbed_code.append(self.llm.predict(prompt))
+        #     stubbed_code.append(llm.predict(prompt))
         # full_stubbed_code = "\n\n".join(stubbed_code)
 
         stubbed_code = "Could not stub code, no MODULE type found!"
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.create_stub_code.__name__,
+            streaming=True,
+        )
 
         for doc in documents:
             if doc.additional_metadata["type"] == "MODULE":
@@ -390,7 +393,9 @@ class CodeTool:
                     code=doc.document_text,
                     stub_dependencies_template=stub_dependencies,
                 )
-                stubbed_code = self.llm.predict(prompt)
+                stubbed_code = llm.predict(
+                    prompt, callbacks=self.interaction_manager.agent_callbacks
+                )
                 break
 
         return {

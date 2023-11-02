@@ -1,0 +1,183 @@
+{
+    "jarvis_ai": {
+        "show_llm_thoughts": true,
+        "model_configuration": {
+            "llm_type": "openai",
+            "model": "gpt-3.5-turbo-16k",
+            "temperature": 0.7,
+            "max_retries": 3,
+            "max_model_supported_tokens": 16384,
+            "uses_conversation_history": true,
+            "max_conversation_history_tokens": 2048,
+            "max_completion_tokens": 4096
+        },
+        "search_type": "Similarity",
+        "search_top_k": 10,
+        "frequency_penalty": 0.3,
+        "presence_penalty": 0.7,
+        "ai_mode": "Auto"
+    },
+    "tool_configurations": {
+        "default": {
+            "enabled": true,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": true,
+                "max_conversation_history_tokens": 4096,
+                "max_completion_tokens": 6096
+            }
+        },
+        "analyze_with_llm": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "llama2",
+                "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
+                "temperature": 1.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 4096,
+                "uses_conversation_history": true,
+                "max_conversation_history_tokens": 495,
+                "max_completion_tokens": 1565
+            }
+        },
+        "search_loaded_documents": {
+            "enabled": true,
+            "refactor_prompt_settings": [
+                {
+                    "name": "Split Prompt",
+                    "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
+                    "type": "int",
+                    "value": 2,
+                    "min": 1,
+                    "max": 5,
+                    "step": 1
+                }
+            ],
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 4096,
+                "max_completion_tokens": 6096
+            }
+        },
+        "search_entire_document": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": -1,
+                "max_completion_tokens": 0
+            }
+        },
+        "summarize_entire_document": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 0,
+                "max_completion_tokens": 8192
+            }
+        },
+        "list_documents": {
+            "enabled": false
+        },
+        "get_code_details": {
+            "enabled": false
+        },
+        "get_code_structure": {
+            "enabled": false
+        },
+        "get_pretty_dependency_graph": {
+            "enabled": false
+        },
+        "create_stubs": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 4096,
+                "max_completion_tokens": 6096
+            }
+        },
+        "get_all_code_in_file": {
+            "enabled": false
+        },
+        "conduct_code_review_from_file_id": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 4096,
+                "max_completion_tokens": 6096
+            }
+        },
+        "conduct_code_review_from_url": {
+            "enabled": true,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 4096,
+                "max_completion_tokens": 6096
+            }
+        },
+        "create_code_review_issue_tool": {
+            "enabled": false
+        },
+        "query_spreadsheet": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 4096,
+                "max_completion_tokens": 6096
+            }
+        },
+        "get_weather": {
+            "enabled": true
+        },
+        "get_time": {
+            "enabled": true
+        },
+        "get_news_for_topic": {
+            "enabled": true
+        },
+        "get_top_news_headlines": {
+            "enabled": true
+        },
+        "query_image": {
+            "enabled": true
+        }
+    }
+}

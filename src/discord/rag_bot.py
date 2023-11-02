@@ -102,7 +102,7 @@ class RagBot(discord.Client):
                 async with message.channel.typing():
                     # Add typing indicator
                     response: str = rag_ai.query(
-                        query=message.content, collection_id=self.target_collection_id
+                        query=message.content, collection_id=self.target_collection_id, ai_mode="Auto"
                     )
 
                     # Sometimes the response can be over 2000 characters, so we need to split it
