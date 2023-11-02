@@ -98,7 +98,7 @@ Use the helpful context above to answer the user's query, which is:
 
 Think this through, step by step.  Make sure to take the chat history, and the helpful context into account when answering the user's query.  Sometimes the user's query can be a follow-up to something in the chat history, so be sure you are answering their full query based on the chat history.
 
-AI: Sure! Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
+AI: Sure! Here is my response (in JSON format, only using single quotes to avoid escaping double quotes, remember this is JSON so don't put line breaks in the answer (\\n is OK)):
 """
 
 TOOL_USE_TEMPLATE = """{system_prompt}
