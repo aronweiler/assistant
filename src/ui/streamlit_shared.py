@@ -15,7 +15,10 @@ from src.configuration.assistant_configuration import (
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
-from src.utilities.configuration_utilities import get_app_configuration, get_app_config_path
+from src.utilities.configuration_utilities import (
+    get_app_configuration,
+    get_app_config_path,
+)
 
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
@@ -315,6 +318,30 @@ def get_selected_collection_id():
     return selected_collection_id
 
 
+def get_selected_collection_type():
+    collection_id = get_selected_collection_id()
+    return Documents().get_collection(collection_id).collection_type
+
+
+def get_selected_collection_embedding_model_name():
+    collection_type = get_selected_collection_type()
+
+    if collection_type.lower().startswith("remote"):
+        key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
+            "remote"
+        ]
+    else:
+        key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
+            "local"
+        ]
+
+    return key
+
+def get_selected_collection_configuration():
+    key = get_selected_collection_embedding_model_name()
+
+    return get_app_configuration()["jarvis_ai"]["embedding_models"][key]
+
 def get_selected_collection_name():
     """Gets the selected collection name from the selectbox"""
     selected_collection_pair = st.session_state.get("active_collection")
@@ -369,8 +396,8 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.summarize_chunks = True
         st.session_state.ingestion_settings.summarize_document = True
     else:  # Document
-        st.session_state.ingestion_settings.chunk_size = 600
-        st.session_state.ingestion_settings.chunk_overlap = 100
+        st.session_state.ingestion_settings.chunk_size = 450
+        st.session_state.ingestion_settings.chunk_overlap = 50
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Document"
         st.session_state.ingestion_settings.summarize_chunks = False
@@ -429,16 +456,35 @@ def select_documents(tab, ai=None):
                 key="split_documents",
                 value=st.session_state.ingestion_settings.split_documents,
             )
+
+            max_chunk_size = get_selected_collection_configuration()["max_token_length"]
+
             col1, col2 = st.columns(2)
-            col1.text_input(
+            col1.number_input(
                 "Chunk size",
                 key="file_chunk_size",
+                min_value=0,
+                step=1,
+                max_value=max_chunk_size,
                 value=st.session_state.ingestion_settings.chunk_size,
             )
-            col2.text_input(
+
+            col2.number_input(
                 "Chunk overlap",
                 key="file_chunk_overlap",
-                value=st.session_state.ingestion_settings.chunk_overlap,
+                min_value=0,
+                step=1,
+                max_value=max_chunk_size - st.session_state.file_chunk_size,
+                value=(
+                    st.session_state.ingestion_settings.chunk_overlap
+                    if st.session_state.ingestion_settings.chunk_overlap
+                    <= max_chunk_size - st.session_state.file_chunk_size
+                    else max_chunk_size - st.session_state.file_chunk_size
+                ),
+            )
+
+            st.markdown(
+                f"*Embedding model: **{get_selected_collection_type()}**, max chunk size: **{max_chunk_size}***"
             )
 
         with tab.form(key="upload_files_form", clear_on_submit=True):
@@ -679,6 +725,7 @@ def ingest_files(
                         document_text_has_summary=summary != "",
                         additional_metadata=document.metadata,
                         document_name=document.metadata["filename"],
+                        embedding_model_name=get_selected_collection_embedding_model_name(),
                     )
                 )
 
@@ -864,19 +911,6 @@ def show_old_messages(ai_instance):
     for message in st.session_state["messages"]:
         with st.chat_message(message["role"], avatar=message["avatar"]):
             # TODO: Put better (faster) deleting of conversation items in place.. maybe checkboxes?
-            # def select_conversation_item(message, **kwargs):
-            #     message['selected'] = True if "selected" not in message else not message["selected"]
-
-            # col1, col2 = st.container().columns([0.01, 0.99])
-            # col1.checkbox(
-            #     label="Select",
-            #     key=f"conversation_item_{message['id']}",
-            #     value=False if "selected" not in message else message["selected"],
-            #     kwargs={"message": message},
-            #     on_change=select_conversation_item,
-            #     label_visibility="collapsed",
-            #     help="Select this conversation item",
-            # )
 
             if message["in_memory"]:
                 in_memory = "*🐘 :green[Message in chat memory]*"

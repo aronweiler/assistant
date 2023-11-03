@@ -52,4 +52,4 @@ def get_embedding_with_model(text: str, model_name: str, instruction: str = None
     else:
         model = get_local_embeddings_model(model_name)
 
-        return model.encode([[instruction, text]])
+        return [m.item() for m in model.encode([[instruction, text]], convert_to_numpy=False)[0]]#model.encode([[instruction, text]], convert_to_numpy=False)[0]

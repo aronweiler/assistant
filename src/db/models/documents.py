@@ -21,7 +21,7 @@ from src.db.models.domain.document_collection_model import DocumentCollectionMod
 from src.db.models.domain.document_model import DocumentModel
 from src.db.models.domain.file_model import FileModel
 
-from src.ai.embeddings_helper import get_embedding
+from src.ai.embeddings_helper import get_embedding, get_embedding_with_model
 
 
 class Documents(VectorDatabase):
@@ -288,16 +288,16 @@ class Documents(VectorDatabase):
 
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
-            embedding = get_embedding(
+            embedding = get_embedding_with_model(
                 text=document.document_text,
-                collection_type=document.collection_type,
+                model_name=document.embedding_model_name,
                 instruction="Represent the document for retrieval: ",
             )
             document_text_summary_embedding = None
             if document.document_text_summary.strip() != "":
-                document_text_summary_embedding = get_embedding(
+                document_text_summary_embedding = get_embedding_with_model(
                     document.document_text_summary,
-                    collection_type=document.collection_type,
+                    model_name=document.embedding_model_name,
                     instruction="Represent the summary for retrieval: ",
                 )
             document = document.to_database_model()

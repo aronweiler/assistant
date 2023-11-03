@@ -151,10 +151,10 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         return history_tokens, completion_tokens
 
     history_tokens, completion_tokens = st.slider(
-        "Token Allocation",
-        0,
-        max_supported_tokens,
-        (
+        label="Token Allocation",
+        min_value=0,
+        max_value=max_supported_tokens,
+        value=(
             int(
                 tool_configuration["model_configuration"][
                     "max_conversation_history_tokens"
