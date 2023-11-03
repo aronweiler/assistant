@@ -111,7 +111,7 @@ class RagUI:
                             
                             col2.selectbox(
                                 "Collection type",
-                                options=["Local (HF)", "Remote (OpenAI)"],
+                                options=["Remote (OpenAI)", "Local (HF)"],
                                 key="new_collection_type"
                             )
 
