@@ -4,16 +4,16 @@ from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 class ConversationModel:
     def __init__(
-        self,        
+        self,
         interaction_id,
         conversation_text,
         user_id,
-        conversation_role_type:ConversationRoleType,
-        id = None,        
-        record_created = None,
+        conversation_role_type: ConversationRoleType,
+        id=None,
+        record_created=None,
         additional_metadata=None,
         exception=None,
-        is_deleted=False
+        is_deleted=False,
     ):
         self.id = id
         self.record_created = record_created
@@ -35,22 +35,24 @@ class ConversationModel:
             user_id=self.user_id,
             additional_metadata=self.additional_metadata,
             exception=self.exception,
-            is_deleted=self.is_deleted
+            is_deleted=self.is_deleted,
         )
 
     @classmethod
     def from_database_model(cls, db_conversation):
         if db_conversation is None:
             return None
-        
-        return cls(            
+
+        return cls(
             id=db_conversation.id,
             record_created=db_conversation.record_created,
             interaction_id=db_conversation.interaction_id,
-            conversation_role_type=ConversationRoleType(db_conversation.conversation_role_type_id),
+            conversation_role_type=ConversationRoleType(
+                db_conversation.conversation_role_type_id
+            ),
             conversation_text=db_conversation.conversation_text,
             user_id=db_conversation.user_id,
             additional_metadata=db_conversation.additional_metadata,
             exception=db_conversation.exception,
-            is_deleted=db_conversation.is_deleted
+            is_deleted=db_conversation.is_deleted,
         )

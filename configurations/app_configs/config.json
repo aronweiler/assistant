@@ -1,5 +1,18 @@
 {
     "jarvis_ai": {
+        "embedding_models": {
+            "default": {
+                "local": "hkunlp/instructor-xl",
+                "remote": "text-embedding-ada-002"
+            },
+            "hkunlp/instructor-xl": {
+                "path": "H:\\LLM\\embeddings\\instructor-xl",
+                "max_token_length": 512
+            },
+            "text-embedding-ada-002": {
+                "max_token_length": 8191
+            }
+        },
         "show_llm_thoughts": true,
         "model_configuration": {
             "llm_type": "openai",
@@ -40,8 +53,8 @@
                 "max_retries": 3,
                 "max_model_supported_tokens": 4096,
                 "uses_conversation_history": true,
-                "max_conversation_history_tokens": 495,
-                "max_completion_tokens": 1565
+                "max_conversation_history_tokens": 342,
+                "max_completion_tokens": 1418
             }
         },
         "search_loaded_documents": {
@@ -136,7 +149,7 @@
             }
         },
         "conduct_code_review_from_url": {
-            "enabled": true,
+            "enabled": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -165,19 +178,19 @@
             }
         },
         "get_weather": {
-            "enabled": true
+            "enabled": false
         },
         "get_time": {
-            "enabled": true
+            "enabled": false
         },
         "get_news_for_topic": {
-            "enabled": true
+            "enabled": false
         },
         "get_top_news_headlines": {
-            "enabled": true
+            "enabled": false
         },
         "query_image": {
-            "enabled": true
+            "enabled": false
         }
     }
 }

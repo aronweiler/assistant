@@ -1,3 +1,5 @@
+temp/
+
 # Git
 .git
 .gitignore

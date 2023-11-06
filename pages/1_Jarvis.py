@@ -16,6 +16,8 @@ import src.ui.streamlit_shared as ui_shared
 
 from src.ai.prompts.prompt_manager import PromptManager
 
+from src.utilities.configuration_utilities import get_app_configuration
+
 
 class RagUI:
     def __init__(self, user_email: str = None):
@@ -25,11 +27,7 @@ class RagUI:
         """Loads the configuration from the path"""
         
         if "app_config" not in st.session_state:
-            app_config_path = ui_shared.get_app_config_path()
-
-            st.session_state["app_config"] = ApplicationConfigurationLoader.from_file(
-                app_config_path
-            )
+            st.session_state["app_config"] = get_app_configuration()
                     
         self.prompt_manager = PromptManager(
             llm_type=st.session_state.app_config['jarvis_ai']['model_configuration']['llm_type']
@@ -105,13 +103,19 @@ class RagUI:
                     ):
                         with st.form(key="new_collection", clear_on_submit=True):
                             col1, col2 = st.columns(2)
+                            
                             col1.text_input(
                                 "Collection name",
                                 key="new_collection_name",
-                                label_visibility="collapsed",
+                            )
+                            
+                            col2.selectbox(
+                                "Collection type",
+                                options=["Remote (OpenAI)", "Local (HF)"],
+                                key="new_collection_type"
                             )
 
-                            col2.form_submit_button(
+                            st.form_submit_button(
                                 "Create New Collection",
                                 type="primary",
                                 on_click=ui_shared.create_collection,
