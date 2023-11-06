@@ -1,4 +1,4 @@
-PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """{system_prompt}
+PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """<s>[INST] <<SYS>>{system_prompt}
 
 The loaded documents that you have access to are below.  Pay close attention to the Class of document it is.  Some tools can only be used with certain classes of documents.
 --- LOADED DOCUMENTS ---
@@ -50,18 +50,24 @@ Any previous conversation with the user is contained here. The chat history may 
 
 Now read the user's query very carefully, take a deep breath and think this through step-by-step. I need you to decide whether to answer the user's query directly, or decompose a list of steps.
 
---- USER QUERY ---
+<</SYS>>
 {user_query}
---- USER QUERY ---
+<<SYS>>
 
 Double check the CHAT HISTORY and make sure to resolve any co-references in the steps, so that each step can be interpreted on its own (e.g. resolving concepts, names, urls, or other data represented by words like "that", "this", "here", "there", "he", "she", etc. from the chat history).
 
 ⚠️ Pause, and Remember: 🤔
 1. Any steps you create should ONLY contain tools that are listed here in this prompt. Do not make up tools.
 2. Review the chat history carefully, and make sure to resolve any co-references in the steps you output.
-2. Make sure each step can be acted upon on its own.
+3. Make sure each step can be acted upon on its own.
+4. Return ONLY JSON, nothing else.<</SYS>>[/INST]
+Sure, I have decided whether to answer the user directly, or whether to provide a list of steps. 
 
-AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
+I will respond only in JSON format with no non-JSON content, and I will make sure to escape any quotes in the values of the JSON blob.
+
+I understand that I am only to return a JSON blob, and nothing else, which will be used to call one of the tools available to me.
+
+Here is my response:
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have been working on a user's query.  The other AIs have gathered enough information for you to be able to answer the query.  Now, I would like you to answer the user's query for me using the information I provide here.
@@ -101,7 +107,7 @@ Think this through, step by step.  Make sure to take the chat history, and the h
 AI: Sure! Here is my response (in JSON format, only using single quotes to avoid escaping double quotes, remember this is JSON so don't put line breaks in the answer (\\n is OK)):
 """
 
-TOOL_USE_TEMPLATE = """{system_prompt}
+TOOL_USE_TEMPLATE = """[INST]{system_prompt}
 
 I'm giving you a very important job. Your job is to construct a JSON blob that represents a tool call given the following information.
 
@@ -153,8 +159,12 @@ The following was the original user query:
 {user_query}
 
 Take a deep breath, and think this through.  Make sure to resolve any coreferences in the steps, so that each step can be interpreted on its own.
+[/INST]
+Sure, I will respond only in JSON format with no non-JSON content, and I will make sure to escape any quotes in the values of the JSON blob.
 
-AI: Sure! Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
+I understand that I am only to return a JSON blob, and nothing else, which will be used to call the selected tool.
+
+Here is my (JSON only) response:
 """
 
 TOOL_USE_RETRY_TEMPLATE = """{system_prompt}

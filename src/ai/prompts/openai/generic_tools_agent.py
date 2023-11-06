@@ -59,9 +59,9 @@ Double check the CHAT HISTORY and make sure to resolve any co-references in the 
 ⚠️ Pause, and Remember: 🤔
 1. Any steps you create should ONLY contain tools that are listed here in this prompt. Do not make up tools.
 2. Review the chat history carefully, and make sure to resolve any co-references in the steps you output.
-2. Make sure each step can be acted upon on its own.
+3. Make sure each step can be acted upon on its own.
 
-AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format, where I've made sure to escape any quotes in the answer):
+AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format, where I've made sure to escape any quotes in the values of the JSON):
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have been working on a user's query.  The other AIs have gathered enough information for you to be able to answer the query.  Now, I would like you to answer the user's query for me using the information I provide here.
