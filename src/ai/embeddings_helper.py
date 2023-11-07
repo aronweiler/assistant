@@ -1,6 +1,4 @@
 import openai
-from InstructorEmbedding import INSTRUCTOR
-
 import src.utilities.configuration_utilities as configuration_utilities
 
 from src.utilities.configuration_utilities import get_app_configuration
@@ -9,6 +7,8 @@ local_embeddings_model = None
 
 
 def get_local_embeddings_model(model_name):
+    from InstructorEmbedding import INSTRUCTOR
+    
     global local_embeddings_model
     
     if not local_embeddings_model:

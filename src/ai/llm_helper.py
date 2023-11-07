@@ -5,7 +5,7 @@ from enum import Enum
 
 
 
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models.openai import ChatOpenAI
 from langchain.llms.llamacpp import LlamaCpp
 
 from src.utilities.openai_utilities import get_openai_api_key

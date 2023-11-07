@@ -10,7 +10,7 @@ import pandas as pd
 from langchain.agents import AgentType
 
 from langchain.agents.agent import AgentExecutor
-from langchain.agents.agent_toolkits.pandas.base import create_pandas_dataframe_agent
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain.schema.language_model import BaseLanguageModel
 
 
