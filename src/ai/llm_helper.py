@@ -3,7 +3,9 @@ import importlib
 
 from enum import Enum
 
-from langchain.chat_models import ChatOpenAI
+
+
+from langchain.chat_models.openai import ChatOpenAI
 from langchain.llms.llamacpp import LlamaCpp
 
 from src.utilities.openai_utilities import get_openai_api_key
@@ -45,6 +47,8 @@ def get_tool_llm(configuration: dict, func_name: str, **kwargs):
     return get_llm(
         model_configuration=tool_config["model_configuration"], **kwargs
     )
+    
+
 
 
 def _get_openai_llm(model_configuration, **kwargs):

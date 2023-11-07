@@ -19,9 +19,6 @@ from datetime import datetime
 
 Base = declarative_base()
 
-# Note: this is the OpenAI Embedding size
-EMBEDDING_DIMENSIONS = 1536
-
 
 # ModelBase allows us to access the relationships of a model by using the [] operator
 class ModelBase(Base):
@@ -80,6 +77,7 @@ class UserSetting(ModelBase):
     # Define the many to one relationship with User
     user = relationship("User", back_populates="user_settings")
 
+
 class Interaction(ModelBase):
     __tablename__ = "interactions"
 
@@ -93,17 +91,17 @@ class Interaction(ModelBase):
 
     conversations = relationship("Conversation", back_populates="interaction")
 
-     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
+    # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
-    
+
     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
     user_check_constraint = CheckConstraint(
         "user_id IS NULL OR user_id IN (SELECT id FROM users)",
         name="ck_user_id_in_users",
     )
-    
+
     # Define the relationship with User and Conversation
-    user = relationship("User", back_populates="interactions")    
+    user = relationship("User", back_populates="interactions")
 
 
 class Conversation(ModelBase):
@@ -118,7 +116,8 @@ class Conversation(ModelBase):
     conversation_text = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     additional_metadata = Column(String, nullable=True)
-    embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    #embedding = Column(Vector(dim=None), nullable=True)
+    #embedding_model_name = Column(String, nullable=False)
     exception = Column(String, nullable=True)
 
     # flag for deletion
@@ -126,11 +125,11 @@ class Conversation(ModelBase):
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
-    
+
     # Define the ForeignKeyConstraint to ensure the conversation_role_type_id exists in the conversation_role_types table
     conversation_role_type_constraint = ForeignKeyConstraint(
         [conversation_role_type_id], ["conversation_role_types.id"]
-    )    
+    )
 
     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
     user_check_constraint = CheckConstraint(
@@ -154,6 +153,7 @@ class Conversation(ModelBase):
         "ConversationRoleType", back_populates="conversations"
     )
 
+
 class ConversationRoleType(ModelBase):
     __tablename__ = "conversation_role_types"
 
@@ -164,11 +164,14 @@ class ConversationRoleType(ModelBase):
         "Conversation", back_populates="conversation_role_type"
     )
 
+
 class File(ModelBase):
     __tablename__ = "files"
 
     id = Column(Integer, primary_key=True)
-    collection_id = Column(Integer, ForeignKey("document_collections.id"), nullable=False)        
+    collection_id = Column(
+        Integer, ForeignKey("document_collections.id"), nullable=False
+    )
     user_id = Column(Integer, ForeignKey("users.id"))
     file_name = Column(String, nullable=False)
     file_classification = Column(String, nullable=True)
@@ -178,8 +181,8 @@ class File(ModelBase):
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-    user_constraint = ForeignKeyConstraint([user_id], [User.id])   
-    
+    user_constraint = ForeignKeyConstraint([user_id], [User.id])
+
     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
     user_check_constraint = CheckConstraint(
         "user_id IS NULL OR user_id IN (SELECT id FROM users)",
@@ -190,7 +193,9 @@ class File(ModelBase):
     user = relationship("User", back_populates="files")
 
     # Define the ForeignKeyConstraint to ensure the collection_id exists in the document_collections table
-    collection_constraint = ForeignKeyConstraint([collection_id], ["document_collections.id"])
+    collection_constraint = ForeignKeyConstraint(
+        [collection_id], ["document_collections.id"]
+    )
 
     # Define the CheckConstraint to enforce collection_id existing in document_collections table
     collection_check_constraint = CheckConstraint(
@@ -206,26 +211,30 @@ class File(ModelBase):
 
     __table_args__ = (UniqueConstraint("collection_id", "file_name"),)
 
+
 class Document(ModelBase):
     __tablename__ = "documents"
 
     id = Column(Integer, primary_key=True)
-    collection_id = Column(Integer, ForeignKey("document_collections.id"), nullable=False)
+    collection_id = Column(
+        Integer, ForeignKey("document_collections.id"), nullable=False
+    )
     file_id = Column(Integer, ForeignKey("files.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     additional_metadata = Column(String, nullable=True)
     document_text = Column(String, nullable=False)
     document_name = Column(String, nullable=False)
     document_text_summary = Column(String, nullable=True)
-    document_text_summary_embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    document_text_summary_embedding = Column(Vector(dim=None), nullable=True)
     document_text_has_summary = Column(Boolean, nullable=False, default=False)
-    embedding = Column(Vector(EMBEDDING_DIMENSIONS), nullable=True)
+    embedding = Column(Vector(dim=None), nullable=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
+    embedding_model_name = Column(String, nullable=False)
 
     # Define user and collection constraints
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-    user_constraint = ForeignKeyConstraint([user_id], [User.id])   
-    
+    user_constraint = ForeignKeyConstraint([user_id], [User.id])
+
     # Define the CheckConstraint to enforce user_id being NULL or existing in users table
     user_check_constraint = CheckConstraint(
         "user_id IS NULL OR user_id IN (SELECT id FROM users)",
@@ -236,7 +245,9 @@ class Document(ModelBase):
     user = relationship("User", back_populates="documents")
 
     # Define the ForeignKeyConstraint to ensure the collection_id exists in the document_collections table
-    collection_constraint = ForeignKeyConstraint([collection_id], ["document_collections.id"])
+    collection_constraint = ForeignKeyConstraint(
+        [collection_id], ["document_collections.id"]
+    )
 
     # Define the CheckConstraint to enforce collection_id existing in document_collections table
     collection_check_constraint = CheckConstraint(
@@ -259,40 +270,45 @@ class Document(ModelBase):
     # Define the relationship with files
     file = relationship("File", back_populates="documents")
 
+
 class DocumentCollection(ModelBase):
     __tablename__ = "document_collections"
 
-    id = Column(Integer, primary_key=True)        
+    id = Column(Integer, primary_key=True)
     collection_name = Column(String, nullable=False, unique=True)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)    
-    
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+    collection_type = Column(String, nullable=False)
+
     documents = relationship("Document", back_populates="collection")
 
     files = relationship("File", back_populates="collection")
+
 
 class Project(ModelBase):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True)
     project_name = Column(String, nullable=False, unique=True)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)    
-    
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+
 class DesignDecisions(ModelBase):
     __tablename__ = "design_decisions"
 
     id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     component = Column(String)
     decision = Column(String, nullable=False)
     details = Column(String, nullable=False)
 
     project = relationship("Project", backref="design_decisions")
 
+
 class UserNeeds(ModelBase):
     __tablename__ = "user_needs"
 
     id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     category = Column(String)
     text = Column(String, nullable=False)
 
@@ -303,8 +319,8 @@ class Requirements(ModelBase):
     __tablename__ = "requirements"
 
     id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
-    user_need_id = Column(Integer, ForeignKey('user_needs.id'), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    user_need_id = Column(Integer, ForeignKey("user_needs.id"), nullable=False)
     category = Column(String)
     text = Column(String, nullable=False)
 
@@ -316,44 +332,54 @@ class AdditionalDesignInputs(ModelBase):
     __tablename__ = "additional_design_inputs"
 
     id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
-    requirement_id = Column(Integer, ForeignKey('requirements.id'), nullable=False)
-    file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    requirement_id = Column(Integer, ForeignKey("requirements.id"), nullable=False)
+    file_id = Column(Integer, ForeignKey("files.id"), nullable=False)
     description = Column(String, nullable=False)
 
     project = relationship("Project", backref="additional_design_inputs")
     requirements = relationship("Requirements", backref="additional_design_inputs")
     file = relationship("File", backref="additional_design_inputs")
 
+
 class Component(Base):
     __tablename__ = "components"
 
     id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     name = Column(String, nullable=False)
     purpose = Column(String, nullable=False)
-    
+
+
 class ComponentDataHandling(Base):
     __tablename__ = "component_data_handling"
 
     id = Column(Integer, primary_key=True)
-    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    component_id = Column(
+        Integer, ForeignKey("components.id", ondelete="CASCADE"), nullable=False
+    )
     data_name = Column(String, nullable=False)
     data_type = Column(String, nullable=False)
     description = Column(String, nullable=False)
-   
+
+
 class ComponentInteraction(Base):
     __tablename__ = "component_interactions"
 
     id = Column(Integer, primary_key=True)
-    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    component_id = Column(
+        Integer, ForeignKey("components.id", ondelete="CASCADE"), nullable=False
+    )
     interacts_with = Column(String, nullable=False)
     description = Column(String, nullable=False)
+
 
 class ComponentDependency(Base):
     __tablename__ = "component_dependencies"
 
     id = Column(Integer, primary_key=True)
-    component_id = Column(Integer, ForeignKey('components.id', ondelete="CASCADE"), nullable=False)
+    component_id = Column(
+        Integer, ForeignKey("components.id", ondelete="CASCADE"), nullable=False
+    )
     dependency_name = Column(String, nullable=False)
     description = Column(String, nullable=False)

@@ -237,7 +237,7 @@ class DocumentTool:
                 summary_chunk = self.generate_detailed_document_chunk_summary(
                     document_text=chunk.document_text, llm=llm
                 )
-                documents.set_document_text_summary(chunk.id, summary_chunk)
+                documents.set_document_text_summary(chunk.id, summary_chunk, self.interaction_manager.collection_id)
 
         reduce_chain = LLMChain(
             llm=llm,

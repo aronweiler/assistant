@@ -13,6 +13,7 @@ class DocumentModel:
         document_name,
         document_text_summary,
         document_text_has_summary,
+        embedding_model_name,
         id=None,
         additional_metadata: dict = {},
         record_created=None,
@@ -27,6 +28,7 @@ class DocumentModel:
         self.document_text_summary = document_text_summary
         self.document_text_has_summary = document_text_has_summary
         self.record_created = record_created
+        self.embedding_model_name = embedding_model_name
 
     def to_database_model(self):
         return Document(
@@ -40,6 +42,7 @@ class DocumentModel:
             document_text_summary=self.document_text_summary,
             document_text_has_summary=self.document_text_has_summary,
             record_created=self.record_created,
+            embedding_model_name=self.embedding_model_name,
         )
 
     @classmethod
@@ -57,5 +60,6 @@ class DocumentModel:
             document_name=db_document.document_name,
             document_text_summary=db_document.document_text_summary,
             document_text_has_summary=db_document.document_text_has_summary,
-            record_created=db_document.record_created
+            record_created=db_document.record_created,
+            embedding_model_name=db_document.embedding_model_name,
         )

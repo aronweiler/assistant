@@ -1,3 +1,6 @@
+assistant_venv/
+temp/
+
 # Git
 .git
 .gitignore

@@ -32,8 +32,6 @@ st.set_page_config(
 
 st.write("# About Jarvis 🤖")
 
-st.sidebar.success("Select an AI above.")
-
 ui_shared.show_version()
 
 st.markdown(
