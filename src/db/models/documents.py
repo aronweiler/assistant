@@ -218,6 +218,7 @@ class Documents(VectorDatabase):
                     Document.id,
                     Document.additional_metadata,
                     Document.record_created,
+                    Document.embedding_model_name,                    
                 )
                 .filter(Document.file_id == file.id)
                 .all()
