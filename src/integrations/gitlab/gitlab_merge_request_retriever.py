@@ -40,18 +40,39 @@ class GitlabMergeRequestRetriever:
        
         merge_request = project.mergerequests.get(id=url_info['merge_request_iid'])
         
-        for diff in merge_request.diffs.list():
-            print(diff)
+        changes = merge_request.changes()['changes']
+        changes2 = []
+        for change in changes:
+            diff = change['diff']
+            diff = diff.splitlines()
+            diff2 = {
+                'old': [],
+                'new': []
+            }
+
+            for line in diff:
+                if line.startswith('-'):
+                    diff2['old'].append(line.lstrip('-'))
+                elif line.startswith('+'):
+                    diff2['new'].append(line.lstrip('+'))
+                elif line.startswith('@'):
+                    pass
+                elif line.startswith('\\'):
+                    pass
+                else:
+                    raise Exception(f"Diff parsing -> Unexpected character {line[0]} found. Expected '+, -, or @'.")
+                
+            changes2.append(diff2)
         
         return {
-            # 'metadata': {
-            #     'iid': previous_issue.iid,
-            #     'title': previous_issue.title,
-            #     'description': previous_issue.description,
-            #     'created_at': previous_issue.created_at,
-            #     'url': previous_issue.web_url,
-            # },
-            # 'findings': {}
+            'metadata': {
+                'iid': merge_request.iid,
+                'title': merge_request.title,
+                'description': merge_request.description,
+                'created_at': merge_request.created_at,
+                'url': merge_request.web_url,
+            },
+            'changes': changes2
         }
 
 
