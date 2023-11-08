@@ -84,4 +84,4 @@ if __name__ == "__main__":
         source_control_pat=os.getenv("SOURCE_CONTROL_PAT"),
     )
 
-    data = retriever.retrieve_merge_request_data(url="https://code.medtronic.com/Ventilation/sandbox/llm-integration-prototypes/-/merge_requests/1")
+    data = retriever.retrieve_merge_request_data(url="")
