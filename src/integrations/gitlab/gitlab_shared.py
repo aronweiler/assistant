@@ -52,3 +52,34 @@ def parse_url(client: gitlab.Gitlab, url: str) -> dict:
         "ref": ref,
         "file_path": file_path
     }
+
+
+def parse_merge_request_url(client: gitlab.Gitlab, url: str) -> dict:
+    url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/merge_requests/(?P<merge_request_iid>[0-9]+)"
+    match_obj = re.match(pattern=url_re, string=url)
+
+    if match_obj is None:
+        raise Exception(f"Failed to URL match against {url}")
+
+    details = match_obj.groupdict()
+    for field in ("domain", "repo_path", "merge_request_iid"):
+        if field not in details:
+            raise Exception(f"Unable to match {field} in {url}")
+
+    domain = details["domain"]
+    repo_path = details["repo_path"]
+
+    try:
+        project = client.projects.get(repo_path)
+    except Exception as ex:
+        raise Exception(f"Failed to retrieve project {repo_path} from server")
+
+    merge_request_iid = details["merge_request_iid"]
+
+    return {
+        "domain": domain,
+        "project_id": project.get_id(),
+        "repo_path": repo_path,
+        "url": url,
+        "merge_request_iid": merge_request_iid
+    }
