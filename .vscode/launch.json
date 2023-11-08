@@ -133,6 +133,15 @@
       "justMyCode": true
     },
     {
+      "name": "Run Gitlab Merge Request Retriever",
+      "type": "python",
+      "request": "launch",
+      "program": "src/integrations/gitlab/gitlab_merge_request_retriever.py",
+      "args": [],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "C/C++ Runner: Debug Session",
       "type": "cppdbg",
       "request": "launch",
