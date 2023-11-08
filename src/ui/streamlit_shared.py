@@ -320,12 +320,21 @@ def get_selected_collection_id():
 
 def get_selected_collection_type():
     collection_id = get_selected_collection_id()
-    return Documents().get_collection(collection_id).collection_type
+    
+    if collection_id == -1:
+        return "None"
+    
+    collection = Documents().get_collection(collection_id)
+    
+    if not collection:
+        return "None"
+    
+    return collection.collection_type
 
 
 def get_selected_collection_embedding_model_name():
     collection_type = get_selected_collection_type()
-
+    
     if collection_type.lower().startswith("remote"):
         key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
             "remote"
