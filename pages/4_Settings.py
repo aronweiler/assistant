@@ -128,6 +128,12 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         ]["max_model_supported_tokens"]
     )
 
+    max_model_completion_tokens = int(
+        available_models[list(st.session_state[f"{tool_name}-model"].values())[0]][
+            "model_configuration"
+        ].get("max_model_completion_tokens", max_supported_tokens)
+    )
+
     st_sucks_col1, st_sucks_col2 = st.columns([4, 6])
 
     st_sucks_col1.toggle(
@@ -140,15 +146,28 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         "*Note: This will not give memory to the tools that do not use it.*"
     )
 
-    def update_sliders(max_supported_tokens, history_tokens, completion_tokens):
-        available_tokens = max_supported_tokens - history_tokens
+    def update_sliders(
+        max_supported_tokens,
+        max_model_completion_tokens,
+        chat_history_tokens,
+        completion_tokens,
+    ):
+        # Some models have a maximum completion token limit
+        if completion_tokens > max_model_completion_tokens:
+            completion_tokens = max_model_completion_tokens
+
+        available_tokens = max_supported_tokens - chat_history_tokens
         if available_tokens < 0:
-            history_tokens = max_supported_tokens
+            chat_history_tokens = max_supported_tokens
             completion_tokens = 0
         elif available_tokens < completion_tokens:
-            history_tokens = max_supported_tokens - completion_tokens
+            chat_history_tokens = max_supported_tokens - completion_tokens
 
-        return history_tokens, completion_tokens
+        return chat_history_tokens, completion_tokens
+
+    configured_completion_tokens = int(
+        tool_configuration["model_configuration"]["max_completion_tokens"]
+    )
 
     history_tokens, completion_tokens = st.slider(
         label="Token Allocation",
@@ -160,14 +179,19 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
                     "max_conversation_history_tokens"
                 ]
             ),
-            int(tool_configuration["model_configuration"]["max_completion_tokens"]),
+            min(
+                configured_completion_tokens, max_model_completion_tokens
+            ),  # if configured_completion_tokens <= max_ - int(tool_configuration["model_configuration"]["max_conversation_history_tokens"]),
         ),
         key=f"{tool_name}-token-allocation",
         disabled=st.session_state[f"{tool_name}-uses-conversation-history"] is False,
     )
 
     history_tokens, completion_tokens = update_sliders(
-        max_supported_tokens, history_tokens, completion_tokens
+        max_supported_tokens=max_supported_tokens,
+        max_model_completion_tokens=max_model_completion_tokens,
+        chat_history_tokens=history_tokens,
+        completion_tokens=completion_tokens,
     )
 
     prompt_tokens = max_supported_tokens - (history_tokens + completion_tokens)
@@ -238,13 +262,13 @@ def tools_settings():
                                 "session_state_key": session_state_key,
                             },
                         )
-                        
+
                     st.markdown(refactor_prompt_setting["description"])
-                        
 
         if "model_configuration" in configuration["tool_configurations"][tool_name]:
             with st.expander(
-                label=f"⚙️ {tool_details['display_name']} Model Settings", expanded=False
+                label=f"⚙️ {tool_details['display_name']} Model Settings",
+                expanded=False,
             ):
                 generate_model_settings(
                     tool_name=tool_name,

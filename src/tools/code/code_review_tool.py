@@ -13,6 +13,7 @@ from src.db.models.documents import Documents
 from src.ai.interactions.interaction_manager import InteractionManager
 
 from src.utilities.token_helper import num_tokens_from_string
+from src.utilities.parsing_utilities import parse_json
 
 
 from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
@@ -167,12 +168,13 @@ class CodeReviewTool:
                 final_code_review_instructions=final_code_review_instructions,
             )
 
-            data = json.loads(
-                llm.predict(
-                    code_review_prompt,
-                    callbacks=self.interaction_manager.agent_callbacks,
-                )
+            json_data = llm.predict(
+                code_review_prompt,
+                callbacks=self.interaction_manager.agent_callbacks,
             )
+
+            data = parse_json(json_data, llm)
+
             comment_results.extend(data["comments"])
 
         review_results = {
