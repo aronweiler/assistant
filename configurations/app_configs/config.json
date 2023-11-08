@@ -16,12 +16,12 @@
         "show_llm_thoughts": true,
         "model_configuration": {
             "llm_type": "openai",
-            "model": "gpt-3.5-turbo-16k",
+            "model": "gpt-4-1106-preview",
             "temperature": 0.7,
             "max_retries": 3,
-            "max_model_supported_tokens": 16384,
+            "max_model_supported_tokens": 128000,
             "uses_conversation_history": true,
-            "max_conversation_history_tokens": 2048,
+            "max_conversation_history_tokens": 1636,
             "max_completion_tokens": 4096
         },
         "search_type": "Similarity",
@@ -149,16 +149,16 @@
             }
         },
         "conduct_code_review_from_url": {
-            "enabled": false,
+            "enabled": true,
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
+                "model": "gpt-4-1106-preview",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 16384,
+                "max_model_supported_tokens": 128000,
                 "uses_conversation_history": false,
-                "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096
+                "max_conversation_history_tokens": 4069,
+                "max_completion_tokens": 4069
             }
         },
         "create_code_review_issue_tool": {
