@@ -44,13 +44,13 @@ class GitlabMergeRequestRetriever:
         changes2 = []
         for change in changes:
             diff = change['diff']
-            diff = diff.splitlines()
+            diff_split = diff.splitlines()
             diff2 = {
                 'old': [],
                 'new': []
             }
 
-            for line in diff:
+            for line in diff_split:
                 if line.startswith('-'):
                     diff2['old'].append(line.lstrip('-'))
                 elif line.startswith('+'):
@@ -61,7 +61,10 @@ class GitlabMergeRequestRetriever:
                     pass
                 else:
                     raise Exception(f"Diff parsing -> Unexpected character {line[0]} found. Expected '+, -, or @'.")
-                
+            
+            diff2['old'] = '\n'.join(diff2['old'])
+            diff2['new'] = '\n'.join(diff2['new'])
+            diff2['raw'] = diff
             changes2.append(diff2)
         
         return {
