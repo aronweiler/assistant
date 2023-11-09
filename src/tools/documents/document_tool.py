@@ -11,6 +11,7 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.utilities.parsing_utilities import parse_json
 
 from src.utilities.token_helper import num_tokens_from_string
 
@@ -95,7 +96,7 @@ class DocumentTool:
                     callbacks=self.interaction_manager.agent_callbacks,
                 )
 
-                split_prompts = json.loads(split_prompts)
+                split_prompts = parse_json(split_prompts, llm)
 
                 results = []
                 for prompt in split_prompts["prompts"]:
