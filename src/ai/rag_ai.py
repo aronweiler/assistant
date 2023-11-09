@@ -40,9 +40,13 @@ class RetrievalAugmentedGenerationAI:
             self.configuration["jarvis_ai"]["model_configuration"],
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
-            model_kwargs={                
-                "frequency_penalty": self.configuration["jarvis_ai"].get("frequency_penalty", 0.0),
-                "presence_penalty": self.configuration["jarvis_ai"].get("presence_penalty", 0.6),
+            model_kwargs={
+                "frequency_penalty": self.configuration["jarvis_ai"].get(
+                    "frequency_penalty", 0.0
+                ),
+                "presence_penalty": self.configuration["jarvis_ai"].get(
+                    "presence_penalty", 0.6
+                ),
             },
         )
 
@@ -105,7 +109,7 @@ class RetrievalAugmentedGenerationAI:
         self,
         query: str,
         collection_id: int = None,
-        ai_mode:str = "Auto",
+        ai_mode: str = "Auto",
         kwargs: dict = {},
     ):
         # Set the document collection id on the interaction manager
@@ -194,7 +198,15 @@ class RetrievalAugmentedGenerationAI:
         self,
         document_text: str,
     ) -> str:
-        summary = self.llm.predict(
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
+                "model_configuration"
+            ],
+            tags=["retrieval-augmented-generation-ai"],
+            streaming=False,
+        )
+
+        summary = llm.predict(
             self.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
@@ -206,9 +218,17 @@ class RetrievalAugmentedGenerationAI:
         self,
         file_id: int,
     ) -> str:
-        document_tool = DocumentTool(
-            self.configuration, self.interaction_manager
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
+                "model_configuration"
+            ],
+            tags=["retrieval-augmented-generation-ai"],
+            streaming=False,
         )
-        document_summary = document_tool.summarize_entire_document(file_id)
+
+        document_tool = DocumentTool(self.configuration, self.interaction_manager)
+        document_summary = document_tool.summarize_entire_document_with_llm(
+            llm, file_id
+        )
 
         return document_summary
