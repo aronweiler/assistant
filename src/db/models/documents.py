@@ -363,6 +363,7 @@ class Documents(VectorDatabase):
                 Document.id,
                 Document.additional_metadata,
                 Document.record_created,
+                Document.embedding_model_name
             )
 
             if collection_id is not None:

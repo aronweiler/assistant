@@ -46,20 +46,18 @@ def jarvis_ai_settings():
     )
     st.divider()
 
+    # Flag to indicate if we need to save the settings
     needs_saving = False
 
     jarvis_config = ui_shared.get_app_configuration()["jarvis_ai"]
 
-    st.toggle(
-        label="Show LLM Thoughts",
-        value=jarvis_config.get("show_llm_thoughts", False),
-        key="show_llm_thoughts",
-    )
-
-    if st.session_state["show_llm_thoughts"] != jarvis_config.get(
-        "show_llm_thoughts", False
-    ):
-        needs_saving = True
+    st.markdown("### General")
+    
+    needs_saving = show_thoughts(jarvis_config, needs_saving)
+    
+    st.divider()
+    
+    st.markdown("### Jarvis AI Model Settings")    
 
     generate_model_settings(
         tool_name="jarvis",
@@ -72,13 +70,45 @@ def jarvis_ai_settings():
         existing_tool_configuration=jarvis_config,
         needs_saving=needs_saving,
     )
+    
+    st.markdown("### File Ingestion Settings")    
+
+    generate_model_settings(
+        tool_name="jarvis-file-ingestion",
+        tool_configuration=jarvis_config['file_ingestion_configuration'],
+        available_models=ui_shared.get_available_models(),
+    )
+
+    file_ingestion_model_configuration, needs_saving = model_needs_saving(
+        tool_name="jarvis-file-ingestion",
+        existing_tool_configuration=jarvis_config['file_ingestion_configuration'],
+        needs_saving=needs_saving,
+    )
 
     if needs_saving:
         st.toast(f"Saving Jarvis AI settings...")
         save_jarvis_settings_to_file(
             show_llm_thoughts=st.session_state["show_llm_thoughts"],
             model_configuration=model_configuration,
+            file_ingestion_model_configuration=file_ingestion_model_configuration
         )
+
+def show_thoughts(jarvis_config, needs_saving):
+    st.toggle(
+        label="Show LLM Thoughts",
+        value=jarvis_config.get("show_llm_thoughts", False),
+        key="show_llm_thoughts",
+    )
+    st.markdown(
+        "When enabled, Jarvis will show the LLM's thoughts as it is generating a response."
+    )
+    
+    if st.session_state["show_llm_thoughts"] != jarvis_config.get(
+        "show_llm_thoughts", False
+    ):
+        needs_saving = True
+        
+    return needs_saving
 
 
 def generate_model_settings(tool_name, tool_configuration, available_models):
@@ -168,23 +198,26 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
     configured_completion_tokens = int(
         tool_configuration["model_configuration"]["max_completion_tokens"]
     )
+    
+    configured_max_conversation_history_tokens= int(
+            tool_configuration["model_configuration"]["max_conversation_history_tokens"]
+        )
 
-    history_tokens, completion_tokens = st.slider(
-        label="Token Allocation",
+    history_tokens = st.slider(
+        label="Conversation History Tokens",
         min_value=0,
         max_value=max_supported_tokens,
-        value=(
-            int(
-                tool_configuration["model_configuration"][
-                    "max_conversation_history_tokens"
-                ]
-            ),
-            min(
-                configured_completion_tokens, max_model_completion_tokens
-            ),  # if configured_completion_tokens <= max_ - int(tool_configuration["model_configuration"]["max_conversation_history_tokens"]),
-        ),
-        key=f"{tool_name}-token-allocation",
+        value=configured_max_conversation_history_tokens,
+        key=f"{tool_name}-conversation-history-tokens",
         disabled=st.session_state[f"{tool_name}-uses-conversation-history"] is False,
+    )
+
+    completion_tokens = st.slider(
+        label="Completion Tokens",
+        min_value=0,
+        max_value=max_model_completion_tokens,
+        value=min(configured_completion_tokens, max_model_completion_tokens),
+        key=f"{tool_name}-completion-tokens",
     )
 
     history_tokens, completion_tokens = update_sliders(
@@ -337,10 +370,10 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
         ):
             needs_saving = True
 
-        (
-            max_conversation_history_tokens,
-            max_completion_tokens,
-        ) = st.session_state[f"{tool_name}-token-allocation"]
+        max_conversation_history_tokens = st.session_state[
+            f"{tool_name}-conversation-history-tokens"
+        ]
+        max_completion_tokens = st.session_state[f"{tool_name}-completion-tokens"]
 
         if (
             max_conversation_history_tokens
@@ -384,13 +417,16 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
     return model_configuration, needs_saving
 
 
-def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration):
+def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration, file_ingestion_model_configuration):
     configuration = ui_shared.get_app_configuration()
 
     configuration["jarvis_ai"]["show_llm_thoughts"] = show_llm_thoughts
 
     if model_configuration:
         configuration["jarvis_ai"]["model_configuration"] = model_configuration
+        
+    if file_ingestion_model_configuration:
+        configuration["jarvis_ai"]["file_ingestion_configuration"]["model_configuration"] = file_ingestion_model_configuration
 
     app_config_path = ui_shared.get_app_config_path()
 

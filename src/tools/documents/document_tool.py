@@ -11,6 +11,7 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.utilities.parsing_utilities import parse_json
 
 from src.utilities.token_helper import num_tokens_from_string
 
@@ -95,15 +96,17 @@ class DocumentTool:
                     callbacks=self.interaction_manager.agent_callbacks,
                 )
 
-                split_prompts = json.loads(split_prompts)
+                split_prompts = parse_json(split_prompts, llm)
 
                 results = []
                 for prompt in split_prompts["prompts"]:
                     results.append(
                         self._search_loaded_documents(
-                            semantic_similarity_query=prompt['semantic_similarity_query'],
-                            keywords_list=prompt['keywords_list'],
-                            user_query=prompt['query'],
+                            semantic_similarity_query=prompt[
+                                "semantic_similarity_query"
+                            ],
+                            keywords_list=prompt["keywords_list"],
+                            user_query=prompt["query"],
                             target_file_id=target_file_id,
                         )
                     )
@@ -211,6 +214,16 @@ class DocumentTool:
         Args:
 
             target_file_id (int): The file_id you got from the list of loaded files"""
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.summarize_entire_document.__name__,
+            streaming=True,
+        )
+
+        return self.summarize_entire_document_with_llm(llm, target_file_id)
+
+    def summarize_entire_document_with_llm(self, llm, target_file_id: int):
         # Create the documents class for the retriever
         documents = Documents()
         file = documents.get_file(target_file_id)
@@ -224,12 +237,6 @@ class DocumentTool:
             target_file_id=target_file_id
         )
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.summarize_entire_document.__name__,
-            streaming=True,
-        )
-
         # Are there already document chunk summaries?
         for chunk in document_chunks:
             if not chunk.document_text_has_summary:
@@ -237,7 +244,9 @@ class DocumentTool:
                 summary_chunk = self.generate_detailed_document_chunk_summary(
                     document_text=chunk.document_text, llm=llm
                 )
-                documents.set_document_text_summary(chunk.id, summary_chunk, self.interaction_manager.collection_id)
+                documents.set_document_text_summary(
+                    chunk.id, summary_chunk, self.interaction_manager.collection_id
+                )
 
         reduce_chain = LLMChain(
             llm=llm,
