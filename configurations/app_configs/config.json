@@ -28,10 +28,10 @@
         },
         "model_configuration": {
             "llm_type": "openai",
-            "model": "gpt-4-1106-preview",
+            "model": "gpt-3.5-turbo-16k",
             "temperature": 0.7,
             "max_retries": 3,
-            "max_model_supported_tokens": 128000,
+            "max_model_supported_tokens": 16384,
             "uses_conversation_history": true,
             "max_conversation_history_tokens": 2048,
             "max_completion_tokens": 4096
@@ -84,13 +84,13 @@
             ],
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-4-1106-preview",
+                "model": "gpt-3.5-turbo-16k",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 4096
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": true,
+                "max_conversation_history_tokens": 0,
+                "max_completion_tokens": 6016
             }
         },
         "search_entire_document": {
@@ -136,7 +136,7 @@
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
-                "temperature": 0,
+                "temperature": 0.0,
                 "max_retries": 3,
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
@@ -148,15 +148,15 @@
             "enabled": false
         },
         "conduct_code_review_from_file_id": {
-            "enabled": true,
+            "enabled": false,
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-4-1106-preview",
+                "model": "gpt-3.5-turbo-16k",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 128000,
+                "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
-                "max_conversation_history_tokens": 4096,
+                "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096
             }
         },
@@ -164,13 +164,13 @@
             "enabled": false,
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-4-1106-preview",
+                "model": "gpt-3.5-turbo-16k",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 128000,
+                "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
-                "max_conversation_history_tokens": 4069,
-                "max_completion_tokens": 4069
+                "max_conversation_history_tokens": 0,
+                "max_completion_tokens": 5771
             }
         },
         "create_code_review_issue_tool": {

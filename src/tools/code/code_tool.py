@@ -352,11 +352,11 @@ class CodeTool:
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
         C_STUBBING_TEMPLATE = self.interaction_manager.prompt_manager.get_prompt(
-            self.configuration.model_configuration.llm_type, "C_STUBBING_TEMPLATE"
+            "code_stubbing", "C_STUBBING_TEMPLATE"
         )
 
         stub_dependencies_template = self.interaction_manager.prompt_manager.get_prompt(
-            self.configuration.model_configuration.llm_type,
+            "code_stubbing",
             "STUB_DEPENDENCIES_TEMPLATE",
         )
 
