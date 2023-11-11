@@ -16,9 +16,9 @@ sqlalchemy
 # Note: You need a C++ compiler to install llama-cpp-python if you are building this outside of the docker container
 # https://cmake.org/download/#latest
 llama-cpp-python
-openai==0.28.1
+openai
 #openai-functions
-langchain==0.0.330
+langchain
 langchain-experimental
 
 # REST
@@ -30,14 +30,16 @@ duckduckgo-search
 # Date/Time & Calendars
 pytz
 tzlocal 
-
 # Google
-google-api-python-client 
-google-auth-httplib2 
+google-api-python-client
 google-auth-oauthlib
+google-auth-httplib2
+beautifulsoup4 
 
 # Wikipedia
 wikipedia
+
+
 
 # News
 gnews

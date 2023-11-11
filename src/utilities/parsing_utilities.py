@@ -29,6 +29,6 @@ def parse_json(text: str, llm: BaseLanguageModel) -> dict:
             llm_fixed_json = llm.predict(
                 f"The following is badly formatted JSON, please fix it (only fix the JSON, do not otherwise modify the content):\n{text}\n\nAI: Sure, here is the fixed JSON (without modifying the content):\n"
             )
-            parse_json(llm_fixed_json, None)
+            return parse_json(llm_fixed_json, None)
         else:
             raise Exception(f"Could not parse LLM output: {text}") from e
