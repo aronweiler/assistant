@@ -25,6 +25,7 @@ class GenericTool:
         self,
         description,
         function,
+        name=None,
         document_class=None,
         return_direct=False,
         additional_instructions=None,
@@ -33,9 +34,10 @@ class GenericTool:
         self.additional_instructions = additional_instructions
         self.function = function
         self.schema = self.extract_function_schema(function)
-        self.name = self.schema["name"]
+        self.schema_name = self.schema["name"]
+        self.name = name if name else self.schema["name"]
         self.structured_tool = StructuredTool.from_function(
-            func=self.function, return_direct=return_direct
+            func=self.function, return_direct=return_direct, description=description
         )
         self.document_class = document_class
 
@@ -45,10 +47,22 @@ class GenericTool:
         sig = inspect.signature(func)
         parameters = []
 
+        def stringify_annotation(parameter):
+            if hasattr(
+                parameter.annotation, "__origin__"
+            ):  # This checks if it's a special type from typing
+                return str(parameter.annotation).replace(
+                    "typing.", ""
+                )  # Strips the 'typing.' part if present
+            elif hasattr(parameter.annotation, "__name__"):
+                return parameter.annotation.__name__
+            else:
+                return str(parameter.annotation)
+
         for param_name, param in sig.parameters.items():
             param_info = {
                 "argument_name": param_name,
-                "argument_type": str(param.annotation.__name__),
+                "argument_type": stringify_annotation(param),
                 "required": "optional"
                 if param.default != inspect.Parameter.empty
                 else "required",
@@ -265,15 +279,21 @@ class GenericToolsAgent(BaseMultiActionAgent):
     def get_tool_calls_from_failed_steps(self, intermediate_steps):
         context = ""
         for step in intermediate_steps:
-            if step[1] is not None:
-                context += json.dumps(
-                    {
-                        "tool_use_description": intermediate_steps[-1][0].log,
-                        "tool": intermediate_steps[-1][0].tool,
-                        "tool_args": intermediate_steps[-1][0].tool_input,
-                    }
-                )
-                context += "\nReturned: " + step[1]
+            context += json.dumps(
+                {
+                    "tool_use_description": intermediate_steps[-1][0].log,
+                    "tool": intermediate_steps[-1][0].tool,
+                    "tool_args": intermediate_steps[-1][0].tool_input,
+                }
+            )
+
+            try:
+                if step[1] is not None:
+                    context += "\nReturned: " + str(step[1])
+                else:
+                    context += "\nReturned: None"
+            except Exception as e:
+                context += "\nReturned: An unknown exception."
 
         return context
 

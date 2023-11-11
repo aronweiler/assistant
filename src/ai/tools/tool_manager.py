@@ -12,6 +12,7 @@ from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 from src.tools.code.code_tool import CodeTool
 from src.tools.code.code_review_tool import CodeReviewTool
+from src.tools.email.gmail_tool import GmailTool
 from src.tools.llm.llm_tool import LLMTool
 from src.tools.weather.weather_tool import WeatherTool
 from src.tools.general.time_tool import TimeTool
@@ -144,7 +145,19 @@ class ToolManager:
             "help_text": "Queries an image.",
             "enabled_by_default": True,
             "requires_documents": True,
-        },            
+        },
+        "search_for_emails": {
+            "display_name": "Search Email",
+            "help_text": "Allows Jarvis to search for a message in your email.",
+            "enabled_by_default": False,
+            "requires_documents": False,
+        },
+        "get_email_by_id": {
+            "display_name": "Get Email Message",
+            "help_text": "Enables Jarvis to fetch an email by message ID.",
+            "enabled_by_default": False,
+            "requires_documents": False,
+        },
     }
 
     def __init__(self, configuration):
@@ -172,10 +185,10 @@ class ToolManager:
 
     def is_tool_enabled(self, tool_name) -> bool:
         # See if this tool name is in the environment
-        config = self.configuration['tool_configurations'].get(tool_name, None)
+        config = self.configuration["tool_configurations"].get(tool_name, None)
         if config is not None:
             # If it is, use the value
-            return config.get('enabled', False)
+            return config.get("enabled", False)
         else:
             # If it's not, use the default from the tool
             for tool in self.tools:
@@ -191,27 +204,23 @@ class ToolManager:
         for tool in self.tools:
             if tool == tool_name:
                 if self.is_tool_enabled(tool_name):
-                    os.environ[tool_name] = 'False'
+                    os.environ[tool_name] = "False"
                 else:
-                    os.environ[tool_name] = 'True'
+                    os.environ[tool_name] = "True"
                 break
 
     def initialize_tools(
-        self,
-        configuration,
-        interaction_manager: InteractionManager
+        self, configuration, interaction_manager: InteractionManager
     ) -> None:
         self.configuration = configuration
         self.interaction_manager = interaction_manager
 
         """Used to create the actual tools in the tool set."""
         document_tool = DocumentTool(
-            configuration=configuration,
-            interaction_manager=interaction_manager
+            configuration=configuration, interaction_manager=interaction_manager
         )
         spreadsheet_tool = SpreadsheetsTool(
-            configuration=configuration,
-            interaction_manager=interaction_manager
+            configuration=configuration, interaction_manager=interaction_manager
         )
         code_tool = CodeTool(
             configuration=configuration,
@@ -225,14 +234,14 @@ class ToolManager:
         )
         code_review_tool = CodeReviewTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager
+            interaction_manager=self.interaction_manager,
         )
         llm_tool = LLMTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
         )
         weather_tool = WeatherTool()
-        
+
         llava_tool = LlavaTool(
             llava_path=os.environ.get("LLAVA_PATH", None),
             llava_model=os.environ.get("LLAVA_MODEL", None),
@@ -243,8 +252,8 @@ class ToolManager:
 
         generic_tools = [
             GenericTool(
-                description="Uses an LLM to analyze data.",
-                additional_instructions="Best used at the end of a chain of tools.  This tool is useful for when you want to generate a response from data you have gathered, such as after searching for various topics, or taking information from disparate sources in order to combine it into an answer for the user.  IMPORTANT: This tool does not have access to documents, or any data outside of what you pass in the 'data_to_analyze' argument.",
+                description="Analyze results of another query or queries.",
+                additional_instructions="This tool is useful for when you want to combine data you have gathered, or just take a moment to think about things.  IMPORTANT: This tool does not have access to documents, or any data outside of what you pass in the 'data_to_analyze' argument.",
                 function=llm_tool.analyze_with_llm,
             ),
             GenericTool(
@@ -255,7 +264,7 @@ class ToolManager:
             ),
             GenericTool(
                 description="Exhaustively searches a single document for one or more queries.",
-                additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",                
+                additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_entire_document,
             ),
@@ -355,10 +364,34 @@ class ToolManager:
             ),
             GenericTool(
                 description="Queries a loaded Image file.  This only works on Image classified files.",
-                additional_instructions="Never use this tool on documents that are not classified as 'Image'.  The 'query' argument should always be a stand-alone FULLY-FORMED query, no co-references, no keywords, etc., (e.g. 'What is going on in this image?', or 'Where is object X located in relation to object Y?')  .",
+                additional_instructions="Never use this tool on documents that are not classified as 'Image'.  The 'query' argument should always be a stand-alone FULLY-FORMED query, no co-references, no keywords, etc., (e.g. 'What is going on in this image?', or 'Where is object X located in relation to object Y?').",
                 function=llava_tool.query_image,
             ),
         ]
 
+        self.add_gmail_tools(generic_tools)
+
         for tool in generic_tools:
             self.tools[tool.name]["tool"] = tool
+
+    def add_gmail_tools(self, generic_tools):
+        gmail_tool = GmailTool()
+
+        if gmail_tool.toolkit is not None:
+            generic_tools.append(
+                GenericTool(
+                    description="Searches for a specific topic in the user's email.",
+                    additional_instructions="Always use this tool when the user asks to search for an email message or messages. The input must be a valid Gmail query.",
+                    function=gmail_tool.search_for_emails,
+                    name="search_for_emails",
+                )
+            )
+
+            generic_tools.append(
+                GenericTool(
+                    description="Gets an email by message ID.",
+                    additional_instructions="Use this tool to fetch an email by message ID. Returns the thread ID, snippet, body, subject, and sender.  The message_id is required.  You should not use this tool if you dont have a valid message ID (from search_for_emails) to pass in.",
+                    function=gmail_tool.get_email_by_id,
+                    name="get_email_by_id",
+                )
+            )

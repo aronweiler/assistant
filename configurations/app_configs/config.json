@@ -203,6 +203,12 @@
         },
         "query_image": {
             "enabled": false
+        },
+        "search_for_emails": {
+            "enabled": false
+        },
+        "get_email_by_id": {
+            "enabled": false
         }
     }
 }
