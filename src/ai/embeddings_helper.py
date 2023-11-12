@@ -46,9 +46,7 @@ def get_embedding(
 def get_embedding_with_model(text: str, model_name: str, instruction: str = None):
     # You're special, OpenAI
     if model_name == "text-embedding-ada-002":
-        return openai.Embedding.create(input=[text], model=model_name)["data"][0][
-            "embedding"
-        ]
+        return openai.embeddings.create(input=[text], model=model_name).data[0].embedding
     else:
         model = get_local_embeddings_model(model_name)
 

@@ -294,9 +294,7 @@ class PostgreSQLEntityStore(BaseEntityStore):
         return v1
 
     def get_embedding(self, text: str, embedding_model="text-embedding-ada-002"):
-        return openai.Embedding.create(input=[text], model=embedding_model)["data"][0][
-            "embedding"
-        ]
+        return openai.embeddings.create(input=[text], model=embedding_model).data[0].embedding
 
     def delete(self, key: str) -> None:
         raise NotImplementedError(

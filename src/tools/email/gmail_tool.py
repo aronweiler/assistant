@@ -18,15 +18,19 @@ class GmailTool:
             self.toolkit = None
             return
 
-        # Can review scopes here https://developers.google.com/gmail/api/auth/scopes
-        # For instance, readonly scope is 'https://www.googleapis.com/auth/gmail.readonly'
-        credentials = get_gmail_credentials(
-            token_file="token.json",
-            scopes=["https://mail.google.com/"],
-            client_secrets_file=credentials_file,
-        )
-        api_resource = build_resource_service(credentials=credentials)
-        self.toolkit = GmailToolkit(api_resource=api_resource)
+        try:
+            # Can review scopes here https://developers.google.com/gmail/api/auth/scopes
+            # For instance, readonly scope is 'https://www.googleapis.com/auth/gmail.readonly'
+            credentials = get_gmail_credentials(
+                token_file="token.json",
+                scopes=["https://mail.google.com/"],
+                client_secrets_file=credentials_file,
+            )
+            api_resource = build_resource_service(credentials=credentials)
+            self.toolkit = GmailToolkit(api_resource=api_resource)
+        except Exception as e:
+            logging.error(f"Error initializing GmailTool: {e}")
+            self.toolkit = None
 
     def search_for_emails(self, query: str):
         search_gmail = next(
@@ -46,7 +50,7 @@ class GmailTool:
             }
             for result in results
         ]
-        
+
         if len(emails) == 0:
             return "No emails found, please adjust your search parameters."
 
