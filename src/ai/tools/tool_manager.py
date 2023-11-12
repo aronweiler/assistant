@@ -14,6 +14,7 @@ from src.tools.code.code_tool import CodeTool
 from src.tools.code.code_review_tool import CodeReviewTool
 from src.tools.email.gmail_tool import GmailTool
 from src.tools.llm.llm_tool import LLMTool
+from src.tools.restaurants.yelp_tool import YelpTool
 from src.tools.weather.weather_tool import WeatherTool
 from src.tools.general.time_tool import TimeTool
 from src.tools.news.g_news_tool import GNewsTool
@@ -158,6 +159,18 @@ class ToolManager:
             "enabled_by_default": False,
             "requires_documents": False,
         },
+        "search_businesses": {
+            "display_name": "Search Businesses",
+            "help_text": "Allows Jarvis to search for businesses matching the criteria and returns a list of businesses.",
+            "enabled_by_default": False,
+            "requires_documents": False,
+        },
+        "get_all_business_details": {
+            "display_name": "Get Business Details",
+            "help_text": "Allows Jarvis to get all of the details of a specific business.",
+            "enabled_by_default": False,
+            "requires_documents": False,
+        },
     }
 
     def __init__(self, configuration):
@@ -249,6 +262,8 @@ class ToolManager:
             llava_temp=float(os.environ.get("LLAVA_TEMP", 0.1)),
             llava_gpu_layers=int(os.environ.get("LLAVA_GPU_LAYERS", 50)),
         )
+        
+        yelp_tool = YelpTool()
 
         generic_tools = [
             GenericTool(
@@ -366,6 +381,16 @@ class ToolManager:
                 description="Queries a loaded Image file.  This only works on Image classified files.",
                 additional_instructions="Never use this tool on documents that are not classified as 'Image'.  The 'query' argument should always be a stand-alone FULLY-FORMED query, no co-references, no keywords, etc., (e.g. 'What is going on in this image?', or 'Where is object X located in relation to object Y?').",
                 function=llava_tool.query_image,
+            ),
+            GenericTool(
+                description="Searches for businesses matching the criteria and returns a list of businesses.",
+                additional_instructions="Allows specifying the location, search term, categories, whether to only return open businesses, price range (1=low-price, 2=med-price, 3=high=price- can be combined), minimum rating, and maximum number of businesses to return.",
+                function=yelp_tool.search_businesses,
+            ),
+            GenericTool(
+                description="Retrieves details of a specific business, matching the business_id.",
+                additional_instructions="business_id is the id of the business, discovered by using the search_businesses tool.",
+                function=yelp_tool.get_all_business_details,
             ),
         ]
 

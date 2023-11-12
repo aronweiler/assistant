@@ -209,6 +209,12 @@
         },
         "get_email_by_id": {
             "enabled": false
+        },
+        "search_businesses": {
+            "enabled": false
+        },
+        "get_all_business_details": {
+            "enabled": false
         }
     }
 }

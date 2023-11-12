@@ -1,14 +1,23 @@
 import requests
 
-class YelpTool:
 
+class YelpTool:
     def get_yelp_api_key(self):
         from dotenv import dotenv_values, load_dotenv
 
         load_dotenv()
         return dotenv_values().get("YELP_API_KEY")
 
-    def search_businesses(self, location:str, search_term:str="restaurants", categories:str="restaurants", open_now:bool=False, price:str="1,2,3", rating:float=3.0, limit:int=10):
+    def search_businesses(
+        self,
+        location: str,
+        search_term: str = "restaurants",
+        categories: str = "restaurants",
+        open_now: bool = False,
+        price: str = "1,2,3",
+        rating: float = 3.0,
+        limit: int = 10,
+    ):
         """Searches Yelp for businesses matching the criteria and returns a list of businesses
 
         Args:
@@ -22,7 +31,7 @@ class YelpTool:
 
         Returns:
             list: A list of businesses matching the search criteria
-            """
+        """
 
         base_url = "https://api.yelp.com/v3/businesses/search"
         headers = {
@@ -46,25 +55,26 @@ class YelpTool:
             print("Error occurred during API request:", e)
             return []
 
-    def get_friendly_results(self, businesses:list):
+    def get_friendly_results(self, businesses: list):
         # The Yelp API returns a lot of data, but we only want to return a few fields
         # that are relevant to the user
         friendly_results = []
         for business in businesses:
-            friendly_results.append({
-                "id": business["id"],
-                "name": business["name"],
-                "is_closed": business["is_closed"],
-                "review_count": business["review_count"],                
-                "rating": business["rating"],
-                "price": business["price"],
-                "phone": business["phone"],
-                "address": business["location"]["display_address"],
-                "url": business["url"],
-            })            
+            friendly_results.append(
+                {
+                    "id": business["id"],
+                    "name": business["name"],
+                    "is_closed": business["is_closed"],
+                    "review_count": business["review_count"],
+                    "rating": business["rating"],
+                    "price": business["price"],
+                    "phone": business["phone"],
+                    "address": business["location"]["display_address"],
+                    "url": business["url"],
+                }
+            )
 
         return friendly_results
-
 
     def get_business_details(self, business_id):
         base_url = f"https://api.yelp.com/v3/businesses/{business_id}"
@@ -81,7 +91,7 @@ class YelpTool:
             print("Error occurred during API request:", e)
             return None
 
-    def get_all_business_details(self, business_id:str):
+    def get_all_business_details(self, business_id: str):
         """Retrieves details of all businesses matching the search criteria
 
         Args:
@@ -90,7 +100,7 @@ class YelpTool:
         Returns:
             list: Details of the business
         """
-        
+
         if business_id:
             business_details = self.get_business_details(business_id)
             if business_details:
@@ -98,7 +108,16 @@ class YelpTool:
 
         return f"Could not find details for specified business, {business_id}"
 
-    def search_all_business_details(self, location:str, search_term:str="restaurants", categories:str="restaurants", open_now:bool=False, price:str="1,2,3", rating:float=3.0, limit:int=10):
+    def search_all_business_details(
+        self,
+        location: str,
+        search_term: str = "restaurants",
+        categories: str = "restaurants",
+        open_now: bool = False,
+        price: str = "1,2,3",
+        rating: float = 3.0,
+        limit: int = 10,
+    ):
         """Retrieves details of all businesses matching the search criteria
 
         Args:
@@ -113,7 +132,9 @@ class YelpTool:
         Returns:
             list: A list of businesses matching the search criteria, and all details for each business
         """
-        businesses = self.search_businesses(location, search_term, categories, open_now, price, rating, limit)
+        businesses = self.search_businesses(
+            location, search_term, categories, open_now, price, rating, limit
+        )
         if not businesses:
             return []
 
@@ -126,9 +147,9 @@ class YelpTool:
                     all_business_details.append(business_details)
 
         return self.get_friendly_results(all_business_details[:limit])
-        
 
-if __name__ == "__main__":    
+
+if __name__ == "__main__":
     # Create an instance of the tool
     yelp_tool = YelpTool()
 
@@ -140,4 +161,6 @@ if __name__ == "__main__":
 
     # Display the results
     for idx, restaurant in enumerate(restaurants, 1):
-        print(f"{idx}. {restaurant['name']} - Rating: {restaurant['rating']} - Address: {restaurant['location']['address1']}")
+        print(
+            f"{idx}. {restaurant['name']} - Rating: {restaurant['rating']} - Address: {restaurant['location']['address1']}"
+        )
