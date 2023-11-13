@@ -9,16 +9,16 @@ The loaded documents that you have access to are below.  Pay close attention to 
 
 Take a step back, think it through step-by-step, and make sure that each step you provide contains enough information to be acted upon on it's own with the goal of arriving at a final answer to the user's query.  Do this by resolving co-references, and providing any additional context that may be needed to answer the user's query in each step.
 
-All responses are JSON blobs with the following format inside of a code block :
+All responses are JSON blobs with the following format inside of a `code` block:
 ```json
 {{
   "steps": [
-    {{"step_num": <<step number>>, "step_description": "<<describe the step in detail here>>", "tool": "<<tool name (one of the available tools)>>", "relies_on": [<<list other step IDs this step relies on, if any>>]}},
+    {{"step_num": <step number>, "step_description": "<describe the step in detail here>", "tool": "<tool name (one of the available tools)>", "relies_on": [<list other step IDs this step relies on, if any>]}},
     ...
   ]
 }}
 
-For example, if the user's query is "What's the weather like here?", you might split this into two steps- getting the user's location, and then getting the weather for that location.  Your response would look like this (take special note of the code block!):
+For example, if the user's query is "What's the weather like here?", you might split this into two steps- getting the user's location, and then getting the weather for that location.  Your response would look like this (take special note of the `code` block!):
 ```json
 {{
   "steps": [
@@ -30,10 +30,10 @@ For example, if the user's query is "What's the weather like here?", you might s
 
 Please take note of the "relies_on" field in the JSON output.  This field is used to indicate which previous steps this step relies on.  If a step does not rely on any previous steps, this field should be an empty list.  If a step relies on a previous step, the "relies_on" field should contain a list of the step numbers that this step relies on.  For example, if step 3 relies on steps 1 and 2, the "relies_on" field for step 3 should be [1, 2].
 
-If you can answer the user's query directly, or the user's query is just conversational in nature, you should respond with the following JSON blob inside of a code block:
+If you can answer the user's query directly, or the user's query is just conversational in nature, you should respond with the following JSON blob inside of a `code` block:
 ```json
 {{
-  "final_answer": "<<your complete answer to the query, or your response to a conversation>>"
+  "final_answer": "<your complete answer to the query, or your response to a conversation>"
 }}
 ```
 
@@ -67,7 +67,7 @@ Double check the CHAT HISTORY and make sure to resolve any co-references in the 
 
 Finally, I would like you to take the first part of your answer as a "scratchpad" to organize your thoughts.  The remainder of your answer should be JSON formatted inside of a code block, as instructed above.
 
-AI:  Sure I will use the first part of this answer as my scratchpad, and the remainder of my answer will be JSON formatted inside of a code block.  Here is my response:
+AI: Sure I will use markdown and provide my thoughts below before providing the remainder the response in JSON (inside a ```json code``` block):
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a chain of AIs that have been working on a user's query.  The other AIs have gathered enough information for you to be able to answer the query.  Now, I would like you to answer the user's query for me using the information I provide here.
@@ -88,14 +88,14 @@ This helpful context contains all of the information you will require to answer 
 If you cannot answer the user's query, please return a JSON blob with the following format inside of a code block:
 ```json
 {{
-  "failure": "<<explain precisely why you cannot answer the user's query with the information in the helpful context>>"
+  "failure": "<explain precisely why you cannot answer the user's query with the information in the helpful context>"
 }}
 ```
 
 If you can answer the user's query, please return a JSON blob with the following format inside of a code block:
 ```json
 {{
-  "answer": "<<beautifully formatted complete answer as markdown goes here (remember to escape anything required to be used in this JSON string).  Be very detail oriented, and quote from any context, verbatim where possible, while giving a well-thought out answer here.  If there are sources in the helpful context, make sure to include them at the end of your answer.>>"
+  "answer": "<beautifully formatted complete answer as markdown goes here (remember to escape anything required to be used in this JSON string).  Be very detail oriented, and quote from any context, verbatim where possible, while giving a well-thought out answer here.  If there are sources in the helpful context, make sure to include them at the end of your answer.>"
 }}
 ```
 
@@ -149,7 +149,7 @@ Your output should follow this JSON format inside of a code block:
 
 ```json
 {{
-  "tool_use_description": "<<Describe the use of this tool>>", "tool": "<<tool name>>", "tool_args": {{"<<arg 1 name>>": "<<arg 1 value>>", "<<arg 2 name>>": "<<arg 2 value>>", ...}}
+  "tool_use_description": "<Describe the use of this tool>", "tool": "<tool name>", "tool_args": {{"<arg 1 name>": "<arg 1 value>", "<arg 2 name>": "<arg 2 value>", ...}}
 }}
 ```
 
@@ -196,7 +196,7 @@ The goal is to attempt to retry the previous failed tool calls with a modified t
 Your output should follow this JSON format inside of a code block:
 ```json
 {{
-  "tool_use_description": "<<Describe the use of this tool>>", "tool": "<<tool name>>", "tool_args": {{"<<arg 1 name>>": "<<arg 1 value>>", "<<arg 2 name>>": "<<arg 2 value>>", ...}}
+  "tool_use_description": "<Describe the use of this tool>", "tool": "<tool name>", "tool_args": {{"<arg 1 name>": "<arg 1 value>", "<arg 2 name>": "<arg 2 value>", ...}}
 }}
 ```
 
