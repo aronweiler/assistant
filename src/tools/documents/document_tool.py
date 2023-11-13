@@ -87,11 +87,20 @@ class DocumentTool:
                         "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
+                
+                def get_chat_history():
+                    if self.interaction_manager:
+                        return (
+                            self.interaction_manager.conversation_token_buffer_memory.buffer_as_str
+                        )
+                    else:
+                        return "No chat history."
 
                 split_prompts = llm.predict(
                     additional_prompt_prompt.format(
                         additional_prompts=split_prompts,
                         user_query=user_query,
+                        chat_history=get_chat_history(),
                     ),
                     callbacks=self.interaction_manager.agent_callbacks,
                 )
