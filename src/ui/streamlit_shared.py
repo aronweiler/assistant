@@ -185,6 +185,11 @@ def set_confirm_interaction_delete(val):
 
 def create_interaction(interaction_summary):
     """Creates an interaction for the current user with the specified summary"""
+    
+    if "user_id" not in st.session_state:
+        # Sometimes this will happen if we're switching controls/screens
+        return
+    
     Interactions().create_interaction(
         id=str(uuid.uuid4()),
         interaction_summary=interaction_summary,

@@ -2,6 +2,8 @@ import logging
 import threading
 import streamlit as st
 import os
+from google_auth_oauthlib.flow import InstalledAppFlow
+import json
 
 from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
@@ -11,6 +13,8 @@ from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.tools.tool_manager import ToolManager
 
 import src.ui.streamlit_shared as ui_shared
+
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 
 def settings_page():
@@ -23,8 +27,8 @@ def settings_page():
 
     st.title("Settings")
 
-    settings_tab, jarvis_ai, tools_tab = st.tabs(
-        ["General Settings", "Jarvis AI", "Tools"]
+    settings_tab, jarvis_ai, tools_tab, google_auth = st.tabs(
+        ["General Settings", "Jarvis AI", "Tools", "Google Auth"]
     )
 
     with settings_tab:
@@ -35,7 +39,48 @@ def settings_page():
 
     with tools_tab:
         tools_settings()
+        
+    with google_auth:
+        google_auth_settings()
+        
+def google_auth_settings():
+    if st.button('Register Client'):
+        register_client()
 
+def register_client():
+    flow = InstalledAppFlow.from_client_secrets_file(
+        'client_secrets.json',
+        SCOPES,
+        redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+    )
+
+    authorization_url, _ = flow.authorization_url(prompt='consent')
+
+    st.write('Please visit the following URL to authorize your application:')
+    st.write(authorization_url)
+
+    authorization_code = st.text_input('Enter the authorization code:')
+
+    if authorization_code:
+        flow.fetch_token(authorization_response=authorization_code)
+
+        credentials = flow.credentials
+        save_credentials(credentials)
+
+        st.success('Client registration successful!')
+
+def save_credentials(credentials):
+    token_data = {
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_uri,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes
+    }
+
+    with open(os.environ.get("GOOGLE_CREDENTIALS_FILE_LOCATION", "google_credentials.json"), 'w') as f:
+        json.dump(token_data, f)
 
 def jarvis_ai_settings():
     st.markdown(
