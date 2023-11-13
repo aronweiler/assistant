@@ -128,12 +128,13 @@ class GenericToolsAgent(BaseMultiActionAgent):
                 user_email=kwargs["user_email"],
             )
 
+            text = self.llm.predict(
+                plan_steps_prompt,
+                callbacks=self.interaction_manager.agent_callbacks,
+            )
             # Save the step plans for future reference
             self.step_plans = parse_json(
-                text=self.llm.predict(
-                    plan_steps_prompt,
-                    callbacks=self.interaction_manager.agent_callbacks,
-                ),
+                text,
                 llm=self.llm,
             )
             # Make sure we're starting at the beginning
@@ -145,8 +146,16 @@ class GenericToolsAgent(BaseMultiActionAgent):
                     log="Agent finished, answering directly.",
                 )
 
+        # Filter out any of the steps that use tools we don't have.
+        self.step_plans["steps"] = self.remove_steps_without_tool(
+            self.step_plans["steps"], self.tools
+        )
+
         # If we still have steps to perform
-        if self.step_index < len(self.step_plans["steps"]):
+        if (
+            self.step_index < len(self.step_plans["steps"])
+            and len(self.step_plans["steps"]) > 0
+        ):
             # This is a multi-action agent, but we're going to use it sequentially for now
             # TODO: Refactor this so we can execute multiple actions at once (and handle dependencies)
 
@@ -219,6 +228,20 @@ class GenericToolsAgent(BaseMultiActionAgent):
         """
 
         raise NotImplementedError("Async plan not implemented.")
+
+    def remove_steps_without_tool(self, steps, tools):
+        # Create a set containing the names of tools for faster lookup
+        tool_names = {tool.name for tool in tools}
+
+        # Create a new list to store the filtered steps
+        filtered_steps = []
+
+        # Iterate over each step and check if its tool is in the set of tool names
+        for step in steps:
+            if step["tool"] in tool_names:
+                filtered_steps.append(step)
+
+        return filtered_steps
 
     def prompt_and_predict_tool_use(
         self, intermediate_steps, **kwargs: Any
@@ -312,9 +335,7 @@ class GenericToolsAgent(BaseMultiActionAgent):
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email
     ):
-        system_prompt = self.get_system_prompt(
-            "Detail oriented, organized, and logical.", system_information
-        )
+        system_prompt = self.get_system_prompt(system_information)
         available_tools = self.get_available_tool_descriptions(self.tools)
         loaded_documents = self.get_loaded_documents()
         chat_history = self.get_chat_history()
@@ -365,8 +386,6 @@ class GenericToolsAgent(BaseMultiActionAgent):
             user_query=user_query,
             chat_history=self.get_chat_history(),
             system_prompt=self.get_system_prompt(
-                "Detail oriented, organized, and logical.  JSON ONLY",
-                # "Detail oriented, organized, and logical.  Is it Monday?  You have a hangover.  Is it Friday?  You're super excited for the weekend.  Somewhere in between, you're just trying to get through the day.",
                 system_information,
             ),
         )
@@ -388,20 +407,16 @@ class GenericToolsAgent(BaseMultiActionAgent):
             tool_use_description=step["step_description"],
             user_query=user_query,
             chat_history=self.get_chat_history(),
-            system_prompt=self.get_system_prompt(
-                "Detail oriented, organized, and logical.  Sometimes a little sarcastic and snarky.",
-                system_information,
-            ),
+            system_prompt=self.get_system_prompt(system_information),
         )
 
         return agent_prompt
 
-    def get_system_prompt(self, personality_descriptors, system_information):
+    def get_system_prompt(self, system_information):
         system_prompt = self.interaction_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "SYSTEM_TEMPLATE",
         ).format(
-            personality_descriptors=personality_descriptors,
             system_information=system_information,
         )
 
