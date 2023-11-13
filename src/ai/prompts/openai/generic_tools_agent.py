@@ -60,13 +60,6 @@ Double check the CHAT HISTORY and make sure to resolve any co-references in the 
 1. Any steps you create should ONLY contain tools that are listed here in this prompt. Do not make up tools.
 2. Review the chat history carefully, and make sure to resolve any co-references in the steps you output.
 3. Make sure each step can be acted upon on its own.
-4. For a final answer, make sure the format is pleasing, and can be displayed as Markdown.
-
-The following is a scratchpad that you can use to organize your thoughts:
-
---- SCRATCHPAD ---
-
---- SCRATCHPAD ---
 
 AI: Sure, I will decide whether to answer the user directly, or whether to provide a list of steps. Here is my response (in JSON format, where I've made sure to escape any quotes in the values of the JSON):
 """
@@ -96,23 +89,16 @@ If you cannot answer the user's query, please return a JSON blob with the follow
 If you can answer the user's query, please return a JSON blob with the following format:
 ```json
 {{
-  "answer": "<<beautifully formatted complete answer as markdown goes here (remember to escape anything required to be used in this JSON string).  Be very detail oriented, and quote from any context, verbatim where possible, while giving a well-thought out answer here.  If there are sources in the helpful context, make sure to include them at the end of your answer.>>"
+  "answer": "<<markdown formatted complete answer here (remember to escape anything required to be used in a JSON string).  take a deep breath here and make sure you carefully enter all of the details from the helpful context that make up this answer.  Be very detail oriented, and quote verbatim where possible.  If there are sources in the helpful context, make sure to include them here.>>"
 }}
 ```
 
 Use the helpful context above to answer the user's query, which is:
-
---- USER QUERY ---
 {user_query}
---- USER QUERY ---
 
-1. Think this through, step by step.  
-2. Make sure to take the chat history, and the helpful context into account when answering the user's query.  
-3. Sometimes the user's query can be a follow-up to something in the chat history, so be sure you are answering their full query based on the chat history.
-4. Make sure the format of your answer JSON is pleasing to the eye, and can be displayed as Markdown.
-5. Remember this is in JSON format, so make sure to properly escape any characters in the "answer" field that need to be escaped.
+Think this through, step by step.  Make sure to take the chat history, and the helpful context into account when answering the user's query.  Sometimes the user's query can be a follow-up to something in the chat history, so be sure you are answering their full query based on the chat history.
 
-AI: Sure! Here is my response in JSON format:
+AI: Sure! Here is my response (in JSON format, only using single quotes to avoid escaping double quotes, remember this is JSON so don't put line breaks in the answer (\\n is OK)):
 """
 
 TOOL_USE_TEMPLATE = """{system_prompt}
