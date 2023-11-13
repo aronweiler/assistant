@@ -7,8 +7,9 @@ Include the "language" key in the output to specify the language of the source c
 - C++ -> "cpp"
 - Python -> "python"
 
-The expected json output format is:
+The expected json output format is as follows (make note of the ```json code block``` syntax):
 --- JSON OUTPUT FORMAT --- 
+``` json
 {{
     "language": "<string: programming language being reviewed>",
     "metadata": "<dict: metadata dictionary>",
@@ -17,6 +18,7 @@ The expected json output format is:
         ...
     ]
 }}
+```
 --- JSON OUTPUT FORMAT --- 
 
 When commenting on one or more lines of code, use the following format:
@@ -419,7 +421,7 @@ Take a deep breath, and think this through step-by-step.
 
 Review the code I've given you very carefully, and be diligent in your analysis.  
 
-AI: Sure, here is your code review in JSON format (I'm leaving out the items with needs_change=false):
+AI: Sure, here is your code review in JSON format inside of a ```json code``` block (I'm leaving out the items with needs_change=false):
 """
 
 
