@@ -207,7 +207,7 @@
         "search_for_emails": {
             "enabled": false
         },
-        "get_email_by_id": {
+        "get_email_by_ids": {
             "enabled": false
         },
         "search_businesses": {
