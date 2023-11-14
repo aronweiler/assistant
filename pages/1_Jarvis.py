@@ -182,9 +182,6 @@ class RagUI:
                                 st.number_input(
                                     "Timeout (seconds)", key="agent_timeout", value=600
                                 )
-                                st.number_input(
-                                    "Max code review tokens", key="max_code_review_token_count", value=6000
-                                )
                                 
                                 st.toggle(
                                     "Use Pandas for Spreadsheets",
