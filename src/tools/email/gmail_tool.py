@@ -1,6 +1,7 @@
 # See: https://python.langchain.com/docs/integrations/toolkits/gmail
 import os
 import logging
+from typing import List
 
 from langchain.tools.gmail.utils import build_resource_service, get_gmail_credentials
 from langchain.agents.agent_toolkits import GmailToolkit
@@ -56,7 +57,7 @@ class GmailTool:
 
         return emails
 
-    def get_email_by_id(self, message_id: str):
+    def get_email_by_ids(self, message_ids: List[str]):
         get_gmail_thread = next(
             (
                 tool
@@ -67,7 +68,9 @@ class GmailTool:
         )
 
         try:
-            results = get_gmail_thread.run(tool_input=message_id)
+            results = []
+            for message_id in message_ids:
+                results.append(get_gmail_thread.run(tool_input=message_id))
         except Exception as e:
             logging.error(f"Error getting email by id: {e}")
             return e

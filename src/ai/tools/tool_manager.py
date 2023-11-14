@@ -153,9 +153,9 @@ class ToolManager:
             "enabled_by_default": False,
             "requires_documents": False,
         },
-        "get_email_by_id": {
-            "display_name": "Get Email Message",
-            "help_text": "Enables Jarvis to fetch an email by message ID.",
+        "get_email_by_ids": {
+            "display_name": "Get Email Messages",
+            "help_text": "Enables Jarvis to fetch emails by message ID.",
             "enabled_by_default": False,
             "requires_documents": False,
         },
@@ -414,9 +414,9 @@ class ToolManager:
 
             generic_tools.append(
                 GenericTool(
-                    description="Gets an email by message ID.",
-                    additional_instructions="Use this tool to fetch an email by message ID. Returns the thread ID, snippet, body, subject, and sender.  The message_id is required.  You should not use this tool if you dont have a valid message ID (from search_for_emails) to pass in.",
-                    function=gmail_tool.get_email_by_id,
-                    name="get_email_by_id",
+                    description="Gets one or more emails by message ID.",
+                    additional_instructions="Use this tool to fetch one or more emails by message ID. Returns the thread ID, snippet, body, subject, and sender.  The message_ids field is required.  You should not use this tool if you dont have one or more valid message ID (from search_for_emails) to pass in.",
+                    function=gmail_tool.get_email_by_ids,
+                    name="get_email_by_ids",
                 )
             )
