@@ -14,7 +14,7 @@ from src.ai.tools.tool_manager import ToolManager
 
 import src.ui.streamlit_shared as ui_shared
 
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
 def settings_page():
@@ -39,27 +39,27 @@ def settings_page():
 
     with tools_tab:
         tools_settings()
-        
+
     with google_auth:
         google_auth_settings()
-        
+
+
 def google_auth_settings():
-    if st.button('Register Client'):
+    if st.button("Register Client"):
         register_client()
+
 
 def register_client():
     flow = InstalledAppFlow.from_client_secrets_file(
-        'client_secrets.json',
-        SCOPES,
-        redirect_uri='urn:ietf:wg:oauth:2.0:oob'
+        "client_secrets.json", SCOPES, redirect_uri="urn:ietf:wg:oauth:2.0:oob"
     )
 
-    authorization_url, _ = flow.authorization_url(prompt='consent')
+    authorization_url, _ = flow.authorization_url(prompt="consent")
 
-    st.write('Please visit the following URL to authorize your application:')
+    st.write("Please visit the following URL to authorize your application:")
     st.write(authorization_url)
 
-    authorization_code = st.text_input('Enter the authorization code:')
+    authorization_code = st.text_input("Enter the authorization code:")
 
     if authorization_code:
         flow.fetch_token(authorization_response=authorization_code)
@@ -67,20 +67,25 @@ def register_client():
         credentials = flow.credentials
         save_credentials(credentials)
 
-        st.success('Client registration successful!')
+        st.success("Client registration successful!")
+
 
 def save_credentials(credentials):
     token_data = {
-        'token': credentials.token,
-        'refresh_token': credentials.refresh_token,
-        'token_uri': credentials.token_uri,
-        'client_id': credentials.client_id,
-        'client_secret': credentials.client_secret,
-        'scopes': credentials.scopes
+        "token": credentials.token,
+        "refresh_token": credentials.refresh_token,
+        "token_uri": credentials.token_uri,
+        "client_id": credentials.client_id,
+        "client_secret": credentials.client_secret,
+        "scopes": credentials.scopes,
     }
 
-    with open(os.environ.get("GOOGLE_CREDENTIALS_FILE_LOCATION", "google_credentials.json"), 'w') as f:
+    with open(
+        os.environ.get("GOOGLE_CREDENTIALS_FILE_LOCATION", "google_credentials.json"),
+        "w",
+    ) as f:
         json.dump(token_data, f)
+
 
 def jarvis_ai_settings():
     st.markdown(
@@ -97,12 +102,12 @@ def jarvis_ai_settings():
     jarvis_config = ui_shared.get_app_configuration()["jarvis_ai"]
 
     st.markdown("### General")
-    
+
     needs_saving = show_thoughts(jarvis_config, needs_saving)
-    
+
     st.divider()
-    
-    st.markdown("### Jarvis AI Model Settings")    
+
+    st.markdown("### Jarvis AI Model Settings")
 
     generate_model_settings(
         tool_name="jarvis",
@@ -115,18 +120,18 @@ def jarvis_ai_settings():
         existing_tool_configuration=jarvis_config,
         needs_saving=needs_saving,
     )
-    
-    st.markdown("### File Ingestion Settings")    
+
+    st.markdown("### File Ingestion Settings")
 
     generate_model_settings(
         tool_name="jarvis-file-ingestion",
-        tool_configuration=jarvis_config['file_ingestion_configuration'],
+        tool_configuration=jarvis_config["file_ingestion_configuration"],
         available_models=ui_shared.get_available_models(),
     )
 
     file_ingestion_model_configuration, needs_saving = model_needs_saving(
         tool_name="jarvis-file-ingestion",
-        existing_tool_configuration=jarvis_config['file_ingestion_configuration'],
+        existing_tool_configuration=jarvis_config["file_ingestion_configuration"],
         needs_saving=needs_saving,
     )
 
@@ -135,8 +140,9 @@ def jarvis_ai_settings():
         save_jarvis_settings_to_file(
             show_llm_thoughts=st.session_state["show_llm_thoughts"],
             model_configuration=model_configuration,
-            file_ingestion_model_configuration=file_ingestion_model_configuration
+            file_ingestion_model_configuration=file_ingestion_model_configuration,
         )
+
 
 def show_thoughts(jarvis_config, needs_saving):
     st.toggle(
@@ -147,12 +153,12 @@ def show_thoughts(jarvis_config, needs_saving):
     st.markdown(
         "When enabled, Jarvis will show the LLM's thoughts as it is generating a response."
     )
-    
+
     if st.session_state["show_llm_thoughts"] != jarvis_config.get(
         "show_llm_thoughts", False
     ):
         needs_saving = True
-        
+
     return needs_saving
 
 
@@ -243,10 +249,10 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
     configured_completion_tokens = int(
         tool_configuration["model_configuration"]["max_completion_tokens"]
     )
-    
-    configured_max_conversation_history_tokens= int(
-            tool_configuration["model_configuration"]["max_conversation_history_tokens"]
-        )
+
+    configured_max_conversation_history_tokens = int(
+        tool_configuration["model_configuration"]["max_conversation_history_tokens"]
+    )
 
     history_tokens = st.slider(
         label="Conversation History Tokens",
@@ -288,17 +294,63 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         )
 
 
+def show_additional_settings(configuration, tool_name, tool_details):
+    # If there are additional settings, get the settings and show the widgets
+    if "additional_settings" in configuration["tool_configurations"][tool_name]:
+        with st.expander(
+            label=f"🦿 {tool_details['display_name']} Additional Settings",
+            expanded=False,
+        ):
+            additional_settings = configuration["tool_configurations"][tool_name][
+                "additional_settings"
+            ]
+
+            for additional_setting_name in additional_settings:
+                additional_setting = additional_settings[additional_setting_name]
+                session_state_key = f"{tool_name}-{additional_setting_name}"
+                if additional_setting["type"] == "int":
+                    st.number_input(
+                        label=additional_setting["label"],
+                        value=additional_setting["value"],
+                        key=session_state_key,
+                        min_value=additional_setting["min"],
+                        max_value=additional_setting["max"],
+                        step=additional_setting["step"],
+                        on_change=save_additional_setting,
+                        kwargs={
+                            "tool_name": tool_name,
+                            "setting_name": additional_setting_name,
+                            "session_state_key": session_state_key,
+                        },
+                    )
+
+                st.markdown(additional_setting["description"])
+
+
+def show_model_settings(configuration, tool_name, tool_details):
+    if "model_configuration" in configuration["tool_configurations"][tool_name]:
+        available_models = ui_shared.get_available_models()
+        tool_configuration = configuration["tool_configurations"][tool_name]
+
+        with st.expander(
+            label=f"⚙️ {tool_details['display_name']} Model Settings",
+            expanded=False,
+        ):
+            generate_model_settings(
+                tool_name=tool_name,
+                tool_configuration=tool_configuration,
+                available_models=available_models,
+            )
+
+
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
     tool_manager = ToolManager(configuration=configuration)
 
     tools = tool_manager.get_all_tools()
 
-    available_models = ui_shared.get_available_models()
-
     # Create a toggle to enable/disable each tool
     for tool_name, tool_details in tools.items():
-        tool_configuration = configuration["tool_configurations"][tool_name]
         col1, col2 = st.columns([3, 7])
         col1.toggle(
             tool_details["display_name"],
@@ -309,50 +361,8 @@ def tools_settings():
         )
         col2.markdown(tool_details["help_text"])
 
-        # If we're refactoring prompts, get the settings and show the widget
-        if (
-            "refactor_prompt_settings"
-            in configuration["tool_configurations"][tool_name]
-        ):
-            with st.expander(
-                label=f"✍️ {tool_details['display_name']} Prompt Refactoring Settings",
-                expanded=False,
-            ):
-                refactor_prompt_settings = configuration["tool_configurations"][
-                    tool_name
-                ]["refactor_prompt_settings"]
-                for refactor_prompt_setting in refactor_prompt_settings:
-                    session_state_key = (
-                        f"{refactor_prompt_setting['name']}-refactor-prompt"
-                    )
-                    if refactor_prompt_setting["type"] == "int":
-                        st.number_input(
-                            label=refactor_prompt_setting["name"],
-                            value=refactor_prompt_setting["value"],
-                            key=f"{refactor_prompt_setting['name']}-refactor-prompt",
-                            min_value=refactor_prompt_setting["min"],
-                            max_value=refactor_prompt_setting["max"],
-                            step=refactor_prompt_setting["step"],
-                            on_change=save_refactor_prompt_setting,
-                            kwargs={
-                                "tool_name": tool_name,
-                                "setting_name": refactor_prompt_setting["name"],
-                                "session_state_key": session_state_key,
-                            },
-                        )
-
-                    st.markdown(refactor_prompt_setting["description"])
-
-        if "model_configuration" in configuration["tool_configurations"][tool_name]:
-            with st.expander(
-                label=f"⚙️ {tool_details['display_name']} Model Settings",
-                expanded=False,
-            ):
-                generate_model_settings(
-                    tool_name=tool_name,
-                    tool_configuration=tool_configuration,
-                    available_models=available_models,
-                )
+        show_model_settings(configuration, tool_name, tool_details)
+        show_additional_settings(configuration, tool_name, tool_details)
 
         st.divider()
 
@@ -462,16 +472,20 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
     return model_configuration, needs_saving
 
 
-def save_jarvis_settings_to_file(show_llm_thoughts, model_configuration, file_ingestion_model_configuration):
+def save_jarvis_settings_to_file(
+    show_llm_thoughts, model_configuration, file_ingestion_model_configuration
+):
     configuration = ui_shared.get_app_configuration()
 
     configuration["jarvis_ai"]["show_llm_thoughts"] = show_llm_thoughts
 
     if model_configuration:
         configuration["jarvis_ai"]["model_configuration"] = model_configuration
-        
+
     if file_ingestion_model_configuration:
-        configuration["jarvis_ai"]["file_ingestion_configuration"]["model_configuration"] = file_ingestion_model_configuration
+        configuration["jarvis_ai"]["file_ingestion_configuration"][
+            "model_configuration"
+        ] = file_ingestion_model_configuration
 
     app_config_path = ui_shared.get_app_config_path()
 
@@ -501,15 +515,11 @@ def save_tool_settings_to_file(tool_name, enabled, model_configuration):
     st.session_state["app_config"] = configuration
 
 
-def save_refactor_prompt_setting(tool_name, setting_name, session_state_key):
+def save_additional_setting(tool_name, setting_name, session_state_key):
     configuration = ui_shared.get_app_configuration()
-    settings = configuration["tool_configurations"][tool_name][
-        "refactor_prompt_settings"
-    ]
-    for setting in settings:
-        if setting["name"] == setting_name:
-            setting["value"] = st.session_state[session_state_key]
-            break
+    settings = configuration["tool_configurations"][tool_name]["additional_settings"]
+
+    settings[setting_name]["value"] = st.session_state[session_state_key]
 
     app_config_path = ui_shared.get_app_config_path()
 

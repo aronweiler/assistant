@@ -7,24 +7,38 @@ Include the "language" key in the output to specify the language of the source c
 - C++ -> "cpp"
 - Python -> "python"
 
-The expected json output format is as follows (make note of the ```json code block``` syntax):
+{format_instructions}
+"""
+
+FILE_CODE_REVIEW_FORMAT_TEMPLATE = """The expected json output format is as follows (make note of the ```json code block``` syntax):
 --- JSON OUTPUT FORMAT --- 
 ``` json
 {{
-    "language": "<string: programming language being reviewed>",
-    "metadata": "<dict: metadata dictionary>",
+    "language": "string: programming language being reviewed",
+    "metadata": "dict: metadata dictionary",
     "comments": [
-        {{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
+        {{"start": "starting line number", "end": "ending line number", "comment": "comment in markdown", "needs_change": "bool: true if modifications are recommended, false otherwise", "original_code_snippet": "...", "suggested_code_snippet": "..."}},
         ...
     ]
 }}
 ```
 --- JSON OUTPUT FORMAT --- 
+"""
 
-When commenting on one or more lines of code, use the following format:
---- COMMENT FORMAT ---
-{{"start": <starting line number>, "end": <ending line number>, "comment": <comment in markdown>, "needs_change": <bool: true if modifications are recommended, false otherwise>,"original_code_snippet": <str: original code snippet>, "suggested_code_snippet": <suggested change to code snippet>}}
---- COMMENT FORMAT ---"""
+DIFF_CODE_REVIEW_FORMAT_TEMPLATE = """The expected json output format is as follows (make note of the ```json code block``` syntax):
+--- JSON OUTPUT FORMAT --- 
+``` json
+{{
+    "language": "string: programming language being reviewed",
+    "metadata": "dict: metadata dictionary",
+    "comments": [
+        {{"add_line_start": "the starting line number for an add (+) line that this comment corresponds to (null if none)", "add_line_end": "the ending line number for an add (+) line that this comment corresponds to (null if none)", "remove_line_start": "the starting line number for a remove (-) line that this comment corresponds to (null if none)", "remove_line_end": "the ending line number for a remove (-) line that this comment corresponds to (null if none)", "comment": "comment in markdown", "needs_change": "bool: true if modifications are recommended, false otherwise", "original_code_snippet": "...", "suggested_code_snippet": "..."}},
+        ...
+    ]
+}}
+```
+--- JSON OUTPUT FORMAT --- 
+"""
 
 SECURITY_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
 
@@ -172,7 +186,7 @@ Uninitialized Memory Access
     C++: Trying to use a pointer before it's been initialized can lead to undefined behavior.
     ``` cpp
         int *ptr;
-        cout<< *ptr;  // Uninitialized memory access
+        cout << *ptr;  // Uninitialized memory access
     ```
 
 Null Pointer Dereference

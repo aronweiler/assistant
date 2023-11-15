@@ -1110,11 +1110,6 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     "agent_timeout": int(st.session_state["agent_timeout"])
                     if "agent_timeout" in st.session_state
                     else 300,
-                    "max_code_review_token_count": int(
-                        st.session_state["max_code_review_token_count"]
-                    )
-                    if "max_code_review_token_count" in st.session_state
-                    else 5000,
                 }
                 logging.debug(f"kwargs: {kwargs}")
 

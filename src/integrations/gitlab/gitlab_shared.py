@@ -1,19 +1,14 @@
-
 import re
 
 import gitlab
 
-REVIEWER = 'Jarvis AI'
+REVIEWER = "Jarvis AI"
+
 
 def retrieve_gitlab_client(
-    source_control_url: str,
-    source_control_pat: str,
-    verify_auth: bool = True
+    source_control_url: str, source_control_pat: str, verify_auth: bool = True
 ) -> gitlab.Gitlab:
-    gl = gitlab.Gitlab(
-        url=source_control_url,
-        private_token=source_control_pat
-    )
+    gl = gitlab.Gitlab(url=source_control_url, private_token=source_control_pat)
 
     if verify_auth:
         gl.auth()
@@ -22,6 +17,27 @@ def retrieve_gitlab_client(
 
 
 def parse_url(client: gitlab.Gitlab, url: str) -> dict:
+    """Parse a URL- either a file or a diff- and return the relevant information."""
+
+    merge_request_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/merge_requests/(?P<merge_request_iid>[0-9]+)"
+    merge_request_match = re.match(pattern=merge_request_re, string=url)
+
+    file_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
+    file_match = re.match(pattern=file_re, string=url)
+
+    if merge_request_match is not None:
+        mr_url_info = parse_merge_request_url(client=client, url=url)
+        mr_url_info["type"] = "diff"
+        return mr_url_info
+    elif file_match is not None:
+        file_url_info = parse_file_url(client=client, url=url)
+        file_url_info["type"] = "file"
+        return file_url_info
+
+    raise Exception(f"Failed to URL match against {url}")
+
+
+def parse_file_url(client: gitlab.Gitlab, url: str) -> dict:
     url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
     match_obj = re.match(pattern=url_re, string=url)
 
@@ -50,7 +66,7 @@ def parse_url(client: gitlab.Gitlab, url: str) -> dict:
         "repo_path": repo_path,
         "url": url,
         "ref": ref,
-        "file_path": file_path
+        "file_path": file_path,
     }
 
 
@@ -81,5 +97,5 @@ def parse_merge_request_url(client: gitlab.Gitlab, url: str) -> dict:
         "project_id": project.get_id(),
         "repo_path": repo_path,
         "url": url,
-        "merge_request_iid": merge_request_iid
+        "merge_request_iid": merge_request_iid,
     }
