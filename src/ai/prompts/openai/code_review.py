@@ -3,9 +3,9 @@ BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE = """Imagine you are a meticulous and hig
 Your code review output should be in JSON format.
 
 Include the "language" key in the output to specify the language of the source code file being reviewed. e.g.
-- C - "c"
-- C++ - "cpp"
-- Python - "python"
+- C -> "c"
+- C++ -> "cpp"
+- Python -> "python"
 
 {format_instructions}
 """
