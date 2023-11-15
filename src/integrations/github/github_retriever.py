@@ -19,7 +19,7 @@ class GitHubRetriever:
         )
 
     def retrieve_data(self, url):
-        url_info = github_shared.parse_url(client=self._gl, url=url)
+        url_info = github_shared.parse_url(client=self._gh, url=url)
 
         if url_info["type"] == "file":
             return self.retrieve_file_data(url=url)

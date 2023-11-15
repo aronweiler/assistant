@@ -15,29 +15,25 @@ def parse_url(client: Github, url: str) -> dict:
     pull_request_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/pull/(?P<pull_request_id>[0-9]+)"
     pull_request_match = re.match(pattern=pull_request_re, string=url)
 
-    file_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
+    file_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/+blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
     file_match = re.match(pattern=file_re, string=url)
 
     if pull_request_match is not None:
-        mr_url_info = parse_pull_request_url(client=client, url=url)
+        mr_url_info = parse_pull_request_url(
+            client=client, pull_request_match=pull_request_match
+        )
         mr_url_info["type"] = "diff"
         return mr_url_info
     elif file_match is not None:
-        file_url_info = parse_file_url(client=client, url=url)
+        file_url_info = parse_file_url(client=client, file_match=file_match)
         file_url_info["type"] = "file"
         return file_url_info
 
     raise Exception(f"Failed to URL match against {url}")
 
 
-def parse_file_url(client: Github, url: str) -> dict:
-    url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
-    match_obj = re.match(pattern=url_re, string=url)
-
-    if match_obj is None:
-        raise Exception(f"Failed to URL match against {url}")
-
-    details = match_obj.groupdict()
+def parse_file_url(client: Github, file_match, url) -> dict:
+    details = file_match.groupdict()
     for field in ("domain", "repo_path", "ref", "file_path"):
         if field not in details:
             raise Exception(f"Unable to match {field} in {url}")
@@ -56,14 +52,8 @@ def parse_file_url(client: Github, url: str) -> dict:
     }
 
 
-def parse_pull_request_url(client: Github, url: str) -> dict:
-    url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/pull/(?P<pull_request_id>[0-9]+)"
-    match_obj = re.match(pattern=url_re, string=url)
-
-    if match_obj is None:
-        raise Exception(f"Failed to URL match against {url}")
-
-    details = match_obj.groupdict()
+def parse_pull_request_url(client: Github, pull_request_match, url: str) -> dict:
+    details = pull_request_match.groupdict()
     for field in ("domain", "repo_path", "pull_request_id"):
         if field not in details:
             raise Exception(f"Unable to match {field} in {url}")

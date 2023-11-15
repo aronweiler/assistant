@@ -58,16 +58,12 @@ class DocumentTool:
         )
 
         try:
-            # Get the number of additional prompts that should be created to search the loaded documents
-            refactor_prompt_settings = self.configuration["tool_configurations"][
+            # Get the split prompt settings
+            split_prompt_settings = self.configuration["tool_configurations"][
                 self.search_loaded_documents.__name__
-            ]["refactor_prompt_settings"]
+            ]["additional_settings"]["split_prompt"]
 
-            split_prompts = 0
-            for setting in refactor_prompt_settings:
-                if setting["name"] == "Split Prompt":
-                    split_prompts = setting["value"]
-                    break
+            split_prompts = split_prompt_settings["value"]
 
             # If there are more than 0 additional prompts, we need to create them
             if split_prompts > 1:
@@ -87,7 +83,7 @@ class DocumentTool:
                         "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
-                
+
                 def get_chat_history():
                     if self.interaction_manager:
                         return (
