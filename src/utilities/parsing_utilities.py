@@ -5,14 +5,29 @@ from langchain.schema.language_model import BaseLanguageModel
 
 
 def parse_json(text: str, llm: BaseLanguageModel) -> dict:
-    
+    # So....
+    text = text.strip()
+
     # Handle JSON code blocks (whole response)
     if text.startswith("```json") and text.endswith("```"):
         text = text[7:-3]
-    
+
+        # Fucking...
+        text = text.strip()
+
+        # Sometimes there are two lines of ``` code block nonsense
+        if text.startswith("```"):
+            text = text[3:]
+
+        if text.endswith("```"):
+            text = text[:-3]
+
+    # Annoying...
+    text = text.strip()
+
     # Handle JSON code blocks (inside other text within a response)
     pattern = re.compile(r"```(?:json)?\n(.*?)```", re.DOTALL)
-    
+
     try:
         action_match = pattern.search(text)
         if action_match is not None:

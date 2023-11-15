@@ -26,18 +26,18 @@ def parse_url(client: gitlab.Gitlab, url: str) -> dict:
     file_match = re.match(pattern=file_re, string=url)
 
     if merge_request_match is not None:
-        mr_url_info = parse_merge_request_url(client=client, url=url)
+        mr_url_info = _parse_merge_request_url(client=client, url=url)
         mr_url_info["type"] = "diff"
         return mr_url_info
     elif file_match is not None:
-        file_url_info = parse_file_url(client=client, url=url)
+        file_url_info = _parse_file_url(client=client, url=url)
         file_url_info["type"] = "file"
         return file_url_info
 
     raise Exception(f"Failed to URL match against {url}")
 
 
-def parse_file_url(client: gitlab.Gitlab, url: str) -> dict:
+def _parse_file_url(client: gitlab.Gitlab, url: str) -> dict:
     url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/blob/(?P<ref>[a-zA-Z0-9\.\-\_]+)/(?P<file_path>.*)"
     match_obj = re.match(pattern=url_re, string=url)
 
@@ -70,7 +70,7 @@ def parse_file_url(client: gitlab.Gitlab, url: str) -> dict:
     }
 
 
-def parse_merge_request_url(client: gitlab.Gitlab, url: str) -> dict:
+def _parse_merge_request_url(client: gitlab.Gitlab, url: str) -> dict:
     url_re = r"^http[s+]:\/\/(?P<domain>[a-zA-Z0-9\.\-\_]+)/(?P<repo_path>.*)/-/merge_requests/(?P<merge_request_iid>[0-9]+)"
     match_obj = re.match(pattern=url_re, string=url)
 

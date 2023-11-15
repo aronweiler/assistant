@@ -258,11 +258,11 @@ class CodeReviewTool:
 
         file_info = self.ingest_source_code_file_from_url(url=target_url)
 
-        if file_info["metadata"]["type"] == "diff":
+        if file_info["type"] == "diff":
             return self._code_review_diff_from_url(
                 file_info, target_url, additional_instructions
             )
-        elif file_info["metadata"]["type"] == "file":
+        elif file_info["type"] == "file":
             return self._code_review_file_from_url(
                 file_info, target_url, additional_instructions
             )
@@ -271,9 +271,13 @@ class CodeReviewTool:
                 f"Unknown file type {file_info['metadata']['type']} for {target_url}"
             )
 
-    def _code_review_diff_from_url(self, mr_info, target_url, additional_instructions):
-        metadata = mr_info["metadata"]
-        changes = mr_info["changes"]
+    def _code_review_diff_from_url(
+        self, metadata: dict, target_url, additional_instructions
+    ):
+        changes = metadata["changes"]
+
+        # Remove changes from metadata
+        metadata.pop("changes", None)
 
         # TODO: Add in the ability to pull any previous comments and append them to the review
         # previous_comments = self.ingest_comments_from_review(url=target_url)
