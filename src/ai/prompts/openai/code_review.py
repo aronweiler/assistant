@@ -186,7 +186,7 @@ Uninitialized Memory Access
     C++: Trying to use a pointer before it's been initialized can lead to undefined behavior.
     ``` cpp
         int *ptr;
-        cout *ptr;  // Uninitialized memory access
+        cout << *ptr;  // Uninitialized memory access
     ```
 
 Null Pointer Dereference
@@ -198,7 +198,7 @@ Null Pointer Dereference
     C++: Trying to use a null pointer can cause a crash.
     ``` cpp
         int *ptr = nullptr;
-        cout  *ptr;  // Null pointer dereference
+        cout << *ptr;  // Null pointer dereference
     ```
 
 Double Freeing Memory
@@ -239,7 +239,7 @@ Failure to Release Unused Memory
 Not Accounting for Memory Fragmentation
     C++: Frequent allocations and deallocations of varying sizes can cause fragmentation.
     ``` cpp
-        for (int i = 0; i  1000000; ++i) {{
+        for (int i = 0; i < 1000000; ++i) {{
             char *ptr = new char[i];
             delete[] ptr;
         }}
