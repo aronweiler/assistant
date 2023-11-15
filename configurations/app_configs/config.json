@@ -148,7 +148,7 @@
             "enabled": false
         },
         "conduct_code_review_from_file_id": {
-            "enabled": false,
+            "enabled": true,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",

@@ -19,7 +19,7 @@ class GitHubRetriever:
         )
 
     def retrieve_data(self, url):
-        url_info = github_shared.parse_url(client=self._gh, url=url)
+        url_info = github_shared.parse_url(url=url)
 
         if url_info["type"] == "file":
             return self.retrieve_file_data(url=url)
@@ -27,7 +27,7 @@ class GitHubRetriever:
             return self.retrieve_pull_request_data(url=url)
 
     def retrieve_file_data(self, url):
-        url_info = github_shared.parse_url(client=self._gh, url=url)
+        url_info = github_shared.parse_url(url=url)
 
         domain = url_info["domain"]
         if domain not in self._source_control_url:
@@ -40,12 +40,12 @@ class GitHubRetriever:
         try:
             repo = self._gh.get_repo(repo_path)
         except Exception as ex:
-            raise Exception(f"Failed to retrieve project {repo_path} from server")
+            raise Exception(f"Failed to retrieve repo {repo_path} from server")
 
         ref = url_info["ref"]
         file_path = url_info["file_path"]
 
-        f = repo.get_contents(url_info["file_path"])
+        f = repo.get_contents(file_path, ref=ref)
 
         file_content = f.decoded_content.decode("UTF-8")
 
@@ -59,26 +59,27 @@ class GitHubRetriever:
         }
 
     def retrieve_pull_request_data(self, url):
-        url_info = github_shared.parse_pull_request_url(client=self._gh, url=url)
+        url_info = github_shared.parse_url(url=url)
 
         if url_info["domain"] not in self._source_control_url:
             raise Exception(
                 f"URL domain ({url_info['domain']}) is different than authorized instance ({self._source_control_url})"
             )
 
+        repo_path = url_info["repo_path"]
+        pull_request_id = url_info["pull_request_id"]
+
         try:
-            project = self._gh.projects.get(url_info["project_id"])
+            repo = self._gh.get_repo(repo_path)
         except Exception as ex:
-            raise Exception(
-                f"Failed to retrieve project {url_info['repo_path']} ({url_info['project_id']}) from server"
-            )
+            raise Exception(f"Failed to retrieve repo {repo_path} from server")
 
-        pull_request = project.pulls.get(id=url_info["pull_request_id"])
+        pull_request = repo.get_pull(number=int(pull_request_id))
 
-        changes = pull_request.changes()["changes"]
+        changes = pull_request.get_files()
         changes2 = []
         for change in changes:
-            diff = change["diff"]
+            diff = change.patch
             diff_split = diff.splitlines()
             diff2 = {"old": [], "new": []}
 
@@ -92,24 +93,23 @@ class GitHubRetriever:
                 elif line.startswith("\\"):
                     pass
                 else:
-                    raise Exception(
-                        f"Diff parsing -> Unexpected character {line[0]} found. Expected '+, -, or @'."
-                    )
+                    diff2["new"].append(line)
+                    diff2["old"].append(line)
 
             diff2["old"] = "\n".join(diff2["old"])
             diff2["new"] = "\n".join(diff2["new"])
             diff2["raw"] = diff
+            diff2["old_path"] = change.previous_filename
+            diff2["new_path"] = change.filename
             changes2.append(diff2)
 
         return {
-            "metadata": {
-                "type": "diff",
-                "id": pull_request.iid,
-                "title": pull_request.title,
-                "description": pull_request.description,
-                "created_at": pull_request.created_at,
-                "url": pull_request.web_url,
-            },
+            "type": "diff",
+            "id": pull_request_id,
+            "title": pull_request.title,
+            "description": pull_request.body,
+            "created_at": pull_request.created_at,
+            "url": url,
             "changes": changes2,
         }
 
