@@ -45,6 +45,15 @@ class CodeReviewTool:
         self.configuration = configuration
         self.interaction_manager = interaction_manager
 
+        self.code_review_templates = [
+            "SECURITY_CODE_REVIEW_TEMPLATE",
+            "PERFORMANCE_CODE_REVIEW_TEMPLATE",
+            "MEMORY_CODE_REVIEW_TEMPLATE",
+            "CORRECTNESS_CODE_REVIEW_TEMPLATE",
+            "MAINTAINABILITY_CODE_REVIEW_TEMPLATE",
+            "RELIABILITY_CODE_REVIEW_TEMPLATE",
+        ]
+
     def ingest_source_code_file_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
         retriever = self.source_control_to_retriever_map[
@@ -114,13 +123,40 @@ class CodeReviewTool:
 
     def _conduct_diff_code_review(
         self,
-        file_data: str,
+        diff_data,
         llm,
         additional_instructions: str = None,
         metadata: dict = None,
         existing_comments=None,
     ):
-        pass
+        # Add line numbers
+        # code = diff_data["raw"].splitlines()
+        # for line_num, line in enumerate(code):
+        #     code[line_num] = f"{line_num + 1}: {line}"
+
+        base_code_review_instructions = (
+            self.interaction_manager.prompt_manager.get_prompt(
+                "code_review", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
+            )
+        )
+
+        diff_code_review_format_instructions = (
+            self.interaction_manager.prompt_manager.get_prompt(
+                "code_review", "DIFF_CODE_REVIEW_FORMAT_TEMPLATE"
+            )
+        )
+
+        base_code_review_instructions = base_code_review_instructions.format(
+            format_instructions=diff_code_review_format_instructions
+        )
+
+        return self._run_code_reviews(
+            code=diff_data["raw"],
+            base_code_review_instructions=base_code_review_instructions,
+            llm=llm,
+            additional_instructions=additional_instructions,
+            metadata=metadata,
+        )
 
     def _conduct_file_code_review(
         self,
@@ -141,6 +177,32 @@ class CodeReviewTool:
             )
         )
 
+        file_code_review_format_instructions = (
+            self.interaction_manager.prompt_manager.get_prompt(
+                "code_review", "FILE_CODE_REVIEW_FORMAT_TEMPLATE"
+            )
+        )
+
+        base_code_review_instructions = base_code_review_instructions.format(
+            format_instructions=file_code_review_format_instructions
+        )
+
+        return self._run_code_reviews(
+            code=code,
+            base_code_review_instructions=base_code_review_instructions,
+            llm=llm,
+            additional_instructions=additional_instructions,
+            metadata=metadata,
+        )
+
+    def _run_code_reviews(
+        self,
+        code,
+        base_code_review_instructions,
+        llm,
+        additional_instructions: str = None,
+        metadata: dict = None,
+    ):
         final_code_review_instructions = (
             self.interaction_manager.prompt_manager.get_prompt(
                 "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
@@ -148,23 +210,14 @@ class CodeReviewTool:
                 code_summary="",
                 code_dependencies="",
                 code=code,
-                metadata=metadata,
+                code_metadata=metadata,
                 additional_instructions=additional_instructions,
             )
         )
 
-        templates = [
-            "SECURITY_CODE_REVIEW_TEMPLATE",
-            "PERFORMANCE_CODE_REVIEW_TEMPLATE",
-            "MEMORY_CODE_REVIEW_TEMPLATE",
-            "CORRECTNESS_CODE_REVIEW_TEMPLATE",
-            "MAINTAINABILITY_CODE_REVIEW_TEMPLATE",
-            "RELIABILITY_CODE_REVIEW_TEMPLATE",
-        ]
-
         review_results = {}
         comment_results = []
-        for template in templates:
+        for template in self.code_review_templates:
             code_review_prompt = self.interaction_manager.prompt_manager.get_prompt(
                 "code_review", template
             ).format(
@@ -206,11 +259,11 @@ class CodeReviewTool:
         file_info = self.ingest_source_code_file_from_url(url=target_url)
 
         if file_info["metadata"]["type"] == "diff":
-            self._code_review_diff_from_url(
+            return self._code_review_diff_from_url(
                 file_info, target_url, additional_instructions
             )
         elif file_info["metadata"]["type"] == "file":
-            self._code_review_file_from_url(
+            return self._code_review_file_from_url(
                 file_info, target_url, additional_instructions
             )
         else:
@@ -243,7 +296,7 @@ class CodeReviewTool:
             }
 
             review = self._conduct_diff_code_review(
-                diff_data=change["raw"],
+                diff_data=change,
                 additional_instructions=additional_instructions,
                 metadata=diff_metadata,
                 existing_comments="",  # TBD- probably need to pull this in if we're re-reviewing a diff
