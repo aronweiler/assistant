@@ -103,6 +103,7 @@ class GitlabRetriever:
 
         return {
             "type": "diff",
+            "project_id": url_info["project_id"],
             "mr_iid": merge_request.iid,
             "title": merge_request.title,
             "description": merge_request.description,
