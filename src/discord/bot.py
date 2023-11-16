@@ -85,7 +85,7 @@ def set_tool_environment_variables():
     os.environ["get_all_code_in_file"] = "False"
     os.environ["conduct_code_review_from_file_id"] = "False"
     os.environ["conduct_code_review_from_url"] = "False"
-    os.environ["create_code_review_issue_tool"] = "False"
+    os.environ["create_code_review_issue"] = "False"
     os.environ["query_spreadsheet"] = "False"
 
 
