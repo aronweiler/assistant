@@ -56,6 +56,7 @@ class GitHubRetriever:
             "ref": ref,
             "file_path": file_path,
             "file_content": file_content,
+            "repo_path": repo_path,
         }
 
     def retrieve_pull_request_data(self, url):

@@ -68,13 +68,13 @@ class GitlabIssueCreator:
     ):
         project_id = metadata["project_id"]
         ref = metadata["ref"]
-        source_code_file_loc = metadata["source_code_file_loc"]
-        source_code_file_href = metadata["source_code_file_href"]
+        file_path = metadata["file_path"]
+        source_code_file_href = metadata["url"]
 
         project = self._gl.projects.get(id=project_id)
 
         title = (
-            f"{gitlab_shared.REVIEWER} review of {source_code_file_loc} (ref: {ref})"
+            f"{gitlab_shared.REVIEWER} review of {file_path} (ref: {ref})"
         )
 
         review_data = self._preprocess_review(review_data=review_data)
@@ -82,7 +82,7 @@ class GitlabIssueCreator:
         language = review_data.get("language", "")
         description_template = self._get_template()
         description = description_template.render(
-            source_code_file_path=source_code_file_loc,
+            source_code_file_path=file_path,
             source_code_href=source_code_file_href,
             reviewer=gitlab_shared.REVIEWER,
             comments=review_data["comments"],
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     issue_creator.generate_issue(
         project_id=13881,
         ref="main",
-        source_code_file_loc="samples/StateMachine/Motor.cpp",
+        file_path="samples/StateMachine/Motor.cpp",
         source_code_file_href="",
         review_data=review_data,
     )

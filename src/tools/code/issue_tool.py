@@ -61,7 +61,6 @@ class IssueTool:
     def create_code_review_issue(
         self,
         review_data: dict,
-        review_metadata: dict,
     ):
         """
         Creates an issue containing the code review for a single reviewed file,on the source code control system specified
@@ -83,7 +82,6 @@ class IssueTool:
         )
 
         result = issue_creator.generate_issue(
-            metadata=review_metadata,
             review_data=review_data,
         )
 

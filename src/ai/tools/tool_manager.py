@@ -351,9 +351,9 @@ class ToolManager:
                 return_direct=False,
             ),
             GenericTool(
-                description="Creates a Gitlab issue from Code Review.",
+                description="Creates an issue from a Code Review.",                
                 function=issue_tool.create_code_review_issue,
-                additional_instructions="",
+                additional_instructions="Call this tool when the user requests an issue be created from a code review.",
                 return_direct=False,
             ),
             GenericTool(

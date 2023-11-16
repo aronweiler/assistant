@@ -58,17 +58,18 @@ class GitHubIssueCreator:
     def generate_issue(
         self,
         review_data: dict,
-        metadata: dict,
     ):
-        repo_name = metadata["repo_name"]
-        ref = metadata["ref"]
-        source_code_file_loc = metadata["source_code_file_loc"]
-        source_code_file_href = metadata["source_code_file_href"]
+        metadata = review_data["metadata"]
 
-        repo = self._gh.get_repo(repo_name)
+        repo_path = metadata["repo_path"]
+        ref = metadata["ref"]
+        file_path = metadata["file_path"]
+        source_code_file_href = metadata["url"]
+
+        repo = self._gh.get_repo(repo_path)
 
         title = (
-            f"{github_shared.REVIEWER} review of {source_code_file_loc} (ref: {ref})"
+            f"{github_shared.REVIEWER} review of {file_path} (ref: {ref})"
         )
 
         review_data = self._preprocess_review(review_data=review_data)
@@ -76,7 +77,7 @@ class GitHubIssueCreator:
         language = review_data.get("language", "")
         description_template = self._get_template()
         description = description_template.render(
-            source_code_file_path=source_code_file_loc,
+            source_code_file_path=file_path,
             source_code_href=source_code_file_href,
             reviewer=github_shared.REVIEWER,
             comments=review_data["comments"],
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     issue_creator.generate_issue(
         repo_name="aronweiler/assistant",
         ref="main",
-        source_code_file_loc="About.py",
+        file_path="About.py",
         source_code_file_href="https://github.com/aronweiler/assistant/blob/main/About.py",
         review_data=review_data,
     )

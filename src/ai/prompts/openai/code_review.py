@@ -421,7 +421,7 @@ You can safely ignore anything related to the following:
 {final_code_review_instructions}
 """
 
-FINAL_CODE_REVIEW_INSTRUCTIONS = """"
+FINAL_CODE_REVIEW_INSTRUCTIONS = """
 ----- CODE METADATA -----
 {code_metadata}
 ----- CODE METADATA -----
