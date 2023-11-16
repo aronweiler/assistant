@@ -1,6 +1,7 @@
 import re
 from github import Github, Auth
 
+REVIEWER = "Jarvis AI"
 
 def retrieve_github_client(source_control_url: str, source_control_pat: str) -> Github:
     auth = Auth.Token(source_control_pat)

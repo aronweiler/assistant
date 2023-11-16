@@ -7,6 +7,7 @@ from typing import List
 from langchain.base_language import BaseLanguageModel
 
 from src.ai.interactions.interaction_manager import InteractionManager
+from src.tools.code.issue_tool import IssueTool
 
 from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
@@ -105,7 +106,7 @@ class ToolManager:
             "enabled_by_default": True,
             "requires_documents": False,
         },
-        "create_code_review_issue_tool": {
+        "create_code_review_issue": {
             "display_name": "Create Issue from Code Review",
             "help_text": "Creates an issue on your selected provider from a Code Review",
             "enabled_by_default": True,
@@ -249,6 +250,10 @@ class ToolManager:
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
         )
+        issue_tool = IssueTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager,
+        )
         llm_tool = LLMTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
@@ -346,9 +351,9 @@ class ToolManager:
                 return_direct=False,
             ),
             GenericTool(
-                description="Creates a Gitlab issue from Code Review.",
-                function=code_review_tool.create_code_review_issue_tool,
-                additional_instructions="",
+                description="Creates an issue from a Code Review.",                
+                function=issue_tool.create_code_review_issue,
+                additional_instructions="Call this tool when the user requests an issue be created from a code review.",
                 return_direct=False,
             ),
             GenericTool(

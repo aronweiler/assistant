@@ -309,22 +309,55 @@ def show_additional_settings(configuration, tool_name, tool_details):
                 additional_setting = additional_settings[additional_setting_name]
                 session_state_key = f"{tool_name}-{additional_setting_name}"
                 if additional_setting["type"] == "int":
-                    st.number_input(
-                        label=additional_setting["label"],
-                        value=additional_setting["value"],
-                        key=session_state_key,
-                        min_value=additional_setting["min"],
-                        max_value=additional_setting["max"],
-                        step=additional_setting["step"],
-                        on_change=save_additional_setting,
-                        kwargs={
-                            "tool_name": tool_name,
-                            "setting_name": additional_setting_name,
-                            "session_state_key": session_state_key,
-                        },
+                    int_setting(
+                        tool_name,
+                        additional_setting_name,
+                        additional_setting,
+                        session_state_key,
+                    )
+                elif additional_setting["type"] == "bool":
+                    bool_setting(
+                        tool_name,
+                        additional_setting_name,
+                        additional_setting,
+                        session_state_key,
                     )
 
                 st.markdown(additional_setting["description"])
+
+
+def bool_setting(
+    tool_name, additional_setting_name, additional_setting, session_state_key
+):
+    st.toggle(
+        label=additional_setting["label"],
+        value=additional_setting["value"],
+        key=session_state_key,        
+        on_change=save_additional_setting,
+        kwargs={
+            "tool_name": tool_name,
+            "setting_name": additional_setting_name,
+            "session_state_key": session_state_key,
+        },
+    )
+
+def int_setting(
+    tool_name, additional_setting_name, additional_setting, session_state_key
+):
+    st.number_input(
+        label=additional_setting["label"],
+        value=additional_setting["value"],
+        key=session_state_key,
+        min_value=additional_setting["min"],
+        max_value=additional_setting["max"],
+        step=additional_setting["step"],
+        on_change=save_additional_setting,
+        kwargs={
+            "tool_name": tool_name,
+            "setting_name": additional_setting_name,
+            "session_state_key": session_state_key,
+        },
+    )
 
 
 def show_model_settings(configuration, tool_name, tool_details):

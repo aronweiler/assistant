@@ -5,12 +5,13 @@ import pathlib
 import sys
 
 import dotenv
-import gitlab
+from github import Github
 import jinja2
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-import src.integrations.gitlab.gitlab_shared as gitlab_shared
+# Assuming you have a similar shared module for GitHub as you did for GitLab.
+import src.integrations.github.github_shared as github_shared
 
 
 logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
@@ -20,16 +21,13 @@ logger = logging.getLogger(__name__)
 def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
     with open(file_loc, "r") as f:
         data = json.load(f)
-
     return data
 
 
-class GitlabIssueCreator:
+class GitHubIssueCreator:
     def __init__(self, source_control_url, source_control_pat):
-        self._gl = gitlab_shared.retrieve_gitlab_client(
-            source_control_url=source_control_url,
-            source_control_pat=source_control_pat,
-            verify_auth=True,
+        self._gh = github_shared.retrieve_github_client(
+            source_control_url=source_control_url, source_control_pat=source_control_pat
         )
 
     @staticmethod
@@ -42,14 +40,11 @@ class GitlabIssueCreator:
             trim_blocks=True,
             lstrip_blocks=True,
         )
-
         template = env.get_template("code_review_issue_template.md.j2")
         return template
 
     @staticmethod
     def _preprocess_review(review_data: dict) -> dict:
-        # Replace all tabs with TAB_WIDTH
-        # Remove any code snippets which are empty strings
         TAB_WIDTH = 4
         for comment in review_data["comments"]:
             for key in ("original_code_snippet", "suggested_code_snippet"):
@@ -58,24 +53,23 @@ class GitlabIssueCreator:
                         del comment[key]
                     else:
                         comment[key] = comment[key].expandtabs(TAB_WIDTH)
-
         return review_data
 
     def generate_issue(
         self,
-        review_data: dict
+        review_data: dict,
     ):
         metadata = review_data["metadata"]
-        
-        project_id = metadata["project_id"]
+
+        repo_path = metadata["repo_path"]
         ref = metadata["ref"]
         file_path = metadata["file_path"]
         source_code_file_href = metadata["url"]
 
-        project = self._gl.projects.get(id=project_id)
+        repo = self._gh.get_repo(repo_path)
 
         title = (
-            f"{gitlab_shared.REVIEWER} review of {file_path} (ref: {ref})"
+            f"{github_shared.REVIEWER} review of {file_path} (ref: {ref})"
         )
 
         review_data = self._preprocess_review(review_data=review_data)
@@ -85,28 +79,22 @@ class GitlabIssueCreator:
         description = description_template.render(
             source_code_file_path=file_path,
             source_code_href=source_code_file_href,
-            reviewer=gitlab_shared.REVIEWER,
+            reviewer=github_shared.REVIEWER,
             comments=review_data["comments"],
             language_mode_syntax_highlighting=language,
         )
 
-        issue = project.issues.create(
-            {
-                "title": title,
-                "description": description,
-                "labels": [gitlab_shared.REVIEWER],
-            }
+        issue = repo.create_issue(
+            title=title, body=description, labels=[github_shared.REVIEWER]
         )
 
-        issue.save()
-
-        return {"url": issue.web_url}
+        return {"url": issue.html_url}
 
 
 if __name__ == "__main__":
     dotenv.load_dotenv()
-    issue_creator = GitlabIssueCreator(
-        source_control_url=os.getenv("SOURCE_CONTROL_URL"),
+    issue_creator = GitHubIssueCreator(
+        source_control_url=os.getenv("GITHUB_API_URL", "https://api.github.com"),
         source_control_pat=os.getenv("SOURCE_CONTROL_PAT"),
     )
 
@@ -114,13 +102,13 @@ if __name__ == "__main__":
         file_loc=pathlib.Path(__file__).parent.resolve()
         / "test"
         / "data"
-        / "comment_data_2.json"
+        / "comment_data_3.json"
     )
 
     issue_creator.generate_issue(
-        project_id=13881,
+        repo_name="aronweiler/assistant",
         ref="main",
-        file_path="samples/StateMachine/Motor.cpp",
-        source_code_file_href="",
+        file_path="About.py",
+        source_code_file_href="https://github.com/aronweiler/assistant/blob/main/About.py",
         review_data=review_data,
     )

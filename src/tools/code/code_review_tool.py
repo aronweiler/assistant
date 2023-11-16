@@ -6,6 +6,8 @@ from typing import List
 
 from langchain.base_language import BaseLanguageModel
 from src.ai.llm_helper import get_tool_llm
+from src.integrations.github import github_issue_creator
+from src.tools.code.issue_tool import IssueTool
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -20,6 +22,7 @@ from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
 from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
 from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
+from src.integrations.github.github_issue_creator import GitHubIssueCreator
 from src.integrations.github.github_retriever import GitHubRetriever
 
 
@@ -27,14 +30,6 @@ class CodeReviewTool:
     source_control_to_retriever_map: dict = {
         "gitlab": GitlabRetriever,
         "github": GitHubRetriever,
-    }
-    source_control_to_issue_creator_map: dict = {
-        "gitlab": GitlabIssueCreator,
-        "github": None,
-    }
-    source_control_to_issue_retriever_map: dict = {
-        "gitlab": GitlabIssueRetriever,
-        "github": None,
     }
 
     def __init__(
@@ -45,14 +40,31 @@ class CodeReviewTool:
         self.configuration = configuration
         self.interaction_manager = interaction_manager
 
-        self.code_review_templates = [
-            "SECURITY_CODE_REVIEW_TEMPLATE",
-            "PERFORMANCE_CODE_REVIEW_TEMPLATE",
-            "MEMORY_CODE_REVIEW_TEMPLATE",
-            "CORRECTNESS_CODE_REVIEW_TEMPLATE",
-            "MAINTAINABILITY_CODE_REVIEW_TEMPLATE",
-            "RELIABILITY_CODE_REVIEW_TEMPLATE",
+    def get_active_code_review_templates(self, tool_name: str):
+        additional_settings = self.configuration["tool_configurations"][tool_name][
+            "additional_settings"
         ]
+        code_review_templates = []
+
+        if additional_settings["enable_security_code_review"]["value"] == True:
+            code_review_templates.append({"name": "SECURITY_CODE_REVIEW_TEMPLATE", "description": "Security"})
+
+        if additional_settings["enable_performance_code_review"]["value"] == True:
+            code_review_templates.append({"name": "PERFORMANCE_CODE_REVIEW_TEMPLATE", "description": "Performance"})
+
+        if additional_settings["enable_memory_code_review"]["value"] == True:
+            code_review_templates.append({"name": "MEMORY_CODE_REVIEW_TEMPLATE", "description": "Memory"})
+
+        if additional_settings["enable_correctness_code_review"]["value"] == True:
+            code_review_templates.append({"name": "CORRECTNESS_CODE_REVIEW_TEMPLATE", "description": "Correctness"})
+
+        if additional_settings["enable_maintainability_code_review"]["value"] == True:
+            code_review_templates.append({"name": "MAINTAINABILITY_CODE_REVIEW_TEMPLATE", "description": "Maintainability"})
+
+        if additional_settings["enable_reliability_code_review"]["value"] == True:
+            code_review_templates.append({"name": "RELIABILITY_CODE_REVIEW_TEMPLATE", "description": "Reliability"})
+
+        return code_review_templates
 
     def ingest_source_code_file_from_url(self, url):
         source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
@@ -68,58 +80,6 @@ class CodeReviewTool:
         )
 
         return retriever.retrieve_data(url=url)
-
-    def ingest_issue_from_url(self, url):
-        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
-        retriever = self.source_control_to_issue_retriever_map[
-            source_control_provider.lower()
-        ]
-        if not retriever:
-            return f"Source control provider {source_control_provider} does not support issue retrieval"
-
-        retriever = retriever(
-            source_control_url=os.getenv("source_control_url"),
-            source_control_pat=os.getenv("source_control_pat"),
-        )
-
-        return retriever.retrieve_issue_data(url=url)
-
-    def create_code_review_issue_tool(
-        self,
-        project_id: int,
-        ref: str,
-        source_code_file_href: str,
-        source_code_file_path: str,
-        review_data: dict,
-    ):
-        """
-        Creates an issue containing the code review for a single reviewed file,on the source code control system specified
-
-        # Args:
-        #     source_code_file_data: A dictionary containing the project ID, file URL, file relative path, ref name, file contents
-        #     review_data: A python dictionary containing the code review data to create the issue from
-        """
-        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
-        issue_creator = self.source_control_to_issue_creator_map[
-            source_control_provider.lower()
-        ]
-        if not issue_creator:
-            return f"Source control provider {source_control_provider} does not support issue creation"
-
-        issue_creator = issue_creator(
-            source_control_url=os.getenv("source_control_url"),
-            source_control_pat=os.getenv("source_control_pat"),
-        )
-
-        result = issue_creator.generate_issue(
-            project_id=project_id,
-            ref=ref,
-            source_code_file_loc=source_code_file_path,
-            source_code_file_href=source_code_file_href,
-            review_data=review_data,
-        )
-
-        return f"Successfully created issue at {result['url']}"
 
     def _conduct_diff_code_review(
         self,
@@ -154,6 +114,7 @@ class CodeReviewTool:
             code=diff_data["raw"],
             base_code_review_instructions=base_code_review_instructions,
             llm=llm,
+            tool_name=self.conduct_code_review_from_url.__name__,
             additional_instructions=additional_instructions,
             metadata=metadata,
         )
@@ -162,6 +123,7 @@ class CodeReviewTool:
         self,
         file_data: str,
         llm,
+        tool_name: str,
         additional_instructions: str = None,
         metadata: dict = None,
         previous_issue=None,
@@ -191,6 +153,7 @@ class CodeReviewTool:
             code=code,
             base_code_review_instructions=base_code_review_instructions,
             llm=llm,
+            tool_name=tool_name,
             additional_instructions=additional_instructions,
             metadata=metadata,
         )
@@ -200,6 +163,7 @@ class CodeReviewTool:
         code,
         base_code_review_instructions,
         llm,
+        tool_name: str,
         additional_instructions: str = None,
         metadata: dict = None,
     ):
@@ -215,11 +179,14 @@ class CodeReviewTool:
             )
         )
 
+        templates = self.get_active_code_review_templates(tool_name)
+
         review_results = {}
         comment_results = []
-        for template in self.code_review_templates:
+                
+        for template in templates:
             code_review_prompt = self.interaction_manager.prompt_manager.get_prompt(
-                "code_review", template
+                "code_review", template["name"]
             ).format(
                 base_code_review_instructions=base_code_review_instructions,
                 final_code_review_instructions=final_code_review_instructions,
@@ -234,11 +201,17 @@ class CodeReviewTool:
 
             comment_results.extend(data["comments"])
 
-        review_results = {
+        # Re-order the comments by line number
+        comment_results = sorted(comment_results, key=lambda k: k["start"])
+        
+        review_metadata = data["metadata"]
+        review_metadata["reviews_performed"] = [template["description"] for template in templates]
+
+        review_results = {            
             "language": data["language"],
-            "metadata": data["metadata"],
+            "metadata": review_metadata,
             "comments": comment_results,
-        }
+        }        
 
         return review_results
 
@@ -258,18 +231,23 @@ class CodeReviewTool:
 
         file_info = self.ingest_source_code_file_from_url(url=target_url)
 
+        review = ""
+        
         if file_info["type"] == "diff":
-            return self._code_review_diff_from_url(
+            review = self._code_review_diff_from_url(
                 file_info, target_url, additional_instructions
             )
         elif file_info["type"] == "file":
-            return self._code_review_file_from_url(
+            review = self._code_review_file_from_url(
                 file_info, target_url, additional_instructions
             )
         else:
             raise Exception(
                 f"Unknown file type {file_info['metadata']['type']} for {target_url}"
             )
+            
+        # Return review as markdown code JSON
+        return f"```json\n{review}\n```"
 
     def _code_review_diff_from_url(
         self, metadata: dict, target_url, additional_instructions
@@ -314,14 +292,9 @@ class CodeReviewTool:
     def _code_review_file_from_url(
         self, file_info, target_url, additional_instructions
     ):
-        file_data = file_info["file_content"]
-        metadata = {
-            "project_id": file_info["project_id"],
-            "url": file_info["url"],
-            "ref": file_info["ref"],
-            "file_path": file_info["file_path"],
-        }
-        previous_issue = self.ingest_issue_from_url(url=target_url)
+        file_data = file_info.pop("file_content", None)
+        
+        previous_issue = IssueTool.ingest_issue_from_url(url=target_url)
 
         code_file_token_count = num_tokens_from_string(file_data)
         max_token_count = self.get_max_code_review_token_count(
@@ -339,9 +312,10 @@ class CodeReviewTool:
         return self._conduct_file_code_review(
             file_data=file_data,
             additional_instructions=additional_instructions,
-            metadata=metadata,
+            metadata=file_info,
             previous_issue=previous_issue,
             llm=llm,
+            tool_name=self.conduct_code_review_from_url.__name__,
         )
 
     def get_max_code_review_token_count(self, tool_name: str):
@@ -388,6 +362,7 @@ class CodeReviewTool:
             additional_instructions=additional_instructions,
             metadata={"filename": file_model.file_name},
             llm=llm,
+            tool_name=self.conduct_code_review_from_file_id.__name__,
         )
 
 
