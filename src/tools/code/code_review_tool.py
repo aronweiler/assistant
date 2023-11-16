@@ -47,22 +47,22 @@ class CodeReviewTool:
         code_review_templates = []
 
         if additional_settings["enable_security_code_review"]["value"] == True:
-            code_review_templates.append("SECURITY_CODE_REVIEW_TEMPLATE")
+            code_review_templates.append({"name": "SECURITY_CODE_REVIEW_TEMPLATE", "description": "Security"})
 
         if additional_settings["enable_performance_code_review"]["value"] == True:
-            code_review_templates.append("PERFORMANCE_CODE_REVIEW_TEMPLATE")
+            code_review_templates.append({"name": "PERFORMANCE_CODE_REVIEW_TEMPLATE", "description": "Performance"})
 
         if additional_settings["enable_memory_code_review"]["value"] == True:
-            code_review_templates.append("MEMORY_CODE_REVIEW_TEMPLATE")
+            code_review_templates.append({"name": "MEMORY_CODE_REVIEW_TEMPLATE", "description": "Memory"})
 
         if additional_settings["enable_correctness_code_review"]["value"] == True:
-            code_review_templates.append("CORRECTNESS_CODE_REVIEW_TEMPLATE")
+            code_review_templates.append({"name": "CORRECTNESS_CODE_REVIEW_TEMPLATE", "description": "Correctness"})
 
         if additional_settings["enable_maintainability_code_review"]["value"] == True:
-            code_review_templates.append("MAINTAINABILITY_CODE_REVIEW_TEMPLATE")
+            code_review_templates.append({"name": "MAINTAINABILITY_CODE_REVIEW_TEMPLATE", "description": "Maintainability"})
 
         if additional_settings["enable_reliability_code_review"]["value"] == True:
-            code_review_templates.append("RELIABILITY_CODE_REVIEW_TEMPLATE")
+            code_review_templates.append({"name": "RELIABILITY_CODE_REVIEW_TEMPLATE", "description": "Reliability"})
 
         return code_review_templates
 
@@ -179,11 +179,14 @@ class CodeReviewTool:
             )
         )
 
+        templates = self.get_active_code_review_templates(tool_name)
+
         review_results = {}
         comment_results = []
-        for template in self.get_active_code_review_templates(tool_name):
+                
+        for template in templates:
             code_review_prompt = self.interaction_manager.prompt_manager.get_prompt(
-                "code_review", template
+                "code_review", template["name"]
             ).format(
                 base_code_review_instructions=base_code_review_instructions,
                 final_code_review_instructions=final_code_review_instructions,
@@ -198,11 +201,15 @@ class CodeReviewTool:
 
             comment_results.extend(data["comments"])
 
+        # Re-order the comments by line number
+        comment_results = sorted(comment_results, key=lambda k: k["start"])
+
         review_results = {
+            "reviews_performed": [template["description"] for template in templates],
             "language": data["language"],
             "metadata": data["metadata"],
             "comments": comment_results,
-        }
+        }        
 
         return review_results
 
@@ -222,18 +229,23 @@ class CodeReviewTool:
 
         file_info = self.ingest_source_code_file_from_url(url=target_url)
 
+        review = ""
+        
         if file_info["type"] == "diff":
-            return self._code_review_diff_from_url(
+            review = self._code_review_diff_from_url(
                 file_info, target_url, additional_instructions
             )
         elif file_info["type"] == "file":
-            return self._code_review_file_from_url(
+            review = self._code_review_file_from_url(
                 file_info, target_url, additional_instructions
             )
         else:
             raise Exception(
                 f"Unknown file type {file_info['metadata']['type']} for {target_url}"
             )
+            
+        # Return review as markdown code JSON
+        return f"```json\n{review}\n```"
 
     def _code_review_diff_from_url(
         self, metadata: dict, target_url, additional_instructions
