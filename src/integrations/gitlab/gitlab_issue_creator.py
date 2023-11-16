@@ -63,9 +63,10 @@ class GitlabIssueCreator:
 
     def generate_issue(
         self,
-        review_data: dict,
-        metadata: dict,
+        review_data: dict
     ):
+        metadata = review_data["metadata"]
+        
         project_id = metadata["project_id"]
         ref = metadata["ref"]
         file_path = metadata["file_path"]

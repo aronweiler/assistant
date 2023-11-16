@@ -203,11 +203,13 @@ class CodeReviewTool:
 
         # Re-order the comments by line number
         comment_results = sorted(comment_results, key=lambda k: k["start"])
+        
+        review_metadata = data["metadata"]
+        review_metadata["reviews_performed"] = [template["description"] for template in templates]
 
-        review_results = {
-            "reviews_performed": [template["description"] for template in templates],
+        review_results = {            
             "language": data["language"],
-            "metadata": data["metadata"],
+            "metadata": review_metadata,
             "comments": comment_results,
         }        
 
