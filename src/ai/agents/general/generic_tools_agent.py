@@ -254,10 +254,12 @@ class GenericToolsAgent(BaseMultiActionAgent):
             system_information=kwargs["system_information"],
         )
 
+        text = self.llm.predict(
+            tool_use_prompt, callbacks=self.interaction_manager.agent_callbacks
+        )
+
         action_json = parse_json(
-            text=self.llm.predict(
-                tool_use_prompt, callbacks=self.interaction_manager.agent_callbacks
-            ),
+            text,
             llm=self.llm,
         )
 

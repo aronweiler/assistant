@@ -153,12 +153,14 @@ For instance, using the 'get_weather' tool with arguments 'location' and 'date':
 
 Incorporate relevant details from the loaded documents or helpful context as needed. For example, a required file ID should come from the loaded documents.
 
-Here's the original user query for context:
+Here's the user's query for context:
+--- USER QUERY ---
 {user_query}
+--- USER QUERY ---
 
 Please take your time to consider all the information before constructing the JSON.
 
-AI: Sure! Here is my response in JSON (inside a ```json code``` block):
+AI: Sure! Here is the tool call in JSON (inside a Markdown ```json code block):
 """
 
 TOOL_USE_RETRY_TEMPLATE = """{system_prompt}
