@@ -1,0 +1,779 @@
+{
+    "comments":[
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        },
+        {
+            "start":12,
+            "end":19,
+            "comment":"The SetSpeed() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":23,
+            "end":30,
+            "comment":"The Halt() function should use the BEGIN_TRANSITION_MAP and TRANSITION_MAP_ENTRY macros to define the state transitions based on the current state of the motor."
+        },
+        {
+            "start":34,
+            "end":37,
+            "comment":"The ST_Idle state function should include the necessary processing for the Idle state."
+        },
+        {
+            "start":40,
+            "end":48,
+            "comment":"The ST_Stop state function should include the necessary processing for the Stop state and transition to the Idle state via an internal event."
+        },
+        {
+            "start":51,
+            "end":57,
+            "comment":"The ST_Start state function should include the necessary processing for the Start state."
+        },
+        {
+            "start":60,
+            "end":66,
+            "comment":"The ST_ChangeSpeed state function should include the necessary processing for the ChangeSpeed state."
+        },
+        {
+            "start":5,
+            "end":9,
+            "comment":"The constructor of the Motor class should call the constructor of the StateMachine base class."
+        }
+    ]
+}
