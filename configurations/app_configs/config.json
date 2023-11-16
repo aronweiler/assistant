@@ -158,6 +158,42 @@
                     "min": 1,
                     "max": 8000,
                     "step": 25
+                },
+                "enable_security_code_review": {
+                    "label": "Perform a security code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_performance_code_review": {
+                    "label": "Perform a performance code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_memory_code_review": {
+                    "label": "Perform a memory code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_correctness_code_review": {
+                    "label": "Perform a correctness code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_maintainability_code_review": {
+                    "label": "Perform a maintainability code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_reliability_code_review": {
+                    "label": "Perform a reliability code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
                 }
             },
             "model_configuration": {
@@ -182,6 +218,42 @@
                     "min": 1,
                     "max": 8000,
                     "step": 25
+                },
+                "enable_security_code_review": {
+                    "label": "Perform a security code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_performance_code_review": {
+                    "label": "Perform a performance code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_memory_code_review": {
+                    "label": "Perform a memory code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_correctness_code_review": {
+                    "label": "Perform a correctness code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_maintainability_code_review": {
+                    "label": "Perform a maintainability code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
+                },
+                "enable_reliability_code_review": {
+                    "label": "Perform a reliability code review",
+                    "description": "",
+                    "type": "bool",
+                    "value": true
                 }
             },
             "model_configuration": {
@@ -192,11 +264,11 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 5771
+                "max_completion_tokens": 4096
             }
         },
-        "create_code_review_issue_tool": {
-            "enabled": false
+        "create_code_review_issue": {
+            "enabled": true
         },
         "query_spreadsheet": {
             "enabled": false,
