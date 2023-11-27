@@ -16,6 +16,7 @@ from src.tools.code.code_review_tool import CodeReviewTool
 from src.tools.email.gmail_tool import GmailTool
 from src.tools.llm.llm_tool import LLMTool
 from src.tools.restaurants.yelp_tool import YelpTool
+from src.tools.security.cvss_tool import CvssTool
 from src.tools.weather.weather_tool import WeatherTool
 from src.tools.general.time_tool import TimeTool
 from src.tools.news.g_news_tool import GNewsTool
@@ -109,6 +110,12 @@ class ToolManager:
         "create_code_review_issue": {
             "display_name": "Create Issue from Code Review",
             "help_text": "Creates an issue on your selected provider from a Code Review",
+            "enabled_by_default": True,
+            "requires_documents": False,
+        },
+        "create_cvss_evaluation": {
+            "display_name": "Perform CVSS Evaluation",
+            "help_text": "Creates a CVSS evaluation from vulnerability data.",
             "enabled_by_default": True,
             "requires_documents": False,
         },
@@ -240,6 +247,7 @@ class ToolManager:
             configuration=configuration,
             interaction_manager=interaction_manager,
         )
+        cvss_tool = CvssTool(configuration=configuration, interaction_manager=interaction_manager)
         stubber_tool = Stubber(
             code_tool=code_tool,
             document_tool=document_tool,
@@ -355,6 +363,12 @@ class ToolManager:
                 function=issue_tool.create_code_review_issue,
                 additional_instructions="Call this tool when the user requests an issue be created from a code review.",
                 return_direct=False,
+            ),
+            GenericTool(
+                description="Creates a CVSS evaluation from user provided data.",
+                function=cvss_tool.create_cvss_evaluation,
+                additional_instructions="Use this tool to create a CVSS evaluation (and score) from data provided by the user.  The vulnerability_data argument should be a string containing the data to evaluate- this data should be whatever the user has given you to evaluate.",
+                return_direct=True,
             ),
             GenericTool(
                 description="Queries a specific spreadsheet.",

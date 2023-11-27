@@ -70,7 +70,7 @@
             }
         },
         "search_loaded_documents": {
-            "enabled": true,
+            "enabled": false,
             "additional_settings": {
                 "split_prompt": {
                     "label": "Split Prompt",
@@ -148,7 +148,7 @@
             "enabled": false
         },
         "conduct_code_review_from_file_id": {
-            "enabled": true,
+            "enabled": false,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
@@ -208,7 +208,7 @@
             }
         },
         "conduct_code_review_from_url": {
-            "enabled": true,
+            "enabled": false,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
@@ -268,7 +268,20 @@
             }
         },
         "create_code_review_issue": {
-            "enabled": true
+            "enabled": false
+        },
+        "create_cvss_evaluation": {
+            "enabled": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 0,
+                "max_completion_tokens": 4096
+            }
         },
         "query_spreadsheet": {
             "enabled": false,
