@@ -8,6 +8,7 @@ from langchain.schema.language_model import BaseLanguageModel
 from langchain.agents import (
     AgentExecutor,
     BaseMultiActionAgent,
+    BaseSingleActionAgent
 )
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
@@ -74,7 +75,7 @@ class GenericTool:
         return schema
 
 
-class GenericToolsAgent(BaseMultiActionAgent):
+class GenericToolsAgent(BaseSingleActionAgent):
     model_configuration: ModelConfiguration = None
     interaction_manager: InteractionManager = None
     tools: list = None
@@ -98,8 +99,8 @@ class GenericToolsAgent(BaseMultiActionAgent):
         ]
 
     def plan(
-        self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any
-    ) -> Union[List[AgentAction], AgentFinish]:
+        self, intermediate_steps: Tuple[AgentAction, str], **kwargs: Any
+    ) -> Union[AgentAction, AgentFinish]:
         """Given input, decided what to do.
 
         Args:
