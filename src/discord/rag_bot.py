@@ -64,45 +64,15 @@ class RagBot(discord.Client):
         if message.channel.name.lower() == self.target_channel_name.lower():
             rag_ai = await self.load_rag_ai(message=message)
 
-            if len(message.attachments) > 0:
-                await message.channel.send(
-                    "Processing attachments... (this may take a minute)"
-                )
-
-                root_temp_dir = "temp/" + str(uuid.uuid4())
-                uploaded_file_paths = []
-                for attachment in message.attachments:
-                    logging.debug(f"Downloading file from {attachment.url}")
-                    # Download the file
-                    file_path = os.path.join(root_temp_dir, attachment.filename)
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-                    # Download the file from the URL
-                    async with aiohttp.ClientSession() as session:
-                        async with session.get(attachment.url) as resp:
-                            if resp.status != 200:
-                                raise aiohttp.ClientException(
-                                    f"Error downloading file from {attachment.url}"
-                                )
-                            data = await resp.read()
-
-                            with open(file_path, "wb") as f:
-                                f.write(data)
-
-                    uploaded_file_paths.append(file_path)
-
-                # Process the files
-                await self.load_files(
-                    uploaded_file_paths=uploaded_file_paths,
-                    root_temp_dir=root_temp_dir,
-                    message=message,
-                )
+            await self.process_attachments(message)
 
             if message.content.strip() != "":
                 async with message.channel.typing():
                     # Add typing indicator
                     response: str = rag_ai.query(
-                        query=message.content, collection_id=self.target_collection_id, ai_mode="Auto"
+                        query=message.content,
+                        collection_id=self.target_collection_id,
+                        ai_mode="Auto",
                     )
 
                     # Sometimes the response can be over 2000 characters, so we need to split it
@@ -119,9 +89,46 @@ class RagBot(discord.Client):
                     for rsp in responses:
                         await message.channel.send(rsp)
 
+    async def process_attachments(self, message):
+        if len(message.attachments) > 0:
+            await message.channel.send(
+                "Processing attachments... (this may take a minute)"
+            )
+
+            root_temp_dir = "temp/" + str(uuid.uuid4())
+            uploaded_file_paths = []
+            for attachment in message.attachments:
+                logging.debug(f"Downloading file from {attachment.url}")
+                # Download the file
+                file_path = os.path.join(root_temp_dir, attachment.filename)
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+                # Download the file from the URL
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(attachment.url) as resp:
+                        if resp.status != 200:
+                            raise aiohttp.ClientException(
+                                f"Error downloading file from {attachment.url}"
+                            )
+                        data = await resp.read()
+
+                        with open(file_path, "wb") as f:
+                            f.write(data)
+
+                uploaded_file_paths.append(file_path)
+
+                # Process the files
+            await self.load_files(
+                uploaded_file_paths=uploaded_file_paths,
+                root_temp_dir=root_temp_dir,
+                message=message,
+            )
+
     async def load_rag_ai(self, message) -> RetrievalAugmentedGenerationAI:
         """Loads the AI from the configuration"""
-        llm = get_llm(self.configuration.model_configuration)
+        llm = get_llm(
+            model_configuration=self.configuration["jarvis_ai"]["model_configuration"]
+        )
         memory = await get_conversation_memory(llm=llm, message=message)
         return RetrievalAugmentedGenerationAI(
             configuration=self.configuration,
@@ -189,7 +196,7 @@ class RagBot(discord.Client):
                     file_hash=calculate_sha256(uploaded_file_path),
                     file_classification=file_classification,
                 ),
-                file_data
+                file_data,
             )
             files.append(file)
 

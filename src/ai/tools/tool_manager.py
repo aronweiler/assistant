@@ -267,7 +267,7 @@ class ToolManager:
             llava_temp=float(os.environ.get("LLAVA_TEMP", 0.1)),
             llava_gpu_layers=int(os.environ.get("LLAVA_GPU_LAYERS", 50)),
         )
-        
+
         yelp_tool = YelpTool()
 
         generic_tools = [
@@ -351,7 +351,7 @@ class ToolManager:
                 return_direct=False,
             ),
             GenericTool(
-                description="Creates an issue from a Code Review.",                
+                description="Creates an issue from a Code Review.",
                 function=issue_tool.create_code_review_issue,
                 additional_instructions="Call this tool when the user requests an issue be created from a code review.",
                 return_direct=False,
@@ -399,7 +399,15 @@ class ToolManager:
             ),
         ]
 
-        self.add_gmail_tools(generic_tools)
+        # Only add the gmail tools if the user has configured the email search tool
+        if self.configuration["tool_configurations"].get(
+            "search_for_emails", None
+        ) is not None and self.configuration["tool_configurations"][
+            "search_for_emails"
+        ].get(
+            "enabled", False
+        ):
+            self.add_gmail_tools(generic_tools)
 
         for tool in generic_tools:
             self.tools[tool.name]["tool"] = tool
