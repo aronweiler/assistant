@@ -154,7 +154,8 @@ class PythonSplitter(SplitterBase):
 
         return nodes
 
-    def _parse_nodes_from_file(self, path) -> list:
+    def _parse_nodes_from_file(self, path, allowed_include_paths) -> list:
+        # Ignore allowed_include_paths because that's only here for C++
         nodes = self._find_nodes(path=path)
         parsed_nodes = self._parse_nodes(nodes=nodes)
         return parsed_nodes
