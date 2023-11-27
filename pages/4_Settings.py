@@ -9,6 +9,10 @@ from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
 )
 
+from src.utilities.configuration_utilities import (
+    get_app_config_path,
+)
+
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.tools.tool_manager import ToolManager
 
@@ -332,7 +336,7 @@ def bool_setting(
     st.toggle(
         label=additional_setting["label"],
         value=additional_setting["value"],
-        key=session_state_key,        
+        key=session_state_key,
         on_change=save_additional_setting,
         kwargs={
             "tool_name": tool_name,
@@ -340,6 +344,7 @@ def bool_setting(
             "session_state_key": session_state_key,
         },
     )
+
 
 def int_setting(
     tool_name, additional_setting_name, additional_setting, session_state_key
@@ -520,7 +525,7 @@ def save_jarvis_settings_to_file(
             "model_configuration"
         ] = file_ingestion_model_configuration
 
-    app_config_path = ui_shared.get_app_config_path()
+    app_config_path = get_app_config_path()
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
 
@@ -538,7 +543,7 @@ def save_tool_settings_to_file(tool_name, enabled, model_configuration):
             "model_configuration"
         ] = model_configuration
 
-    app_config_path = ui_shared.get_app_config_path()
+    app_config_path = get_app_config_path()
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
 
@@ -554,7 +559,7 @@ def save_additional_setting(tool_name, setting_name, session_state_key):
 
     settings[setting_name]["value"] = st.session_state[session_state_key]
 
-    app_config_path = ui_shared.get_app_config_path()
+    app_config_path = get_app_config_path()
 
     ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
 

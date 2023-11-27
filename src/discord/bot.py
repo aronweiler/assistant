@@ -7,6 +7,11 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
+from src.utilities.configuration_utilities import (
+    get_app_configuration,
+    get_app_config_path,
+)
+
 from src.ai.llm_helper import get_llm
 from src.ai.prompts.prompt_manager import PromptManager
 
@@ -21,7 +26,7 @@ from src.discord.rag_bot import RagBot
 
 def load_configuration():
     """Loads the configuration from the path"""
-    app_config_path = ui_shared.get_app_config_path()
+    app_config_path = get_app_config_path()
 
     return ApplicationConfigurationLoader.from_file(app_config_path)
 
@@ -47,6 +52,7 @@ def load_rag_ai(
         user_email=discord_bot_email,
     )
 
+
 def get_the_llm(configuration):
     configuration.model_configuration.temperature = 1.0
 
@@ -61,32 +67,6 @@ def get_the_llm(configuration):
     )
 
     return llm
-
-
-def set_tool_environment_variables():
-    # Tools I want to enable for this discord bot
-    # TODO: Move tools out of env so that we can have multiple bots with different tools
-    os.environ["search_loaded_documents"] = "True"
-    os.environ["summarize_search_topic"] = "True"
-    os.environ["list_documents"] = "True"    
-    os.environ["get_time"] = "True"
-    os.environ["get_news_for_topic"] = "True"
-    os.environ["get_top_news_headlines"] = "True"
-    os.environ["query_image"] = "True"
-
-    # Tools I want to disable for this discord bot
-    os.environ["get_weather"] = "False"
-    os.environ["analyze_with_llm"] = "False"
-    os.environ["summarize_entire_document"] = "False"
-    os.environ["get_code_details"] = "False"
-    os.environ["get_code_structure"] = "False"
-    os.environ["get_pretty_dependency_graph"] = "False"
-    os.environ["create_stubs"] = "False"
-    os.environ["get_all_code_in_file"] = "False"
-    os.environ["conduct_code_review_from_file_id"] = "False"
-    os.environ["conduct_code_review_from_url"] = "False"
-    os.environ["create_code_review_issue"] = "False"
-    os.environ["query_spreadsheet"] = "False"
 
 
 def load_conversational_ai(
@@ -122,13 +102,14 @@ if __name__ == "__main__":
     discord_bot_type = os.environ.get("DISCORD_BOT_TYPE", "conversational")
 
     configuration = load_configuration()
-    prompt_manager = PromptManager(llm_type=configuration.model_configuration.llm_type)
+    prompt_manager = PromptManager(
+        llm_type=configuration["jarvis_ai"]["model_configuration"]["llm_type"]
+    )
 
     intents = discord.Intents.default()
     intents.message_content = True
 
     if discord_bot_type.lower() == "rag":
-        set_tool_environment_variables()
         client = load_rag_ai(
             intents=intents,
             configuration=configuration,
