@@ -294,11 +294,14 @@ class Documents(VectorDatabase):
 
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
+            # Generate the embedding for the document text
             embedding = get_embedding_with_model(
                 text=document.document_text,
                 model_name=document.embedding_model_name,
                 instruction="Represent the document for retrieval: ",
             )
+            
+            # Generate the embedding for the document text summary
             document_text_summary_embedding = None
             if document.document_text_summary.strip() != "":
                 document_text_summary_embedding = get_embedding_with_model(
@@ -306,9 +309,29 @@ class Documents(VectorDatabase):
                     model_name=document.embedding_model_name,
                     instruction="Represent the summary for retrieval: ",
                 )
+                
+            # Generate the embeddings for the questions
+            question_embeddings = []
+            for question_number in range(1, 6):
+                question = getattr(document, f"question_{question_number}")
+                if question.strip() != "":
+                    question_embedding = get_embedding_with_model(
+                        question,
+                        model_name=document.embedding_model_name,
+                        instruction=f"Represent the question for retrieval: ",
+                    )
+                    question_embeddings.append(question_embedding)
+                else:
+                    question_embeddings.append(None)
+                
             document = document.to_database_model()
             document.embedding = embedding
             document.document_text_summary_embedding = document_text_summary_embedding
+            document.embedding_question_1 = question_embeddings[0] if question_embeddings[0] is not None else None
+            document.embedding_question_2 = question_embeddings[1] if question_embeddings[1] is not None else None
+            document.embedding_question_3 = question_embeddings[2] if question_embeddings[2] is not None else None
+            document.embedding_question_4 = question_embeddings[3] if question_embeddings[3] is not None else None
+            document.embedding_question_5 = question_embeddings[4] if question_embeddings[4] is not None else None
 
             session.add(document)
             session.commit()
