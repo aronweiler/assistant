@@ -70,7 +70,7 @@
             }
         },
         "search_loaded_documents": {
-            "enabled": false,
+            "enabled": true,
             "additional_settings": {
                 "split_prompt": {
                     "label": "Split Prompt",
@@ -90,7 +90,7 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": true,
                 "max_conversation_history_tokens": 512,
-                "max_completion_tokens": 6016
+                "max_completion_tokens": 4096
             }
         },
         "search_entire_document": {
