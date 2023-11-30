@@ -76,7 +76,7 @@
                     "label": "Split Prompt",
                     "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
                     "type": "int",
-                    "value": 2,
+                    "value": 1,
                     "min": 1,
                     "max": 5,
                     "step": 1
