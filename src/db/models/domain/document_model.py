@@ -13,10 +13,15 @@ class DocumentModel:
         document_name,
         document_text_summary,
         document_text_has_summary,
-        embedding_model_name,
+        embedding_model_name,        
         id=None,
         additional_metadata: dict = {},
         record_created=None,
+        question_1:str = None,
+        question_2:str = None,
+        question_3:str = None,
+        question_4:str = None,
+        question_5:str = None,
     ):
         self.id = id
         self.collection_id = collection_id
@@ -29,6 +34,11 @@ class DocumentModel:
         self.document_text_has_summary = document_text_has_summary
         self.record_created = record_created
         self.embedding_model_name = embedding_model_name
+        self.question_1 = question_1
+        self.question_2 = question_2
+        self.question_3 = question_3
+        self.question_4 = question_4
+        self.question_5 = question_5
 
     def to_database_model(self):
         return Document(
@@ -43,6 +53,11 @@ class DocumentModel:
             document_text_has_summary=self.document_text_has_summary,
             record_created=self.record_created,
             embedding_model_name=self.embedding_model_name,
+            question_1=self.question_1,
+            question_2=self.question_2,
+            question_3=self.question_3,
+            question_4=self.question_4,
+            question_5=self.question_5,
         )
 
     @classmethod
@@ -62,4 +77,9 @@ class DocumentModel:
             document_text_has_summary=db_document.document_text_has_summary,
             record_created=db_document.record_created,
             embedding_model_name=db_document.embedding_model_name,
+            question_1=db_document.question_1,
+            question_2=db_document.question_2,
+            question_3=db_document.question_3,
+            question_4=db_document.question_4,
+            question_5=db_document.question_5,
         )

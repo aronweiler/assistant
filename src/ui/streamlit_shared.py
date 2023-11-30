@@ -78,6 +78,7 @@ class IngestionSettings:
         self.chunk_overlap = 50
         self.split_documents = True
         self.file_type = "Document"
+        self.create_chunk_questions = False
         self.summarize_chunks = False
         self.summarize_document = False
 
@@ -400,6 +401,7 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 50
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Spreadsheet"
+        st.session_state.ingestion_settings.create_chunk_questions = False
         st.session_state.ingestion_settings.summarize_chunks = False
         st.session_state.ingestion_settings.summarize_document = False
     elif "Code" in file_type:
@@ -407,6 +409,7 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 0
         st.session_state.ingestion_settings.split_documents = False
         st.session_state.ingestion_settings.file_type = "Code"
+        st.session_state.ingestion_settings.create_chunk_questions = False
         st.session_state.ingestion_settings.summarize_chunks = True
         st.session_state.ingestion_settings.summarize_document = True
     else:  # Document
@@ -414,6 +417,7 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 50
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Document"
+        st.session_state.ingestion_settings.create_chunk_questions = True
         st.session_state.ingestion_settings.summarize_chunks = False
         st.session_state.ingestion_settings.summarize_document = False
 
@@ -451,12 +455,19 @@ def select_documents(tab, ai=None):
                 key="overwrite_existing_files",
                 value=False,
             )
+            
+            st.toggle(
+                "Create Chunk Questions",
+                help="This will create questions for each chunk of text in the document, which will aid in later retrievals.",
+                key="create_chunk_questions",
+                value=st.session_state.ingestion_settings.create_chunk_questions,
+            )
 
             st.toggle(
                 "Summarize Chunks",
                 key="summarize_chunks",
                 value=st.session_state.ingestion_settings.summarize_chunks,
-            )
+            )            
 
             st.toggle(
                 "Summarize Document",
@@ -521,16 +532,17 @@ def select_documents(tab, ai=None):
                 if active_collection_id:
                     if submit_button:
                         ingest_files(
-                            uploaded_files,
-                            active_collection_id,
-                            status,
-                            st.session_state.get("overwrite_existing_files", True),
-                            st.session_state.get("split_documents", True),
-                            st.session_state.get("summarize_chunks", False),
-                            st.session_state.get("summarize_document", False),
-                            int(st.session_state.get("file_chunk_size", 500)),
-                            int(st.session_state.get("file_chunk_overlap", 50)),
-                            ai,
+                            uploaded_files=uploaded_files,
+                            active_collection_id=active_collection_id,
+                            status=status,
+                            overwrite_existing_files=st.session_state.get("overwrite_existing_files", True),
+                            split_documents=st.session_state.get("split_documents", True),
+                            create_chunk_questions=st.session_state.get("create_chunk_questions", False),
+                            summarize_chunks=st.session_state.get("summarize_chunks", False),
+                            summarize_document=st.session_state.get("summarize_document", False),
+                            chunk_size=int(st.session_state.get("file_chunk_size", 500)),
+                            chunk_overlap=int(st.session_state.get("file_chunk_overlap", 50)),
+                            ai=ai,
                         )
 
 
@@ -540,6 +552,7 @@ def ingest_files(
     status,
     overwrite_existing_files,
     split_documents,
+    create_chunk_questions,
     summarize_chunks,
     summarize_document,
     chunk_size,
@@ -717,7 +730,20 @@ def ingest_files(
                         f"Could not find file '{file_name}' in the database after uploading"
                     )
                     break
-
+                
+                chunk_questions = []
+                if create_chunk_questions and hasattr(
+                    ai, "generate_chunk_questions"
+                ):
+                    try:
+                        logging.info("Creating questions for chunk...")
+                        chunk_questions = ai.generate_chunk_questions(
+                            document_text=document.page_content
+                        )
+                    except Exception as e:
+                        logging.error(f"Error creating questions for chunk: {e}")
+                        chunk_questions = []
+                    
                 summary = ""
                 if summarize_chunks and hasattr(
                     ai, "generate_detailed_document_chunk_summary"
@@ -740,6 +766,11 @@ def ingest_files(
                         additional_metadata=document.metadata,
                         document_name=document.metadata["filename"],
                         embedding_model_name=get_selected_collection_embedding_model_name(),
+                        question_1=chunk_questions[0] if len(chunk_questions) > 0 else "",
+                        question_2=chunk_questions[1] if len(chunk_questions) > 1 else "",
+                        question_3=chunk_questions[2] if len(chunk_questions) > 2 else "",
+                        question_4=chunk_questions[3] if len(chunk_questions) > 3 else "",
+                        question_5=chunk_questions[4] if len(chunk_questions) > 4 else "",
                     )
                 )
 

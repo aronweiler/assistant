@@ -218,7 +218,12 @@ class Documents(VectorDatabase):
                     Document.id,
                     Document.additional_metadata,
                     Document.record_created,
-                    Document.embedding_model_name,                    
+                    Document.embedding_model_name,
+                    Document.question_1,
+                    Document.question_2,
+                    Document.question_3,
+                    Document.question_4,
+                    Document.question_5,
                 )
                 .filter(Document.file_id == file.id)
                 .all()
@@ -289,11 +294,14 @@ class Documents(VectorDatabase):
 
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
+            # Generate the embedding for the document text
             embedding = get_embedding_with_model(
                 text=document.document_text,
                 model_name=document.embedding_model_name,
                 instruction="Represent the document for retrieval: ",
             )
+            
+            # Generate the embedding for the document text summary
             document_text_summary_embedding = None
             if document.document_text_summary.strip() != "":
                 document_text_summary_embedding = get_embedding_with_model(
@@ -301,9 +309,29 @@ class Documents(VectorDatabase):
                     model_name=document.embedding_model_name,
                     instruction="Represent the summary for retrieval: ",
                 )
+                
+            # Generate the embeddings for the questions
+            question_embeddings = []
+            for question_number in range(1, 6):
+                question = getattr(document, f"question_{question_number}")
+                if question.strip() != "":
+                    question_embedding = get_embedding_with_model(
+                        question,
+                        model_name=document.embedding_model_name,
+                        instruction=f"Represent the question for retrieval: ",
+                    )
+                    question_embeddings.append(question_embedding)
+                else:
+                    question_embeddings.append(None)
+                
             document = document.to_database_model()
             document.embedding = embedding
             document.document_text_summary_embedding = document_text_summary_embedding
+            document.embedding_question_1 = question_embeddings[0] if question_embeddings[0] is not None else None
+            document.embedding_question_2 = question_embeddings[1] if question_embeddings[1] is not None else None
+            document.embedding_question_3 = question_embeddings[2] if question_embeddings[2] is not None else None
+            document.embedding_question_4 = question_embeddings[3] if question_embeddings[3] is not None else None
+            document.embedding_question_5 = question_embeddings[4] if question_embeddings[4] is not None else None
 
             session.add(document)
             session.commit()
@@ -316,7 +344,7 @@ class Documents(VectorDatabase):
         collection_type = self.get_collection(
             collection_id=collection_id
         ).collection_type
-        
+
         with self.session_context(self.Session()) as session:
             document_text_summary_embedding = None
             if document_text_summary.strip() != "":
@@ -343,6 +371,7 @@ class Documents(VectorDatabase):
         collection_id: int,
         target_file_id: int = None,
         top_k=10,
+        search_questions: bool = True,
     ) -> List[DocumentModel]:
         # # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
@@ -363,7 +392,12 @@ class Documents(VectorDatabase):
                 Document.id,
                 Document.additional_metadata,
                 Document.record_created,
-                Document.embedding_model_name
+                Document.embedding_model_name,
+                Document.question_1,
+                Document.question_2,
+                Document.question_3,
+                Document.question_4,
+                Document.question_5,
             )
 
             if collection_id is not None:
@@ -399,27 +433,41 @@ class Documents(VectorDatabase):
                     instruction="Represent the query for retrieval: ",
                 )
 
-                document_text_embedding_results = self._get_nearest_neighbors(
+                embedding_results = []
+
+                embedding_results.append(self._get_nearest_neighbors(
                     session=session,
                     collection_id=collection_id,
                     target_file_id=target_file_id,
                     embedding_prop=Document.embedding,
                     embedding=query_embedding,
                     top_k=top_k,
-                )
+                ))
 
-                document_text_summary_embedding_results = self._get_nearest_neighbors(
+                embedding_results.append(self._get_nearest_neighbors(
                     session=session,
                     collection_id=collection_id,
                     target_file_id=target_file_id,
                     embedding_prop=Document.document_text_summary_embedding,
                     embedding=query_embedding,
                     top_k=top_k,
-                )
+                ))
+                
+                if search_questions:
+                    # Search each of the generated question embeddings
+                    for question_number in range(1, 6):
+                        embedding_results.append(self._get_nearest_neighbors(
+                            session=session,
+                            collection_id=collection_id,
+                            target_file_id=target_file_id,
+                            embedding_prop=getattr(Document, f"embedding_question_{question_number}"),
+                            embedding=query_embedding,
+                            top_k=top_k,
+                        ))
+                    
 
-                results = self._combine_document_text_embedding_queries(
-                    text_embedding_results=document_text_embedding_results,
-                    text_summary_embedding_results=document_text_summary_embedding_results,
+                results = self._combine_document_embedding_queries(
+                    embedding_results=embedding_results,
                     top_k=top_k,
                 )
 
@@ -429,8 +477,8 @@ class Documents(VectorDatabase):
             else:
                 raise ValueError(f"Unknown search type: {search_type}")
 
-    def _combine_document_text_embedding_queries(
-        self, text_embedding_results, text_summary_embedding_results, top_k
+    def _combine_document_embedding_queries(
+        self, embedding_results: list, top_k
     ) -> str:
         def reorder_dict_by_distance(dict_list):
             # Remove anything that doesn't have a distance (e.g. probably didn't have a summary)
@@ -442,27 +490,22 @@ class Documents(VectorDatabase):
 
             return sorted_dict_list
 
-        text_embeddings_dict = [
-            {
-                "document": DocumentModel.from_database_model(d[0]),
-                "distance": d[1],
-                "l2_distance": d[2],
-            }
-            for d in text_embedding_results
-        ]
-        text_summary_embeddings_dict = [
-            {
-                "document": DocumentModel.from_database_model(d[0]),
-                "distance": d[1],
-                "l2_distance": d[2],
-            }
-            for d in text_summary_embedding_results
-        ]
+        # Convert the results into a list of dictionaries
+        new_embedding_results = []
+        for embeddings in embedding_results:
+            for d in embeddings:
+                new_embedding_results.append(
+                    {
+                        "document": DocumentModel.from_database_model(d[0]),
+                        "distance": d[1],
+                        "l2_distance": d[2],
+                    }
+                )
 
         # Now we need to take these two dictionaries, sort them by distance, and then combine them while removing duplicates
-        def combine_and_remove_duplicates(list1, list2):
+        def combine_and_remove_duplicates(list_of_dictionaries):
             # Combine the two lists and reorder by distance
-            combined_list = reorder_dict_by_distance(list1 + list2)
+            combined_list = reorder_dict_by_distance(list_of_dictionaries)
 
             unique_documents = {}
             unique_list = []
@@ -479,9 +522,10 @@ class Documents(VectorDatabase):
 
             return unique_list
 
-        combined_list = combine_and_remove_duplicates(
-            text_embeddings_dict, text_summary_embeddings_dict
-        )
+        combined_list = combine_and_remove_duplicates(new_embedding_results)
+
+        # Re-rank the list using a re-ranking function
+        # TODO: Add a re-ranking function
 
         # Now the list contains a sorted and de-duped combination of the two lists, but it may be longer than the top_k
         # Return the list limited to the original top_k
