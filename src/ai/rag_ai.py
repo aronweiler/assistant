@@ -18,6 +18,7 @@ from src.ai.system_info import get_system_information
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
 from src.tools.documents.document_tool import DocumentTool
 from src.ai.tools.tool_manager import ToolManager
+from src.utilities.parsing_utilities import parse_json
 
 
 class RetrievalAugmentedGenerationAI:
@@ -213,6 +214,30 @@ class RetrievalAugmentedGenerationAI:
             ).format(text=document_text)
         )
         return summary
+
+    # Required by the Jarvis UI when generating questions for ingested files
+    def generate_chunk_questions(
+        self, document_text: str, number_of_questions: int = 5
+    ) -> List:        
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
+                "model_configuration"
+            ],
+            tags=["retrieval-augmented-generation-ai"],
+            streaming=False,
+        )
+
+        response = llm.predict(
+            self.prompt_manager.get_prompt(
+                "questions",
+                "CHUNK_QUESTIONS_TEMPLATE",
+            ).format(document_text=document_text, number_of_questions=number_of_questions),
+            timeout=30000
+        )
+        
+        questions = parse_json(text=response, llm=llm)
+        
+        return questions
 
     def generate_detailed_document_summary(
         self,
