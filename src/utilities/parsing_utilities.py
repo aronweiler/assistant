@@ -41,7 +41,7 @@ def parse_json(text: str, llm: BaseLanguageModel) -> dict:
             text = action_match.group(1).strip()            
             response = json.loads(text, strict=False)
             return response
-        elif text.strip().startswith("{") and text.strip().endswith("}"):
+        elif (text.strip().startswith("{") and text.strip().endswith("}")) or (text.strip().startswith("[") and text.strip().endswith("]")):
             logger.info("Handling JSON that is not inside of a code block...")
             # Handles JSON responses that are not in code blocks
             return json.loads(text.strip(), strict=False)
