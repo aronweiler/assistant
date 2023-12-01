@@ -36,9 +36,9 @@ The steps to run the docker version is as follows:
    - Clone the assistant repo: `git clone https://github.com/aronweiler/assistant.git`
    - OR download the [docker-compose.yml](docker-compose.yml) and [.env.template](.env.template) files
 2. Edit the `.env.template` file, changing the following items:
-   - `OPENAI_API_KEY` - This should be the key you generate in step 5 above.
+   - `OPENAI_API_KEY` - This is your Open AI API key (required for interacting with OpenAI models- the primary model for this application).
    - `POSTGRES_`* entries can be pretty much anything you want, all of this will be local to your machine.
-   - `USER_EMAIL` - Put your email in here (required for a user on the system)
+   - `USER_EMAIL` - Put your email in here (required for a user on the system- some features will use this)
    - `SOURCE_CONTROL_PROVIDER` - This is the provider you want to use if you are code reviewing files from URLs.  Can be either `GitHub` or `GitLab`
    - `SOURCE_CONTROL_URL` - Currently this only supports github or gitlab (`https://gitlab.com` or `https://github.com`)
    - `SOURCE_CONTROL_PAT` - This is a personal access token that is used to authenticate with the chosen source code provider, if you're using one.
