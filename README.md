@@ -1,46 +1,52 @@
-# AI Assistant
-An intelligent assistant.  This is a work in progress.
+# AI Assistant (Jarvis)
+An intelligent assistant.  This is a work in progress.  Don't hate over the name... I was younger, and less creative.
 
 ### Features
-- ✅ AI Framework Using [LangChain](https://www.langchain.com/)
-- ✅ Configuration Framework
-- ✅ Console Runner (Run the LLM in a console window)
-- ✅ Streamlit UI Runner (Run the LLM in a Web-UI)
-- ✅ OpenAI LLM Integration
-- ✅ Local LLM Integration (Llama 2- *Note: Some features may not work here yet*)
-- ✅ Interaction Management (Conversations, Memory, Files, etc.)
-- ✅ Chat with Documents (Upload documents on the Streamlit UI)
-- ✅ Postgres Conversation / File Storage
-- ✅ Voice Runner (For interactions via voice- back burner for now)
+- ✅ Chat with the AI (Conversation Mode)
+- ✅ Get the News
+- ✅ Get the Weather
+- ✅ Upload your Documents, and talk about them with the AI, including:
+    - ✅ Search for information
+    - ✅ Summarize a topic or whole documents
+    - ✅ Perform multi-hop queries, such as "What is the capital of the country that has the highest population in Europe?"
+- ✅ Code Understanding
+    - ✅ Code Summarization
+    - ✅ Code Review
+    - ✅ Code Documentation
+    - ✅ Unit Test Generation
 
-## TODO:
-- ☑️ Google API Integration
-- ☑️ Generic Tooling (a.k.a. on-demand tools)
-- ☑️ API Discovery and Calling
+![Streamlit UI](documentation/Jarvis.png)
 
-# Running the UI in Docker
+- *AI Framework Using [LangChain](https://www.langchain.com/)*
+- *UI Framework Using [Streamlit](https://streamlit.io/)*
+- *Local models running using [llama.cpp](https://github.com/ggerganov/llama.cpp) via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)*
+
+# Running Jarvis in Docker
 In order to install the assistant using Docker, you'll need the following:
 
+## Pre-requisites for running in Docker 
 - Docker ([Docker Desktop](https://www.docker.com/products/docker-desktop/) is what I use) installed and running on your computer
-- Git
-- A web browser
+- Git (Optional- you can just grab the [docker-compose.yml](docker-compose.yml) and [.env.template](.env.template) from the GitHub UI here)
 - An OpenAI Account and API key (or local models)
 
 The steps to run the docker version is as follows:
 
-1. Clone the assistant repo: `git clone https://github.com/aronweiler/assistant.git`
+# Running Jarvis
+1. Get the files
+   - Clone the assistant repo: `git clone https://github.com/aronweiler/assistant.git`
+   - OR download the [docker-compose.yml](docker-compose.yml) and [.env.template](.env.template) files
 2. Edit the `.env.template` file, changing the following items:
    - `OPENAI_API_KEY` - This should be the key you generate in step 5 above.
    - `POSTGRES_`* entries can be pretty much anything you want, all of this will be local to your machine.
    - `USER_EMAIL` - Put your email in here (required for a user on the system)
    - `SOURCE_CONTROL_PROVIDER` - This is the provider you want to use if you are code reviewing files from URLs.  Can be either `GitHub` or `GitLab`
    - `SOURCE_CONTROL_URL` - Currently this only supports github or gitlab (`https://gitlab.com` or `https://github.com`)
-   - `SOURCE_CONTROL_PAT` - This is a personal access token that is used to authenticate with the chosen source code provider... you can get this from the settings page of either GitHub or GitLab.
+   - `SOURCE_CONTROL_PAT` - This is a personal access token that is used to authenticate with the chosen source code provider, if you're using one.
 3. Rename the `.env.template` to `.env`
 4. Using a command line, navigate to the directory where you cloned the code, and run `docker-compose up -d`
 5. Browse to http://localhost:8500
 
-## Updating Jarvis in Docker
+## Updating Jarvis (Docker)
 
 *🥳 Following these update instructions **WILL NOT ERASE YOUR DATA** 🥳*
  
@@ -63,7 +69,9 @@ Feel free to alter this behavior on your instance, if you like.
 ---
 Here's a lot of info on running this in Python!
 
-# Python Prerequisits
+*Note: This is probably out of date, as I don't really support anyone looking at my gross code 🤣*
+
+# Python Prerequisites
 
 ## 1. Install the python requirements:
 
@@ -79,7 +87,7 @@ I'm using their github, but feel free to use the python packages.
 ## 2. Set up the database
 *The database is required for conversations, file upload, user management, etc.*
 
-### Databse-related Environment Variables
+### Database-related Environment Variables
 
 Set the following environment variables for database access:
 
@@ -127,27 +135,3 @@ This will create an alembic.ini file and a versions directory inside the migrati
 
 ### More info on the database
 See [Memory](src\db\readme.md)
-
-## 3. Configure the assistant
-Currently, only the [console_ai_assistant](configurations\console_configs\console_ai_assistant.json) is supported.  Take a look at that configuration file to get a flavor for what future implementations will look like.
-
-Modify the [console_ai_assistant](configurations\console_configs\console_ai_assistant.json) to suit your needs.
-
-# Running the Assistant
-
-## 4. Run the Console or Voice Assistant
-Run the run.py file, with your choice of configuration.
-
-**Example:**
-`python run.py --config=configurations/console_configs/openai_config.json --logging_level=INFO`
-
-This will allow you to interact with the AI assistant through the console.  
-
-## Run the Streamlit UI Assistant
-This is a chat bot interface that has memory, tools, and other fun stuff. 
-
-![Streamlit UI](documentation/streamlit.png)
-
-Run the [streamlit_ui.py](src/runners/ui/streamlit_ui.py) file with `streamlit`
-
-Use any config that has an `ai` section, such as: `configurations/console_configs/openai_config.json`*
