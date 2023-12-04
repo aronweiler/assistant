@@ -153,7 +153,7 @@ def load_conversation_selectbox(load_ai_callback, tab):
         if st.session_state.confirm_interaction_delete == False:
             col1.button(
                 "🗑️",
-                help="Delete this conversation?",
+                help="Delete this conversation",
                 on_click=set_confirm_interaction_delete,
                 kwargs={"val": True},
                 key=str(uuid.uuid4()),
@@ -458,7 +458,7 @@ def select_documents(tab, ai=None):
             
             st.toggle(
                 "Create Chunk Questions",
-                help="This will create questions for each chunk of text in the document, which will aid in later retrievals.",
+                help="This will create hypothetical questions for each chunk of text in the document, which will GREATLY aid in later retrievals.",
                 key="create_chunk_questions",
                 value=st.session_state.ingestion_settings.create_chunk_questions,
             )
@@ -466,6 +466,7 @@ def select_documents(tab, ai=None):
             st.toggle(
                 "Summarize Chunks",
                 key="summarize_chunks",
+                help="Summarize each document chunk.  This will aid in later retrievals, and document summaries.",
                 value=st.session_state.ingestion_settings.summarize_chunks,
             )            
 
@@ -477,7 +478,8 @@ def select_documents(tab, ai=None):
             )
 
             st.toggle(
-                "Split documents by tokens (default is by page)",
+                "Split documents by tokens",
+                help="Documents will be split by tokens into chunks of text, which will be stored in the database- this setting determines how large those chunks are.\n\nWhen this is off, documents will be split by page.",
                 key="split_documents",
                 value=st.session_state.ingestion_settings.split_documents,
             )
@@ -523,8 +525,10 @@ def select_documents(tab, ai=None):
             submit_button = st.form_submit_button(
                 "Ingest files",
                 type="primary",
-                disabled=(active_collection_id == None or active_collection_id == "-1"),
+                disabled=(active_collection_id == None or active_collection_id == "-1")
             )
+            
+            st.markdown("*⚠️ Currently there is no async/queued file ingestion. Do not navigate away from this page, or click on anything else, while the files are being ingested.*")
 
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
@@ -907,7 +911,7 @@ def create_collection_selectbox(ai):
         on_change=on_change_collection,
     )
 
-    col2.button("➕", key="show_create_collection")
+    col2.button("➕", help="Create a new document collection", key="show_create_collection")
 
 
 def refresh_messages_session_state(ai_instance):
@@ -982,7 +986,7 @@ def show_old_messages(ai_instance):
             ):
                 col3.button(
                     "🗑️",
-                    help="Delete this conversation entry?",
+                    help="Delete this conversation entry",
                     on_click=set_confirm_conversation_item_delete,
                     kwargs={"val": True, "id": message["id"]},
                     key=str(uuid.uuid4()),
@@ -1036,8 +1040,10 @@ def handle_chat(main_window_container, ai_instance, configuration):
     with stylable_container(key="enabled_tools_container", css_styles=css_style):
         col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 2, 1, 2])
 
+        help_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
+
         col1.markdown(
-            f'<div align="right"><b>AI Mode:</b></div>', unsafe_allow_html=True
+            f'<div align="right" title="Select the mode to use. Auto will automatically switch between a Conversation Only and Tool Using AI based on the users input.">{help_icon} <b>AI Mode:</b></div>', unsafe_allow_html=True
         )
 
         ai_modes = ["Auto", "Conversation Only"]
@@ -1055,7 +1061,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
         )
 
         col3.markdown(
-            f'<div align="right"><b>Frequency Penalty:</b></div>',
+            f'<div align="right" title="Positive values will decrease the likelihood of the model repeating the same line verbatim by penalizing new tokens that have already been used frequently.">{help_icon} <b>Frequency Penalty:</b></div>',
             unsafe_allow_html=True,
         )
 
@@ -1075,7 +1081,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
         )
 
         col5.markdown(
-            f'<div align="right"><b>Presence Penalty:</b></div>', unsafe_allow_html=True
+            f'<div align="right" title="Positive values will increase the likelihood of the model talking about new topics by penalizing new tokens that have already been used.">{help_icon} <b>Presence Penalty:</b></div>', unsafe_allow_html=True
         )
 
         col6.slider(
