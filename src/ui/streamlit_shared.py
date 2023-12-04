@@ -5,6 +5,7 @@ import time
 import uuid
 
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 import requests
 
 from streamlit.runtime.scriptrunner import RerunException
@@ -94,17 +95,33 @@ def set_user_id_from_email(user_email):
     st.session_state.user_id = user.id
 
 
-def load_conversation_selectbox(load_ai_callback, tab):
+def get_interaction_id_index(interaction_pairs, selected_interaction):
+    """Gets the index of the selected interaction id"""
+    index = 0
+    for i, interaction_pair in enumerate(interaction_pairs):
+        if interaction_pair.split(":")[0] == selected_interaction:
+            index = i
+            break
+
+    return index
+
+def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
     """Loads the interaction selectbox"""
 
     try:
         interaction_pairs = get_interaction_pairs()
         if interaction_pairs is None:
             return
+        
+        index = 0
+        if "rag_ai" in st.session_state:
+            selected_interaction = st.session_state["rag_ai"].interaction_manager.interaction_id        
+            index = get_interaction_id_index(interaction_pairs, selected_interaction)            
 
         tab.selectbox(
             "Select Conversation",
             interaction_pairs,
+            index=index,
             key="interaction_summary_selectbox",
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
@@ -117,7 +134,7 @@ def load_conversation_selectbox(load_ai_callback, tab):
             help="Create a new conversation",
             key="new_chat_button",
             on_click=create_interaction,
-            kwargs={"interaction_summary": "Empty Chat"},
+            kwargs={"interaction_summary": "Empty Chat", "load_ai_callback": load_ai_callback},
         )
 
         # col3
@@ -184,18 +201,23 @@ def set_confirm_interaction_delete(val):
     st.session_state.confirm_interaction_delete = val
 
 
-def create_interaction(interaction_summary):
+def create_interaction(interaction_summary, load_ai_callback = None):
     """Creates an interaction for the current user with the specified summary"""
     
     if "user_id" not in st.session_state:
         # Sometimes this will happen if we're switching controls/screens
         return
     
+    new_interaction = str(uuid.uuid4())
+    
     Interactions().create_interaction(
-        id=str(uuid.uuid4()),
+        id=new_interaction,
         interaction_summary=interaction_summary,
         user_id=st.session_state.user_id,
     )
+    
+    if load_ai_callback:
+        load_ai_callback(override_interaction_id=new_interaction)
 
 
 def get_interaction_pairs():

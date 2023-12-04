@@ -44,9 +44,13 @@ class RagUI:
 
         st.title("Hey Jarvis 🤖...")
 
-    def load_ai(self):
+    def load_ai(self, override_interaction_id=None):
         """Loads the AI instance for the selected interaction id"""
-        selected_interaction_id = ui_shared.get_selected_interaction_id()
+        
+        if override_interaction_id:
+            selected_interaction_id = override_interaction_id
+        else:
+            selected_interaction_id = ui_shared.get_selected_interaction_id()
 
         if "rag_ai" not in st.session_state:
             # First time loading the page
