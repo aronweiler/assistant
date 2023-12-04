@@ -202,7 +202,7 @@ class CodeReviewTool:
             comment_results.extend(data["comments"])
 
         # Re-order the comments by line number
-        comment_results = sorted(comment_results, key=lambda k: k["start"])
+        comment_results = sorted(comment_results, key=lambda k: k["start"] if "start" in k else k["add_line_start"])
         
         review_metadata = data["metadata"]
         review_metadata["reviews_performed"] = [template["description"] for template in templates]

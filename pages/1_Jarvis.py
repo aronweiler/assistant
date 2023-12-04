@@ -44,9 +44,13 @@ class RagUI:
 
         st.title("Hey Jarvis 🤖...")
 
-    def load_ai(self):
+    def load_ai(self, override_interaction_id=None):
         """Loads the AI instance for the selected interaction id"""
-        selected_interaction_id = ui_shared.get_selected_interaction_id()
+        
+        if override_interaction_id:
+            selected_interaction_id = override_interaction_id
+        else:
+            selected_interaction_id = ui_shared.get_selected_interaction_id()
 
         if "rag_ai" not in st.session_state:
             # First time loading the page
@@ -143,17 +147,30 @@ class RagUI:
                             with st.expander(
                                 label=f"({len(loaded_docs)}) documents in {ui_shared.get_selected_collection_name()}",
                                 expanded=False,
-                            ):
+                            ):   
+                                # TODO: Add capabilities to edit the collection (delete documents)                      
+                                #st.button("✏️ Edit Collection")       
                                 for doc in loaded_docs:
-                                    # TODO: Put a thumbnail of the images here (maybe icon for documents)
                                     st.write(doc)
+                                    # col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
+                                    # # TODO: Put a thumbnail of the images here (maybe icon for documents)
+                                    # col1.write(doc)
+                                    # col3.button(
+                                    #     "🗑️",
+                                    #     help="Delete this document from the collection",
+                                    #     #on_click=set_confirm_conversation_item_delete,
+                                    #     #kwargs={"val": True, "id": message["id"]},
+                                    #     key=str(uuid.uuid4()),
+                                    # )
+                                    
 
-                            st.markdown("### Options")
+                            st.markdown("#### Options")
 
-                            with st.expander("Search", expanded=True):  # , expanded=expanded):
+                            with st.expander("Search", expanded=False):  # , expanded=expanded):
                                 search_types = ["Similarity", "Keyword", "Hybrid"]
                                 st.radio(
                                     label="Text search method",
+                                    help="Similarity search will find semantically similar phrases.\n\nKeyword search (think SQL LIKE statement) will find documents containing specific words.\n\nHybrid search uses both.",
                                     options=search_types,
                                     key="search_type",                                    
                                     index=search_types.index(st.session_state["app_config"]["jarvis_ai"].get("search_type", "Similarity")),
@@ -162,6 +179,7 @@ class RagUI:
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
+                                    help="The number of document chunks to use in searches. Higher numbers will take longer to search, but will possibly yield better results.  Note: a higher number will use more of the model's context window.",
                                     value=st.session_state["app_config"]["jarvis_ai"].get("search_top_k", 10),
                                     on_change=ui_shared.set_search_top_k,
                                 )
@@ -175,12 +193,13 @@ class RagUI:
 
                                 st.selectbox(
                                     "Override automatic document selection:",
+                                    help="Select a document from the list below to override the AI's document selection.\n\nThis will force the AI to use the selected document for all responses.",
                                     options=options,
                                     key="override_file",
                                     format_func=lambda x: x.split(":")[1],
                                 )
                                 st.number_input(
-                                    "Timeout (seconds)", key="agent_timeout", value=600
+                                    "Timeout (seconds)", help="The amount of time to wait for a response from the AI", key="agent_timeout", value=600
                                 )
                                 
                                 st.toggle(
