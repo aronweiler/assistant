@@ -37,6 +37,13 @@ class Documents(VectorDatabase):
             session.commit()
 
             return DocumentCollectionModel.from_database_model(collection)
+    
+    def delete_collection(self, collection_id) -> None:
+        with self.session_context(self.Session()) as session:
+            collection = session.query(DocumentCollection).filter(DocumentCollection.id == collection_id).first()
+
+            session.delete(collection)
+            session.commit()
 
     def get_collection(self, collection_id) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
@@ -95,6 +102,14 @@ class Documents(VectorDatabase):
             session.commit()
 
             return FileModel.from_database_model(file)
+        
+    def set_collection_id_for_file(self, file_id: int, collection_id: int) -> FileModel:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+            file.collection_id = collection_id
+            session.commit()
+
+            return FileModel.from_database_model(file)
 
     def get_file_data(self, file_id: int) -> Any:
         with self.session_context(self.Session()) as session:
@@ -118,25 +133,6 @@ class Documents(VectorDatabase):
             session.commit()
 
             return FileModel.from_database_model(file)
-
-    def get_files_in_collection(self, collection_id) -> List[FileModel]:
-        with self.session_context(self.Session()) as session:
-            files = (
-                session.query(
-                    File.collection_id,
-                    File.user_id,
-                    File.file_name,
-                    File.file_hash,
-                    File.id,
-                    File.file_classification,
-                    File.file_summary,
-                    File.record_created,
-                )
-                .filter(File.collection_id == collection_id)
-                .all()
-            )
-
-            return [FileModel.from_database_model(f) for f in files]
 
     def get_file(self, file_id) -> FileModel:
         with self.session_context(self.Session()) as session:
@@ -169,6 +165,25 @@ class Documents(VectorDatabase):
                 File.file_summary,
                 File.record_created,
             ).all()
+
+            return [FileModel.from_database_model(f) for f in files]
+
+    def get_files_in_collection(self, collection_id) -> List[FileModel]:
+        with self.session_context(self.Session()) as session:
+            files = (
+                session.query(
+                    File.collection_id,
+                    File.user_id,
+                    File.file_name,
+                    File.file_hash,
+                    File.id,
+                    File.file_classification,
+                    File.file_summary,
+                    File.record_created,
+                )
+                .filter(File.collection_id == collection_id)
+                .all()
+            )
 
             return [FileModel.from_database_model(f) for f in files]
 
@@ -230,6 +245,19 @@ class Documents(VectorDatabase):
             )
 
             return [DocumentModel.from_database_model(d) for d in documents]
+        
+    def set_collection_id_for_document_chunks(self, file_id: int, collection_id: int) -> None:
+        with self.session_context(self.Session()) as session:
+            documents = (
+                session.query(Document)
+                .filter(Document.file_id == file_id)
+                .all()
+            )
+            
+            for document in documents:
+                document.collection_id = collection_id
+            
+            session.commit()
 
     def get_document_summaries(self, target_file_id) -> List[str]:
         with self.session_context(self.Session()) as session:
@@ -273,25 +301,6 @@ class Documents(VectorDatabase):
 
             session.commit()
 
-    def get_collection_files(self, collection_id) -> List[FileModel]:
-        with self.session_context(self.Session()) as session:
-            files = (
-                session.query(
-                    File.collection_id,
-                    File.user_id,
-                    File.file_name,
-                    File.file_hash,
-                    File.id,
-                    File.file_classification,
-                    File.file_summary,
-                    File.record_created,
-                )
-                .filter(File.collection_id == collection_id)
-                .all()
-            )
-
-            return [FileModel.from_database_model(f) for f in files]
-
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
             # Generate the embedding for the document text
@@ -300,7 +309,7 @@ class Documents(VectorDatabase):
                 model_name=document.embedding_model_name,
                 instruction="Represent the document for retrieval: ",
             )
-            
+
             # Generate the embedding for the document text summary
             document_text_summary_embedding = None
             if document.document_text_summary.strip() != "":
@@ -309,7 +318,7 @@ class Documents(VectorDatabase):
                     model_name=document.embedding_model_name,
                     instruction="Represent the summary for retrieval: ",
                 )
-                
+
             # Generate the embeddings for the questions
             question_embeddings = []
             for question_number in range(1, 6):
@@ -323,15 +332,25 @@ class Documents(VectorDatabase):
                     question_embeddings.append(question_embedding)
                 else:
                     question_embeddings.append(None)
-                
+
             document = document.to_database_model()
             document.embedding = embedding
             document.document_text_summary_embedding = document_text_summary_embedding
-            document.embedding_question_1 = question_embeddings[0] if question_embeddings[0] is not None else None
-            document.embedding_question_2 = question_embeddings[1] if question_embeddings[1] is not None else None
-            document.embedding_question_3 = question_embeddings[2] if question_embeddings[2] is not None else None
-            document.embedding_question_4 = question_embeddings[3] if question_embeddings[3] is not None else None
-            document.embedding_question_5 = question_embeddings[4] if question_embeddings[4] is not None else None
+            document.embedding_question_1 = (
+                question_embeddings[0] if question_embeddings[0] is not None else None
+            )
+            document.embedding_question_2 = (
+                question_embeddings[1] if question_embeddings[1] is not None else None
+            )
+            document.embedding_question_3 = (
+                question_embeddings[2] if question_embeddings[2] is not None else None
+            )
+            document.embedding_question_4 = (
+                question_embeddings[3] if question_embeddings[3] is not None else None
+            )
+            document.embedding_question_5 = (
+                question_embeddings[4] if question_embeddings[4] is not None else None
+            )
 
             session.add(document)
             session.commit()
@@ -435,36 +454,43 @@ class Documents(VectorDatabase):
 
                 embedding_results = []
 
-                embedding_results.append(self._get_nearest_neighbors(
-                    session=session,
-                    collection_id=collection_id,
-                    target_file_id=target_file_id,
-                    embedding_prop=Document.embedding,
-                    embedding=query_embedding,
-                    top_k=top_k,
-                ))
+                embedding_results.append(
+                    self._get_nearest_neighbors(
+                        session=session,
+                        collection_id=collection_id,
+                        target_file_id=target_file_id,
+                        embedding_prop=Document.embedding,
+                        embedding=query_embedding,
+                        top_k=top_k,
+                    )
+                )
 
-                embedding_results.append(self._get_nearest_neighbors(
-                    session=session,
-                    collection_id=collection_id,
-                    target_file_id=target_file_id,
-                    embedding_prop=Document.document_text_summary_embedding,
-                    embedding=query_embedding,
-                    top_k=top_k,
-                ))
-                
+                embedding_results.append(
+                    self._get_nearest_neighbors(
+                        session=session,
+                        collection_id=collection_id,
+                        target_file_id=target_file_id,
+                        embedding_prop=Document.document_text_summary_embedding,
+                        embedding=query_embedding,
+                        top_k=top_k,
+                    )
+                )
+
                 if search_questions:
                     # Search each of the generated question embeddings
                     for question_number in range(1, 6):
-                        embedding_results.append(self._get_nearest_neighbors(
-                            session=session,
-                            collection_id=collection_id,
-                            target_file_id=target_file_id,
-                            embedding_prop=getattr(Document, f"embedding_question_{question_number}"),
-                            embedding=query_embedding,
-                            top_k=top_k,
-                        ))
-                    
+                        embedding_results.append(
+                            self._get_nearest_neighbors(
+                                session=session,
+                                collection_id=collection_id,
+                                target_file_id=target_file_id,
+                                embedding_prop=getattr(
+                                    Document, f"embedding_question_{question_number}"
+                                ),
+                                embedding=query_embedding,
+                                top_k=top_k,
+                            )
+                        )
 
                 results = self._combine_document_embedding_queries(
                     embedding_results=embedding_results,
