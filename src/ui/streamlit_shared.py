@@ -882,7 +882,7 @@ def show_version():
                     f"You are running **{version}**, and the release version is **{latest_version}**."
                 )
                 st.sidebar.markdown(
-                    "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-in-docker)"
+                    "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-docker)"
                 )
             else:
                 st.sidebar.info(f"Version: {version}")
