@@ -111,7 +111,7 @@ class InteractionManager:
 
         return [
             f"{file.file_name} (Class: '{file.file_classification}')"
-            for file in self.documents_helper.get_collection_files(self.collection_id)
+            for file in self.documents_helper.get_files_in_collection(self.collection_id)
         ]
 
     def get_loaded_documents_count(self):
@@ -123,7 +123,7 @@ class InteractionManager:
             )
             return 0
 
-        return len(self.documents_helper.get_collection_files(self.collection_id))
+        return len(self.documents_helper.get_files_in_collection(self.collection_id))
 
     def get_loaded_documents_for_reference(self):
         """Gets the loaded documents for the specified collection."""
@@ -138,7 +138,7 @@ class InteractionManager:
 
         return [
             f"file_id='{file.id}' ({file.file_name}, Class: '{file.file_classification}')"
-            for file in self.documents_helper.get_collection_files(self.collection_id)
+            for file in self.documents_helper.get_files_in_collection(self.collection_id)
         ]
 
     def get_loaded_documents_delimited(self):
@@ -154,7 +154,7 @@ class InteractionManager:
 
         return [
             f"{file.id}:{file.file_name}"
-            for file in self.documents_helper.get_collection_files(self.collection_id)
+            for file in self.documents_helper.get_files_in_collection(self.collection_id)
         ]
 
     def get_interaction(self):

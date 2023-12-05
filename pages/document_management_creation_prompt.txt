@@ -1,0 +1,163 @@
+So I decided to just use Jarvis to improve itself, and gave it the following prompt.  
+
+I then took the results and just pasted them into 2_Documents.py, and it works (mostly)!
+
+------------------
+The following is the schema for several database tables that I have that I use to manage collections of documents, their original files, and their chunks (split from the original file).
+
+The document_collections table is a table that stores the document collection name, ID, and type (which should default to "Remote (OpenAI)").
+CREATE TABLE public.document_collections (
+    id integer NOT NULL,
+    collection_name character varying NOT NULL,
+    record_created timestamp without time zone NOT NULL,
+    collection_type character varying DEFAULT 'Remote (OpenAI)'::character varying NOT NULL
+);
+
+The associated DocumentCollectionModel looks like this:
+```python
+class DocumentCollectionModel:
+    def __init__(self, id, collection_name, collection_type, record_created=None):
+        self.id = id
+        self.collection_name = collection_name
+        self.record_created = record_created
+        self.collection_type = collection_type
+
+    def to_database_model(self):
+        return DocumentCollection(
+            id=self.id,
+            collection_name=self.collection_name,
+            record_created=self.record_created,
+            collection_type=self.collection_type,
+        )
+```
+
+The files table contains the original file data, as well as the collection_id to which it is associated.
+CREATE TABLE public.files (
+    id integer NOT NULL,
+    collection_id integer NOT NULL,
+    user_id integer,
+    file_name character varying NOT NULL,
+    file_classification character varying,
+    file_summary character varying,
+    record_created timestamp without time zone NOT NULL,
+    file_hash character varying NOT NULL,
+    file_data bytea NOT NULL
+);
+
+The associated FileModel looks like this:
+```python
+class FileModel:
+    def __init__(self, collection_id, user_id, file_name, file_hash, id = None, file_classification=None,
+                 file_summary=None, record_created=None):
+        self.id = id
+        self.collection_id = collection_id
+        self.user_id = user_id
+        self.file_name = file_name
+        self.file_classification = file_classification
+        self.file_summary = file_summary
+        self.record_created = record_created
+        self.file_hash = file_hash
+```
+
+The documents table contains the document chunks (split parts of a file) that are associated with a file_id.  This table also has a collection_id to maintain the association to the collection that can be independently used without looking at the files table.
+CREATE TABLE public.documents (
+    id integer NOT NULL,
+    collection_id integer NOT NULL,
+    file_id integer NOT NULL,
+    user_id integer,
+    additional_metadata character varying,
+    document_text character varying NOT NULL,
+    document_name character varying NOT NULL,
+    embedding public.vector,
+    record_created timestamp without time zone NOT NULL,
+    document_text_summary character varying,
+    document_text_summary_embedding public.vector,
+    document_text_has_summary boolean DEFAULT false NOT NULL,
+    embedding_model_name character varying DEFAULT 'text-embedding-ada-002'::character varying NOT NULL,
+    embedding_question_1 public.vector,
+    embedding_question_2 public.vector,
+    embedding_question_3 public.vector,
+    embedding_question_4 public.vector,
+    embedding_question_5 public.vector,
+    question_1 character varying,
+    question_2 character varying,
+    question_3 character varying,
+    question_4 character varying,
+    question_5 character varying
+);
+
+The associated DocumentModel looks like this:
+```python
+class DocumentModel:
+	def __init__(
+		self,
+		collection_id,
+		file_id,
+		user_id,
+		document_text,
+		document_name,
+		document_text_summary,
+		document_text_has_summary,
+		embedding_model_name,        
+		id=None,
+		additional_metadata: dict = {},
+		record_created=None,
+		question_1:str = None,
+		question_2:str = None,
+		question_3:str = None,
+		question_4:str = None,
+		question_5:str = None,
+	):
+		self.id = id
+		self.collection_id = collection_id
+		self.file_id = file_id
+		self.user_id = user_id
+		self.additional_metadata = additional_metadata
+		self.document_text = document_text
+		self.document_name = document_name
+		self.document_text_summary = document_text_summary
+		self.document_text_has_summary = document_text_has_summary
+		self.record_created = record_created
+		self.embedding_model_name = embedding_model_name
+		self.question_1 = question_1
+		self.question_2 = question_2
+		self.question_3 = question_3
+		self.question_4 = question_4
+		self.question_5 = question_5
+```
+	
+The following database commands (python functions) exist in the `Documents` class for you to use when interacting with the database:
+
+- create_collection(collection_name, collection_type) -> DocumentCollectionModel
+- delete_collection(collection_id) -> None
+- get_collection(collection_id) -> DocumentCollectionModel
+- get_collections() -> List[DocumentCollectionModel]
+- get_files_in_collection(collection_id) -> List[FileModel]
+- get_all_files() -> List[FileModel]
+- get_file(file_id) -> FileModel
+- set_collection_id_for_file(file_id, collection_id) -> FileModel
+- set_collection_id_for_document_chunks(file_id, collection_id) -> None
+- delete_file(file_id) -> None
+- delete_document_chunks_by_file_id(target_file_id) -> None
+- delete_file(file_id) -> None
+
+I want you to create python code for a Streamlit page that implements the following requirements:
+
+- The streamlit application shall use the import `from src.db.models.documents import Documents` to access the database helper class containing the database commands.
+	- a. Instantiate the Documents class via `documents = Documents()`
+- The streamlit application shall allow the user to select a file.
+- The streamlit application shall allow the user to view (in an expander) the file_summary, and file_classification of the selected file.
+- The streamlit application shall allow the user to delete a selected file (along with its associated documents).
+- The streamlit application shall allow the user to change a file's (and associated documents) collection to a different collection.
+- When re-assigning a file to a different collection, the streamlit application shall allow the user to select a target collection from a select box of available collections.
+- The streamlit application shall allow the user to delete a selected collection (and optionally the associated files).
+	- a. When deleting a collection, the user shall be able to select (toggle) whether or not to delete associated files. 
+	- b. The toggle to delete associated files shall default to off (do not delete associated files).
+	- c. When NOT deleting associated files, the user shall not be able to delete a collection that has associated files.
+	- d. When the checkbox/toggle for deleting associated files is off, the application shall display only empty collections in the selectbox.
+- When an error occurs, the streamlit application shall display the error to the user in a friendly manner.
+- The streamlit application shall handle any state management required, with the understanding that Streamlit runs from top-to-bottom every time. 
+
+Please create any placeholders for database interactions that may be required (if I have not already provided them), by providing stub methods inside of your generated code output.
+
+Please provide COMPLETE python code that accomplishes the items defined above.
