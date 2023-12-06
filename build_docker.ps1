@@ -27,9 +27,15 @@ $latestTag = "aronweiler/assistant:latest"
 $newTag = "aronweiler/assistant:$newVersion"
 
 # Build and tag the Docker image
-docker build -t $latestTag .
-docker tag $latestTag $newTag
+$buildResult = docker build -t $latestTag .
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Docker build succeeded, proceeding with tagging and pushing."
 
-# Push the Docker images -- uncomment for production
-docker push $latestTag
-docker push $newTag
+    docker tag $latestTag $newTag
+
+    # Push the Docker images -- uncomment for production
+    docker push $latestTag
+    docker push $newTag
+} else {
+    Write-Host "Docker build failed, skipping tagging and pushing."
+}
