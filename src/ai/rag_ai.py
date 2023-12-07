@@ -9,7 +9,6 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 
 from src.configuration.assistant_configuration import (
     ModelConfiguration,
-    # RetrievalAugmentedGenerationConfiguration,
 )
 from src.ai.interactions.interaction_manager import InteractionManager
 from src.ai.llm_helper import get_llm
@@ -21,8 +20,18 @@ from src.ai.tools.tool_manager import ToolManager
 from src.utilities.parsing_utilities import parse_json
 
 
+# Constants for default penalties
+DEFAULT_FREQUENCY_PENALTY = 0.0
+DEFAULT_PRESENCE_PENALTY = 0.6
+DEFAULT_AGENT_TIMEOUT = 300
+
+
 class RetrievalAugmentedGenerationAI:
-    """A RAG AI"""
+    """A class representing a Retrieval Augmented Generation AI.
+
+    This AI integrates a language model with additional tools and agents to provide
+    enhanced conversational capabilities.
+    """
 
     def __init__(
         self,
@@ -33,24 +42,29 @@ class RetrievalAugmentedGenerationAI:
         streaming: bool = False,
         override_memory=None,
     ):
+        if interaction_id is None or user_email is None:
+            raise ValueError("interaction_id and user_email cannot be None")
+
         self.configuration = configuration
         self.streaming = streaming
         self.prompt_manager = prompt_manager
 
+        # Initialize the language model with the provided configuration
         self.llm = get_llm(
             self.configuration["jarvis_ai"]["model_configuration"],
             tags=["retrieval-augmented-generation-ai"],
             streaming=streaming,
             model_kwargs={
                 "frequency_penalty": self.configuration["jarvis_ai"].get(
-                    "frequency_penalty", 0.0
+                    "frequency_penalty", DEFAULT_FREQUENCY_PENALTY
                 ),
                 "presence_penalty": self.configuration["jarvis_ai"].get(
-                    "presence_penalty", 0.6
+                    "presence_penalty", DEFAULT_PRESENCE_PENALTY
                 ),
             },
         )
 
+        # Extract conversation history settings from the configuration
         max_conversation_history_tokens = self.configuration["jarvis_ai"][
             "model_configuration"
         ]["max_conversation_history_tokens"]
@@ -69,10 +83,12 @@ class RetrievalAugmentedGenerationAI:
             override_memory=override_memory,
         )
 
+        # Initialize the shared memory for conversation history
         memory = ReadOnlySharedMemory(
             memory=self.interaction_manager.conversation_token_buffer_memory
         )
 
+        # Set up the language model chain with the appropriate prompts and memory
         self.chain = LLMChain(
             llm=self.llm,
             prompt=self.prompt_manager.get_prompt(
@@ -81,7 +97,7 @@ class RetrievalAugmentedGenerationAI:
             memory=memory,
         )
 
-        # The tool manager contains all of the tools available to the AI
+        # Initialize the tool manager and load the available tools
         self.tool_manager = ToolManager(configuration=self.configuration)
         self.tool_manager.initialize_tools(self.configuration, self.interaction_manager)
 
@@ -218,7 +234,7 @@ class RetrievalAugmentedGenerationAI:
     # Required by the Jarvis UI when generating questions for ingested files
     def generate_chunk_questions(
         self, document_text: str, number_of_questions: int = 5
-    ) -> List:        
+    ) -> List:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"
@@ -231,12 +247,14 @@ class RetrievalAugmentedGenerationAI:
             self.prompt_manager.get_prompt(
                 "questions",
                 "CHUNK_QUESTIONS_TEMPLATE",
-            ).format(document_text=document_text, number_of_questions=number_of_questions),
-            timeout=30000
+            ).format(
+                document_text=document_text, number_of_questions=number_of_questions
+            ),
+            timeout=30000,
         )
-        
+
         questions = parse_json(text=response, llm=llm)
-        
+
         return questions
 
     def generate_detailed_document_summary(
