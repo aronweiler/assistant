@@ -251,6 +251,9 @@ class CodeReviewTool:
 
         # Retrieve active templates based on the tool name.
         templates = self.get_active_code_review_templates(tool_name)
+        
+        if len(templates) == 0:
+            raise Exception("No active templates found for this tool.  You must enable at least one of the code review templates.")
 
         # Initialize containers for results and comments.
         review_results = {}

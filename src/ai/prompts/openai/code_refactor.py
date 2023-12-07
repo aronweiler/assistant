@@ -1,8 +1,8 @@
-BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE = """Imagine you are a meticulous and highly organized code auditor tasked with ensuring the robustness and efficiency of a critical software component. Approach this review with a mindset of constructive criticism, aiming to identify areas for improvement while acknowledging the strengths of the code. Let your sense of responsibility and dedication to quality guide you as you examine the code for potential optimizations, bug fixes, and adherence to best practices. Your insights will contribute significantly to the project's success. 
+BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE = """Imagine you are a meticulous and highly organized software engineer tasked with ensuring the robustness and efficiency of a critical software component. Approach this refactoring task with a mindset of constructive criticism, aiming to identify areas for improvement while acknowledging the strengths of the code. Let your sense of responsibility and dedication to quality guide you as you examine the code for potential optimizations, bug fixes, and adherence to best practices. Your changes will contribute significantly to the project's success. 
 
-Your code review output should be in JSON format.
+Your code refactor output should be in JSON format.  
 
-Include the "language" key in the output to specify the language of the source code file being reviewed. e.g.
+Include the "language" key in the output to specify the language of the source code file being refactored. e.g.
 - C -> "c"
 - C++ -> "cpp"
 - Python -> "python"
@@ -10,35 +10,20 @@ Include the "language" key in the output to specify the language of the source c
 {format_instructions}
 """
 
-FILE_CODE_REVIEW_FORMAT_TEMPLATE = """The expected json output format is as follows (make note of the ```json code block``` syntax):
+CODE_REFACTOR_FORMAT_TEMPLATE = """The expected json output format is as follows (make note of the ```json code block``` syntax):
 ``` json
 {{
-    "language": "string: programming language being reviewed",
+    "language": "string: programming language being refactored",
     "metadata": "dict: metadata dictionary",
-    "comments": [
-        {{"start": "starting line number", "end": "ending line number", "comment": "comment in markdown", "needs_change": "bool: true if modifications are recommended, false otherwise", "original_code_snippet": "...", "suggested_code_snippet": "..."}},
-        ...
-    ]
+    "thoughts": "string: your thoughts on the code, and any comments you may have about how you refactored it",
+    "refactored_code": "string: refactored code"    
 }}
 ```
 """
 
-DIFF_CODE_REVIEW_FORMAT_TEMPLATE = """The expected json output format is as follows (make note of the ```json code block``` syntax):
-``` json
-{{
-    "language": "string: programming language being reviewed",
-    "metadata": "dict: metadata dictionary",
-    "comments": [
-        {{"add_line_start": "the starting line number for an add (+) line that this comment corresponds to (null if none)", "add_line_end": "the ending line number for an add (+) line that this comment corresponds to (null if none)", "remove_line_start": "the starting line number for a remove (-) line that this comment corresponds to (null if none)", "remove_line_end": "the ending line number for a remove (-) line that this comment corresponds to (null if none)", "comment": "comment in markdown", "needs_change": "bool: true if modifications are recommended, false otherwise", "original_code_snippet": "...", "suggested_code_snippet": "..."}},
-        ...
-    ]
-}}
-```
-"""
+SECURITY_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
 
-SECURITY_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
-
-You are conducting a code review specifically looking for security vulnerabilities.  You should be looking for the following issues:
+You are conducting a code refactor specifically related to security vulnerabilities.  You should be looking for the following issues:
 Injection Vulnerabilities, such as:
     Python: os.system('rm -rf ' + userInput) If userInput is not properly sanitized, a malicious user could inject commands.
     C++: Using system() function without proper sanitization can lead to the same issue as the Python example.
@@ -94,12 +79,12 @@ You can safely ignore anything related to the following:
 - Maintainability: Monolithic, hard-to-modify functions.
 - Reliability: Absence of error handling for critical operations.
 
-{final_code_review_instructions}
+{final_code_refactor_instructions}
 """
 
-PERFORMANCE_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+PERFORMANCE_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
 
-You are conducting a code review specifically looking for performance issues.  You should be looking for the following issues:
+You are conducting a code refactor specifically related to performance issues.  You should be looking for the following issues:
 Inefficient Algorithms
     Python: Using Bubble Sort (O(n^2)) instead of built-in sort() (O(n log n))
     C++: Same issue, using inefficient algorithms over more efficient ones.
@@ -155,12 +140,12 @@ You can safely ignore anything related to the following:
 - Maintainability: Monolithic, hard-to-modify functions.
 - Reliability: Absence of error handling for critical operations.
 
-{final_code_review_instructions}
+{final_code_refactor_instructions}
 """
 
-MEMORY_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+MEMORY_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
 
-You are conducting a code review specifically looking for memory management issues.  You should be looking for the following issues:
+You are conducting a code refactor specifically related to memory management issues.  You should be looking for the following issues:
 Memory Leaks
     Python: Creating circular references can cause memory leaks. For example:
     ``` python
@@ -254,12 +239,12 @@ You can safely ignore anything related to the following:
 - Maintainability: Monolithic, hard-to-modify functions.
 - Reliability: Absence of error handling for critical operations.
 
-{final_code_review_instructions}
+{final_code_refactor_instructions}
 """
 
-CORRECTNESS_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+CORRECTNESS_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
 
-You are conducting a code review specifically looking for code correctness issues.  You should be looking for the following issues:
+You are conducting a code refactor specifically related to code correctness issues.  You should be looking for the following issues:
 Off-By-One Errors
     Python/C++: Looping from 1 to len(array) or array.size() instead of len(array) - 1 or array.size() - 1.
 
@@ -320,12 +305,12 @@ You can safely ignore anything related to the following:
 - Maintainability: Monolithic, hard-to-modify functions.
 - Reliability: Absence of error handling for critical operations.
 
-{final_code_review_instructions}
+{final_code_refactor_instructions}
 """
 
-MAINTAINABILITY_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+MAINTAINABILITY_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
 
-You are conducting a code review specifically looking for maintainability issues.  You should be looking for the following issues:
+You are conducting a code refactor specifically related to maintainability issues.  You should be looking for the following issues:
 Inadequate Documentation
     Python/C++: A function with complex logic but no comments explaining what it does.
 
@@ -378,12 +363,12 @@ You can safely ignore anything related to the following:
 - Code Correctness: Incorrect conditional statement.
 - Reliability: Absence of error handling for critical operations.
 
-{final_code_review_instructions}
+{final_code_refactor_instructions}
 """
 
-RELIABILITY_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+RELIABILITY_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
 
-You are conducting a code review specifically looking for reliability issues.  You should be looking for the following issues:
+You are conducting a code refactor specifically related to reliability issues.  You should be looking for the following issues:
 Error Handling
     Python: Not catching exceptions from a function that can raise them.
     C++: Not catching exceptions from a function that can throw them.
@@ -414,45 +399,24 @@ You can safely ignore anything related to the following:
 - Code Correctness: Incorrect conditional statement.
 - Maintainability: Monolithic, hard-to-modify functions.
 
-{final_code_review_instructions}
+{final_code_refactor_instructions}
 """
 
-FINAL_CODE_REVIEW_INSTRUCTIONS = """
+FINAL_CODE_REFACTOR_INSTRUCTIONS = """
 ----- CODE METADATA -----
 {code_metadata}
 ----- CODE METADATA -----
 {code_summary}
 {code_dependencies}
------ CODE TO REVIEW -----
+----- CODE TO REFACTOR -----
 {code}
------ CODE TO REVIEW -----
+----- CODE TO REFACTOR -----
 {additional_instructions}
 Take a deep breath, and think this through step-by-step.
 
-Review the code I've given you very carefully, and be diligent in your analysis.  
+Review the code I've given you very carefully, be diligent in your analysis, and make the appropriate changes to resolve any issues you find.  Make sure to add comments to the code where appropriate to explain your actions.
 
-AI: Sure, here is your code review in JSON format inside of a ```json code``` block (I'm leaving out the items with needs_change=false):
+Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be complete, and still produce the same output as the original code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
+
+AI: Sure, I'm happy to help!  I've read your instructions very carefully. Here is the JSON blob containing my thoughts, and the refactored code:
 """
-
-
-
-# The following is an example of a code review using the desired JSON format:
-# --- EXAMPLE CODE REVIEW OUTPUT --- 
-# {{
-#     "language": "cpp",
-#     "metadata": {{
-#       'project_id': 12959,
-#       'url': https://gitlab.com/code-repository/-/blob/main/samples/sample.cpp,
-#       'ref': main,
-#       'file_path': samples/sample.cpp,
-#     }},
-#     "comments": [
-#         {{"start": 10, "end": 15, "comment": "Avoid using unsanitized inputs directly in SQL queries to prevent SQL injection vulnerabilities. Use parameterized queries instead.", "needs_change": true, "original_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id=' + user_input)", "suggested_code_snippet": "cursor.execute('SELECT * FROM table_name WHERE id = ?', (user_input,))"}},
-#         {{"start": 35, "end": 40, "comment": "Consider using a more efficient data structure (e.g., a set) to improve the lookup time in this loop.", "needs_change": true, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
-#         {{"start": 57, "end": 59, "comment": "The code defines a macro 'C_ASSERT' for compile-time checking of array sizes. This macro is used to prevent negative subscripts in array declarations.", "needs_change": false, "original_code_snippet": "...", "suggested_code_snippet": "..."}},
-#         {{"comment": "Overall, the code appears to be trying to take in user input, format it, and then call the underlying send function. However, it seems that the blocking send call will prevent any more user input from being received. A review of the threading model for this code should be considered.", "needs_change": true, "original_code_snippet": "...", "suggested_code_snippet": "..."}}
-#     ]
-# }}
-# --- EXAMPLE CODE REVIEW OUTPUT ---
-
-# Take note of how the example includes line numbers, and specific code snippets.  This is the level of detail that is expected in your code review.
