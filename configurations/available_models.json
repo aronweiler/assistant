@@ -46,7 +46,14 @@
     "model_configuration": {
       "llm_type": "llama2",
       "model": "H:\\LLM\\wizardcoder-python-34b-v1.0.Q4_K_M.gguf",
-      "max_model_supported_tokens": 32768
+      "max_model_supported_tokens": 16384
+    }
+  },
+  "WizardCoder-Python 13B (Q5)": {
+    "model_configuration": {
+      "llm_type": "llama2",
+      "model": "H:\\LLM\\wizardcoder-python-13b-v1.0.Q5_K_M.gguf",
+      "max_model_supported_tokens": 16384
     }
   }
 }
