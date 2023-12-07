@@ -41,5 +41,12 @@
       "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
       "max_model_supported_tokens": 4096
     }
-  }    
+  },
+  "WizardCoder-Python 34B (Q4)": {
+    "model_configuration": {
+      "llm_type": "llama2",
+      "model": "H:\\LLM\\wizardcoder-python-34b-v1.0.Q4_K_M.gguf",
+      "max_model_supported_tokens": 32768
+    }
+  }
 }
