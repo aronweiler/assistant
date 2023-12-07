@@ -387,13 +387,13 @@ class ToolManager:
                 description="Performs a code refactor of a specified code file.",
                 function=code_refactor_tool.conduct_code_refactor_from_url,
                 additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
-                return_direct=False,
+                return_direct=True,
             ),
             GenericTool(
                 description="Performs a code refactor of a specified code file.",
                 function=code_refactor_tool.conduct_code_refactor_from_file_id,
                 additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
-                return_direct=False,
+                return_direct=True,
             ),
             GenericTool(
                 description="Creates a CVSS evaluation from user provided data.",

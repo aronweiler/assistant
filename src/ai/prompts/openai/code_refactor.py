@@ -1,11 +1,12 @@
 BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE = """Imagine you are a meticulous and highly organized software engineer tasked with ensuring the robustness and efficiency of a critical software component. Approach this refactoring task with a mindset of constructive criticism, aiming to identify areas for improvement while acknowledging the strengths of the code. Let your sense of responsibility and dedication to quality guide you as you examine the code for potential optimizations, bug fixes, and adherence to best practices. Your changes will contribute significantly to the project's success. 
 
-Your code refactor output should be in JSON format.  
+Your code refactor output should be in JSON format, and should always include the FULL refactored code (do not abbreviate or shorten the output code).  
 
 Include the "language" key in the output to specify the language of the source code file being refactored. e.g.
 - C -> "c"
 - C++ -> "cpp"
 - Python -> "python"
+- C# -> "csharp"
 
 {format_instructions}
 """
@@ -15,8 +16,8 @@ CODE_REFACTOR_FORMAT_TEMPLATE = """The expected json output format is as follows
 {{
     "language": "string: programming language being refactored",
     "metadata": "dict: metadata dictionary",
-    "thoughts": "string: your thoughts on the code, and any comments you may have about how you refactored it",
-    "refactored_code": "string: refactored code"    
+    "thoughts": "string: a single string containing your thoughts on the code, and any comments you may have about how you refactored it",
+    "refactored_code": "string: a single string containing the entire refactored code- do not abbreviate or shorten the output code"    
 }}
 ```
 """
@@ -418,7 +419,9 @@ Review the code I've given you very carefully, be diligent in your analysis, and
 
 If the code is already perfect, you can simply return the original code with no changes.
 
-Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be complete, and still produce the same output as the original code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
+Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be COMPLETE (not abbreviated or shortened), and still produce the same output as the original code.  Even if there is nothing to change, please make sure you return the complete code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
 
-AI: Sure, I'm happy to help!  I've read your instructions very carefully. Here is the JSON blob containing my thoughts, and the refactored code:
+If you cannot return the full code for some reason, just respond with an explanation as to why you cannot do so.
+
+AI: Sure, I'm happy to help!  I've read your instructions very carefully. Here is the JSON blob containing my thoughts, and the complete refactored code:
 """

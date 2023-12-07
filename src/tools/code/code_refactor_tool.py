@@ -234,6 +234,10 @@ class CodeRefactorTool:
 
             # Parse JSON data returned by language model prediction into structured data.
             data = parse_json(json_data, llm)
+            
+            if "final_answer" in data:
+                # The AI fucked up, and can't actually do its job... surprise surprise
+                return data['final_answer']
 
             # Feed the results of the refactor into the next refactor.
             code = data["refactored_code"]
@@ -261,8 +265,12 @@ class CodeRefactorTool:
             ],
             "refactored_code": code,
         }
-
-        return results
+        
+        if self.is_output_json(tool_name):            
+            # Return formatted refactor results as a JSON string enclosed in triple backticks for markdown formatting.
+            return f"```json\n{results}\n```"
+        else:
+            return self.format_refactor_results(results)
 
     def conduct_code_refactor_from_url(
         self, target_url: str, additional_instructions: str = None
@@ -282,16 +290,10 @@ class CodeRefactorTool:
         # Retrieve file information from the URL.
         file_info = self.retrieve_source_code_from_url(url=target_url)
 
-        # Initialize an empty string to hold the refactor results.
-        refactor = ""
-
         # Determine the type of file and conduct appropriate type of refactor.
-        refactor = self._refactor_file_from_url(
+        return self._refactor_file_from_url(
             file_info, target_url, additional_instructions
         )
-
-        # Return formatted refactor results as a JSON string enclosed in triple backticks for markdown formatting.
-        return f"```json\n{refactor}\n```"
 
     def _refactor_file_from_url(
         self, file_info: dict, target_url: str, additional_instructions: str
@@ -348,6 +350,19 @@ class CodeRefactorTool:
         return self.configuration["tool_configurations"][tool_name][
             "additional_settings"
         ]["max_code_size_tokens"]["value"]
+        
+    def is_output_json(self, tool_name: str) -> int:
+        """
+        Retrieves the maximum token count allowed for a code refactor based on tool configuration.
+
+        :param tool_name: Name of the tool for which to retrieve the maximum token count.
+        :return: The maximum number of tokens allowed in a code refactor.
+        """
+
+        # Access the max_code_size_tokens setting from the tool configuration and return its value.
+        return self.configuration["tool_configurations"][tool_name][
+            "additional_settings"
+        ]["json_output"]["value"]
 
     def conduct_code_refactor_from_file_id(
         self, target_file_id: int, additional_instructions: str = None
@@ -390,3 +405,34 @@ class CodeRefactorTool:
             llm=llm,
             tool_name=self.conduct_code_refactor_from_file_id.__name__,
         )
+
+    def format_refactor_results(self, refactor_results: dict) -> str:
+        """
+        Formats the results of a code refactor into a string.
+        
+        :param refactor_results: The results of a code refactor.
+        :return: A string containing the formatted results of the code refactor.
+        """
+        formatted_results = """## Code Refactor
+- Language: **{language}**
+- File: **{filename_or_url}**
+
+{thoughts}
+
+### Refactored Code
+```{language}
+{code}
+```
+"""
+            
+        thoughts = "\n\n".join([f"#### **{thought['refactor_type']}**\n- {thought['thoughts']}" for thought in refactor_results["refactor_thoughts"]])
+            
+        formatted_results = formatted_results.format(
+            language=refactor_results["language"],
+            filename_or_url=refactor_results["metadata"]["url"] if "url" in refactor_results["metadata"] else refactor_results["metadata"]["filename"],
+            thoughts=thoughts,
+            code=refactor_results["refactored_code"]
+        )
+        
+        # Return the formatted results.
+        return formatted_results
