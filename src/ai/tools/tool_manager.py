@@ -13,6 +13,7 @@ from src.tools.documents.document_tool import DocumentTool
 from src.tools.documents.spreadsheet_tool import SpreadsheetsTool
 from src.tools.code.code_tool import CodeTool
 from src.tools.code.code_review_tool import CodeReviewTool
+from src.tools.code.code_refactor_tool import CodeRefactorTool
 from src.tools.email.gmail_tool import GmailTool
 from src.tools.llm.llm_tool import LLMTool
 from src.tools.restaurants.yelp_tool import YelpTool
@@ -96,13 +97,13 @@ class ToolManager:
             "requires_documents": True,
         },
         "conduct_code_review_from_file_id": {
-            "display_name": "Perform Code Review on Loaded Code File",
+            "display_name": "Perform a Code Review on Loaded Code File",
             "help_text": "Performs a code review of a specified code file.",
             "enabled_by_default": True,
             "requires_documents": True,
         },
         "conduct_code_review_from_url": {
-            "display_name": "Perform Code Review on URL file",
+            "display_name": "Perform a Code Review on URL file",
             "help_text": "Performs a code review of a specified code file.",
             "enabled_by_default": True,
             "requires_documents": False,
@@ -110,6 +111,18 @@ class ToolManager:
         "create_code_review_issue": {
             "display_name": "Create Issue from Code Review",
             "help_text": "Creates an issue on your selected provider from a Code Review",
+            "enabled_by_default": True,
+            "requires_documents": False,
+        },
+        "conduct_code_refactor_from_file_id": {
+            "display_name": "Perform a Code Refactor on Loaded Code File",
+            "help_text": "Performs a code refactor of a specified code file.",
+            "enabled_by_default": True,
+            "requires_documents": True,
+        },
+        "conduct_code_refactor_from_url": {
+            "display_name": "Perform a Code Refactor via URL",
+            "help_text": "Performs a refactor of a specified code file.",
             "enabled_by_default": True,
             "requires_documents": False,
         },
@@ -247,7 +260,9 @@ class ToolManager:
             configuration=configuration,
             interaction_manager=interaction_manager,
         )
-        cvss_tool = CvssTool(configuration=configuration, interaction_manager=interaction_manager)
+        cvss_tool = CvssTool(
+            configuration=configuration, interaction_manager=interaction_manager
+        )
         stubber_tool = Stubber(
             code_tool=code_tool,
             document_tool=document_tool,
@@ -255,6 +270,10 @@ class ToolManager:
             interaction_manager=self.interaction_manager,
         )
         code_review_tool = CodeReviewTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager,
+        )
+        code_refactor_tool = CodeRefactorTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
         )
@@ -362,6 +381,18 @@ class ToolManager:
                 description="Creates an issue from a Code Review.",
                 function=issue_tool.create_code_review_issue,
                 additional_instructions="Call this tool when the user requests an issue be created from a code review.",
+                return_direct=False,
+            ),
+            GenericTool(
+                description="Performs a code refactor of a specified code file.",
+                function=code_refactor_tool.conduct_code_refactor_from_url,
+                additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
+                return_direct=False,
+            ),
+            GenericTool(
+                description="Performs a code refactor of a specified code file.",
+                function=code_refactor_tool.conduct_code_refactor_from_file_id,
+                additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
                 return_direct=False,
             ),
             GenericTool(
