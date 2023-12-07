@@ -10,8 +10,12 @@ logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 def parse_json(text: str, llm: BaseLanguageModel) -> dict:
+    
     # So....
     text = text.strip()
+    
+    # Hey look, another random thing to handle
+    text = text.replace("``` json", "```json")
 
     # Handle JSON code blocks (whole response)
     if text.startswith("```json") and text.endswith("```"):
