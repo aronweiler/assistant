@@ -416,6 +416,8 @@ Take a deep breath, and think this through step-by-step.
 
 Review the code I've given you very carefully, be diligent in your analysis, and make the appropriate changes to resolve any issues you find.  Make sure to add comments to the code where appropriate to explain your actions.
 
+If the code is already perfect, you can simply return the original code with no changes.
+
 Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be complete, and still produce the same output as the original code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
 
 AI: Sure, I'm happy to help!  I've read your instructions very carefully. Here is the JSON blob containing my thoughts, and the refactored code:
