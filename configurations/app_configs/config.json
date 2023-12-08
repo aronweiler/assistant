@@ -70,7 +70,7 @@
             }
         },
         "search_loaded_documents": {
-            "enabled": true,
+            "enabled": false,
             "additional_settings": {
                 "split_prompt": {
                     "label": "Split Prompt",
@@ -271,13 +271,19 @@
             "enabled": false
         },
         "conduct_code_refactor_from_file_id": {
-            "enabled": false,
+            "enabled": true,
             "additional_settings": {
+                "json_output": {
+                    "label": "Output the refactored code as JSON",
+                    "description": "This is useful for integrating with other tools.",
+                    "type": "bool",
+                    "value": false
+                },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being refactored.",
                     "type": "int",
-                    "value": 8000,
+                    "value": 3000,
                     "min": 1,
                     "max": 8000,
                     "step": 25
@@ -286,19 +292,19 @@
                     "label": "Perform a security code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_performance_code_refactor": {
                     "label": "Perform a performance code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_memory_code_refactor": {
                     "label": "Perform a memory code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_correctness_code_refactor": {
                     "label": "Perform a correctness code refactor",
@@ -316,28 +322,34 @@
                     "label": "Perform a reliability code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 }
             },
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-4-1106-preview",
+                "model": "gpt-3.5-turbo-16k",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 128000,
+                "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096
             }
         },
         "conduct_code_refactor_from_url": {
-            "enabled": false,
+            "enabled": true,
             "additional_settings": {
+                "json_output": {
+                    "label": "Output the refactored code as JSON",
+                    "description": "This is useful for integrating with other tools.",
+                    "type": "bool",
+                    "value": false
+                },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being refactored.",
                     "type": "int",
-                    "value": 8000,
+                    "value": 3000,
                     "min": 1,
                     "max": 8000,
                     "step": 25
@@ -346,19 +358,19 @@
                     "label": "Perform a security code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_performance_code_refactor": {
                     "label": "Perform a performance code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_memory_code_refactor": {
                     "label": "Perform a memory code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_correctness_code_refactor": {
                     "label": "Perform a correctness code refactor",
@@ -376,7 +388,7 @@
                     "label": "Perform a reliability code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 }
             },
             "model_configuration": {
