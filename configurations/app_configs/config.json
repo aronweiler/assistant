@@ -58,6 +58,7 @@
         },
         "analyze_with_llm": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "llama2",
                 "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
@@ -71,6 +72,7 @@
         },
         "search_loaded_documents": {
             "enabled": false,
+            "return_direct": false,
             "additional_settings": {
                 "split_prompt": {
                     "label": "Split Prompt",
@@ -95,6 +97,7 @@
         },
         "search_entire_document": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -108,6 +111,7 @@
         },
         "summarize_entire_document": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -120,19 +124,24 @@
             }
         },
         "list_documents": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_code_details": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_code_structure": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_pretty_dependency_graph": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "create_stubs": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -145,10 +154,12 @@
             }
         },
         "get_all_code_in_file": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "conduct_code_review_from_file_id": {
             "enabled": false,
+            "return_direct": false,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
@@ -208,7 +219,8 @@
             }
         },
         "conduct_code_review_from_url": {
-            "enabled": false,
+            "enabled": true,
+            "return_direct": false,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
@@ -268,10 +280,12 @@
             }
         },
         "create_code_review_issue": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "conduct_code_refactor_from_file_id": {
-            "enabled": true,
+            "enabled": false,
+            "return_direct": false,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
@@ -338,6 +352,7 @@
         },
         "conduct_code_refactor_from_url": {
             "enabled": true,
+            "return_direct": true,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
@@ -404,6 +419,7 @@
         },
         "create_cvss_evaluation": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -417,6 +433,7 @@
         },
         "query_spreadsheet": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -429,31 +446,40 @@
             }
         },
         "get_weather": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_time": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_news_for_topic": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_top_news_headlines": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "query_image": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "search_for_emails": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_email_by_ids": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "search_businesses": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_all_business_details": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         }
     }
 }
