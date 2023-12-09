@@ -66,6 +66,16 @@ When you delete the DB docker container, **ALL OF YOUR DATA WILL BE ERASED**.
 
 Feel free to alter this behavior on your instance, if you like.
 
+## FireFox Browser UI Compatibility
+In FireFox, the `:has()` CSS feature is turned off, which can cause weird display issues.  To enable it, follow these steps:
+
+1. Open Firefox.
+2. Type about:config in the address bar and press Enter.
+3. Click "Accept the Risk and Continue" to access the advanced settings.
+4. Use the search bar at the top to find the setting for enabling experimental features. This might be something like layout.css.has-selector.enabled.
+5. If you find the relevant setting for :has(), click on the toggle button to set its value to true.
+
+
 ---
 Here's a lot of info on running this in Python!
 
