@@ -243,6 +243,15 @@ class ToolManager:
                     os.environ[tool_name] = "True"
                 break
 
+    def should_return_direct(self, tool_name):            
+        
+        if tool_name in self.configuration["tool_configurations"]:
+            return self.configuration["tool_configurations"][tool_name].get(
+                "return_direct", False
+            )
+        else:
+            return False
+
     def initialize_tools(
         self, configuration, interaction_manager: InteractionManager
     ) -> None:
@@ -302,18 +311,21 @@ class ToolManager:
                 description="Analyze results of another query or queries.",
                 additional_instructions="This tool is useful for when you want to combine data you have gathered, or just take a moment to think about things.  IMPORTANT: This tool does not have access to documents, or any data outside of what you pass in the 'data_to_analyze' argument.",
                 function=llm_tool.analyze_with_llm,
+                return_direct=self.should_return_direct(llm_tool.analyze_with_llm.__name__),
             ),
             GenericTool(
                 description="Searches the loaded documents for a query.",
                 additional_instructions="Searches the loaded files (or the specified file when target_file_id is set).  The user's input should be reworded to be both a keyword search (keywords_list: list of important keywords) and a semantic similarity search query (semantic_similarity_query: a meaningful phrase).  user_query should be a succinctly phrased version of the original user input (phrased as the ultimate question to answer). The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.  Note: This tool only looks at a small subset of the document content in its search, it is not good for getting large chunks of content.",
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_loaded_documents,
+                return_direct=self.should_return_direct(document_tool.search_loaded_documents.__name__),
             ),
             GenericTool(
                 description="Exhaustively searches a single document for one or more queries.",
                 additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.search_entire_document,
+                return_direct=self.should_return_direct(document_tool.search_entire_document.__name__),
             ),
             # GenericTool(
             #     description="Searches through all documents for the specified topic, and summarizes the results.",
@@ -327,120 +339,132 @@ class ToolManager:
                 additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
                 document_class="Code', 'Spreadsheet', or 'Document",  # lame formatting
                 function=document_tool.summarize_entire_document,
+                return_direct=self.should_return_direct(document_tool.summarize_entire_document.__name__),
             ),
             GenericTool(
                 description="Lists all loaded documents.",
                 function=document_tool.list_documents,
+                return_direct=self.should_return_direct(document_tool.list_documents.__name__),
             ),
             GenericTool(
                 description="Gets details about a specific part of a code file.",
                 additional_instructions="Useful for getting the details of a specific signature (signature cannot be blank) in a specific loaded 'Code' file (required: target_file_id).",
                 document_class="Code",
                 function=code_tool.get_code_details,
+                return_direct=self.should_return_direct(code_tool.get_code_details.__name__),
             ),
             GenericTool(
                 description="Gets the high-level structure of a code file.",
                 additional_instructions="Useful for looking at the code structure of a single file. This tool only works when you specify a file. It will give you a list of module names, function signatures, and class method signatures in the specified file (represented by the 'target_file_id').",
                 document_class="Code",
                 function=code_tool.get_code_structure,
+                return_direct=self.should_return_direct(code_tool.get_code_structure.__name__),
             ),
             GenericTool(
                 description="Gets the dependency graph of a code file.",
                 additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
                 document_class="Code",
                 function=code_tool.get_pretty_dependency_graph,
-                return_direct=False,
+                return_direct=self.should_return_direct(code_tool.get_pretty_dependency_graph.__name__),
             ),
             GenericTool(
                 description="Creates stubs for a specified code file.",
                 additional_instructions="Create mocks / stubs for the dependencies of a given code file. Use this when the user asks you to mock or stub out the dependencies for a given file.",
                 document_class="Code",
                 function=stubber_tool.create_stubs,
-                return_direct=False,
+                return_direct=self.should_return_direct(stubber_tool.create_stubs.__name__),
             ),
             GenericTool(
                 description="Gets all of the code in the target file.",
                 additional_instructions="Useful for getting all of the code in a specific 'Code' file when the user asks you to show them code from a particular file.",
                 document_class="Code",
                 function=code_tool.get_all_code_in_file,
-                return_direct=False,
+                return_direct=self.should_return_direct(code_tool.get_all_code_in_file.__name__),
             ),
             GenericTool(
                 description="Performs a code review of a specified code file.",
                 function=code_review_tool.conduct_code_review_from_file_id,
                 additional_instructions="Use this tool for conducting a code review on a loaded code file.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
-                return_direct=False,
+                return_direct=self.should_return_direct(code_review_tool.conduct_code_review_from_file_id.__name__),
             ),
             GenericTool(
                 description="Performs a code review of a specified code file.",
                 function=code_review_tool.conduct_code_review_from_url,
                 additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
-                return_direct=False,
+                return_direct=self.should_return_direct(code_review_tool.conduct_code_review_from_url.__name__),
             ),
             GenericTool(
                 description="Creates an issue from a Code Review.",
                 function=issue_tool.create_code_review_issue,
                 additional_instructions="Call this tool when the user requests an issue be created from a code review.",
-                return_direct=False,
+                return_direct=self.should_return_direct(issue_tool.create_code_review_issue.__name__),
             ),
             GenericTool(
                 description="Performs a code refactor of a specified code file.",
                 function=code_refactor_tool.conduct_code_refactor_from_url,
                 additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
-                return_direct=True,
+                return_direct=self.should_return_direct(code_refactor_tool.conduct_code_refactor_from_url.__name__),
             ),
             GenericTool(
                 description="Performs a code refactor of a specified code file.",
                 function=code_refactor_tool.conduct_code_refactor_from_file_id,
                 additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
-                return_direct=True,
+                return_direct=self.should_return_direct(code_refactor_tool.conduct_code_refactor_from_file_id.__name__),
             ),
             GenericTool(
                 description="Creates a CVSS evaluation from user provided data.",
                 function=cvss_tool.create_cvss_evaluation,
                 additional_instructions="Use this tool to create a CVSS evaluation (and score) from data provided by the user.  The vulnerability_data argument should be a string containing the data to evaluate- this data should be whatever the user has given you to evaluate.",
-                return_direct=True,
+                return_direct=self.should_return_direct(cvss_tool.create_cvss_evaluation.__name__),
             ),
             GenericTool(
                 description="Queries a specific spreadsheet.",
                 document_class="Spreadsheet",
                 additional_instructions="Useful for querying a specific spreadsheet.  If the target document is a 'Spreadsheet', always use this tool. Never use this tool on documents that are not classified as 'Spreadsheet'.",
                 function=spreadsheet_tool.query_spreadsheet,
+                return_direct=self.should_return_direct(spreadsheet_tool.query_spreadsheet.__name__),
             ),
             GenericTool(
                 description="Queries the weather at a given location.",
                 additional_instructions="Location is a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. 'Phoenix, AZ'. Date is optional, and should be a string ('%Y-%m-%d') representing the date to get the weather for, e.g. '2023-4-15'.  If no date is provided, the weather for the current date will be returned.",
                 function=weather_tool.get_weather,
+                return_direct=self.should_return_direct(weather_tool.get_weather.__name__),
             ),
             GenericTool(
                 description="Get the current time in the specified IANA time zone.",
                 additional_instructions="current_time_zone (str): The IANA time zone to get the current time in, for example: 'America/New_York'.",
                 function=TimeTool().get_time,
+                return_direct=self.should_return_direct(TimeTool().get_time.__name__),
             ),
             GenericTool(
                 description="Get a list of news headlines and article URLs for a specified term.",
                 additional_instructions="When using this tool, always return the Headline, whatever summary there is, the source, and the URL.",
                 function=GNewsTool().get_news_for_topic,
+                return_direct=self.should_return_direct(GNewsTool().get_news_for_topic.__name__),
             ),
             GenericTool(
                 description="Get a list of headlines and article URLs for the top news headlines.",
                 additional_instructions="When using this tool, always return the Headline, whatever summary there is, the source, and the URL.",
                 function=GNewsTool().get_top_news_headlines,
+                return_direct=self.should_return_direct(GNewsTool().get_top_news_headlines.__name__),
             ),
             GenericTool(
                 description="Queries a loaded Image file.  This only works on Image classified files.",
                 additional_instructions="Never use this tool on documents that are not classified as 'Image'.  The 'query' argument should always be a stand-alone FULLY-FORMED query, no co-references, no keywords, etc., (e.g. 'What is going on in this image?', or 'Where is object X located in relation to object Y?').",
                 function=llava_tool.query_image,
+                return_direct=self.should_return_direct(llava_tool.query_image.__name__),
             ),
             GenericTool(
                 description="Searches for businesses matching the criteria and returns a list of businesses.",
                 additional_instructions="Allows specifying the location, search term, categories, whether to only return open businesses, price range (1=low-price, 2=med-price, 3=high=price- can be combined), minimum rating, and maximum number of businesses to return.",
                 function=yelp_tool.search_businesses,
+                return_direct=self.should_return_direct(yelp_tool.search_businesses.__name__),
             ),
             GenericTool(
                 description="Retrieves details of a specific business, matching the business_id.",
                 additional_instructions="business_id is the id of the business, discovered by using the search_businesses tool.",
                 function=yelp_tool.get_all_business_details,
+                return_direct=self.should_return_direct(yelp_tool.get_all_business_details.__name__),
             ),
         ]
 
@@ -467,6 +491,7 @@ class ToolManager:
                     additional_instructions="Always use this tool when the user asks to search for an email message or messages. The input must be a valid Gmail query.",
                     function=gmail_tool.search_for_emails,
                     name="search_for_emails",
+                    return_direct=self.should_return_direct(gmail_tool.search_for_emails.__name__),
                 )
             )
 
@@ -476,5 +501,6 @@ class ToolManager:
                     additional_instructions="Use this tool to fetch one or more emails by message ID. Returns the thread ID, snippet, body, subject, and sender.  The message_ids field is required.  You should not use this tool if you dont have one or more valid message ID (from search_for_emails) to pass in.",
                     function=gmail_tool.get_email_by_ids,
                     name="get_email_by_ids",
+                    return_direct=self.should_return_direct(gmail_tool.get_email_by_ids.__name__),
                 )
             )

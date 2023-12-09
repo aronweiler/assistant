@@ -398,6 +398,14 @@ def tools_settings():
             kwargs={"tool_name": tool_name},
         )
         col2.markdown(tool_details["help_text"])
+        col1.toggle(
+            "Return results directly to UI",
+            value=tool_manager.should_return_direct(tool_name),
+            key=f"{tool_name}-return-direct",
+            on_change=tool_manager.toggle_tool,
+            kwargs={"tool_name": tool_name},
+        )
+        col2.markdown("Return the results directly to the UI instead of having the AI re-interpret them.\n\n*Note: If this is enabled, the AI will not perform any tasks after this one returns.*")
 
         show_model_settings(configuration, tool_name, tool_details)
         show_additional_settings(configuration, tool_name, tool_details)
@@ -418,6 +426,10 @@ def save_tool_settings(tools, configuration):
         enabled = st.session_state[tool_name]
         if enabled != existing_tool_configuration["enabled"]:
             needs_saving = True
+            
+        return_direct = st.session_state[f"{tool_name}-return-direct"]
+        if return_direct != existing_tool_configuration["return_direct"]:
+            needs_saving = True
 
         model_configuration, needs_saving = model_needs_saving(
             tool_name, existing_tool_configuration, needs_saving
@@ -426,8 +438,9 @@ def save_tool_settings(tools, configuration):
         if needs_saving:
             st.toast(f"Saving {tool_name} settings...")
             save_tool_settings_to_file(
-                tool_name=tool_name,
+                tool_name=tool_name,                
                 enabled=enabled,
+                return_direct=return_direct,
                 model_configuration=model_configuration,
             )
 
@@ -535,9 +548,10 @@ def save_jarvis_settings_to_file(
     st.session_state["app_config"] = configuration
 
 
-def save_tool_settings_to_file(tool_name, enabled, model_configuration):
+def save_tool_settings_to_file(tool_name, enabled, return_direct, model_configuration):
     configuration = ui_shared.get_app_configuration()
     configuration["tool_configurations"][tool_name]["enabled"] = enabled
+    configuration["tool_configurations"][tool_name]["return_direct"] = return_direct
     if model_configuration:
         configuration["tool_configurations"][tool_name][
             "model_configuration"
