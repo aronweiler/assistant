@@ -17,9 +17,20 @@ CODE_REFACTOR_FORMAT_TEMPLATE = """The expected json output format is as follows
     "language": "string: programming language being refactored",
     "metadata": "dict: metadata dictionary",
     "thoughts": "string: a single string containing your thoughts on the code, and any comments you may have about how you refactored it",
-    "refactored_code": "string: a single string containing the entire refactored code- do not abbreviate or shorten the output code"    
+    "refactored_code": "string: a single string containing the entire refactored code- do not abbreviate or shorten the output code.  This should always be a single string, not a list, with no line-number annotations or other extraneous information.  The code should be formatted exactly as it would be if you were to copy and paste it into a code editor."
 }}
 ```
+"""
+
+CUSTOM_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
+
+You are conducting a code refactor specifically related to the following instructions.  Don't perform any actions except for those related to this set of instructions:
+
+----- CODE REFACTOR INSTRUCTIONS -----
+{code_refactor_instructions}
+----- CODE REFACTOR INSTRUCTIONS -----
+
+{final_code_refactor_instructions}
 """
 
 SECURITY_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
@@ -417,7 +428,7 @@ Take a deep breath, and think this through step-by-step.
 
 Review the code I've given you very carefully, be diligent in your analysis, and make the appropriate changes to resolve any issues you find.  Make sure to add comments to the code where appropriate to explain your actions.
 
-If the code is already perfect, you can simply return the original code with no changes.
+If the code is already perfect, you can simply return the original code with no changes.  
 
 Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be COMPLETE (not abbreviated or shortened), and still produce the same output as the original code.  Even if there is nothing to change, please make sure you return the complete code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
 
