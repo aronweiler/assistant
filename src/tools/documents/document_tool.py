@@ -137,7 +137,7 @@ class DocumentTool:
         search_type = self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
 
         keyword_documents = []
-        if search_type == "Hybrid" or search_type == "Keyword":
+        if (search_type == "Hybrid" or search_type == "Keyword") and len(keywords_list) > 0:
             keyword_documents = (
                 self.interaction_manager.documents_helper.search_document_embeddings(
                     search_query=keywords_list,
