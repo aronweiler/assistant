@@ -1,4 +1,4 @@
-PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """<s>[INST] <<SYS>>{system_prompt}
+PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """[INST] <<SYS>>{system_prompt}
 
 The loaded documents that you have access to are below.  Pay close attention to the Class of document it is.  Some tools can only be used with certain classes of documents.
 --- LOADED DOCUMENTS ---
@@ -52,7 +52,6 @@ Now read the user's query very carefully, take a deep breath and think this thro
 
 <</SYS>>
 {user_query}
-<<SYS>>
 
 Double check the CHAT HISTORY and make sure to resolve any co-references in the steps, so that each step can be interpreted on its own (e.g. resolving concepts, names, urls, or other data represented by words like "that", "this", "here", "there", "he", "she", etc. from the chat history).
 
@@ -60,7 +59,8 @@ Double check the CHAT HISTORY and make sure to resolve any co-references in the 
 1. Any steps you create should ONLY contain tools that are listed here in this prompt. Do not make up tools.
 2. Review the chat history carefully, and make sure to resolve any co-references in the steps you output.
 3. Make sure each step can be acted upon on its own.
-4. Return ONLY JSON, nothing else.<</SYS>>[/INST]
+4. Return ONLY JSON, nothing else.[/INST]
+
 Sure, I have decided whether to answer the user directly, or whether to provide a list of steps. 
 
 I will respond only in JSON format with no non-JSON content, and I will make sure to escape any quotes in the values of the JSON blob.
