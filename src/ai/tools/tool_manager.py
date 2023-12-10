@@ -413,7 +413,7 @@ class ToolManager:
             GenericTool(
                 description="Commits a single code file to source control.",
                 function=commit_tool.commit_single_code_file,
-                additional_instructions="Call this tool when the user requests that you commit code to source control.",
+                additional_instructions="Call this tool when the user requests that you commit code to source control.  ",
                 return_direct=self.should_return_direct(commit_tool.commit_single_code_file.__name__),
             ),
             GenericTool(
