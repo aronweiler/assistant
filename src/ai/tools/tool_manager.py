@@ -7,6 +7,7 @@ from typing import List
 from langchain.base_language import BaseLanguageModel
 
 from src.ai.interactions.interaction_manager import InteractionManager
+from src.tools.code.code_commit_tool import CodeCommitTool
 from src.tools.code.issue_tool import IssueTool
 
 from src.tools.documents.document_tool import DocumentTool
@@ -111,6 +112,12 @@ class ToolManager:
         "create_code_review_issue": {
             "display_name": "Create Issue from Code Review",
             "help_text": "Creates an issue on your selected provider from a Code Review",
+            "enabled_by_default": True,
+            "requires_documents": False,
+        },
+        "commit_single_code_file": {
+            "display_name": "Commit Code File",
+            "help_text": "Commits a single code file to source control.",
             "enabled_by_default": True,
             "requires_documents": False,
         },
@@ -290,6 +297,10 @@ class ToolManager:
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
         )
+        commit_tool = CodeCommitTool(
+            configuration=self.configuration,
+            interaction_manager=self.interaction_manager,
+        )        
         llm_tool = LLMTool(
             configuration=self.configuration,
             interaction_manager=self.interaction_manager,
@@ -398,6 +409,12 @@ class ToolManager:
                 function=issue_tool.create_code_review_issue,
                 additional_instructions="Call this tool when the user requests an issue be created from a code review.",
                 return_direct=self.should_return_direct(issue_tool.create_code_review_issue.__name__),
+            ),
+            GenericTool(
+                description="Commits a single code file to source control.",
+                function=commit_tool.commit_single_code_file,
+                additional_instructions="Call this tool when the user requests that you commit code to source control.",
+                return_direct=self.should_return_direct(commit_tool.commit_single_code_file.__name__),
             ),
             GenericTool(
                 description="Performs a code refactor of a specified code file.",
