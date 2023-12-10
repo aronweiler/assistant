@@ -98,11 +98,10 @@ class CodeCommitTool:
             )
             
             return f"Successfully committed code.  Details: \n\n" \
-                   f"Source branch: {source_branch}\n" \
-                   f"Target branch: {target_branch}\n" \
-                   f"Repository: {repository}\n" \
-                   f"Commit message: {commit_message}\n" \
-                   f"Code: {code}\n" \
-                   f"File path: {file_path}\n"
+                   f"- Source branch: {source_branch}\n" \
+                   f"- Target branch: {target_branch}\n" \
+                   f"- Repository: {repository}\n" \
+                   f"- Commit message: {commit_message}\n" \
+                   f"- File path: {file_path}\n"
         except Exception as ex:
             return f"Failed to commit code: {ex}"
