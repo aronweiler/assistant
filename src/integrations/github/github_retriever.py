@@ -15,7 +15,7 @@ class GitHubRetriever:
         self._logger = logging.getLogger(__name__)
         self._source_control_url = source_control_url
         self._gh = github_shared.retrieve_github_client(
-            source_control_url=source_control_url, source_control_pat=source_control_pat
+            source_control_pat=source_control_pat
         )
 
     def retrieve_data(self, url):
