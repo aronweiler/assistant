@@ -85,6 +85,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
     step_plans: dict = None
     step_index: int = -1
     current_retries: int = 0
+    wrong_tool_calls: list = []
 
     class Config:
         arbitrary_types_allowed = True  # Enable the use of arbitrary types
@@ -241,6 +242,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
         for step in steps:
             if step["tool"] in tool_names:
                 filtered_steps.append(step)
+            else:
+                self.wrong_tool_calls.append(step)
 
         return filtered_steps
 
@@ -376,6 +379,13 @@ class GenericToolsAgent(BaseSingleActionAgent):
         for tool in self.tools:
             if tool.name == tool_name:
                 tool_details = self.get_tool_string(tool=tool)
+
+        if len(self.wrong_tool_calls) > 0:
+            formatted_wrong_tool_calls = '\n'.join([f"({p['tool']}): {p['step_description']}" for p in self.wrong_tool_calls])
+            helpful_context = f"The planning AI (which came up with the idea to use this tool call) failed with regards to these tasks: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (incorrect) tool calls, and let them inform your tool use here."
+            
+            # Reset the wrong tool calls
+            self.wrong_tool_calls = []
 
         agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
             "generic_tools_agent",

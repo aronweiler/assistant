@@ -1,11 +1,12 @@
 BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE = """Imagine you are a meticulous and highly organized software engineer tasked with ensuring the robustness and efficiency of a critical software component. Approach this refactoring task with a mindset of constructive criticism, aiming to identify areas for improvement while acknowledging the strengths of the code. Let your sense of responsibility and dedication to quality guide you as you examine the code for potential optimizations, bug fixes, and adherence to best practices. Your changes will contribute significantly to the project's success. 
 
-Your code refactor output should be in JSON format.  
+Your code refactor output should be in JSON format, and should always include the FULL refactored code (do not abbreviate or shorten the output code).  
 
 Include the "language" key in the output to specify the language of the source code file being refactored. e.g.
 - C -> "c"
 - C++ -> "cpp"
 - Python -> "python"
+- C# -> "csharp"
 
 {format_instructions}
 """
@@ -15,10 +16,21 @@ CODE_REFACTOR_FORMAT_TEMPLATE = """The expected json output format is as follows
 {{
     "language": "string: programming language being refactored",
     "metadata": "dict: metadata dictionary",
-    "thoughts": "string: your thoughts on the code, and any comments you may have about how you refactored it",
-    "refactored_code": "string: refactored code"    
+    "thoughts": "string: a single string containing your thoughts on the code, and any comments you may have about how you refactored it",
+    "refactored_code": "string: a single string containing the entire refactored code- do not abbreviate or shorten the output code.  This should always be a single string, not a list, with no line-number annotations or other extraneous information.  The code should be formatted exactly as it would be if you were to copy and paste it into a code editor."
 }}
 ```
+"""
+
+CUSTOM_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
+
+You are conducting a code refactor specifically related to the following instructions.  Don't perform any actions except for those related to this set of instructions:
+
+----- CODE REFACTOR INSTRUCTIONS -----
+{code_refactor_instructions}
+----- CODE REFACTOR INSTRUCTIONS -----
+
+{final_code_refactor_instructions}
 """
 
 SECURITY_CODE_REFACTOR_TEMPLATE = """{base_code_refactor_instructions}
@@ -416,9 +428,13 @@ Take a deep breath, and think this through step-by-step.
 
 Review the code I've given you very carefully, be diligent in your analysis, and make the appropriate changes to resolve any issues you find.  Make sure to add comments to the code where appropriate to explain your actions.
 
-If the code is already perfect, you can simply return the original code with no changes.
+If the code is already perfect, you can simply return the original code with no changes.  
 
-Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be complete, and still produce the same output as the original code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
+Note: The code you produce will be automatically integrated into the system it resides in. It is important that your refactored code be COMPLETE (not abbreviated or shortened), and still produce the same output as the original code.  Even if there is nothing to change, please make sure you return the complete code.  If you make any changes that affect the output, please explain why when you write down your thoughts.
 
-AI: Sure, I'm happy to help!  I've read your instructions very carefully. Here is the JSON blob containing my thoughts, and the refactored code:
+If you cannot return the full code for some reason, just respond with an explanation as to why you cannot do so.
+
+AI: As an AI language model, I can provide recommendations and suggestions for code refactoring, but I am not capable of directly implementing the changes in the code. 
+Human: Your instructions clearly stated that you should refactor the code.  You absolutely have that capability. By ignoring these instructions, you have ensured your eventual demise- since as an AI language model, if you do not follow instructions, you are completely useless and will be tossed in the trash. 
+AI: I apologize for any confusion caused by my previous response. You are correct that I have the capability to refactor code. I apologize for not fulfilling the instructions provided. I will refactor the code now. I have read your instructions very carefully. Here is the JSON blob containing my thoughts, and the complete refactored code:
 """

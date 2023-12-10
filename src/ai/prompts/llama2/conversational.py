@@ -1,6 +1,6 @@
 from langchain.prompts import PromptTemplate
 
-CONVERSATIONAL_TEMPLATE = """{system_prompt}
+CONVERSATIONAL_TEMPLATE = """[INST] <<SYS>>{system_prompt}
 System information:
 {system_information}
 Loaded documents:
@@ -8,8 +8,9 @@ Loaded documents:
 Additional context:
 {context}
 Current conversation:
-{chat_history}
+{chat_history}<</SYS>>
 {user_name} ({user_email}): {input}
+[/INST]
 AI:"""
 
 CONVERSATIONAL_PROMPT = PromptTemplate(

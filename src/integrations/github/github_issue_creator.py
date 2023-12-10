@@ -27,7 +27,7 @@ def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
 class GitHubIssueCreator:
     def __init__(self, source_control_url, source_control_pat):
         self._gh = github_shared.retrieve_github_client(
-            source_control_url=source_control_url, source_control_pat=source_control_pat
+            source_control_pat=source_control_pat
         )
 
     @staticmethod
@@ -68,9 +68,7 @@ class GitHubIssueCreator:
 
         repo = self._gh.get_repo(repo_path)
 
-        title = (
-            f"{github_shared.REVIEWER} review of {file_path} (ref: {ref})"
-        )
+        title = f"{github_shared.REVIEWER} review of {file_path} (ref: {ref})"
 
         review_data = self._preprocess_review(review_data=review_data)
 

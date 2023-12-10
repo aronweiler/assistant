@@ -58,6 +58,7 @@
         },
         "analyze_with_llm": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "llama2",
                 "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
@@ -71,6 +72,7 @@
         },
         "search_loaded_documents": {
             "enabled": true,
+            "return_direct": false,
             "additional_settings": {
                 "split_prompt": {
                     "label": "Split Prompt",
@@ -95,6 +97,7 @@
         },
         "search_entire_document": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -108,6 +111,7 @@
         },
         "summarize_entire_document": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -120,19 +124,24 @@
             }
         },
         "list_documents": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_code_details": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_code_structure": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_pretty_dependency_graph": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "create_stubs": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -145,10 +154,12 @@
             }
         },
         "get_all_code_in_file": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "conduct_code_review_from_file_id": {
             "enabled": false,
+            "return_direct": false,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
@@ -209,6 +220,7 @@
         },
         "conduct_code_review_from_url": {
             "enabled": false,
+            "return_direct": false,
             "additional_settings": {
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
@@ -268,16 +280,28 @@
             }
         },
         "create_code_review_issue": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
+        },
+        "commit_single_code_file": {
+            "enabled": false,
+            "return_direct": false
         },
         "conduct_code_refactor_from_file_id": {
             "enabled": false,
+            "return_direct": false,
             "additional_settings": {
+                "json_output": {
+                    "label": "Output the refactored code as JSON",
+                    "description": "This is useful for integrating with other tools.",
+                    "type": "bool",
+                    "value": false
+                },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being refactored.",
                     "type": "int",
-                    "value": 8000,
+                    "value": 3000,
                     "min": 1,
                     "max": 8000,
                     "step": 25
@@ -286,19 +310,19 @@
                     "label": "Perform a security code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_performance_code_refactor": {
                     "label": "Perform a performance code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_memory_code_refactor": {
                     "label": "Perform a memory code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_correctness_code_refactor": {
                     "label": "Perform a correctness code refactor",
@@ -316,15 +340,15 @@
                     "label": "Perform a reliability code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 }
             },
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-4-1106-preview",
+                "model": "gpt-3.5-turbo-16k",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 128000,
+                "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096
@@ -332,12 +356,19 @@
         },
         "conduct_code_refactor_from_url": {
             "enabled": false,
+            "return_direct": false,
             "additional_settings": {
+                "json_output": {
+                    "label": "Output the refactored code as JSON",
+                    "description": "This is useful for integrating with other tools.",
+                    "type": "bool",
+                    "value": true
+                },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being refactored.",
                     "type": "int",
-                    "value": 8000,
+                    "value": 2048,
                     "min": 1,
                     "max": 8000,
                     "step": 25
@@ -346,37 +377,37 @@
                     "label": "Perform a security code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_performance_code_refactor": {
                     "label": "Perform a performance code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_memory_code_refactor": {
                     "label": "Perform a memory code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_correctness_code_refactor": {
                     "label": "Perform a correctness code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_maintainability_code_refactor": {
                     "label": "Perform a maintainability code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_reliability_code_refactor": {
                     "label": "Perform a reliability code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 }
             },
             "model_configuration": {
@@ -392,6 +423,7 @@
         },
         "create_cvss_evaluation": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -405,6 +437,7 @@
         },
         "query_spreadsheet": {
             "enabled": false,
+            "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
                 "model": "gpt-3.5-turbo-16k",
@@ -417,31 +450,40 @@
             }
         },
         "get_weather": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_time": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_news_for_topic": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_top_news_headlines": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "query_image": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "search_for_emails": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_email_by_ids": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "search_businesses": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         },
         "get_all_business_details": {
-            "enabled": false
+            "enabled": false,
+            "return_direct": false
         }
     }
 }
