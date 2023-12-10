@@ -3,9 +3,14 @@ from typing import List
 import gitlab
 import src.integrations.gitlab.gitlab_shared as gitlab_shared
 
+from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
+
 
 class GitlabCommitter:
     def __init__(self, source_control_url: str, source_control_pat: str):
+        self.source_control_url = source_control_url
+        self.source_control_pat = source_control_pat
+
         self.gitlab = gitlab_shared.retrieve_gitlab_client(
             source_control_url, source_control_pat, verify_auth=True
         )
@@ -18,11 +23,21 @@ class GitlabCommitter:
         commit_message,
         code_and_file_paths: List[dict],
     ):
-        project = self.gitlab.projects.get(repository)
+        retriever = GitlabRetriever(
+            source_control_url=self.source_control_url,
+            source_control_pat=self.source_control_pat,
+        )
+        repo_data = retriever.retrieve_data(url=repository)
+
+        project = repo_data["project"]
 
         # Get the latest commit of the target_branch
         try:
             target_branch_commit = project.branches.get(target_branch).commit
+
+            # If target_branch exists, start from target_branch
+            source_branch = target_branch
+
         except gitlab.exceptions.GitlabGetError:
             # If target_branch does not exist, start from source_branch
             source_branch_commit = project.branches.get(source_branch).commit
