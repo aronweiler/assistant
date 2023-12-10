@@ -389,23 +389,24 @@ def tools_settings():
 
     # Create a toggle to enable/disable each tool
     for tool_name, tool_details in tools.items():
-        col1, col2 = st.columns([3, 7])
+        st.markdown(f"#### {tool_details['display_name']}")
+        st.markdown(tool_details["help_text"])
+        col1, col2, col3 = st.columns([3, 5, 5])
         col1.toggle(
-            tool_details["display_name"],
+            "Enabled",
             value=tool_manager.is_tool_enabled(tool_name),
             key=tool_name,
             on_change=tool_manager.toggle_tool,
             kwargs={"tool_name": tool_name},
         )
-        col2.markdown(tool_details["help_text"])
-        col1.toggle(
+        col2.toggle(
             "Return results directly to UI",
             value=tool_manager.should_return_direct(tool_name),
+            help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
             key=f"{tool_name}-return-direct",
             on_change=tool_manager.toggle_tool,
             kwargs={"tool_name": tool_name},
         )
-        col2.markdown("Return the results directly to the UI instead of having the AI re-interpret them.\n\n*Note: If this is enabled, the AI will not perform any tasks after this one returns.*")
 
         show_model_settings(configuration, tool_name, tool_details)
         show_additional_settings(configuration, tool_name, tool_details)
