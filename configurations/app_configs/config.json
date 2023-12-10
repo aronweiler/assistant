@@ -71,7 +71,7 @@
             }
         },
         "search_loaded_documents": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false,
             "additional_settings": {
                 "split_prompt": {
@@ -219,7 +219,7 @@
             }
         },
         "conduct_code_review_from_url": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false,
             "additional_settings": {
                 "max_code_size_tokens": {
@@ -280,6 +280,10 @@
             }
         },
         "create_code_review_issue": {
+            "enabled": false,
+            "return_direct": false
+        },
+        "commit_single_code_file": {
             "enabled": false,
             "return_direct": false
         },
@@ -351,20 +355,20 @@
             }
         },
         "conduct_code_refactor_from_url": {
-            "enabled": true,
-            "return_direct": true,
+            "enabled": false,
+            "return_direct": false,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
                     "description": "This is useful for integrating with other tools.",
                     "type": "bool",
-                    "value": false
+                    "value": true
                 },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being refactored.",
                     "type": "int",
-                    "value": 3000,
+                    "value": 2048,
                     "min": 1,
                     "max": 8000,
                     "step": 25
@@ -391,13 +395,13 @@
                     "label": "Perform a correctness code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_maintainability_code_refactor": {
                     "label": "Perform a maintainability code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_reliability_code_refactor": {
                     "label": "Perform a reliability code refactor",
