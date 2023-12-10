@@ -28,6 +28,31 @@ class GitlabRetriever:
             return self.retrieve_file_data(url=url)
         elif url_info["type"] == "diff":
             return self.retrieve_merge_request_data(url=url)
+        elif url_info["type"] == "repo":
+            return self.retrieve_repo_data(url=url)
+
+    def retrieve_repo_data(self, url):
+        url_info = gitlab_shared.parse_url(client=self._gl, url=url)
+
+        if url_info["domain"] not in self._source_control_url:
+            raise Exception(
+                f"URL domain ({url_info['domain']}) is different than authorized instance ({self._source_control_url})"
+            )
+
+        try:
+            project = self._gl.projects.get(url_info["project_id"])
+        except Exception as ex:
+            raise Exception(
+                f"Failed to retrieve project {url_info['repo_path']} ({url_info['project_id']}) from server"
+            )
+
+        return {
+            "type": "repo",
+            "project_id": url_info["project_id"],
+            "url": url,
+            "repo_path": url_info["repo_path"],
+            "project": project,
+        }
 
     def retrieve_file_data(self, url):
         url_info = gitlab_shared.parse_url(client=self._gl, url=url)

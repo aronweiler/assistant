@@ -20,7 +20,7 @@ from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
 # Importing integration modules for GitLab and GitHub.
-
+from src.integrations.gitlab.gitlab_committer import GitlabCommitter
 from src.integrations.github.github_committer import GitHubCommitter
 
 
@@ -31,7 +31,7 @@ class CodeCommitTool:
 
     # Mapping of source control provider names to their respective committer classes.
     source_control_to_committer_map = {
-        "gitlab": None,
+        "gitlab": GitlabCommitter,
         "github": GitHubCommitter,
     }
 
@@ -84,7 +84,7 @@ class CodeCommitTool:
                 f"Source control provider {self.source_control_provider} is not supported."
             )
 
-        committer = committer_class(source_control_pat=self.source_control_pat)
+        committer = committer_class(source_control_pat=self.source_control_pat, source_control_url=self.source_control_url)
 
         code_and_file_paths = [{"code": code, "file_path": file_path}]
 
