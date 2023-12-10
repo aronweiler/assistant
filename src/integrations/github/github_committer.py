@@ -20,7 +20,7 @@ class GitHubCommitter:
         code_and_file_paths: List[dict],
     ):
         """Commit changes to a GitHub repository.
-        
+
         Args:
             source_branch (str): The branch to use as the base for the new branch.
             target_branch (str): The branch to commit changes to.
@@ -32,9 +32,20 @@ class GitHubCommitter:
         """
         repo = self.github.get_repo(repository)
 
-        commit_branch = self._create_branch(repo, source_branch, target_branch)
+        # Get the latest commit of the target_branch
+        try:
+            target_branch_ref = repo.get_git_ref(f"heads/{target_branch}")
+            target_branch_latest_commit = repo.get_git_commit(
+                target_branch_ref.object.sha
+            )
+        except:
+            # If target_branch does not exist, start from source_branch
+            source_branch_ref = repo.get_git_ref(f"heads/{source_branch}")
+            target_branch_latest_commit = repo.get_git_commit(
+                source_branch_ref.object.sha
+            )
 
-        base_tree = repo.get_git_tree(sha=source_branch)
+        base_tree = target_branch_latest_commit.tree
 
         tree_elements = []
         for code_and_file_path in code_and_file_paths:
@@ -48,15 +59,13 @@ class GitHubCommitter:
 
         new_tree = repo.create_git_tree(tree_elements, base_tree)
 
+        # Create a new commit in the repository
         new_commit = repo.create_git_commit(
-            message=commit_message,
-            tree=repo.get_git_tree(sha=new_tree.sha),
-            parents=[repo.get_git_commit(repo.get_branch(source_branch).commit.sha)],
+            message=commit_message, tree=new_tree, parents=[target_branch_latest_commit]
         )
 
-        logging.info(f"{target_branch}_ref: {commit_branch}")
-
-        commit_branch.edit(sha=new_commit.sha, force=True)
+        # Point the target branch to the new commit (without force)
+        target_branch_ref.edit(sha=new_commit.sha)
 
         logging.info("Changes committed and pushed successfully!")
 
