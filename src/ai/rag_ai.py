@@ -10,7 +10,7 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 from src.configuration.assistant_configuration import (
     ModelConfiguration,
 )
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_llm
 from src.ai.prompts.prompt_manager import PromptManager
 from src.ai.system_info import get_system_information
@@ -36,14 +36,14 @@ class RetrievalAugmentedGenerationAI:
     def __init__(
         self,
         configuration,
-        interaction_id: UUID,
+        conversation_id: UUID,
         user_email: str,
         prompt_manager: PromptManager,
         streaming: bool = False,
         override_memory=None,
     ):
-        if interaction_id is None or user_email is None:
-            raise ValueError("interaction_id and user_email cannot be None")
+        if conversation_id is None or user_email is None:
+            raise ValueError("conversation_id and user_email cannot be None")
 
         self.configuration = configuration
         self.streaming = streaming
@@ -72,9 +72,9 @@ class RetrievalAugmentedGenerationAI:
             "model_configuration"
         ]["uses_conversation_history"]
 
-        # Set up the interaction manager
-        self.interaction_manager = InteractionManager(
-            interaction_id=interaction_id,
+        # Set up the conversation manager
+        self.conversation_manager = ConversationManager(
+            conversation_id=conversation_id,
             user_email=user_email,
             llm=self.llm,
             prompt_manager=self.prompt_manager,
@@ -85,7 +85,7 @@ class RetrievalAugmentedGenerationAI:
 
         # Initialize the shared memory for conversation history
         memory = ReadOnlySharedMemory(
-            memory=self.interaction_manager.conversation_token_buffer_memory
+            memory=self.conversation_manager.conversation_token_buffer_memory
         )
 
         # Set up the language model chain with the appropriate prompts and memory
@@ -99,7 +99,7 @@ class RetrievalAugmentedGenerationAI:
 
         # Initialize the tool manager and load the available tools
         self.tool_manager = ToolManager(configuration=self.configuration)
-        self.tool_manager.initialize_tools(self.configuration, self.interaction_manager)
+        self.tool_manager.initialize_tools(self.configuration, self.conversation_manager)
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -110,7 +110,7 @@ class RetrievalAugmentedGenerationAI:
         agent = GenericToolsAgent(
             tools=tools,
             model_configuration=model_configuration,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )
 
         agent_executor = AgentExecutor.from_agent_and_tools(
@@ -129,11 +129,11 @@ class RetrievalAugmentedGenerationAI:
         ai_mode: str = "Auto",
         kwargs: dict = {},
     ):
-        # Set the document collection id on the interaction manager
-        self.interaction_manager.collection_id = collection_id
+        # Set the document collection id on the conversation manager
+        self.conversation_manager.collection_id = collection_id
 
-        # Set the kwargs on the interaction manager (this is search params, etc.)
-        self.interaction_manager.tool_kwargs = kwargs
+        # Set the kwargs on the conversation manager (this is search params, etc.)
+        self.conversation_manager.tool_kwargs = kwargs
 
         # Ensure we have a summary / title for the chat
         logging.debug("Checking to see if summary exists for this chat")
@@ -155,7 +155,7 @@ class RetrievalAugmentedGenerationAI:
             results = "\n".join(results)
 
         # Adding this after the run so that the agent can't see it in the history
-        self.interaction_manager.conversation_token_buffer_memory.save_context(
+        self.conversation_manager.conversation_token_buffer_memory.save_context(
             inputs={"input": query}, outputs={"output": results}
         )
         logging.debug(results)
@@ -168,16 +168,16 @@ class RetrievalAugmentedGenerationAI:
         return self.chain.run(
             system_prompt="You are a friendly AI who's purpose it is to engage a user in conversation.  Try to mirror their emotional state, and answer their questions.  If you don't know the answer, don't make anything up, just say you don't know.",
             input=query,
-            user_name=self.interaction_manager.user_name,
-            user_email=self.interaction_manager.user_email,
+            user_name=self.conversation_manager.user_name,
+            user_email=self.conversation_manager.user_email,
             system_information=get_system_information(
-                self.interaction_manager.user_location
+                self.conversation_manager.user_location
             ),
             context="N/A",
             loaded_documents="\n".join(
-                self.interaction_manager.get_loaded_documents_for_display()
+                self.conversation_manager.get_loaded_documents_for_display()
             ),
-            callbacks=self.interaction_manager.llm_callbacks,
+            callbacks=self.conversation_manager.llm_callbacks,
         )
 
     def run_agent(self, query: str, kwargs: dict = {}):
@@ -190,25 +190,25 @@ class RetrievalAugmentedGenerationAI:
         return agent.run(
             input=query,
             system_information=get_system_information(
-                self.interaction_manager.user_location
+                self.conversation_manager.user_location
             ),
-            user_name=self.interaction_manager.user_name,
-            user_email=self.interaction_manager.user_email,
-            callbacks=self.interaction_manager.agent_callbacks,
+            user_name=self.conversation_manager.user_name,
+            user_email=self.conversation_manager.user_email,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
     def check_summary(self, query):
-        if self.interaction_manager.interaction_needs_summary:
+        if self.conversation_manager.conversation_needs_summary:
             logging.debug("Interaction needs summary, generating one now")
-            interaction_summary = self.llm.predict(
+            conversation_summary = self.llm.predict(
                 self.prompt_manager.get_prompt(
                     "summary",
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )
-            self.interaction_manager.set_interaction_summary(interaction_summary)
-            self.interaction_manager.interaction_needs_summary = False
-            logging.debug(f"Generated summary: {interaction_summary}")
+            self.conversation_manager.set_conversation_summary(conversation_summary)
+            self.conversation_manager.conversation_needs_summary = False
+            logging.debug(f"Generated summary: {conversation_summary}")
 
     # Required by the Jarvis UI when ingesting files
     def generate_detailed_document_chunk_summary(
@@ -269,7 +269,7 @@ class RetrievalAugmentedGenerationAI:
             streaming=False,
         )
 
-        document_tool = DocumentTool(self.configuration, self.interaction_manager)
+        document_tool = DocumentTool(self.configuration, self.conversation_manager)
         document_summary = document_tool.summarize_entire_document_with_llm(
             llm, file_id
         )

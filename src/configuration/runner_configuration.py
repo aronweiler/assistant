@@ -22,9 +22,9 @@ class RunnerConfig:
             return RunnerConfig.load_from_dict(config_dict['runner_config'])
 
 class RunnerArguments:
-    def __init__(self, collection_name, interaction_id, user_email):
+    def __init__(self, collection_name, conversation_id, user_email):
         self.collection_name = collection_name
-        self.interaction_id = interaction_id
+        self.conversation_id = conversation_id
         self.user_email = user_email
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         "class_name": "ConsoleRunner",
         "arguments": {
             "collection_name": "Console Collection",
-            "interaction_id": "d6c12a4d-ee36-4f10-9891-e31b4003d2c4"
+            "conversation_id": "d6c12a4d-ee36-4f10-9891-e31b4003d2c4"
         }
     }
 
@@ -44,4 +44,4 @@ if __name__ == "__main__":
     print(config.module_name)
     print(config.class_name)
     print(config.arguments.collection_name)
-    print(config.arguments.interaction_id)
+    print(config.arguments.conversation_id)

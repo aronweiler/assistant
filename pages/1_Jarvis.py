@@ -44,20 +44,20 @@ class RagUI:
 
         st.title("Hey Jarvis 🤖...")
 
-    def load_ai(self, override_interaction_id=None):
-        """Loads the AI instance for the selected interaction id"""
+    def load_ai(self, override_conversation_id=None):
+        """Loads the AI instance for the selected conversation id"""
         
-        if override_interaction_id:
-            selected_interaction_id = override_interaction_id
+        if override_conversation_id:
+            selected_conversation_id = override_conversation_id
         else:
-            selected_interaction_id = ui_shared.get_selected_interaction_id()
+            selected_conversation_id = ui_shared.get_selected_conversation_id()
 
         if "rag_ai" not in st.session_state:
             # First time loading the page
             logging.debug("load_ai: no ai in session state, creating a new one")
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["app_config"],
-                interaction_id=selected_interaction_id,
+                conversation_id=selected_conversation_id,
                 user_email=self.user_email,
                 streaming=True,
                 prompt_manager=self.prompt_manager,
@@ -65,23 +65,23 @@ class RagUI:
             st.session_state["rag_ai"] = rag_ai_instance
             logging.debug("load_ai: created new ai instance")
 
-        elif selected_interaction_id and selected_interaction_id != str(
-            st.session_state["rag_ai"].interaction_manager.interaction_id
+        elif selected_conversation_id and selected_conversation_id != str(
+            st.session_state["rag_ai"].conversation_manager.conversation_id
         ):
             logging.debug(
-                f"load_ai: AI instance exists, but need to change interaction ID from {str(st.session_state['rag_ai'].interaction_manager.interaction_id)} to {selected_interaction_id}"
+                f"load_ai: AI instance exists, but need to change conversation ID from {str(st.session_state['rag_ai'].conversation_manager.conversation_id)} to {selected_conversation_id}"
             )
-            # We have an AI instance, but we need to change the interaction (conversation) id
+            # We have an AI instance, but we need to change the conversation (conversation) id
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["app_config"],
-                interaction_id=selected_interaction_id,
+                conversation_id=selected_conversation_id,
                 user_email=self.user_email,
                 streaming=True,
                 prompt_manager=self.prompt_manager,
             )
             st.session_state["rag_ai"] = rag_ai_instance
         else:
-            logging.debug("load_ai: AI instance exists, no need to change interaction ID")
+            logging.debug("load_ai: AI instance exists, no need to change conversation ID")
 
     def create_collections_container(self, main_window_container):
         css_style = """{
@@ -132,16 +132,16 @@ class RagUI:
                         collection_id = ui_shared.get_selected_collection_id()
                         if collection_id != -1:
                             loaded_docs_delimited = None
-                            st.session_state.rag_ai.interaction_manager.collection_id = (
+                            st.session_state.rag_ai.conversation_manager.collection_id = (
                                 collection_id
                             )
 
                             loaded_docs = (
-                                st.session_state.rag_ai.interaction_manager.get_loaded_documents_for_display()
+                                st.session_state.rag_ai.conversation_manager.get_loaded_documents_for_display()
                             )
 
                             loaded_docs_delimited = (
-                                st.session_state.rag_ai.interaction_manager.get_loaded_documents_delimited()
+                                st.session_state.rag_ai.conversation_manager.get_loaded_documents_delimited()
                             )
 
                             with st.expander(
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         if ui_shared.ensure_user(user_email):
             logging.debug("User exists")
             ui_shared.set_user_id_from_email(user_email)
-            ui_shared.ensure_interaction()
+            ui_shared.ensure_conversation()
 
             conversations, files_and_settings = st.sidebar.tabs(
                 ["Conversations", "Files & Settings"]

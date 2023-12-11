@@ -15,11 +15,11 @@ from src.utilities.parsing_utilities import parse_json
 
 from src.utilities.token_helper import num_tokens_from_string
 
-from src.db.models.conversations import SearchType
+from src.db.models.conversation_messages import SearchType
 from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
@@ -28,10 +28,10 @@ class DocumentTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
     ):
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
 
     def search_loaded_documents(
         self,
@@ -53,7 +53,7 @@ class DocumentTool:
         """
 
         # Do we override the file ID?
-        target_file_id = self.interaction_manager.tool_kwargs.get(
+        target_file_id = self.conversation_manager.tool_kwargs.get(
             "override_file", target_file_id
         )
 
@@ -79,15 +79,15 @@ class DocumentTool:
                 )
 
                 additional_prompt_prompt = (
-                    self.interaction_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt(
                         "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
 
                 def get_chat_history():
-                    if self.interaction_manager:
+                    if self.conversation_manager:
                         return (
-                            self.interaction_manager.conversation_token_buffer_memory.buffer_as_str
+                            self.conversation_manager.conversation_token_buffer_memory.buffer_as_str
                         )
                     else:
                         return "No chat history."
@@ -98,7 +98,7 @@ class DocumentTool:
                         user_query=user_query,
                         chat_history=get_chat_history(),
                     ),
-                    callbacks=self.interaction_manager.agent_callbacks,
+                    callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 split_prompts = parse_json(split_prompts, llm)
@@ -134,16 +134,16 @@ class DocumentTool:
         user_query: str,
         target_file_id: int = None,
     ):
-        search_type = self.interaction_manager.tool_kwargs.get("search_type", "Hybrid")
+        search_type = self.conversation_manager.tool_kwargs.get("search_type", "Hybrid")
 
         keyword_documents = []
         if (search_type == "Hybrid" or search_type == "Keyword") and len(keywords_list) > 0:
             keyword_documents = (
-                self.interaction_manager.documents_helper.search_document_embeddings(
+                self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=keywords_list,
-                    collection_id=self.interaction_manager.collection_id,
+                    collection_id=self.conversation_manager.collection_id,
                     search_type=SearchType.Keyword,
-                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
                     target_file_id=target_file_id,
                 )
             )
@@ -151,11 +151,11 @@ class DocumentTool:
         similarity_documents = []
         if search_type == "Hybrid" or search_type == "Similarity":
             similarity_documents = (
-                self.interaction_manager.documents_helper.search_document_embeddings(
+                self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=semantic_similarity_query,
-                    collection_id=self.interaction_manager.collection_id,
+                    collection_id=self.conversation_manager.collection_id,
                     search_type=SearchType.Similarity,
-                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+                    top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
                     target_file_id=target_file_id,
                 )
             )
@@ -173,7 +173,7 @@ class DocumentTool:
                 combined_documents.append(document)
                 document_ids.append(document.id)
 
-        prompt = self.interaction_manager.prompt_manager.get_prompt(
+        prompt = self.conversation_manager.prompt_manager.get_prompt(
             "document", "QUESTION_PROMPT_TEMPLATE"
         )
 
@@ -198,17 +198,17 @@ class DocumentTool:
             streaming=True,
         )
 
-        result = llm.predict(prompt, callbacks=self.interaction_manager.agent_callbacks)
+        result = llm.predict(prompt, callbacks=self.conversation_manager.agent_callbacks)
 
         return result
 
     def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
         summary = llm.predict(
-            self.interaction_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text),
-            callbacks=self.interaction_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
         return summary
 
@@ -250,12 +250,12 @@ class DocumentTool:
                     document_text=chunk.document_text, llm=llm
                 )
                 documents.set_document_text_summary(
-                    chunk.id, summary_chunk, self.interaction_manager.collection_id
+                    chunk.id, summary_chunk, self.conversation_manager.collection_id
                 )
 
         reduce_chain = LLMChain(
             llm=llm,
-            prompt=self.interaction_manager.prompt_manager.get_prompt(
+            prompt=self.conversation_manager.prompt_manager.get_prompt(
                 "summary",
                 "REDUCE_SUMMARIES_PROMPT",
             ),
@@ -273,7 +273,7 @@ class DocumentTool:
             # If documents exceed context for `StuffDocumentsChain`
             collapse_documents_chain=combine_documents_chain,
             # The maximum number of tokens to group documents into.
-            token_max=self.interaction_manager.tool_kwargs.get(
+            token_max=self.conversation_manager.tool_kwargs.get(
                 "max_summary_chunk_tokens", 5000
             ),
         )
@@ -311,14 +311,14 @@ class DocumentTool:
 
         document_models = documents.search_document_embeddings(
             search_query=query,
-            collection_id=self.interaction_manager.collection_id,
-            search_type=self.interaction_manager.tool_kwargs.get(
+            collection_id=self.conversation_manager.collection_id,
+            search_type=self.conversation_manager.tool_kwargs.get(
                 "search_type", SearchType.Similarity
             ),
-            target_file_id=self.interaction_manager.tool_kwargs.get(
+            target_file_id=self.conversation_manager.tool_kwargs.get(
                 "override_file", None
             ),
-            top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 5),
+            top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
         )
 
         # Convert the document models to Document classes
@@ -349,11 +349,11 @@ class DocumentTool:
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=self.interaction_manager.prompt_manager.get_prompt(
+            question_prompt=self.conversation_manager.prompt_manager.get_prompt(
                 "summary",
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
-            refine_prompt=self.interaction_manager.prompt_manager.get_prompt(
+            refine_prompt=self.conversation_manager.prompt_manager.get_prompt(
                 "summary", refine_prompt
             ),
             return_intermediate_steps=True,
@@ -377,7 +377,7 @@ class DocumentTool:
         """
 
         return "The loaded documents I have access to are:\n\n-" + "\n-".join(
-            self.interaction_manager.get_loaded_documents_for_display()
+            self.conversation_manager.get_loaded_documents_for_display()
         )
 
     def search_entire_document(self, target_file_id: int, queries: List[str]):
@@ -410,7 +410,7 @@ class DocumentTool:
         )
 
         questions = "- " + "\n-".join(queries)
-        prompt = self.interaction_manager.prompt_manager.get_prompt(
+        prompt = self.conversation_manager.prompt_manager.get_prompt(
             "document", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
         )
 
@@ -458,7 +458,7 @@ class DocumentTool:
 
             answer = llm.predict(
                 formatted_prompt,
-                callbacks=self.interaction_manager.agent_callbacks,
+                callbacks=self.conversation_manager.agent_callbacks,
             )
 
             if not answer.lower().startswith("no relevant information"):

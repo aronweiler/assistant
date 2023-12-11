@@ -13,7 +13,7 @@ from src.utilities.configuration_utilities import (
     get_app_config_path,
 )
 
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.tools.tool_manager import ToolManager
 
 import src.ui.streamlit_shared as ui_shared

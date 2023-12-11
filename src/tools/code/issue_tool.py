@@ -11,7 +11,7 @@ from src.integrations.github import github_issue_creator
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.db.models.documents import Documents
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
@@ -37,10 +37,10 @@ class IssueTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
     ):
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
 
     @staticmethod
     def ingest_issue_from_url(url):

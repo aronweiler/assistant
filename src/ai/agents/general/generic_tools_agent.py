@@ -5,17 +5,13 @@ import logging
 
 from langchain.schema import AgentAction
 from langchain.schema.language_model import BaseLanguageModel
-from langchain.agents import (
-    AgentExecutor,
-    BaseMultiActionAgent,
-    BaseSingleActionAgent
-)
+from langchain.agents import AgentExecutor, BaseMultiActionAgent, BaseSingleActionAgent
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
 
 from src.ai.llm_helper import get_llm
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.configuration.assistant_configuration import ModelConfiguration
 
 from src.utilities.parsing_utilities import parse_json
@@ -77,7 +73,7 @@ class GenericTool:
 
 class GenericToolsAgent(BaseSingleActionAgent):
     model_configuration: ModelConfiguration = None
-    interaction_manager: InteractionManager = None
+    conversation_manager: ConversationManager = None
     tools: list = None
     previous_work: str = None
     llm: BaseLanguageModel = None
@@ -119,7 +115,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             self.llm = get_llm(
                 model_configuration=self.model_configuration,
                 tags=["generic_tools"],
-                callbacks=self.interaction_manager.agent_callbacks,
+                callbacks=self.conversation_manager.agent_callbacks,
                 streaming=self.streaming,
             )
 
@@ -132,7 +128,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
             text = self.llm.predict(
                 plan_steps_prompt,
-                callbacks=self.interaction_manager.agent_callbacks,
+                callbacks=self.conversation_manager.agent_callbacks,
             )
             # Save the step plans for future reference
             self.step_plans = parse_json(
@@ -176,7 +172,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             )
 
             answer_response = self.llm.predict(
-                answer_prompt, callbacks=self.interaction_manager.agent_callbacks
+                answer_prompt, callbacks=self.conversation_manager.agent_callbacks
             )
 
             answer = parse_json(text=answer_response, llm=self.llm)
@@ -259,7 +255,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         )
 
         text = self.llm.predict(
-            tool_use_prompt, callbacks=self.interaction_manager.agent_callbacks
+            tool_use_prompt, callbacks=self.conversation_manager.agent_callbacks
         )
 
         action_json = parse_json(
@@ -292,7 +288,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         action_json = parse_json(
             text=self.llm.predict(
-                tool_use_prompt, callbacks=self.interaction_manager.agent_callbacks
+                tool_use_prompt, callbacks=self.conversation_manager.agent_callbacks
             ),
             llm=self.llm,
         )
@@ -346,7 +342,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         loaded_documents = self.get_loaded_documents()
         chat_history = self.get_chat_history()
 
-        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
         ).format(
@@ -360,7 +356,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         return agent_prompt
 
     def get_answer_prompt(self, user_query, helpful_context):
-        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "ANSWER_PROMPT_TEMPLATE",
         ).format(
@@ -381,13 +377,18 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 tool_details = self.get_tool_string(tool=tool)
 
         if len(self.wrong_tool_calls) > 0:
-            formatted_wrong_tool_calls = '\n'.join([f"({p['tool']}): {p['step_description']}" for p in self.wrong_tool_calls])
+            formatted_wrong_tool_calls = "\n".join(
+                [
+                    f"({p['tool']}): {p['step_description']}"
+                    for p in self.wrong_tool_calls
+                ]
+            )
             helpful_context = f"The planning AI (which came up with the idea to use this tool call) failed with regards to these tasks: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (incorrect) tool calls, and let them inform your tool use here."
-            
+
             # Reset the wrong tool calls
             self.wrong_tool_calls = []
 
-        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "TOOL_USE_TEMPLATE",
         ).format(
@@ -410,7 +411,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
     ):
         available_tools = self.get_available_tool_descriptions(self.tools)
 
-        agent_prompt = self.interaction_manager.prompt_manager.get_prompt(
+        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "TOOL_USE_RETRY_TEMPLATE",
         ).format(
@@ -426,7 +427,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         return agent_prompt
 
     def get_system_prompt(self, system_information):
-        system_prompt = self.interaction_manager.prompt_manager.get_prompt(
+        system_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "SYSTEM_TEMPLATE",
         ).format(
@@ -475,17 +476,17 @@ class GenericToolsAgent(BaseSingleActionAgent):
         return formatted_tools
 
     def get_loaded_documents(self):
-        if self.interaction_manager:
+        if self.conversation_manager:
             return "\n".join(
-                self.interaction_manager.get_loaded_documents_for_reference()
+                self.conversation_manager.get_loaded_documents_for_reference()
             )
         else:
             return "No documents loaded."
 
     def get_chat_history(self):
-        if self.interaction_manager:
+        if self.conversation_manager:
             return (
-                self.interaction_manager.conversation_token_buffer_memory.buffer_as_str
+                self.conversation_manager.conversation_token_buffer_memory.buffer_as_str
             )
         else:
             return "No chat history."

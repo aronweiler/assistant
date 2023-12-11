@@ -14,7 +14,7 @@ from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe
 from langchain.schema.language_model import BaseLanguageModel
 
 
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
 
 from src.db.models.domain.file_model import FileModel
@@ -28,9 +28,9 @@ class SpreadsheetsTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
     ):
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
         self.configuration = configuration
         self.callbacks = []
 
@@ -43,11 +43,11 @@ class SpreadsheetsTool:
             query (str): The query to use.
             target_file_id (int): The file ID to query."""
 
-        override_file = self.interaction_manager.tool_kwargs.get("override_file", None)
+        override_file = self.conversation_manager.tool_kwargs.get("override_file", None)
         if override_file is not None:
             target_file_id = int(override_file)
 
-        if self.interaction_manager.tool_kwargs.get("use_pandas", False):
+        if self.conversation_manager.tool_kwargs.get("use_pandas", False):
             return self.query_spreadsheet_pandas(query, target_file_id)
         else:
             return self.query_spreadsheet_text(query, target_file_id)

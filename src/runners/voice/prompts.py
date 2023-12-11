@@ -2,7 +2,7 @@ VOICE_ASSISTANT_PROMPT = """
 System Info:
 current_time_zone: {time_zone}
 current_date_time: {current_date_time}
-interaction_id: {interaction_id}
+conversation_id: {conversation_id}
 
 Guidance:
 Remember all of your responses are being read by a text to speech engine.

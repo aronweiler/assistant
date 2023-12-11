@@ -15,7 +15,7 @@ from src.tools.code.issue_tool import IssueTool
 
 # Importing database models and utilities.
 from src.db.models.documents import Documents
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
@@ -44,16 +44,16 @@ class CodeRefactorTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
     ):
         """
-        Initializes the CodeRefactorTool with a given configuration and an interaction manager.
+        Initializes the CodeRefactorTool with a given configuration and an conversation manager.
 
         :param configuration: Configuration settings for the tool.
-        :param interaction_manager: The manager that handles interactions with language models.
+        :param conversation_manager: The manager that handles interactions with language models.
         """
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
 
         # Constants for environment variables and source control providers
         self.source_control_provider = os.getenv(
@@ -146,13 +146,13 @@ class CodeRefactorTool:
 
         # Retrieve base code refactor instructions and format them with file-specific instructions.
         base_code_refactor_instructions = (
-            self.interaction_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt(
                 "code_refactor", "BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         code_refactor_format_instructions = (
-            self.interaction_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt(
                 "code_refactor", "CODE_REFACTOR_FORMAT_TEMPLATE"
             )
         )
@@ -266,7 +266,7 @@ class CodeRefactorTool:
         llm,
     ):
         final_code_refactor_instructions = (
-            self.interaction_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt(
                 "code_refactor", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
             ).format(
                 code_summary="",
@@ -278,7 +278,7 @@ class CodeRefactorTool:
         )
 
         # Get individual prompt for each type of refactor from the template and format it.
-        code_refactor_prompt = self.interaction_manager.prompt_manager.get_prompt(
+        code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "code_refactor", "CUSTOM_CODE_REFACTOR_TEMPLATE"
         ).format(
             base_code_refactor_instructions=base_code_refactor_instructions,
@@ -289,7 +289,7 @@ class CodeRefactorTool:
         # Use language model to predict based on the formatted prompt.
         json_data = llm.predict(
             code_refactor_prompt,
-            callbacks=self.interaction_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Parse JSON data returned by language model prediction into structured data.
@@ -323,7 +323,7 @@ class CodeRefactorTool:
             # Note: This needs to be in the loop, because we're going to keep feeding the output of the previous refactor
             # into the next refactor.
             final_code_refactor_instructions = (
-                self.interaction_manager.prompt_manager.get_prompt(
+                self.conversation_manager.prompt_manager.get_prompt(
                     "code_refactor", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
                 ).format(
                     code_summary="",
@@ -335,7 +335,7 @@ class CodeRefactorTool:
             )
 
             # Get individual prompt for each type of refactor from the template and format it.
-            code_refactor_prompt = self.interaction_manager.prompt_manager.get_prompt(
+            code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
                 "code_refactor", template["name"]
             ).format(
                 base_code_refactor_instructions=base_code_refactor_instructions,
@@ -345,7 +345,7 @@ class CodeRefactorTool:
             # Use language model to predict based on the formatted prompt.
             json_data = llm.predict(
                 code_refactor_prompt,
-                callbacks=self.interaction_manager.agent_callbacks,
+                callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
@@ -541,7 +541,7 @@ if __name__ == "__main__":
     # Create an instance of the code refactor tool.
     code_refactor_tool = CodeRefactorTool(
         configuration=None,
-        interaction_manager=None,
+        conversation_manager=None,
     )
 
     temp = {

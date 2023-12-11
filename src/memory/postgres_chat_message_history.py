@@ -10,22 +10,22 @@ from langchain.schema.messages import (
     FunctionMessage,
 )
 
-from src.db.models.conversations import Conversations, ConversationModel
+from src.db.models.conversation_messages import ConversationMessages, ConversationMessageModel
 from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 
 class PostgresChatMessageHistory(BaseChatMessageHistory):
     """Chat message history stored in Postgres."""
 
-    def __init__(self, interaction_id: UUID, conversations: Conversations):
+    def __init__(self, conversation_id: UUID, conversation_messages: ConversationMessages):
         """Initialize the PostgresChatMessageHistory.
 
         Args:
-            interaction_id: The ID of the interaction to store messages for.
+            conversation_id: The ID of the conversation to store messages for.
             conversations: The Conversations object to use for storing messages.
         """
-        self.interaction_id = interaction_id
-        self.conversations = conversations
+        self.conversation_id = conversation_id
+        self.conversation_messages = conversation_messages
 
         self.user_id: int = None
 
@@ -34,16 +34,16 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         """A list of Messages stored in the DB."""
         # return self.chat_messages
         chat_messages = []
-        messages = self.conversations.get_conversations_for_interaction(
-            self.interaction_id
+        messages = self.conversation_messages.get_conversations_for_conversation(
+            self.conversation_id
         )
         for message in messages:
             if message.conversation_role_type == ConversationRoleType.USER:
-                chat_message = HumanMessage(content=message.conversation_text)
+                chat_message = HumanMessage(content=message.message_text)
             elif message.conversation_role_type == ConversationRoleType.ASSISTANT:
-                chat_message = AIMessage(content=message.conversation_text)
+                chat_message = AIMessage(content=message.message_text)
             elif message.conversation_role_type == ConversationRoleType.SYSTEM:
-                chat_message = SystemMessage(content=message.conversation_text)
+                chat_message = SystemMessage(content=message.message_text)
 
             chat_message.additional_kwargs = {"id": message.id}
             chat_messages.append(chat_message)
@@ -68,10 +68,10 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         else:
             raise ValueError("Unknown message type")
 
-        self.conversations.add_conversation(
-            ConversationModel(
-                interaction_id=self.interaction_id,
-                conversation_text=message.content,
+        self.conversation_messages.add_conversation(
+            ConversationMessageModel(
+                conversation_id=self.conversation_id,
+                message_text=message.content,
                 conversation_role_type=role_type,
                 user_id=self.user_id,
             )

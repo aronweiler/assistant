@@ -38,7 +38,7 @@ def load_rag_ai(
     discord_bot_email,
     discord_bot_target_channel_name,
     collection_id,
-    interaction_id,
+    conversation_id,
 ):
     """Loads the AI from the configuration"""
 
@@ -47,7 +47,7 @@ def load_rag_ai(
         configuration=configuration,
         target_channel_name=discord_bot_target_channel_name,
         target_collection_id=collection_id,
-        interaction_id=interaction_id,
+        conversation_id=conversation_id,
         prompt_manager=prompt_manager,
         user_email=discord_bot_email,
     )
@@ -90,7 +90,7 @@ def load_conversational_ai(
 if __name__ == "__main__":
     # Get the token from the environment
     discord_token = os.environ.get("DISCORD_BOT_TOKEN")
-    discord_interaction_id = os.environ.get("DISCORD_INTERACTION_ID", uuid.uuid4())
+    discord_conversation_id = os.environ.get("DISCORD_INTERACTION_ID", uuid.uuid4())
     discord_collection_id = os.environ.get("DISCORD_COLLECTION_ID", None)
     discord_bot_email = os.environ.get("DISCORD_BOT_EMAIL")
     discord_bot_target_channel_name = os.environ.get(
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         client = load_rag_ai(
             intents=intents,
             configuration=configuration,
-            interaction_id=discord_interaction_id,
+            conversation_id=discord_conversation_id,
             discord_bot_email=discord_bot_email,
             discord_bot_target_channel_name=discord_bot_target_channel_name,
             collection_id=discord_collection_id,

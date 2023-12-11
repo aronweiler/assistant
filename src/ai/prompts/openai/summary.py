@@ -1,7 +1,7 @@
 from langchain.prompts import PromptTemplate
 
 SUMMARIZE_FOR_LABEL_TEMPLATE = """
-Summarize the following statement in a few words (no more than 5), with the intent of making a label for an interaction.
+Summarize the following statement in a few words (no more than 5), with the intent of making a label for an conversation.
 
 Examples: 
 "Tell me how to do long division, step by step please." -> "How to do long division"

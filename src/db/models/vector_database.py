@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from enum import Enum
 
 from src.db.database.connection_utilities import get_connection_string
-from src.db.database.models import ConversationRoleType
+from src.db.database.tables import ConversationRoleType
 
 
 class SearchType(Enum):

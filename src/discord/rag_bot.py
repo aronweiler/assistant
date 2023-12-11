@@ -31,7 +31,7 @@ class RagBot(discord.Client):
         configuration,
         target_channel_name: str,
         target_collection_id: int,
-        interaction_id: int,
+        conversation_id: int,
         prompt_manager,
         user_email: str,
         status_message: str = "around with documents",
@@ -45,7 +45,7 @@ class RagBot(discord.Client):
         self.target_collection_id = (
             target_collection_id if target_collection_id is not None else -1
         )
-        self.interaction_id = interaction_id
+        self.conversation_id = conversation_id
         self.prompt_manager = prompt_manager
         self.user_email = user_email
         self.status_message = status_message
@@ -132,7 +132,7 @@ class RagBot(discord.Client):
         memory = await get_conversation_memory(llm=llm, message=message)
         return RetrievalAugmentedGenerationAI(
             configuration=self.configuration,
-            interaction_id=self.interaction_id,
+            conversation_id=self.conversation_id,
             prompt_manager=self.prompt_manager,
             streaming=False,
             user_email=self.user_email,

@@ -39,11 +39,13 @@ class User(ModelBase):
     email = Column(String, nullable=False, unique=True)
 
     # Define a one-to-many relationship with other tables
+    conversation_messages = relationship("ConversationMessage", back_populates="user")
     conversations = relationship("Conversation", back_populates="user")
-    interactions = relationship("Interaction", back_populates="user")
     files = relationship("File", back_populates="user")
     documents = relationship("Document", back_populates="user")
-    user_settings = relationship("UserSetting", back_populates="user")
+
+    # TODO: Pull this back in when we refactor Jarvis to use this table
+    # user_settings = relationship("UserSetting", back_populates="user")
 
     def get_setting(self, setting_name, default):
         for setting in self.user_settings:
@@ -58,38 +60,40 @@ class User(ModelBase):
                 setting.setting_value = value
 
 
-class UserSetting(ModelBase):
-    __tablename__ = "user_settings"
+# TODO: Refactor Jarvis so that all of the settings are contained within this table.
+# Need to do this before it can become multi-user
+# class UserSetting(ModelBase):
+#     __tablename__ = "user_settings"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    setting_name = Column(String, nullable=False)
-    setting_value = Column(String, nullable=False)
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     setting_name = Column(String, nullable=False)
+#     setting_value = Column(String, nullable=False)
 
-    # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-    user_constraint = ForeignKeyConstraint([user_id], [User.id])
+#     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
+#     user_constraint = ForeignKeyConstraint([user_id], [User.id])
 
-    # Define the CheckConstraint to enforce user_id existing in users table
-    user_check_constraint = CheckConstraint(
-        "user_id IN (SELECT id FROM users)", name="ck_user_id_in_users"
-    )
+#     # Define the CheckConstraint to enforce user_id existing in users table
+#     user_check_constraint = CheckConstraint(
+#         "user_id IN (SELECT id FROM users)", name="ck_user_id_in_users"
+#     )
 
-    # Define the many to one relationship with User
-    user = relationship("User", back_populates="user_settings")
+#     # Define the many to one relationship with User
+#     user = relationship("User", back_populates="user_settings")
 
 
-class Interaction(ModelBase):
-    __tablename__ = "interactions"
+class Conversation(ModelBase):
+    __tablename__ = "conversations"
 
     id = Column(Uuid, primary_key=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    interaction_summary = Column(String, nullable=False)
+    conversation_summary = Column(String, nullable=False)
     needs_summary = Column(Boolean, nullable=False, default=True)
     last_selected_collection_id = Column(Integer, nullable=False, default=-1)
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
-    conversations = relationship("Conversation", back_populates="interaction")
+    conversation_messages = relationship("ConversationMessage", back_populates="conversation")
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
@@ -101,23 +105,23 @@ class Interaction(ModelBase):
     )
 
     # Define the relationship with User and Conversation
-    user = relationship("User", back_populates="interactions")
+    user = relationship("User", back_populates="conversations")
 
 
-class Conversation(ModelBase):
-    __tablename__ = "conversations"
+class ConversationMessage(ModelBase):
+    __tablename__ = "conversation_messages"
 
     id = Column(Integer, primary_key=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
+    conversation_id = Column(Uuid, ForeignKey("conversations.id"), nullable=False)
     conversation_role_type_id = Column(
         Integer, ForeignKey("conversation_role_types.id")
     )
-    conversation_text = Column(String, nullable=False)
+    message_text = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     additional_metadata = Column(String, nullable=True)
-    #embedding = Column(Vector(dim=None), nullable=True)
-    #embedding_model_name = Column(String, nullable=False)
+    # embedding = Column(Vector(dim=None), nullable=True)
+    # embedding_model_name = Column(String, nullable=False)
     exception = Column(String, nullable=True)
 
     # flag for deletion
@@ -137,20 +141,20 @@ class Conversation(ModelBase):
         name="ck_user_id_in_users",
     )
 
-    # Define the foreign key constraint to ensure the interaction_id exists in the interactions table
-    interaction_constraint = ForeignKeyConstraint([interaction_id], ["interactions.id"])
+    # Define the foreign key constraint to ensure the conversation_id exists in the conversations table
+    conversation_constraint = ForeignKeyConstraint([conversation_id], ["conversations.id"])
 
-    # Define the CheckConstraint to enforce interaction_id existing in conversations table
+    # Define the CheckConstraint to enforce conversation_id existing in conversation_messages table
     conversation_check_constraint = CheckConstraint(
-        "interaction_id IN (SELECT id FROM interactions)",
-        name="ck_interaction_id_in_interactions",
+        "conversation_id IN (SELECT id FROM conversations)",
+        name="ck_conversation_id_in_conversations",
     )
 
     # Define the relationship with User
-    user = relationship("User", back_populates="conversations")
-    interaction = relationship("Interaction", back_populates="conversations")
+    user = relationship("User", back_populates="conversation_messages")
+    conversation = relationship("Conversation", back_populates="conversation_messages")
     conversation_role_type = relationship(
-        "ConversationRoleType", back_populates="conversations"
+        "ConversationRoleType", back_populates="conversation_messages"
     )
 
 
@@ -160,8 +164,8 @@ class ConversationRoleType(ModelBase):
     id = Column(Integer, primary_key=True)
     role_type = Column(String, nullable=False)
 
-    conversations = relationship(
-        "Conversation", back_populates="conversation_role_type"
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="conversation_role_type"
     )
 
 
@@ -292,104 +296,3 @@ class DocumentCollection(ModelBase):
     documents = relationship("Document", back_populates="collection")
 
     files = relationship("File", back_populates="collection")
-
-
-class Project(ModelBase):
-    __tablename__ = "projects"
-
-    id = Column(Integer, primary_key=True)
-    project_name = Column(String, nullable=False, unique=True)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)
-
-
-class DesignDecisions(ModelBase):
-    __tablename__ = "design_decisions"
-
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    component = Column(String)
-    decision = Column(String, nullable=False)
-    details = Column(String, nullable=False)
-
-    project = relationship("Project", backref="design_decisions")
-
-
-class UserNeeds(ModelBase):
-    __tablename__ = "user_needs"
-
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    category = Column(String)
-    text = Column(String, nullable=False)
-
-    project = relationship("Project", backref="user_needs")
-
-
-class Requirements(ModelBase):
-    __tablename__ = "requirements"
-
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    user_need_id = Column(Integer, ForeignKey("user_needs.id"), nullable=False)
-    category = Column(String)
-    text = Column(String, nullable=False)
-
-    project = relationship("Project", backref="requirements")
-    user_need = relationship("UserNeeds", backref="requirements")
-
-
-class AdditionalDesignInputs(ModelBase):
-    __tablename__ = "additional_design_inputs"
-
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    requirement_id = Column(Integer, ForeignKey("requirements.id"), nullable=False)
-    file_id = Column(Integer, ForeignKey("files.id"), nullable=False)
-    description = Column(String, nullable=False)
-
-    project = relationship("Project", backref="additional_design_inputs")
-    requirements = relationship("Requirements", backref="additional_design_inputs")
-    file = relationship("File", backref="additional_design_inputs")
-
-
-class Component(Base):
-    __tablename__ = "components"
-
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    name = Column(String, nullable=False)
-    purpose = Column(String, nullable=False)
-
-
-class ComponentDataHandling(Base):
-    __tablename__ = "component_data_handling"
-
-    id = Column(Integer, primary_key=True)
-    component_id = Column(
-        Integer, ForeignKey("components.id", ondelete="CASCADE"), nullable=False
-    )
-    data_name = Column(String, nullable=False)
-    data_type = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-
-
-class ComponentInteraction(Base):
-    __tablename__ = "component_interactions"
-
-    id = Column(Integer, primary_key=True)
-    component_id = Column(
-        Integer, ForeignKey("components.id", ondelete="CASCADE"), nullable=False
-    )
-    interacts_with = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-
-
-class ComponentDependency(Base):
-    __tablename__ = "component_dependencies"
-
-    id = Column(Integer, primary_key=True)
-    component_id = Column(
-        Integer, ForeignKey("components.id", ondelete="CASCADE"), nullable=False
-    )
-    dependency_name = Column(String, nullable=False)
-    description = Column(String, nullable=False)

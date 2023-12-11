@@ -7,9 +7,9 @@ from langchain.base_language import BaseLanguageModel
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.db.models.conversations import SearchType
+from src.db.models.conversation_messages import SearchType
 from src.db.models.documents import Documents
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 
 from src.utilities.token_helper import num_tokens_from_string
 
@@ -18,9 +18,9 @@ from src.ai.llm_helper import get_tool_llm
 
 
 class CodeTool:
-    def __init__(self, configuration, interaction_manager: InteractionManager):
+    def __init__(self, configuration, conversation_manager: ConversationManager):
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
 
     def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
@@ -74,7 +74,7 @@ class CodeTool:
                         and not filename == code_dependency.name
                     ):
                         file = documents.get_file_by_name(
-                            filename, self.interaction_manager.collection_id
+                            filename, self.conversation_manager.collection_id
                         )
                         if file:
                             # Get the dependencies
@@ -227,7 +227,7 @@ class CodeTool:
 
         file_data = documents.get_file_data(file_model.id).decode("utf-8")
 
-        max_code_file_size = self.interaction_manager.tool_kwargs.get(
+        max_code_file_size = self.conversation_manager.tool_kwargs.get(
             "max_code_file_size", 5000
         )
         if num_tokens_from_string(file_data) > max_code_file_size:
@@ -287,9 +287,9 @@ class CodeTool:
                 related_documents = documents.search_document_embeddings(
                     target_signature,
                     SearchType.Similarity,
-                    self.interaction_manager.collection_id,
+                    self.conversation_manager.collection_id,
                     target_file_id,
-                    top_k=self.interaction_manager.tool_kwargs.get("search_top_k", 10),
+                    top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 10),
                 )
 
                 full_metadata_list = []
@@ -310,7 +310,7 @@ class CodeTool:
                 # TODO: ... magic number
                 # Loop through the full metadata list and add it to the output, checking to see if we're over the arbitrary token limit of 1000
                 for doc in related_documents:
-                    max_document_chunk_size = self.interaction_manager.tool_kwargs.get(
+                    max_document_chunk_size = self.conversation_manager.tool_kwargs.get(
                         "max_document_chunk_size", 1000
                     )
                     if (
@@ -351,11 +351,11 @@ class CodeTool:
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
-        C_STUBBING_TEMPLATE = self.interaction_manager.prompt_manager.get_prompt(
+        C_STUBBING_TEMPLATE = self.conversation_manager.prompt_manager.get_prompt(
             "code_stubbing", "C_STUBBING_TEMPLATE"
         )
 
-        stub_dependencies_template = self.interaction_manager.prompt_manager.get_prompt(
+        stub_dependencies_template = self.conversation_manager.prompt_manager.get_prompt(
             "code_stubbing",
             "STUB_DEPENDENCIES_TEMPLATE",
         )
@@ -394,7 +394,7 @@ class CodeTool:
                     stub_dependencies_template=stub_dependencies,
                 )
                 stubbed_code = llm.predict(
-                    prompt, callbacks=self.interaction_manager.agent_callbacks
+                    prompt, callbacks=self.conversation_manager.agent_callbacks
                 )
                 break
 

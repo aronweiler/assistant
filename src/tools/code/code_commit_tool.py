@@ -15,7 +15,7 @@ from src.tools.code.issue_tool import IssueTool
 
 # Importing database models and utilities.
 from src.db.models.documents import Documents
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
@@ -38,16 +38,16 @@ class CodeCommitTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
     ):
         """
-        Initializes the CodeCommitTool with a given configuration and an interaction manager.
+        Initializes the CodeCommitTool with a given configuration and an conversation manager.
 
         :param configuration: Configuration settings for the tool.
-        :param interaction_manager: The manager that handles interactions with language models.
+        :param conversation_manager: The manager that handles interactions with language models.
         """
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
 
         # Constants for environment variables and source control providers
         self.source_control_provider = os.getenv(

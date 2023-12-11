@@ -2,7 +2,7 @@ import subprocess
 import os
 
 from src.db.models.documents import Documents
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 
 # TODO: Make this configurable
 LLAVA_CMD = '{llava_path} -m {llava_model} --mmproj {llava_mmproj} --temp {llava_temp} -ngl {llava_gpu_layers} -p "{prompt}" --image "{image_path}"'
