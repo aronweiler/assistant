@@ -5,7 +5,7 @@ from langchain.base_language import BaseLanguageModel
 from src.db.models.conversation_messages import ConversationMessages, SearchType, ConversationMessageModel
 from src.db.models.users import Users
 from src.db.models.documents import Documents
-from src.db.models.interactions import Interactions
+from src.db.models.conversations import Conversations
 
 from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
 from src.memory.token_buffer import ConversationTokenBufferMemory
@@ -13,7 +13,7 @@ from src.memory.token_buffer import ConversationTokenBufferMemory
 from src.ai.prompts.prompt_manager import PromptManager
 
 
-class InteractionManager:
+class ConversationManager:
     """Class that manages the interactions for the AI, including conversation history."""
 
     def __init__(
@@ -29,13 +29,13 @@ class InteractionManager:
         user_id: int = None,
         user_name: str = None,
         user_location: str = None,
-        interaction_needs_summary: bool = True,
+        conversation_needs_summary: bool = True,
         override_memory: ConversationTokenBufferMemory = None,
     ):
-        """Creates a new InteractionManager, and loads the conversation memory from the database.
+        """Creates a new ConversationManager, and loads the conversation memory from the database.
 
         Args:
-            conversation_id (int): The interaction ID to use to construct the interaction manager.
+            conversation_id (int): The conversation ID to use to construct the conversation manager.
         """
 
         self.prompt_manager = prompt_manager
@@ -44,7 +44,7 @@ class InteractionManager:
         self.user_id = user_id
         self.user_name = user_name
         self.user_location = user_location
-        self.interaction_needs_summary = interaction_needs_summary
+        self.conversation_needs_summary = conversation_needs_summary
 
         if conversation_id is None:
             raise Exception("conversation_id cannot be None")
@@ -55,10 +55,10 @@ class InteractionManager:
         if llm is None:
             raise Exception("llm cannot be None")
 
-        # Set our internal interaction id
+        # Set our internal conversation id
         self.conversation_id = conversation_id
 
-        self.interactions_helper = Interactions()
+        self.conversations_helper = Conversations()
         self.conversation_messages_helper = ConversationMessages()
         self.users_helper = Users()
         self.documents_helper = Documents()
@@ -77,8 +77,8 @@ class InteractionManager:
         self.user_email = user.email
         self.user_location = user.location
 
-        # Ensure the interaction exists
-        self._ensure_interaction_exists(self.user_id)
+        # Ensure the conversation exists
+        self._ensure_conversation_exists(self.user_id)
 
         if not override_memory:
             # Create the conversation memory
@@ -89,14 +89,14 @@ class InteractionManager:
         else:
             self.conversation_token_buffer_memory = override_memory
 
-    def set_interaction_summary(self, summary: str):
-        """Sets the interaction summary to the specified summary."""
+    def set_conversation_summary(self, summary: str):
+        """Sets the conversation summary to the specified summary."""
 
-        self.interactions_helper.update_interaction_summary(
+        self.conversations_helper.update_conversation_summary(
             self.conversation_id, summary, False
         )
 
-        self.interaction_needs_summary = False
+        self.conversation_needs_summary = False
 
     def get_loaded_documents_for_display(self):
         """Gets the loaded documents for the specified collection."""
@@ -157,38 +157,38 @@ class InteractionManager:
             for file in self.documents_helper.get_files_in_collection(self.collection_id)
         ]
 
-    def get_interaction(self):
-        """Gets the interaction for the specified interaction ID."""
+    def get_conversation(self):
+        """Gets the conversation for the specified conversation ID."""
 
-        return self.interactions_helper.get_interaction(self.conversation_id)
+        return self.conversations_helper.get_conversation(self.conversation_id)
 
-    def _ensure_interaction_exists(self, user_id: int):
-        """Ensures the interaction exists, and creates it if it doesn't."""
-        # Get the interaction from the db
-        interaction = self.interactions_helper.get_interaction(self.conversation_id)
+    def _ensure_conversation_exists(self, user_id: int):
+        """Ensures the conversation exists, and creates it if it doesn't."""
+        # Get the conversation from the db
+        conversation = self.conversations_helper.get_conversation(self.conversation_id)
 
-        # If the interaction doesn't exist, create it
-        if interaction is None:
-            self.interactions_helper.create_interaction(
+        # If the conversation doesn't exist, create it
+        if conversation is None:
+            self.conversations_helper.create_conversation(
                 self.conversation_id,
                 "New Chat",
                 user_id,
             )
-            self.interaction_needs_summary = True
+            self.conversation_needs_summary = True
 
             logging.info(
                 f"Interaction ID: {self.conversation_id} created for user {user_id}"
             )
         else:
-            # The interaction already exists, but could still need summary
-            self.interaction_needs_summary = interaction.needs_summary
+            # The conversation already exists, but could still need summary
+            self.conversation_needs_summary = conversation.needs_summary
 
             logging.info(
-                f"Interaction ID: {self.conversation_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
+                f"Interaction ID: {self.conversation_id} already exists for user {user_id}, needs summary: {self.conversation_needs_summary}"
             )
 
     def _create_default_conversation_memory(self, llm, max_conversation_history_tokens):
-        """Creates the conversation memory for the interaction."""
+        """Creates the conversation memory for the conversation."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
             self.conversation_id, conversation_messages=self.conversation_messages_helper
@@ -209,5 +209,5 @@ class InteractionManager:
         )
 
         logging.info(
-            f"Conversation memory created for interaction {self.conversation_id}, with max_conversation_history_tokens limit {max_conversation_history_tokens}"
+            f"Conversation memory created for conversation {self.conversation_id}, with max_conversation_history_tokens limit {max_conversation_history_tokens}"
         )

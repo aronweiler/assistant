@@ -6,7 +6,7 @@ from typing import List
 
 from langchain.base_language import BaseLanguageModel
 
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.tools.code.code_commit_tool import CodeCommitTool
 from src.tools.code.issue_tool import IssueTool
 
@@ -211,7 +211,7 @@ class ToolManager:
         ]
 
         # Now filter them down based on document-related tools, and if there are documents loaded
-        if self.interaction_manager.get_loaded_documents_count() <= 0:
+        if self.conversation_manager.get_loaded_documents_count() <= 0:
             tools_that_should_be_enabled = [
                 self.tools[tool]["tool"]
                 for tool in tools_that_should_be_enabled
@@ -260,50 +260,50 @@ class ToolManager:
             return False
 
     def initialize_tools(
-        self, configuration, interaction_manager: InteractionManager
+        self, configuration, conversation_manager: ConversationManager
     ) -> None:
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
 
         """Used to create the actual tools in the tool set."""
         document_tool = DocumentTool(
-            configuration=configuration, interaction_manager=interaction_manager
+            configuration=configuration, conversation_manager=conversation_manager
         )
         spreadsheet_tool = SpreadsheetsTool(
-            configuration=configuration, interaction_manager=interaction_manager
+            configuration=configuration, conversation_manager=conversation_manager
         )
         code_tool = CodeTool(
             configuration=configuration,
-            interaction_manager=interaction_manager,
+            conversation_manager=conversation_manager,
         )
         cvss_tool = CvssTool(
-            configuration=configuration, interaction_manager=interaction_manager
+            configuration=configuration, conversation_manager=conversation_manager
         )
         stubber_tool = Stubber(
             code_tool=code_tool,
             document_tool=document_tool,
             # callbacks=self.callbacks,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )
         code_review_tool = CodeReviewTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )
         code_refactor_tool = CodeRefactorTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )
         issue_tool = IssueTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )
         commit_tool = CodeCommitTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )        
         llm_tool = LLMTool(
             configuration=self.configuration,
-            interaction_manager=self.interaction_manager,
+            conversation_manager=self.conversation_manager,
         )
         weather_tool = WeatherTool()
 

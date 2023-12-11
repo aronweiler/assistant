@@ -33,7 +33,7 @@ class ConversationMessages(VectorDatabase):
             ).update({ConversationMessage.is_deleted: True})
             session.commit()
 
-    def delete_conversation_by_interaction_id(self, conversation_id: UUID) -> None:
+    def delete_conversation_by_conversation_id(self, conversation_id: UUID) -> None:
         with self.session_context(self.Session()) as session:
             session.query(ConversationMessage).filter(
                 ConversationMessage.conversation_id == conversation_id
@@ -80,7 +80,7 @@ class ConversationMessages(VectorDatabase):
 
             return [ConversationMessageModel.from_database_model(c) for c in query]
 
-    def get_conversations_for_interaction(
+    def get_conversations_for_conversation(
         self, conversation_id: UUID, top_k: int = None, return_deleted=None
     ) -> List[ConversationMessageModel]:
         if return_deleted is None:

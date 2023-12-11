@@ -16,7 +16,7 @@ from src.tools.code.code_dependency import CodeDependency
 
 from src.db.models.documents import Documents
 
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.db.models.domain.file_model import FileModel
 
 # Create an basic agent that takes a single input, runs it through a tool, and returns the output
@@ -27,10 +27,10 @@ class Stubber:
         self,
         code_tool: CodeTool,
         document_tool: DocumentTool,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
         callbacks: list = [],
     ) -> None:
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
         self.agent = StubbingAgent()
         self.callbacks = callbacks
 
@@ -63,7 +63,7 @@ class Stubber:
         """
 
         return self.agent_executor.run(
-            file_id=file_id, collection_id=self.interaction_manager.collection_id
+            file_id=file_id, collection_id=self.conversation_manager.collection_id
         )
 
 

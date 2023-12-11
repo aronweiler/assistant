@@ -23,7 +23,7 @@ from src.utilities.configuration_utilities import (
 
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
-from src.db.models.interactions import Interactions
+from src.db.models.conversations import Conversations
 from src.db.models.conversation_messages import ConversationMessages
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandler
@@ -95,34 +95,34 @@ def set_user_id_from_email(user_email):
     st.session_state.user_id = user.id
 
 
-def get_interaction_id_index(interaction_pairs, selected_interaction):
-    """Gets the index of the selected interaction id"""
+def get_conversation_id_index(conversation_pairs, selected_conversation):
+    """Gets the index of the selected conversation id"""
     index = 0
-    for i, interaction_pair in enumerate(interaction_pairs):
-        if interaction_pair.split(":")[0] == selected_interaction:
+    for i, conversation_pair in enumerate(conversation_pairs):
+        if conversation_pair.split(":")[0] == selected_conversation:
             index = i
             break
 
     return index
 
 def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
-    """Loads the interaction selectbox"""
+    """Loads the conversation selectbox"""
 
     try:
-        interaction_pairs = get_interaction_pairs()
-        if interaction_pairs is None:
+        conversation_pairs = get_conversation_pairs()
+        if conversation_pairs is None:
             return
         
         index = 0
         if "rag_ai" in st.session_state:
-            selected_interaction = st.session_state["rag_ai"].interaction_manager.conversation_id        
-            index = get_interaction_id_index(interaction_pairs, selected_interaction)            
+            selected_conversation = st.session_state["rag_ai"].conversation_manager.conversation_id        
+            index = get_conversation_id_index(conversation_pairs, selected_conversation)            
 
         tab.selectbox(
             "Select Conversation",
-            interaction_pairs,
+            conversation_pairs,
             index=index,
-            key="interaction_summary_selectbox",
+            key="conversation_summary_selectbox",
             format_func=lambda x: x.split(":")[1],
             on_change=load_ai_callback,
         )
@@ -133,45 +133,45 @@ def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
             "➕",
             help="Create a new conversation",
             key="new_chat_button",
-            on_click=create_interaction,
+            on_click=create_conversation,
             kwargs={"conversation_summary": "Empty Chat", "load_ai_callback": load_ai_callback},
         )
 
         # col3
         if col4.button(
             "✏️",
-            key="edit_interaction",
+            key="edit_conversation",
             help="Edit this conversation name",
             use_container_width=False,
         ):
-            selected_interaction_pair = st.session_state.get(
-                "interaction_summary_selectbox"
+            selected_conversation_pair = st.session_state.get(
+                "conversation_summary_selectbox"
             )
 
-            with tab.form(key="edit_interaction_name_form", clear_on_submit=True):
+            with tab.form(key="edit_conversation_name_form", clear_on_submit=True):
                 # col1a, col2a = tab.columns(2)
                 st.text_input(
                     "Edit conversation name",
-                    key="new_interaction_name",
-                    value=selected_interaction_pair.split(":")[1],
+                    key="new_conversation_name",
+                    value=selected_conversation_pair.split(":")[1],
                 )
 
                 st.form_submit_button(
                     label="Save",
-                    # key="save_interaction_name",
+                    # key="save_conversation_name",
                     help="Click to save",
                     type="primary",
-                    on_click=update_interaction_name,
+                    on_click=update_conversation_name,
                 )
 
-        if "confirm_interaction_delete" not in st.session_state:
-            st.session_state.confirm_interaction_delete = False
+        if "confirm_conversation_delete" not in st.session_state:
+            st.session_state.confirm_conversation_delete = False
 
-        if st.session_state.confirm_interaction_delete == False:
+        if st.session_state.confirm_conversation_delete == False:
             col1.button(
                 "🗑️",
                 help="Delete this conversation",
-                on_click=set_confirm_interaction_delete,
+                on_click=set_confirm_conversation_delete,
                 kwargs={"val": True},
                 key=str(uuid.uuid4()),
             )
@@ -180,52 +180,52 @@ def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
                 "✅",
                 help="Click to confirm delete",
                 key=str(uuid.uuid4()),
-                on_click=delete_interaction,
-                kwargs={"conversation_id": get_selected_interaction_id()},
+                on_click=delete_conversation,
+                kwargs={"conversation_id": get_selected_conversation_id()},
             )
             col1.button(
                 "❌",
                 help="Click to cancel delete",
-                on_click=set_confirm_interaction_delete,
+                on_click=set_confirm_conversation_delete,
                 kwargs={"val": False},
                 key=str(uuid.uuid4()),
             )
 
     except Exception as e:
-        logging.error(f"Error loading interaction selectbox: {e}")
+        logging.error(f"Error loading conversation selectbox: {e}")
 
     tab.divider()
 
 
-def set_confirm_interaction_delete(val):
-    st.session_state.confirm_interaction_delete = val
+def set_confirm_conversation_delete(val):
+    st.session_state.confirm_conversation_delete = val
 
 
-def create_interaction(conversation_summary, load_ai_callback = None):
-    """Creates an interaction for the current user with the specified summary"""
+def create_conversation(conversation_summary, load_ai_callback = None):
+    """Creates an conversation for the current user with the specified summary"""
     
     if "user_id" not in st.session_state:
         # Sometimes this will happen if we're switching controls/screens
         return
     
-    new_interaction = str(uuid.uuid4())
+    new_conversation = str(uuid.uuid4())
     
-    Interactions().create_interaction(
-        id=new_interaction,
+    Conversations().create_conversation(
+        id=new_conversation,
         conversation_summary=conversation_summary,
         user_id=st.session_state.user_id,
     )
     
     if load_ai_callback:
-        load_ai_callback(override_interaction_id=new_interaction)
+        load_ai_callback(override_conversation_id=new_conversation)
 
 
-def get_interaction_pairs():
+def get_conversation_pairs():
     """Gets the interactions for the current user in 'UUID:STR' format"""
     interactions = None
 
     if "user_id" in st.session_state:
-        interactions = Interactions().get_interactions_by_user_id(
+        interactions = Conversations().get_conversation_by_user_id(
             st.session_state.user_id
         )
 
@@ -235,25 +235,25 @@ def get_interaction_pairs():
     # Reverse the list so the most recent interactions are at the top
     interactions.reverse()
 
-    interaction_pairs = [f"{i.id}:{i.conversation_summary}" for i in interactions]
+    conversation_pairs = [f"{i.id}:{i.conversation_summary}" for i in interactions]
 
-    print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
+    print(f"get_conversation_pairs: conversation_pairs: {str(conversation_pairs)}")
 
-    return interaction_pairs
+    return conversation_pairs
 
 
-def ensure_interaction():
-    """Ensures that an interaction exists for the current user"""
+def ensure_conversation():
+    """Ensures that an conversation exists for the current user"""
 
     # Only do this if we haven't already done it
     if (
-        "interaction_ensured" not in st.session_state
-        or not st.session_state["interaction_ensured"]
+        "conversation_ensured" not in st.session_state
+        or not st.session_state["conversation_ensured"]
     ):
-        if not get_interaction_pairs():
-            create_interaction("Empty Chat")
+        if not get_conversation_pairs():
+            create_conversation("Empty Chat")
 
-        st.session_state["interaction_ensured"] = True
+        st.session_state["conversation_ensured"] = True
 
 
 def ensure_user(user_email):
@@ -281,34 +281,34 @@ def ensure_user(user_email):
         return True
 
 
-def get_selected_interaction_id():
-    """Gets the selected interaction id from the selectbox"""
-    selected_interaction_pair = st.session_state.get("interaction_summary_selectbox")
+def get_selected_conversation_id():
+    """Gets the selected conversation id from the selectbox"""
+    selected_conversation_pair = st.session_state.get("conversation_summary_selectbox")
 
-    if not selected_interaction_pair:
+    if not selected_conversation_pair:
         return None
 
-    selected_interaction_id = selected_interaction_pair.split(":")[0]
+    selected_conversation_id = selected_conversation_pair.split(":")[0]
 
     logging.info(
-        f"get_selected_interaction_id: selected_interaction_id: {selected_interaction_id}"
+        f"get_selected_conversation_id: selected_conversation_id: {selected_conversation_id}"
     )
 
-    return selected_interaction_id
+    return selected_conversation_id
 
 
-def delete_interaction(conversation_id):
+def delete_conversation(conversation_id):
     """Deletes the conversation item with the specified id"""
 
-    # Delete the interaction (Note: This just sets the is_deleted flag to True)
-    interactions_helper = Interactions()
-    interactions_helper.delete_interaction(conversation_id)
+    # Delete the conversation (Note: This just sets the is_deleted flag to True)
+    interactions_helper = Conversations()
+    interactions_helper.delete_conversation(conversation_id)
 
     # Mark the individual conversation items as deleted, as well
     conversation_messages_helper = ConversationMessages()
-    conversation_messages_helper.delete_conversation_by_interaction_id(conversation_id)
+    conversation_messages_helper.delete_conversation_by_conversation_id(conversation_id)
 
-    set_confirm_interaction_delete(False)
+    set_confirm_conversation_delete(False)
 
 
 def get_available_collections():
@@ -404,9 +404,9 @@ def create_collection():
         )
 
         if "rag_ai" in st.session_state:
-            st.session_state.rag_ai.interaction_manager.collection_id = collection.id
-            st.session_state.rag_ai.interaction_manager.interactions_helper.update_interaction_collection(
-                get_selected_interaction_id(), collection.id
+            st.session_state.rag_ai.conversation_manager.collection_id = collection.id
+            st.session_state.rag_ai.conversation_manager.conversations_helper.update_conversation_collection(
+                get_selected_conversation_id(), collection.id
             )
 
         return collection.id
@@ -895,11 +895,11 @@ def show_version():
 
 
 def on_change_collection():
-    # Set the last active collection for this interaction (conversation)
+    # Set the last active collection for this conversation (conversation)
     collection_id = get_selected_collection_id()
-    interactions_helper = Interactions()
-    interactions_helper.update_interaction_collection(
-        get_selected_interaction_id(), collection_id
+    interactions_helper = Conversations()
+    interactions_helper.update_conversation_collection(
+        get_selected_conversation_id(), collection_id
     )
 
 
@@ -917,7 +917,7 @@ def create_collection_selectbox(ai):
     # Find the index of the selected collection
     for i, collection in enumerate(available_collections):
         if int(collection.split(":")[0]) == int(
-            ai.interaction_manager.get_interaction().last_selected_collection_id
+            ai.conversation_manager.get_conversation().last_selected_collection_id
         ):
             selected_collection_id_index = i
             break
@@ -940,11 +940,11 @@ def refresh_messages_session_state(ai_instance):
     """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
 
     entire_chat_history = (
-        ai_instance.interaction_manager.conversation_token_buffer_memory.chat_memory.messages
+        ai_instance.conversation_manager.conversation_token_buffer_memory.chat_memory.messages
     )
 
     messages_in_memory = (
-        ai_instance.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+        ai_instance.conversation_manager.conversation_token_buffer_memory.buffer_as_messages
     )
 
     logging.info(
@@ -1173,8 +1173,8 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 logging.debug(f"kwargs: {kwargs}")
 
                 try:
-                    ai_instance.interaction_manager.agent_callbacks = agent_callbacks
-                    ai_instance.interaction_manager.llm_callbacks = llm_callbacks
+                    ai_instance.conversation_manager.agent_callbacks = agent_callbacks
+                    ai_instance.conversation_manager.llm_callbacks = llm_callbacks
 
                     result = ai_instance.query(
                         query=prompt,
@@ -1230,13 +1230,13 @@ def set_ai_mode():
     set_jarvis_ai_config_element("ai_mode", st.session_state["ai_mode"])
 
 
-def update_interaction_name():
-    conversation_id = get_selected_interaction_id()
-    interaction_name = st.session_state["new_interaction_name"]
+def update_conversation_name():
+    conversation_id = get_selected_conversation_id()
+    conversation_name = st.session_state["new_conversation_name"]
 
     ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
-    ai.interaction_manager.interactions_helper.update_interaction_summary(
+    ai.conversation_manager.conversations_helper.update_conversation_summary(
         conversation_id=conversation_id,
-        conversation_summary=interaction_name,
+        conversation_summary=conversation_name,
         needs_summary=False,
     )

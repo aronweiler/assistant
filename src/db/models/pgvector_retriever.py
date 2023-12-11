@@ -48,7 +48,7 @@ class PGVectorRetriever(BaseRetriever):
 
         if collection is None:
             raise Exception(
-                f"Collection '{collection_id}' for interaction '{conversation_id}' not found"
+                f"Collection '{collection_id}' for conversation '{conversation_id}' not found"
             )
 
         if "search_type" in self.search_kwargs:

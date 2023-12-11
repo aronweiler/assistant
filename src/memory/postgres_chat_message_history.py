@@ -21,7 +21,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         """Initialize the PostgresChatMessageHistory.
 
         Args:
-            conversation_id: The ID of the interaction to store messages for.
+            conversation_id: The ID of the conversation to store messages for.
             conversations: The Conversations object to use for storing messages.
         """
         self.conversation_id = conversation_id
@@ -34,7 +34,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         """A list of Messages stored in the DB."""
         # return self.chat_messages
         chat_messages = []
-        messages = self.conversation_messages.get_conversations_for_interaction(
+        messages = self.conversation_messages.get_conversations_for_conversation(
             self.conversation_id
         )
         for message in messages:

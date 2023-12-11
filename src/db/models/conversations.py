@@ -7,23 +7,23 @@ from src.db.models.vector_database import VectorDatabase
 from src.db.models.domain.conversation_model import ConversationModel
 
 
-class Interactions(VectorDatabase):
-    def create_interaction(
+class Conversations(VectorDatabase):
+    def create_conversation(
         self, id: UUID, conversation_summary: str, user_id: int
     ) -> ConversationModel:
         with self.session_context(self.Session()) as session:
             conversation_summary = conversation_summary.strip()
 
-            interaction = Conversation(
+            conversation = Conversation(
                 id=id, conversation_summary=conversation_summary, user_id=user_id
             )
 
-            session.add(interaction)
+            session.add(conversation)
             session.commit()
 
-            return ConversationModel.from_database_model(interaction)
+            return ConversationModel.from_database_model(conversation)
 
-    def update_interaction_summary(
+    def update_conversation_summary(
         self,
         conversation_id: UUID,
         conversation_summary: str,
@@ -43,7 +43,7 @@ class Interactions(VectorDatabase):
 
             session.commit()
 
-    def update_interaction_collection(
+    def update_conversation_collection(
         self,
         conversation_id: UUID,
         last_selected_collection_id: int,
@@ -59,7 +59,7 @@ class Interactions(VectorDatabase):
 
             session.commit()
 
-    def get_interaction(self, id: UUID) -> ConversationModel:
+    def get_conversation(self, id: UUID) -> ConversationModel:
         with self.session_context(self.Session()) as session:
             query = session.query(
                 Conversation.conversation_summary,
@@ -73,7 +73,7 @@ class Interactions(VectorDatabase):
 
             return ConversationModel.from_database_model(query.first())
 
-    def get_interactions_by_user_id(self, user_id: int) -> List[ConversationModel]:
+    def get_conversation_by_user_id(self, user_id: int) -> List[ConversationModel]:
         with self.session_context(self.Session()) as session:
             query = session.query(
                 Conversation.conversation_summary,
@@ -87,7 +87,7 @@ class Interactions(VectorDatabase):
 
             return [ConversationModel.from_database_model(i) for i in query.all()]
 
-    def delete_interaction(self, conversation_id: UUID) -> None:
+    def delete_conversation(self, conversation_id: UUID) -> None:
         with self.session_context(self.Session()) as session:
             session.query(Conversation).filter(
                 Conversation.id == conversation_id

@@ -3,7 +3,7 @@ from langchain.chains.llm import LLMChain
 from langchain.memory.readonly import ReadOnlySharedMemory
 from langchain.memory.token_buffer import ConversationTokenBufferMemory
 
-from src.ai.interactions.interaction_manager import InteractionManager
+from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
 from src.ai.system_info import get_system_information
 
@@ -12,11 +12,11 @@ class LLMTool:
     def __init__(
         self,
         configuration,
-        interaction_manager: InteractionManager,
+        conversation_manager: ConversationManager,
         llm_callbacks: list = [],
     ):
         self.configuration = configuration
-        self.interaction_manager = interaction_manager
+        self.conversation_manager = conversation_manager
         self.llm_callbacks = llm_callbacks
 
     def analyze_with_llm(self, query: str, data_to_analyze: str):
@@ -53,14 +53,14 @@ class LLMTool:
             for i in range(
                 0,
                 len(
-                    self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages
+                    self.conversation_manager.conversation_token_buffer_memory.buffer_as_messages
                 ),
                 2,
             ):
-                message1 = self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[
+                message1 = self.conversation_manager.conversation_token_buffer_memory.buffer_as_messages[
                     i
                 ]
-                message2 = self.interaction_manager.conversation_token_buffer_memory.buffer_as_messages[
+                message2 = self.conversation_manager.conversation_token_buffer_memory.buffer_as_messages[
                     i + 1
                 ]
 
@@ -73,7 +73,7 @@ class LLMTool:
 
         self.chain = LLMChain(
             llm=llm,
-            prompt=self.interaction_manager.prompt_manager.get_prompt(
+            prompt=self.conversation_manager.prompt_manager.get_prompt(
                 "conversational", "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
@@ -82,14 +82,14 @@ class LLMTool:
         return self.chain.run(
             system_prompt=f"You are a friendly AI agent who's purpose it is to answer the user's query. Do your best to answer given the available data, and your own knowledge.  If you don't know the answer, don't make anything up, just say you don't know.",
             input=query,
-            user_name=self.interaction_manager.user_name,
-            user_email=self.interaction_manager.user_email,
+            user_name=self.conversation_manager.user_name,
+            user_email=self.conversation_manager.user_email,
             system_information=get_system_information(
-                self.interaction_manager.user_location
+                self.conversation_manager.user_location
             ),
             context=data_to_analyze,
             loaded_documents="\n".join(
-                self.interaction_manager.get_loaded_documents_for_display()
+                self.conversation_manager.get_loaded_documents_for_display()
             ),
             callbacks=self.llm_callbacks,
         )
