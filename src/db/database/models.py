@@ -39,11 +39,11 @@ class User(ModelBase):
     email = Column(String, nullable=False, unique=True)
 
     # Define a one-to-many relationship with other tables
-    conversations = relationship("Conversation", back_populates="user")
+    conversation_messages = relationship("ConversationMessage", back_populates="user")
     interactions = relationship("Interaction", back_populates="user")
     files = relationship("File", back_populates="user")
     documents = relationship("Document", back_populates="user")
-    
+
     # TODO: Pull this back in when we refactor Jarvis to use this table
     # user_settings = relationship("UserSetting", back_populates="user")
 
@@ -93,7 +93,7 @@ class Interaction(ModelBase):
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
-    conversations = relationship("Conversation", back_populates="interaction")
+    conversation_messages = relationship("ConversationMessage", back_populates="interaction")
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
@@ -108,8 +108,8 @@ class Interaction(ModelBase):
     user = relationship("User", back_populates="interactions")
 
 
-class Conversation(ModelBase):
-    __tablename__ = "conversations"
+class ConversationMessage(ModelBase):
+    __tablename__ = "conversation_messages"
 
     id = Column(Integer, primary_key=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
@@ -117,11 +117,11 @@ class Conversation(ModelBase):
     conversation_role_type_id = Column(
         Integer, ForeignKey("conversation_role_types.id")
     )
-    conversation_text = Column(String, nullable=False)
+    message_text = Column(String, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"))
     additional_metadata = Column(String, nullable=True)
-    #embedding = Column(Vector(dim=None), nullable=True)
-    #embedding_model_name = Column(String, nullable=False)
+    # embedding = Column(Vector(dim=None), nullable=True)
+    # embedding_model_name = Column(String, nullable=False)
     exception = Column(String, nullable=True)
 
     # flag for deletion
@@ -144,17 +144,17 @@ class Conversation(ModelBase):
     # Define the foreign key constraint to ensure the interaction_id exists in the interactions table
     interaction_constraint = ForeignKeyConstraint([interaction_id], ["interactions.id"])
 
-    # Define the CheckConstraint to enforce interaction_id existing in conversations table
+    # Define the CheckConstraint to enforce interaction_id existing in conversation_messages table
     conversation_check_constraint = CheckConstraint(
         "interaction_id IN (SELECT id FROM interactions)",
         name="ck_interaction_id_in_interactions",
     )
 
     # Define the relationship with User
-    user = relationship("User", back_populates="conversations")
-    interaction = relationship("Interaction", back_populates="conversations")
+    user = relationship("User", back_populates="conversation_messages")
+    interaction = relationship("Interaction", back_populates="conversation_messages")
     conversation_role_type = relationship(
-        "ConversationRoleType", back_populates="conversations"
+        "ConversationRoleType", back_populates="conversation_messages"
     )
 
 
@@ -164,8 +164,8 @@ class ConversationRoleType(ModelBase):
     id = Column(Integer, primary_key=True)
     role_type = Column(String, nullable=False)
 
-    conversations = relationship(
-        "Conversation", back_populates="conversation_role_type"
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="conversation_role_type"
     )
 
 

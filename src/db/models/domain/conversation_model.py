@@ -1,12 +1,12 @@
-from src.db.database.models import Conversation
+from src.db.database.models import ConversationMessage
 from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 
-class ConversationModel:
+class ConversationMessageModel:
     def __init__(
         self,
         interaction_id,
-        conversation_text,
+        message_text,
         user_id,
         conversation_role_type: ConversationRoleType,
         id=None,
@@ -18,7 +18,7 @@ class ConversationModel:
         self.id = id
         self.record_created = record_created
         self.interaction_id = interaction_id
-        self.conversation_text = conversation_text
+        self.message_text = message_text
         self.user_id = user_id
         self.additional_metadata = additional_metadata
         self.exception = exception
@@ -26,12 +26,12 @@ class ConversationModel:
         self.conversation_role_type = conversation_role_type
 
     def to_database_model(self):
-        return Conversation(
+        return ConversationMessage(
             id=self.id,
             record_created=self.record_created,
             interaction_id=self.interaction_id,
             conversation_role_type_id=self.conversation_role_type.value,
-            conversation_text=self.conversation_text,
+            message_text=self.message_text,
             user_id=self.user_id,
             additional_metadata=self.additional_metadata,
             exception=self.exception,
@@ -50,7 +50,7 @@ class ConversationModel:
             conversation_role_type=ConversationRoleType(
                 db_conversation.conversation_role_type_id
             ),
-            conversation_text=db_conversation.conversation_text,
+            message_text=db_conversation.message_text,
             user_id=db_conversation.user_id,
             additional_metadata=db_conversation.additional_metadata,
             exception=db_conversation.exception,

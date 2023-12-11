@@ -10,7 +10,7 @@ from langchain.schema.messages import (
     FunctionMessage,
 )
 
-from src.db.models.conversations import Conversations, ConversationModel
+from src.db.models.conversations import Conversations, ConversationMessageModel
 from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 
@@ -39,11 +39,11 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         )
         for message in messages:
             if message.conversation_role_type == ConversationRoleType.USER:
-                chat_message = HumanMessage(content=message.conversation_text)
+                chat_message = HumanMessage(content=message.message_text)
             elif message.conversation_role_type == ConversationRoleType.ASSISTANT:
-                chat_message = AIMessage(content=message.conversation_text)
+                chat_message = AIMessage(content=message.message_text)
             elif message.conversation_role_type == ConversationRoleType.SYSTEM:
-                chat_message = SystemMessage(content=message.conversation_text)
+                chat_message = SystemMessage(content=message.message_text)
 
             chat_message.additional_kwargs = {"id": message.id}
             chat_messages.append(chat_message)
@@ -69,9 +69,9 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             raise ValueError("Unknown message type")
 
         self.conversations.add_conversation(
-            ConversationModel(
+            ConversationMessageModel(
                 interaction_id=self.interaction_id,
-                conversation_text=message.content,
+                message_text=message.content,
                 conversation_role_type=role_type,
                 user_id=self.user_id,
             )

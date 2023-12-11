@@ -2,7 +2,7 @@ import logging
 
 from langchain.base_language import BaseLanguageModel
 
-from src.db.models.conversations import Conversations, SearchType, ConversationModel
+from src.db.models.conversations import Conversations, SearchType, ConversationMessageModel
 from src.db.models.users import Users
 from src.db.models.documents import Documents
 from src.db.models.interactions import Interactions

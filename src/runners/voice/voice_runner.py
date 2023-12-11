@@ -336,13 +336,13 @@ class VoiceRunner(Runner):
     #         interaction_id=interaction_id,
     #         related_conversations="\n".join(
     #             [
-    #                 f"{c.record_created}: {c.conversation_text}"
+    #                 f"{c.record_created}: {c.message_text}"
     #                 for c in related_conversations
     #             ]
     #         ),
     #         user_conversations="\n".join(
     #             [
-    #                 f"{m.record_created}: {m.conversation_text}"
+    #                 f"{m.record_created}: {m.message_text}"
     #                 for m in user.conversations
     #             ]
     #         ),
