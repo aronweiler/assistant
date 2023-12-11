@@ -5,11 +5,7 @@ import logging
 
 from langchain.schema import AgentAction
 from langchain.schema.language_model import BaseLanguageModel
-from langchain.agents import (
-    AgentExecutor,
-    BaseMultiActionAgent,
-    BaseSingleActionAgent
-)
+from langchain.agents import AgentExecutor, BaseMultiActionAgent, BaseSingleActionAgent
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
@@ -381,9 +377,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 tool_details = self.get_tool_string(tool=tool)
 
         if len(self.wrong_tool_calls) > 0:
-            formatted_wrong_tool_calls = '\n'.join([f"({p['tool']}): {p['step_description']}" for p in self.wrong_tool_calls])
+            formatted_wrong_tool_calls = "\n".join(
+                [
+                    f"({p['tool']}): {p['step_description']}"
+                    for p in self.wrong_tool_calls
+                ]
+            )
             helpful_context = f"The planning AI (which came up with the idea to use this tool call) failed with regards to these tasks: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (incorrect) tool calls, and let them inform your tool use here."
-            
+
             # Reset the wrong tool calls
             self.wrong_tool_calls = []
 
