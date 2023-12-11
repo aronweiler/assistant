@@ -255,7 +255,7 @@ async def load_and_split_documents(
     # Pre-convert the word docs to PDFs and the excel docs to csvs
     converted_file_maps = convert_documents(document_directory)
 
-    documents = await load_documents(document_directory, converted_file_maps)
+    documents:List[Document] = await load_documents(document_directory, converted_file_maps)
 
     if documents and split_documents and not is_code:
         text_splitter = RecursiveCharacterTextSplitter(
