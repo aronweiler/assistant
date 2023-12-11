@@ -204,13 +204,13 @@ async def load_documents(source_dir: str, converted_file_maps: dict) -> List[Doc
         load_single_document(file_path, converted_file_maps) for file_path in paths
     ]
     docs = []
-    for future in asyncio.as_completed(tasks):
+    for task in asyncio.as_completed(tasks):
         try:
-            documents = await future
+            documents = await task
             if documents:
                 docs.extend(documents)
         except Exception as e:
-            logging.debug(f"Error loading {file_path}: {e}")
+            logging.error(f"Error loading document: {e}")
 
     return docs
 
@@ -247,7 +247,6 @@ async def load_and_split_documents(
     chunk_size: int,
     chunk_overlap: int,
 ) -> List[Document]:
-    # only accept directories
     if not os.path.isdir(document_directory):
         raise ValueError(
             f"document_directory must be a directory: {document_directory}"
@@ -258,31 +257,28 @@ async def load_and_split_documents(
 
     documents = await load_documents(document_directory, converted_file_maps)
 
-    if documents:
-        if split_documents and not is_code:
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-                length_function=num_tokens_from_string,
-            )
-            texts = text_splitter.split_documents(documents)
-
-            logging.debug(
-                f"Split into {len(texts)} chunks of text (chunk_size: {chunk_size}, chunk_overlap: {chunk_overlap})"
-            )
-        else:
-            texts = documents
-
-        # Remove TLP:WHITE from the page_content
-        for text in texts:
-            if "TLP:WHITE" in text.page_content:
-                text.page_content = text.page_content.replace("TLP:WHITE", "")
-
-        logging.debug(
-            f"Loaded {len(documents)} pages of documents from {document_directory}"
+    if documents and split_documents and not is_code:
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            length_function=num_tokens_from_string,
         )
+        texts = text_splitter.split_documents(documents)
+        logging.debug(
+            f"Split into {len(texts)} chunks of text (chunk_size: {chunk_size}, chunk_overlap: {chunk_overlap})"
+        )
+    else:
+        texts = documents
 
-        return texts
+    for text in texts:
+        if "TLP:WHITE" in text.page_content:
+            text.page_content = text.page_content.replace("TLP:WHITE", "")
+
+    logging.debug(
+        f"Loaded {len(documents)} pages of documents from {document_directory}"
+    )
+
+    return texts
 
 
 if __name__ == "__main__":
