@@ -115,7 +115,7 @@ def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
         
         index = 0
         if "rag_ai" in st.session_state:
-            selected_interaction = st.session_state["rag_ai"].interaction_manager.interaction_id        
+            selected_interaction = st.session_state["rag_ai"].interaction_manager.conversation_id        
             index = get_interaction_id_index(interaction_pairs, selected_interaction)            
 
         tab.selectbox(
@@ -134,7 +134,7 @@ def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
             help="Create a new conversation",
             key="new_chat_button",
             on_click=create_interaction,
-            kwargs={"interaction_summary": "Empty Chat", "load_ai_callback": load_ai_callback},
+            kwargs={"conversation_summary": "Empty Chat", "load_ai_callback": load_ai_callback},
         )
 
         # col3
@@ -181,7 +181,7 @@ def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
                 help="Click to confirm delete",
                 key=str(uuid.uuid4()),
                 on_click=delete_interaction,
-                kwargs={"interaction_id": get_selected_interaction_id()},
+                kwargs={"conversation_id": get_selected_interaction_id()},
             )
             col1.button(
                 "❌",
@@ -201,7 +201,7 @@ def set_confirm_interaction_delete(val):
     st.session_state.confirm_interaction_delete = val
 
 
-def create_interaction(interaction_summary, load_ai_callback = None):
+def create_interaction(conversation_summary, load_ai_callback = None):
     """Creates an interaction for the current user with the specified summary"""
     
     if "user_id" not in st.session_state:
@@ -212,7 +212,7 @@ def create_interaction(interaction_summary, load_ai_callback = None):
     
     Interactions().create_interaction(
         id=new_interaction,
-        interaction_summary=interaction_summary,
+        conversation_summary=conversation_summary,
         user_id=st.session_state.user_id,
     )
     
@@ -235,7 +235,7 @@ def get_interaction_pairs():
     # Reverse the list so the most recent interactions are at the top
     interactions.reverse()
 
-    interaction_pairs = [f"{i.id}:{i.interaction_summary}" for i in interactions]
+    interaction_pairs = [f"{i.id}:{i.conversation_summary}" for i in interactions]
 
     print(f"get_interaction_pairs: interaction_pairs: {str(interaction_pairs)}")
 
@@ -297,16 +297,16 @@ def get_selected_interaction_id():
     return selected_interaction_id
 
 
-def delete_interaction(interaction_id):
+def delete_interaction(conversation_id):
     """Deletes the conversation item with the specified id"""
 
     # Delete the interaction (Note: This just sets the is_deleted flag to True)
     interactions_helper = Interactions()
-    interactions_helper.delete_interaction(interaction_id)
+    interactions_helper.delete_interaction(conversation_id)
 
     # Mark the individual conversation items as deleted, as well
     conversations_helper = Conversations()
-    conversations_helper.delete_conversation_by_interaction_id(interaction_id)
+    conversations_helper.delete_conversation_by_interaction_id(conversation_id)
 
     set_confirm_interaction_delete(False)
 
@@ -742,7 +742,7 @@ def ingest_files(
 
                 ingest_progress_bar.progress(
                     calculate_progress(len(documents), current_chunk),
-                    text=f"Processing document {current_chunk} of {document_chunk_length}",
+                    text=f"Processing document chunk {current_chunk} of {document_chunk_length}",
                 )
 
                 # Get the file reference
@@ -1231,12 +1231,12 @@ def set_ai_mode():
 
 
 def update_interaction_name():
-    interaction_id = get_selected_interaction_id()
+    conversation_id = get_selected_interaction_id()
     interaction_name = st.session_state["new_interaction_name"]
 
     ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
     ai.interaction_manager.interactions_helper.update_interaction_summary(
-        interaction_id=interaction_id,
-        interaction_summary=interaction_name,
+        conversation_id=conversation_id,
+        conversation_summary=interaction_name,
         needs_summary=False,
     )

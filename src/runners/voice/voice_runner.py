@@ -187,7 +187,7 @@ class VoiceRunner(Runner):
 
     def process_activation(self, prediction):
         # Create an interaction ID for this activation
-        #interaction_id = uuid.uuid4()
+        #conversation_id = uuid.uuid4()
 
         wake_model = prediction["wake_word_model"]
 
@@ -301,7 +301,7 @@ class VoiceRunner(Runner):
 
                 # Store the exception
                 # self.conversations.store_conversation(
-                #     session, "Interaction failed.  See exception for details.", interaction_id, conversation_user, exception=str(e)
+                #     session, "Interaction failed.  See exception for details.", conversation_id, conversation_user, exception=str(e)
                 # )
 
     # def get_prompt(
@@ -309,7 +309,7 @@ class VoiceRunner(Runner):
     #     related_conversations,
     #     transcribed_audio,
     #     user: User,
-    #     interaction_id: uuid.UUID,
+    #     conversation_id: uuid.UUID,
     # ):
     #     user_info_string = f"associated_user: {user.email}, user_name: {user.name}, user_age: {user.age}, user_location: {user.location}"
 
@@ -333,7 +333,7 @@ class VoiceRunner(Runner):
     #         personality_keywords=personality_setting.setting_value
     #         if personality_setting is not None
     #         else "",
-    #         interaction_id=interaction_id,
+    #         conversation_id=conversation_id,
     #         related_conversations="\n".join(
     #             [
     #                 f"{c.record_created}: {c.message_text}"

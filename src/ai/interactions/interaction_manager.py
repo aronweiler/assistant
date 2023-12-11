@@ -18,7 +18,7 @@ class InteractionManager:
 
     def __init__(
         self,
-        interaction_id: int,
+        conversation_id: int,
         user_email: str,
         llm: BaseLanguageModel,
         prompt_manager: PromptManager,
@@ -35,7 +35,7 @@ class InteractionManager:
         """Creates a new InteractionManager, and loads the conversation memory from the database.
 
         Args:
-            interaction_id (int): The interaction ID to use to construct the interaction manager.
+            conversation_id (int): The interaction ID to use to construct the interaction manager.
         """
 
         self.prompt_manager = prompt_manager
@@ -46,8 +46,8 @@ class InteractionManager:
         self.user_location = user_location
         self.interaction_needs_summary = interaction_needs_summary
 
-        if interaction_id is None:
-            raise Exception("interaction_id cannot be None")
+        if conversation_id is None:
+            raise Exception("conversation_id cannot be None")
 
         if user_email is None:
             raise Exception("user_email cannot be None")
@@ -56,7 +56,7 @@ class InteractionManager:
             raise Exception("llm cannot be None")
 
         # Set our internal interaction id
-        self.interaction_id = interaction_id
+        self.conversation_id = conversation_id
 
         self.interactions_helper = Interactions()
         self.conversations_helper = Conversations()
@@ -93,7 +93,7 @@ class InteractionManager:
         """Sets the interaction summary to the specified summary."""
 
         self.interactions_helper.update_interaction_summary(
-            self.interaction_id, summary, False
+            self.conversation_id, summary, False
         )
 
         self.interaction_needs_summary = False
@@ -160,38 +160,38 @@ class InteractionManager:
     def get_interaction(self):
         """Gets the interaction for the specified interaction ID."""
 
-        return self.interactions_helper.get_interaction(self.interaction_id)
+        return self.interactions_helper.get_interaction(self.conversation_id)
 
     def _ensure_interaction_exists(self, user_id: int):
         """Ensures the interaction exists, and creates it if it doesn't."""
         # Get the interaction from the db
-        interaction = self.interactions_helper.get_interaction(self.interaction_id)
+        interaction = self.interactions_helper.get_interaction(self.conversation_id)
 
         # If the interaction doesn't exist, create it
         if interaction is None:
             self.interactions_helper.create_interaction(
-                self.interaction_id,
+                self.conversation_id,
                 "New Chat",
                 user_id,
             )
             self.interaction_needs_summary = True
 
             logging.info(
-                f"Interaction ID: {self.interaction_id} created for user {user_id}"
+                f"Interaction ID: {self.conversation_id} created for user {user_id}"
             )
         else:
             # The interaction already exists, but could still need summary
             self.interaction_needs_summary = interaction.needs_summary
 
             logging.info(
-                f"Interaction ID: {self.interaction_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
+                f"Interaction ID: {self.conversation_id} already exists for user {user_id}, needs summary: {self.interaction_needs_summary}"
             )
 
     def _create_default_conversation_memory(self, llm, max_conversation_history_tokens):
         """Creates the conversation memory for the interaction."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
-            self.interaction_id, conversations=self.conversations_helper
+            self.conversation_id, conversations=self.conversations_helper
         )
 
         self.postgres_chat_message_history.user_id = self.user_id
@@ -209,5 +209,5 @@ class InteractionManager:
         )
 
         logging.info(
-            f"Conversation memory created for interaction {self.interaction_id}, with max_conversation_history_tokens limit {max_conversation_history_tokens}"
+            f"Conversation memory created for interaction {self.conversation_id}, with max_conversation_history_tokens limit {max_conversation_history_tokens}"
         )

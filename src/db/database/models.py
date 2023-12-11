@@ -40,7 +40,7 @@ class User(ModelBase):
 
     # Define a one-to-many relationship with other tables
     conversation_messages = relationship("ConversationMessage", back_populates="user")
-    interactions = relationship("Interaction", back_populates="user")
+    conversations = relationship("Conversation", back_populates="user")
     files = relationship("File", back_populates="user")
     documents = relationship("Document", back_populates="user")
 
@@ -82,18 +82,18 @@ class User(ModelBase):
 #     user = relationship("User", back_populates="user_settings")
 
 
-class Interaction(ModelBase):
-    __tablename__ = "interactions"
+class Conversation(ModelBase):
+    __tablename__ = "conversations"
 
     id = Column(Uuid, primary_key=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    interaction_summary = Column(String, nullable=False)
+    conversation_summary = Column(String, nullable=False)
     needs_summary = Column(Boolean, nullable=False, default=True)
     last_selected_collection_id = Column(Integer, nullable=False, default=-1)
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
-    conversation_messages = relationship("ConversationMessage", back_populates="interaction")
+    conversation_messages = relationship("ConversationMessage", back_populates="conversation")
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
@@ -105,7 +105,7 @@ class Interaction(ModelBase):
     )
 
     # Define the relationship with User and Conversation
-    user = relationship("User", back_populates="interactions")
+    user = relationship("User", back_populates="conversations")
 
 
 class ConversationMessage(ModelBase):
@@ -113,7 +113,7 @@ class ConversationMessage(ModelBase):
 
     id = Column(Integer, primary_key=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    interaction_id = Column(Uuid, ForeignKey("interactions.id"), nullable=False)
+    conversation_id = Column(Uuid, ForeignKey("conversations.id"), nullable=False)
     conversation_role_type_id = Column(
         Integer, ForeignKey("conversation_role_types.id")
     )
@@ -141,18 +141,18 @@ class ConversationMessage(ModelBase):
         name="ck_user_id_in_users",
     )
 
-    # Define the foreign key constraint to ensure the interaction_id exists in the interactions table
-    interaction_constraint = ForeignKeyConstraint([interaction_id], ["interactions.id"])
+    # Define the foreign key constraint to ensure the conversation_id exists in the conversations table
+    conversation_constraint = ForeignKeyConstraint([conversation_id], ["conversations.id"])
 
-    # Define the CheckConstraint to enforce interaction_id existing in conversation_messages table
+    # Define the CheckConstraint to enforce conversation_id existing in conversation_messages table
     conversation_check_constraint = CheckConstraint(
-        "interaction_id IN (SELECT id FROM interactions)",
-        name="ck_interaction_id_in_interactions",
+        "conversation_id IN (SELECT id FROM conversations)",
+        name="ck_conversation_id_in_conversations",
     )
 
     # Define the relationship with User
     user = relationship("User", back_populates="conversation_messages")
-    interaction = relationship("Interaction", back_populates="conversation_messages")
+    conversation = relationship("Conversation", back_populates="conversation_messages")
     conversation_role_type = relationship(
         "ConversationRoleType", back_populates="conversation_messages"
     )

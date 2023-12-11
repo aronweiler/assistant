@@ -57,7 +57,7 @@ class RagUI:
             logging.debug("load_ai: no ai in session state, creating a new one")
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["app_config"],
-                interaction_id=selected_interaction_id,
+                conversation_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
                 prompt_manager=self.prompt_manager,
@@ -66,15 +66,15 @@ class RagUI:
             logging.debug("load_ai: created new ai instance")
 
         elif selected_interaction_id and selected_interaction_id != str(
-            st.session_state["rag_ai"].interaction_manager.interaction_id
+            st.session_state["rag_ai"].interaction_manager.conversation_id
         ):
             logging.debug(
-                f"load_ai: AI instance exists, but need to change interaction ID from {str(st.session_state['rag_ai'].interaction_manager.interaction_id)} to {selected_interaction_id}"
+                f"load_ai: AI instance exists, but need to change interaction ID from {str(st.session_state['rag_ai'].interaction_manager.conversation_id)} to {selected_interaction_id}"
             )
             # We have an AI instance, but we need to change the interaction (conversation) id
             rag_ai_instance = RetrievalAugmentedGenerationAI(
                 configuration=st.session_state["app_config"],
-                interaction_id=selected_interaction_id,
+                conversation_id=selected_interaction_id,
                 user_email=self.user_email,
                 streaming=True,
                 prompt_manager=self.prompt_manager,

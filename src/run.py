@@ -39,7 +39,7 @@ if __name__ == "__main__":
     )
 
     # Create the AI instance
-    ai_inst = GeneralAI(assistant_config, runner_config.arguments.interaction_id)
+    ai_inst = GeneralAI(assistant_config, runner_config.arguments.conversation_id)
 
     # If there are arguments in the runner config, pass them on
     if runner_config.arguments:

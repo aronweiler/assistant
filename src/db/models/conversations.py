@@ -5,7 +5,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from src.db.database.models import ConversationMessage
 from src.db.models.vector_database import VectorDatabase, SearchType
 
-from src.db.models.domain.conversation_model import ConversationMessageModel
+from src.db.models.domain.conversation_message_model import ConversationMessageModel
 
 
 class Conversations(VectorDatabase):
@@ -33,10 +33,10 @@ class Conversations(VectorDatabase):
             ).update({ConversationMessage.is_deleted: True})
             session.commit()
 
-    def delete_conversation_by_interaction_id(self, interaction_id: UUID) -> None:
+    def delete_conversation_by_interaction_id(self, conversation_id: UUID) -> None:
         with self.session_context(self.Session()) as session:
             session.query(ConversationMessage).filter(
-                ConversationMessage.interaction_id == interaction_id
+                ConversationMessage.conversation_id == conversation_id
             ).update({ConversationMessage.is_deleted: True})
             session.commit()
 
@@ -45,7 +45,7 @@ class Conversations(VectorDatabase):
         search_query: str,
         search_type: SearchType,
         associated_user_id: int,
-        interaction_id: Union[UUID, None] = None,
+        conversation_id: Union[UUID, None] = None,
         top_k=10,
         return_deleted=False,
     ) -> List[ConversationMessageModel]:
@@ -56,8 +56,8 @@ class Conversations(VectorDatabase):
             query = session.query(ConversationMessage).filter(
                 ConversationMessage.is_deleted == return_deleted,
                 ConversationMessage.user_id == associated_user_id,
-                ConversationMessage.interaction_id == interaction_id
-                if interaction_id is not None
+                ConversationMessage.conversation_id == conversation_id
+                if conversation_id is not None
                 else True,
             )
 
@@ -81,7 +81,7 @@ class Conversations(VectorDatabase):
             return [ConversationMessageModel.from_database_model(c) for c in query]
 
     def get_conversations_for_interaction(
-        self, interaction_id: UUID, top_k: int = None, return_deleted=None
+        self, conversation_id: UUID, top_k: int = None, return_deleted=None
     ) -> List[ConversationMessageModel]:
         if return_deleted is None:
             return_deleted = False
@@ -91,7 +91,8 @@ class Conversations(VectorDatabase):
         with self.session_context(self.Session()) as session:
             query = (
                 session.query(
-                    ConversationMessage.interaction_id,
+                    ConversationMessage.id,
+                    ConversationMessage.conversation_id,
                     ConversationMessage.message_text,
                     ConversationMessage.user_id,
                     ConversationMessage.id,
@@ -102,7 +103,7 @@ class Conversations(VectorDatabase):
                     ConversationMessage.is_deleted,
                 )
                 .filter(
-                    ConversationMessage.interaction_id == interaction_id,
+                    ConversationMessage.conversation_id == conversation_id,
                     (ConversationMessage.is_deleted == False)
                     if return_deleted == False
                     else True,
@@ -121,7 +122,7 @@ class Conversations(VectorDatabase):
     ) -> List[ConversationMessageModel]:
         with self.session_context(self.Session()) as session:
             query = session.query(
-                ConversationMessage.interaction_id,
+                ConversationMessage.conversation_id,
                 ConversationMessage.message_text,
                 ConversationMessage.user_id,
                 ConversationMessage.conversation_role_type,

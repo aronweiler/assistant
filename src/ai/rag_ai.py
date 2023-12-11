@@ -36,14 +36,14 @@ class RetrievalAugmentedGenerationAI:
     def __init__(
         self,
         configuration,
-        interaction_id: UUID,
+        conversation_id: UUID,
         user_email: str,
         prompt_manager: PromptManager,
         streaming: bool = False,
         override_memory=None,
     ):
-        if interaction_id is None or user_email is None:
-            raise ValueError("interaction_id and user_email cannot be None")
+        if conversation_id is None or user_email is None:
+            raise ValueError("conversation_id and user_email cannot be None")
 
         self.configuration = configuration
         self.streaming = streaming
@@ -74,7 +74,7 @@ class RetrievalAugmentedGenerationAI:
 
         # Set up the interaction manager
         self.interaction_manager = InteractionManager(
-            interaction_id=interaction_id,
+            conversation_id=conversation_id,
             user_email=user_email,
             llm=self.llm,
             prompt_manager=self.prompt_manager,
@@ -200,15 +200,15 @@ class RetrievalAugmentedGenerationAI:
     def check_summary(self, query):
         if self.interaction_manager.interaction_needs_summary:
             logging.debug("Interaction needs summary, generating one now")
-            interaction_summary = self.llm.predict(
+            conversation_summary = self.llm.predict(
                 self.prompt_manager.get_prompt(
                     "summary",
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )
-            self.interaction_manager.set_interaction_summary(interaction_summary)
+            self.interaction_manager.set_interaction_summary(conversation_summary)
             self.interaction_manager.interaction_needs_summary = False
-            logging.debug(f"Generated summary: {interaction_summary}")
+            logging.debug(f"Generated summary: {conversation_summary}")
 
     # Required by the Jarvis UI when ingesting files
     def generate_detailed_document_chunk_summary(

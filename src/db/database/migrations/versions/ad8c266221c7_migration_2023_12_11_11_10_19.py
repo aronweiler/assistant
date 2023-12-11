@@ -1,16 +1,17 @@
-"""migration 2023-09-12_22-14-41
+"""migration 2023-12-11_11-10-19
 
-Revision ID: a11f4098f72e
+Revision ID: ad8c266221c7
 Revises: 
-Create Date: 2023-09-12 22:14:41.454091
+Create Date: 2023-12-11 11:10:19.458672
 
 """
 from alembic import op
 import sqlalchemy as sa
 import pgvector
 
+
 # revision identifiers, used by Alembic.
-revision = 'a11f4098f72e'
+revision = 'ad8c266221c7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,6 +24,14 @@ def upgrade() -> None:
     sa.Column('role_type', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('document_collections',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('collection_name', sa.String(), nullable=False),
+    sa.Column('record_created', sa.DateTime(), nullable=False),
+    sa.Column('collection_type', sa.String(), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('collection_name')
+    )
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
@@ -32,54 +41,17 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email')
     )
-    op.create_table('interactions',
+    op.create_table('conversations',
     sa.Column('id', sa.Uuid(), nullable=False),
     sa.Column('record_created', sa.DateTime(), nullable=False),
-    sa.Column('interaction_summary', sa.String(), nullable=False),
+    sa.Column('conversation_summary', sa.String(), nullable=False),
     sa.Column('needs_summary', sa.Boolean(), nullable=False),
+    sa.Column('last_selected_collection_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('is_deleted', sa.Boolean(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('user_settings',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('setting_name', sa.String(), nullable=False),
-    sa.Column('setting_value', sa.String(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('conversations',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('record_created', sa.DateTime(), nullable=False),
-    sa.Column('interaction_id', sa.Uuid(), nullable=False),
-    sa.Column('conversation_role_type_id', sa.Integer(), nullable=True),
-    sa.Column('conversation_text', sa.String(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.Column('additional_metadata', sa.String(), nullable=True),
-    sa.Column('embedding', pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
-    sa.Column('exception', sa.String(), nullable=True),
-    sa.Column('is_deleted', sa.Boolean(), nullable=False),
-    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
-    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
-    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
-    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_table('document_collections',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('collection_name', sa.String(), nullable=False),
-    sa.Column('interaction_id', sa.Uuid(), nullable=False),
-    sa.Column('record_created', sa.DateTime(), nullable=False),
-    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
-    sa.ForeignKeyConstraint(['interaction_id'], ['interactions.id'], ),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('interaction_id', 'collection_name')
     )
     op.create_table('files',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -88,6 +60,8 @@ def upgrade() -> None:
     sa.Column('file_name', sa.String(), nullable=False),
     sa.Column('file_classification', sa.String(), nullable=True),
     sa.Column('file_summary', sa.String(), nullable=True),
+    sa.Column('file_hash', sa.String(), nullable=False),
+    sa.Column('file_data', sa.LargeBinary(), nullable=False),
     sa.Column('record_created', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['collection_id'], ['document_collections.id'], ),
     sa.ForeignKeyConstraint(['collection_id'], ['document_collections.id'], ),
@@ -95,6 +69,24 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('collection_id', 'file_name')
+    )
+    op.create_table('conversation_messages',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('record_created', sa.DateTime(), nullable=False),
+    sa.Column('conversation_id', sa.Uuid(), nullable=False),
+    sa.Column('conversation_role_type_id', sa.Integer(), nullable=True),
+    sa.Column('message_text', sa.String(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('additional_metadata', sa.String(), nullable=True),
+    sa.Column('exception', sa.String(), nullable=True),
+    sa.Column('is_deleted', sa.Boolean(), nullable=False),
+    sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ),
+    sa.ForeignKeyConstraint(['conversation_id'], ['conversations.id'], ),
+    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
+    sa.ForeignKeyConstraint(['conversation_role_type_id'], ['conversation_role_types.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('documents',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -104,8 +96,22 @@ def upgrade() -> None:
     sa.Column('additional_metadata', sa.String(), nullable=True),
     sa.Column('document_text', sa.String(), nullable=False),
     sa.Column('document_name', sa.String(), nullable=False),
-    sa.Column('embedding', pgvector.sqlalchemy.Vector(dim=1536), nullable=True),
+    sa.Column('document_text_summary', sa.String(), nullable=True),
+    sa.Column('document_text_summary_embedding', pgvector.sqlalchemy.Vector(), nullable=True),
+    sa.Column('document_text_has_summary', sa.Boolean(), nullable=False),
+    sa.Column('embedding', pgvector.sqlalchemy.Vector(), nullable=True),
+    sa.Column('question_1', sa.String(), nullable=True),
+    sa.Column('embedding_question_1', pgvector.sqlalchemy.Vector(), nullable=True),
+    sa.Column('question_2', sa.String(), nullable=True),
+    sa.Column('embedding_question_2', pgvector.sqlalchemy.Vector(), nullable=True),
+    sa.Column('question_3', sa.String(), nullable=True),
+    sa.Column('embedding_question_3', pgvector.sqlalchemy.Vector(), nullable=True),
+    sa.Column('question_4', sa.String(), nullable=True),
+    sa.Column('embedding_question_4', pgvector.sqlalchemy.Vector(), nullable=True),
+    sa.Column('question_5', sa.String(), nullable=True),
+    sa.Column('embedding_question_5', pgvector.sqlalchemy.Vector(), nullable=True),
     sa.Column('record_created', sa.DateTime(), nullable=False),
+    sa.Column('embedding_model_name', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['collection_id'], ['document_collections.id'], ),
     sa.ForeignKeyConstraint(['collection_id'], ['document_collections.id'], ),
     sa.ForeignKeyConstraint(['file_id'], ['files.id'], ),
@@ -120,11 +126,10 @@ def upgrade() -> None:
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('documents')
+    op.drop_table('conversation_messages')
     op.drop_table('files')
-    op.drop_table('document_collections')
     op.drop_table('conversations')
-    op.drop_table('user_settings')
-    op.drop_table('interactions')
     op.drop_table('users')
+    op.drop_table('document_collections')
     op.drop_table('conversation_role_types')
     # ### end Alembic commands ###

@@ -17,14 +17,14 @@ from src.db.models.domain.conversation_role_type import ConversationRoleType
 class PostgresChatMessageHistory(BaseChatMessageHistory):
     """Chat message history stored in Postgres."""
 
-    def __init__(self, interaction_id: UUID, conversations: Conversations):
+    def __init__(self, conversation_id: UUID, conversations: Conversations):
         """Initialize the PostgresChatMessageHistory.
 
         Args:
-            interaction_id: The ID of the interaction to store messages for.
+            conversation_id: The ID of the interaction to store messages for.
             conversations: The Conversations object to use for storing messages.
         """
-        self.interaction_id = interaction_id
+        self.conversation_id = conversation_id
         self.conversations = conversations
 
         self.user_id: int = None
@@ -35,7 +35,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         # return self.chat_messages
         chat_messages = []
         messages = self.conversations.get_conversations_for_interaction(
-            self.interaction_id
+            self.conversation_id
         )
         for message in messages:
             if message.conversation_role_type == ConversationRoleType.USER:
@@ -70,7 +70,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
 
         self.conversations.add_conversation(
             ConversationMessageModel(
-                interaction_id=self.interaction_id,
+                conversation_id=self.conversation_id,
                 message_text=message.content,
                 conversation_role_type=role_type,
                 user_id=self.user_id,
