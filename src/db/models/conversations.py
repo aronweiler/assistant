@@ -2,7 +2,7 @@ from typing import List, Any
 from uuid import UUID
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from src.db.database.models import Conversation
+from src.db.database.tables import Conversation
 from src.db.models.vector_database import VectorDatabase
 from src.db.models.domain.conversation_model import ConversationModel
 

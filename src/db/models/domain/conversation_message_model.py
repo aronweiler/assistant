@@ -1,4 +1,4 @@
-from src.db.database.models import ConversationMessage
+from src.db.database.tables import ConversationMessage
 from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 

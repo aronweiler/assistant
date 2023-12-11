@@ -1,4 +1,4 @@
-from src.db.database.models import Conversation
+from src.db.database.tables import Conversation
 
 
 class ConversationModel:

@@ -29,7 +29,7 @@ from src.runners.voice.text_to_speech import TextToSpeech
 from src.db.models.users import Users
 
 
-from src.db.database.models import User
+from src.db.database.tables import User
 
 
 from TTS.api import TTS
