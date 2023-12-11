@@ -3,6 +3,7 @@ import os
 import sys
 from subprocess import Popen
 from typing import List
+import asyncio
 
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -27,13 +28,13 @@ from src.utilities.token_helper import num_tokens_from_string
 # TODO: Add loaders for PPT, and other document types
 DOCUMENT_TYPES = {
     ".txt": TextLoader,
-    ".pdf": PDFPlumberLoader,  
+    ".pdf": PDFPlumberLoader,
     ".csv": CSVLoader,
     ".ods": UnstructuredExcelLoader,
     ".xls": UnstructuredExcelLoader,
     ".xlsx": UnstructuredExcelLoader,
-    ".html": BSHTMLLoader, 
-    ".htm": BSHTMLLoader, 
+    ".html": BSHTMLLoader,
+    ".htm": BSHTMLLoader,
     ".cpp": CodeLoader,
     ".c": CodeLoader,
     ".cc": CodeLoader,
@@ -48,7 +49,7 @@ DOCUMENT_CLASSIFICATIONS = {
     ".xls": "Spreadsheet",
     ".xlsx": "Spreadsheet",
     ".ods": "Spreadsheet",
-    #".html": "Webpage",
+    # ".html": "Webpage",
     ".cpp": "Code",
     ".c": "Code",
     ".cc": "Code",
@@ -58,10 +59,15 @@ DOCUMENT_CLASSIFICATIONS = {
 
 WORD_DOC_TYPES = {".doc": Docx2txtLoader, ".docx": Docx2txtLoader}
 
-EXCEL_DOC_TYPES = {".xls": UnstructuredExcelLoader, ".xlsx": UnstructuredExcelLoader, ".ods": UnstructuredExcelLoader}
+EXCEL_DOC_TYPES = {
+    ".xls": UnstructuredExcelLoader,
+    ".xlsx": UnstructuredExcelLoader,
+    ".ods": UnstructuredExcelLoader,
+}
 
 # Default LibreOffice installation location
 LIBRE_OFFICE_DEFAULT = "/Program Files/LibreOffice/program/soffice.exe"
+
 
 def get_libre_office_path() -> str:
     """Gets the LibreOffice installation path
@@ -80,6 +86,7 @@ def get_libre_office_path() -> str:
             raise ValueError(
                 f"Could not find LibreOffice installation.  Please set the LIBRE_OFFICE_PATH environment variable to the installation path."
             )
+
 
 def convert_word_doc_to_pdf(input_doc, out_folder):
     """Convert a single word document to a PDF using LibreOffice
@@ -125,7 +132,7 @@ def convert_excel_to_csv(input_doc, out_folder):
             get_libre_office_path(),
             "--headless",
             "--convert-to",
-            'csv:Text - txt - csv (StarCalc):44,34,UTF8,1,,0,false,true,false,false,false,-1',
+            "csv:Text - txt - csv (StarCalc):44,34,UTF8,1,,0,false,true,false,false,false,-1",
             "--outdir",
             out_folder,
             input_doc,
@@ -136,7 +143,9 @@ def convert_excel_to_csv(input_doc, out_folder):
     p.communicate()
 
 
-def load_single_document(file_path: str, converted_file_maps:dict) -> List[Document]:
+async def load_single_document(
+    file_path: str, converted_file_maps: dict
+) -> List[Document]:
     # Loads a single document from a file path
     file_extension = os.path.splitext(file_path)[1]
 
@@ -157,15 +166,19 @@ def load_single_document(file_path: str, converted_file_maps:dict) -> List[Docum
                 # get the file name
                 if file_path in converted_file_maps:
                     # If it's in the converted files, get the original filename
-                    doc.metadata["filename"] = os.path.basename(converted_file_maps[file_path])
+                    doc.metadata["filename"] = os.path.basename(
+                        converted_file_maps[file_path]
+                    )
                 else:
                     doc.metadata["filename"] = os.path.basename(file_path)
-                
+
                 if "page" not in doc.metadata:
                     doc.metadata["page"] = "N/A"
-                
+
                 if "classification" not in doc.metadata:
-                    doc.metadata["classification"] = DOCUMENT_CLASSIFICATIONS.get(file_extension.lower(), "Document")                
+                    doc.metadata["classification"] = DOCUMENT_CLASSIFICATIONS.get(
+                        file_extension.lower(), "Document"
+                    )
 
             return documents
         except Exception as e:
@@ -176,15 +189,7 @@ def load_single_document(file_path: str, converted_file_maps:dict) -> List[Docum
         logging.error(f"Unsupported file type: '{file_extension}', {file_path}")
 
 
-def load_documents(source_dir: str, converted_file_maps:dict) -> List[Document]:
-    """Loads all documents from the source documents directory
-
-    Args:
-        source_dir (str): Source directory
-
-    Returns:
-        List[Document]: List of documents
-    """
+async def load_documents(source_dir: str, converted_file_maps: dict) -> List[Document]:
     all_files = os.listdir(source_dir)
 
     paths = []
@@ -195,10 +200,13 @@ def load_documents(source_dir: str, converted_file_maps:dict) -> List[Document]:
         if file_extension in DOCUMENT_TYPES.keys():
             paths.append(source_file_path)
 
+    tasks = [
+        load_single_document(file_path, converted_file_maps) for file_path in paths
+    ]
     docs = []
-    for file_path in paths:
+    for future in asyncio.as_completed(tasks):
         try:
-            documents = load_single_document(file_path, converted_file_maps)
+            documents = await future
             if documents:
                 docs.extend(documents)
         except Exception as e:
@@ -206,12 +214,13 @@ def load_documents(source_dir: str, converted_file_maps:dict) -> List[Document]:
 
     return docs
 
+
 def convert_documents(source_dir: str):
     """Converts all Excel and Word documents from the source directory to PDFs and CSVs
 
     Args:
         source_dir (str): Source directory
-    """   
+    """
     all_files = os.listdir(source_dir)
 
     converted_file_maps = {}
@@ -219,33 +228,37 @@ def convert_documents(source_dir: str):
         file_extension = os.path.splitext(file_path)[1]
         source_file_path = os.path.join(source_dir, file_path)
 
-        if file_extension in WORD_DOC_TYPES.keys():            
+        if file_extension in WORD_DOC_TYPES.keys():
             convert_word_doc_to_pdf(source_file_path, source_dir)
             # Kind of a reverse map
-            converted_file_maps[os.path.splitext(source_file_path)[0] + ".pdf"] = source_file_path
+            converted_file_maps[
+                os.path.splitext(source_file_path)[0] + ".pdf"
+            ] = source_file_path
         # elif file_extension in EXCEL_DOC_TYPES.keys():
         #     convert_excel_to_csv(source_file_path, source_dir)
 
     return converted_file_maps
 
-def load_and_split_documents(
+
+async def load_and_split_documents(
     document_directory: str,
     split_documents: bool,
     is_code: bool,
     chunk_size: int,
     chunk_overlap: int,
 ) -> List[Document]:
-    
     # only accept directories
     if not os.path.isdir(document_directory):
-        raise ValueError(f"document_directory must be a directory: {document_directory}")
+        raise ValueError(
+            f"document_directory must be a directory: {document_directory}"
+        )
 
     # Pre-convert the word docs to PDFs and the excel docs to csvs
     converted_file_maps = convert_documents(document_directory)
 
-    documents = load_documents(document_directory, converted_file_maps)
+    documents = await load_documents(document_directory, converted_file_maps)
 
-    if documents: # and not is_code:
+    if documents:
         if split_documents and not is_code:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=chunk_size,
@@ -277,5 +290,13 @@ if __name__ == "__main__":
 
     # Test loading and splitting documents
     source = "/Repos/sample_docs/cpp/Dave/StateMachine"
-    documents = load_and_split_documents(document_directory=source, split_documents=False, is_code=False, chunk_size=1000, chunk_overlap=0)
+    documents = asyncio.run(
+        load_and_split_documents(
+            document_directory=source,
+            split_documents=False,
+            is_code=False,
+            chunk_size=1000,
+            chunk_overlap=0,
+        )
+    )
     print(len(documents))

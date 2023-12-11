@@ -3,6 +3,7 @@ import os
 from threading import Timer
 import time
 import uuid
+import asyncio
 
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
@@ -731,13 +732,13 @@ def ingest_files(
             is_code = st.session_state.ingestion_settings.file_type == "Code"
 
             # Pass the root temp dir to the ingestion function
-            documents = load_and_split_documents(
+            documents = asyncio.run(load_and_split_documents(
                 document_directory=root_temp_dir,
                 split_documents=split_documents,
                 is_code=is_code,
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap,
-            )
+            ))
 
             if documents == None:
                 st.warning(
@@ -882,7 +883,10 @@ def upload_files(uploaded_files, status, ingest_progress_bar):
             )
             st.info(f"Uploading file: {uploaded_file.name}")
 
-            file_path = os.path.join(root_temp_dir, uploaded_file.name)
+            # Make sure there are no folder separators in the file name
+            file_name = uploaded_file.name.replace("/", "-").replace("\\", "-")
+
+            file_path = os.path.join(root_temp_dir, file_name)
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
             with open(file_path, "wb") as f:
