@@ -105,18 +105,21 @@ def get_conversation_id_index(conversation_pairs, selected_conversation):
 
     return index
 
-def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
+
+def load_conversation_selectbox(load_ai_callback, tab: DeltaGenerator):
     """Loads the conversation selectbox"""
 
     try:
         conversation_pairs = get_conversation_pairs()
         if conversation_pairs is None:
             return
-        
+
         index = 0
         if "rag_ai" in st.session_state:
-            selected_conversation = st.session_state["rag_ai"].conversation_manager.conversation_id        
-            index = get_conversation_id_index(conversation_pairs, selected_conversation)            
+            selected_conversation = st.session_state[
+                "rag_ai"
+            ].conversation_manager.conversation_id
+            index = get_conversation_id_index(conversation_pairs, selected_conversation)
 
         tab.selectbox(
             "Select Conversation",
@@ -134,7 +137,10 @@ def load_conversation_selectbox(load_ai_callback, tab:DeltaGenerator):
             help="Create a new conversation",
             key="new_chat_button",
             on_click=create_conversation,
-            kwargs={"conversation_summary": "Empty Chat", "load_ai_callback": load_ai_callback},
+            kwargs={
+                "conversation_summary": "Empty Chat",
+                "load_ai_callback": load_ai_callback,
+            },
         )
 
         # col3
@@ -201,21 +207,21 @@ def set_confirm_conversation_delete(val):
     st.session_state.confirm_conversation_delete = val
 
 
-def create_conversation(conversation_summary, load_ai_callback = None):
+def create_conversation(conversation_summary, load_ai_callback=None):
     """Creates an conversation for the current user with the specified summary"""
-    
+
     if "user_id" not in st.session_state:
         # Sometimes this will happen if we're switching controls/screens
         return
-    
+
     new_conversation = str(uuid.uuid4())
-    
+
     Conversations().create_conversation(
         id=new_conversation,
         conversation_summary=conversation_summary,
         user_id=st.session_state.user_id,
     )
-    
+
     if load_ai_callback:
         load_ai_callback(override_conversation_id=new_conversation)
 
@@ -348,21 +354,21 @@ def get_selected_collection_id():
 
 def get_selected_collection_type():
     collection_id = get_selected_collection_id()
-    
+
     if collection_id == -1:
         return "None"
-    
+
     collection = Documents().get_collection(collection_id)
-    
+
     if not collection:
         return "None"
-    
+
     return collection.collection_type
 
 
 def get_selected_collection_embedding_model_name():
     collection_type = get_selected_collection_type()
-    
+
     if collection_type.lower().startswith("remote"):
         key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
             "remote"
@@ -374,10 +380,12 @@ def get_selected_collection_embedding_model_name():
 
     return key
 
+
 def get_selected_collection_configuration():
     key = get_selected_collection_embedding_model_name()
 
     return get_app_configuration()["jarvis_ai"]["embedding_models"][key]
+
 
 def get_selected_collection_name():
     """Gets the selected collection name from the selectbox"""
@@ -477,7 +485,7 @@ def select_documents(tab, ai=None):
                 key="overwrite_existing_files",
                 value=False,
             )
-            
+
             st.toggle(
                 "Create Chunk Questions",
                 help="This will create hypothetical questions for each chunk of text in the document, which will GREATLY aid in later retrievals.",
@@ -490,7 +498,7 @@ def select_documents(tab, ai=None):
                 key="summarize_chunks",
                 help="Summarize each document chunk.  This will aid in later retrievals, and document summaries.",
                 value=st.session_state.ingestion_settings.summarize_chunks,
-            )            
+            )
 
             st.toggle(
                 "Summarize Document",
@@ -547,10 +555,12 @@ def select_documents(tab, ai=None):
             submit_button = st.form_submit_button(
                 "Ingest files",
                 type="primary",
-                disabled=(active_collection_id == None or active_collection_id == "-1")
+                disabled=(active_collection_id == None or active_collection_id == "-1"),
             )
-            
-            st.markdown("*⚠️ Currently there is no async/queued file ingestion. Do not navigate away from this page, or click on anything else, while the files are being ingested.*")
+
+            st.markdown(
+                "*⚠️ Currently there is no async/queued file ingestion. Do not navigate away from this page, or click on anything else, while the files are being ingested.*"
+            )
 
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
@@ -561,13 +571,27 @@ def select_documents(tab, ai=None):
                             uploaded_files=uploaded_files,
                             active_collection_id=active_collection_id,
                             status=status,
-                            overwrite_existing_files=st.session_state.get("overwrite_existing_files", True),
-                            split_documents=st.session_state.get("split_documents", True),
-                            create_chunk_questions=st.session_state.get("create_chunk_questions", False),
-                            summarize_chunks=st.session_state.get("summarize_chunks", False),
-                            summarize_document=st.session_state.get("summarize_document", False),
-                            chunk_size=int(st.session_state.get("file_chunk_size", 500)),
-                            chunk_overlap=int(st.session_state.get("file_chunk_overlap", 50)),
+                            overwrite_existing_files=st.session_state.get(
+                                "overwrite_existing_files", True
+                            ),
+                            split_documents=st.session_state.get(
+                                "split_documents", True
+                            ),
+                            create_chunk_questions=st.session_state.get(
+                                "create_chunk_questions", False
+                            ),
+                            summarize_chunks=st.session_state.get(
+                                "summarize_chunks", False
+                            ),
+                            summarize_document=st.session_state.get(
+                                "summarize_document", False
+                            ),
+                            chunk_size=int(
+                                st.session_state.get("file_chunk_size", 500)
+                            ),
+                            chunk_overlap=int(
+                                st.session_state.get("file_chunk_overlap", 50)
+                            ),
                             ai=ai,
                         )
 
@@ -756,11 +780,9 @@ def ingest_files(
                         f"Could not find file '{file_name}' in the database after uploading"
                     )
                     break
-                
+
                 chunk_questions = []
-                if create_chunk_questions and hasattr(
-                    ai, "generate_chunk_questions"
-                ):
+                if create_chunk_questions and hasattr(ai, "generate_chunk_questions"):
                     try:
                         logging.info("Creating questions for chunk...")
                         chunk_questions = ai.generate_chunk_questions(
@@ -769,7 +791,7 @@ def ingest_files(
                     except Exception as e:
                         logging.error(f"Error creating questions for chunk: {e}")
                         chunk_questions = []
-                    
+
                 summary = ""
                 if summarize_chunks and hasattr(
                     ai, "generate_detailed_document_chunk_summary"
@@ -792,11 +814,21 @@ def ingest_files(
                         additional_metadata=document.metadata,
                         document_name=document.metadata["filename"],
                         embedding_model_name=get_selected_collection_embedding_model_name(),
-                        question_1=chunk_questions[0] if len(chunk_questions) > 0 else "",
-                        question_2=chunk_questions[1] if len(chunk_questions) > 1 else "",
-                        question_3=chunk_questions[2] if len(chunk_questions) > 2 else "",
-                        question_4=chunk_questions[3] if len(chunk_questions) > 3 else "",
-                        question_5=chunk_questions[4] if len(chunk_questions) > 4 else "",
+                        question_1=chunk_questions[0]
+                        if len(chunk_questions) > 0
+                        else "",
+                        question_2=chunk_questions[1]
+                        if len(chunk_questions) > 1
+                        else "",
+                        question_3=chunk_questions[2]
+                        if len(chunk_questions) > 2
+                        else "",
+                        question_4=chunk_questions[3]
+                        if len(chunk_questions) > 3
+                        else "",
+                        question_5=chunk_questions[4]
+                        if len(chunk_questions) > 4
+                        else "",
                     )
                 )
 
@@ -884,10 +916,17 @@ def show_version():
                 st.sidebar.markdown(
                     "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-docker)"
                 )
+                st.sidebar.markdown(
+                    "[Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
+                )
             else:
-                st.sidebar.info(f"Version: {version}")
+                st.sidebar.info(
+                    f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
+                )
         else:
-            st.sidebar.info(f"Version: {version}")
+            st.sidebar.info(
+                f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
+            )
 
     except Exception as e:
         logging.error(f"Error checking for latest version: {e}")
@@ -933,7 +972,9 @@ def create_collection_selectbox(ai):
         on_change=on_change_collection,
     )
 
-    col2.button("➕", help="Create a new document collection", key="show_create_collection")
+    col2.button(
+        "➕", help="Create a new document collection", key="show_create_collection"
+    )
 
 
 def refresh_messages_session_state(ai_instance):
@@ -1065,7 +1106,8 @@ def handle_chat(main_window_container, ai_instance, configuration):
         help_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
 
         col1.markdown(
-            f'<div align="right" title="Select the mode to use. Auto will automatically switch between a Conversation Only and Tool Using AI based on the users input.">{help_icon} <b>AI Mode:</b></div>', unsafe_allow_html=True
+            f'<div align="right" title="Select the mode to use. Auto will automatically switch between a Conversation Only and Tool Using AI based on the users input.">{help_icon} <b>AI Mode:</b></div>',
+            unsafe_allow_html=True,
         )
 
         ai_modes = ["Auto", "Conversation Only"]
@@ -1103,7 +1145,8 @@ def handle_chat(main_window_container, ai_instance, configuration):
         )
 
         col5.markdown(
-            f'<div align="right" title="Positive values will increase the likelihood of the model talking about new topics by penalizing new tokens that have already been used.">{help_icon} <b>Presence Penalty:</b></div>', unsafe_allow_html=True
+            f'<div align="right" title="Positive values will increase the likelihood of the model talking about new topics by penalizing new tokens that have already been used.">{help_icon} <b>Presence Penalty:</b></div>',
+            unsafe_allow_html=True,
         )
 
         col6.slider(
