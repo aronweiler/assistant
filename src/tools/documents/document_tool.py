@@ -15,7 +15,7 @@ from src.utilities.parsing_utilities import parse_json
 
 from src.utilities.token_helper import num_tokens_from_string
 
-from src.db.models.conversations import SearchType
+from src.db.models.conversation_messages import SearchType
 from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 

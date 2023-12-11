@@ -10,14 +10,14 @@ from langchain.schema.messages import (
     FunctionMessage,
 )
 
-from src.db.models.conversations import Conversations, ConversationMessageModel
+from src.db.models.conversation_messages import ConversationMessages, ConversationMessageModel
 from src.db.models.domain.conversation_role_type import ConversationRoleType
 
 
 class PostgresChatMessageHistory(BaseChatMessageHistory):
     """Chat message history stored in Postgres."""
 
-    def __init__(self, conversation_id: UUID, conversations: Conversations):
+    def __init__(self, conversation_id: UUID, conversation_messages: ConversationMessages):
         """Initialize the PostgresChatMessageHistory.
 
         Args:
@@ -25,7 +25,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             conversations: The Conversations object to use for storing messages.
         """
         self.conversation_id = conversation_id
-        self.conversations = conversations
+        self.conversation_messages = conversation_messages
 
         self.user_id: int = None
 
@@ -34,7 +34,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         """A list of Messages stored in the DB."""
         # return self.chat_messages
         chat_messages = []
-        messages = self.conversations.get_conversations_for_interaction(
+        messages = self.conversation_messages.get_conversations_for_interaction(
             self.conversation_id
         )
         for message in messages:
@@ -68,7 +68,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         else:
             raise ValueError("Unknown message type")
 
-        self.conversations.add_conversation(
+        self.conversation_messages.add_conversation(
             ConversationMessageModel(
                 conversation_id=self.conversation_id,
                 message_text=message.content,

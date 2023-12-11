@@ -24,7 +24,7 @@ from src.utilities.configuration_utilities import (
 from src.db.models.users import Users
 from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.interactions import Interactions
-from src.db.models.conversations import Conversations
+from src.db.models.conversation_messages import ConversationMessages
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandler
 
@@ -48,8 +48,8 @@ def get_available_models():
 def delete_conversation_item(id: int):
     """Deletes the conversation item with the specified id"""
     # Delete the conversation item. (Note: This just sets the is_deleted flag to True)
-    conversations_helper = Conversations()
-    conversations_helper.delete_conversation(id)
+    conversation_messages_helper = ConversationMessages()
+    conversation_messages_helper.delete_conversation(id)
 
 
 def set_confirm_conversation_item_delete(id: int, val: bool):
@@ -305,8 +305,8 @@ def delete_interaction(conversation_id):
     interactions_helper.delete_interaction(conversation_id)
 
     # Mark the individual conversation items as deleted, as well
-    conversations_helper = Conversations()
-    conversations_helper.delete_conversation_by_interaction_id(conversation_id)
+    conversation_messages_helper = ConversationMessages()
+    conversation_messages_helper.delete_conversation_by_interaction_id(conversation_id)
 
     set_confirm_interaction_delete(False)
 

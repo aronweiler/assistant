@@ -7,7 +7,7 @@ from langchain.base_language import BaseLanguageModel
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.db.models.conversations import SearchType
+from src.db.models.conversation_messages import SearchType
 from src.db.models.documents import Documents
 from src.ai.interactions.interaction_manager import InteractionManager
 

@@ -32,7 +32,9 @@ class Interactions(VectorDatabase):
         with self.session_context(self.Session()) as session:
             conversation_summary = conversation_summary.strip()
 
-            session.query(Conversation).filter(Conversation.id == conversation_id).update(
+            session.query(Conversation).filter(
+                Conversation.id == conversation_id
+            ).update(
                 {
                     Conversation.conversation_summary: conversation_summary,
                     Conversation.needs_summary: needs_summary,
@@ -47,7 +49,9 @@ class Interactions(VectorDatabase):
         last_selected_collection_id: int,
     ):
         with self.session_context(self.Session()) as session:
-            session.query(Conversation).filter(Conversation.id == conversation_id).update(
+            session.query(Conversation).filter(
+                Conversation.id == conversation_id
+            ).update(
                 {
                     Conversation.last_selected_collection_id: last_selected_collection_id,
                 }
@@ -55,9 +59,7 @@ class Interactions(VectorDatabase):
 
             session.commit()
 
-    def get_interaction(
-        self, id: UUID
-    ) -> ConversationModel:
+    def get_interaction(self, id: UUID) -> ConversationModel:
         with self.session_context(self.Session()) as session:
             query = session.query(
                 Conversation.conversation_summary,
@@ -71,25 +73,23 @@ class Interactions(VectorDatabase):
 
             return ConversationModel.from_database_model(query.first())
 
-    def get_interactions_by_user_id(
-        self, user_id: int
-    ) -> List[ConversationModel]:
+    def get_interactions_by_user_id(self, user_id: int) -> List[ConversationModel]:
         with self.session_context(self.Session()) as session:
-            query = session.query(Conversation.conversation_summary,
+            query = session.query(
+                Conversation.conversation_summary,
                 Conversation.needs_summary,
                 Conversation.last_selected_collection_id,
                 Conversation.user_id,
                 Conversation.id,
                 Conversation.is_deleted,
-                Conversation.record_created,).filter(
-                Conversation.user_id == user_id, Conversation.is_deleted == False
-            )
+                Conversation.record_created,
+            ).filter(Conversation.user_id == user_id, Conversation.is_deleted == False)
 
             return [ConversationModel.from_database_model(i) for i in query.all()]
 
     def delete_interaction(self, conversation_id: UUID) -> None:
         with self.session_context(self.Session()) as session:
-            session.query(Conversation).filter(Conversation.id == conversation_id).update(
-                {Conversation.is_deleted: True}
-            )
+            session.query(Conversation).filter(
+                Conversation.id == conversation_id
+            ).update({Conversation.is_deleted: True})
             session.commit()

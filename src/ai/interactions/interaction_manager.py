@@ -2,7 +2,7 @@ import logging
 
 from langchain.base_language import BaseLanguageModel
 
-from src.db.models.conversations import Conversations, SearchType, ConversationMessageModel
+from src.db.models.conversation_messages import ConversationMessages, SearchType, ConversationMessageModel
 from src.db.models.users import Users
 from src.db.models.documents import Documents
 from src.db.models.interactions import Interactions
@@ -59,7 +59,7 @@ class InteractionManager:
         self.conversation_id = conversation_id
 
         self.interactions_helper = Interactions()
-        self.conversations_helper = Conversations()
+        self.conversation_messages_helper = ConversationMessages()
         self.users_helper = Users()
         self.documents_helper = Documents()
         
@@ -191,7 +191,7 @@ class InteractionManager:
         """Creates the conversation memory for the interaction."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
-            self.conversation_id, conversations=self.conversations_helper
+            self.conversation_id, conversation_messages=self.conversation_messages_helper
         )
 
         self.postgres_chat_message_history.user_id = self.user_id

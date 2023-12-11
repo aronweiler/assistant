@@ -8,7 +8,7 @@ from src.db.models.vector_database import VectorDatabase, SearchType
 from src.db.models.domain.conversation_message_model import ConversationMessageModel
 
 
-class Conversations(VectorDatabase):
+class ConversationMessages(VectorDatabase):
     def add_conversation(self, conversation: ConversationMessageModel) -> ConversationMessageModel:
         with self.session_context(self.Session()) as session:
             conversation.message_text = conversation.message_text.strip()
