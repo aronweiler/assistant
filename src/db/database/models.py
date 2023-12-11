@@ -43,7 +43,9 @@ class User(ModelBase):
     interactions = relationship("Interaction", back_populates="user")
     files = relationship("File", back_populates="user")
     documents = relationship("Document", back_populates="user")
-    user_settings = relationship("UserSetting", back_populates="user")
+    
+    # TODO: Pull this back in when we refactor Jarvis to use this table
+    # user_settings = relationship("UserSetting", back_populates="user")
 
     def get_setting(self, setting_name, default):
         for setting in self.user_settings:
@@ -58,24 +60,26 @@ class User(ModelBase):
                 setting.setting_value = value
 
 
-class UserSetting(ModelBase):
-    __tablename__ = "user_settings"
+# TODO: Refactor Jarvis so that all of the settings are contained within this table.
+# Need to do this before it can become multi-user
+# class UserSetting(ModelBase):
+#     __tablename__ = "user_settings"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    setting_name = Column(String, nullable=False)
-    setting_value = Column(String, nullable=False)
+#     id = Column(Integer, primary_key=True)
+#     user_id = Column(Integer, ForeignKey("users.id"))
+#     setting_name = Column(String, nullable=False)
+#     setting_value = Column(String, nullable=False)
 
-    # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-    user_constraint = ForeignKeyConstraint([user_id], [User.id])
+#     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
+#     user_constraint = ForeignKeyConstraint([user_id], [User.id])
 
-    # Define the CheckConstraint to enforce user_id existing in users table
-    user_check_constraint = CheckConstraint(
-        "user_id IN (SELECT id FROM users)", name="ck_user_id_in_users"
-    )
+#     # Define the CheckConstraint to enforce user_id existing in users table
+#     user_check_constraint = CheckConstraint(
+#         "user_id IN (SELECT id FROM users)", name="ck_user_id_in_users"
+#     )
 
-    # Define the many to one relationship with User
-    user = relationship("User", back_populates="user_settings")
+#     # Define the many to one relationship with User
+#     user = relationship("User", back_populates="user_settings")
 
 
 class Interaction(ModelBase):

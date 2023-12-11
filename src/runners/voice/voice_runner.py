@@ -29,9 +29,7 @@ from src.runners.voice.text_to_speech import TextToSpeech
 from src.db.models.users import Users
 
 
-# from conversation.models.user_settings import UserSettings
-
-from src.db.database.models import User, UserSetting
+from src.db.database.models import User
 
 
 from TTS.api import TTS
