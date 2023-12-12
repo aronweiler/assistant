@@ -236,38 +236,47 @@ class CodeReviewTool:
         :return: A dictionary containing results of the code review process.
         """
 
-        # Format final code review instructions with placeholders replaced by actual data.
-        final_code_review_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
-                "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
-            ).format(
-                code_summary="",
-                code_dependencies="",
-                code=code,
-                code_metadata=metadata,
-                additional_instructions=additional_instructions,
-            )
-        )
-
         # Retrieve active templates based on the tool name.
         templates = self.get_active_code_review_templates(tool_name)
-        
-        if len(templates) == 0:
-            raise Exception("No active templates found for this tool.  You must enable at least one of the code review templates.")
 
         # Initialize containers for results and comments.
         review_results = {}
         comment_results = []
 
-        # Iterate over each template and perform a review using the language model.
-        for template in templates:
-            # Get individual prompt for each type of review from the template and format it.
-            code_review_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "code_review", template["name"]
-            ).format(
-                base_code_review_instructions=base_code_review_instructions,
-                final_code_review_instructions=final_code_review_instructions,
+        if len(templates) == 0:
+            # If the templates are all turned off, just use the additional instructions
+            # Format final code review instructions with placeholders replaced by actual data.
+            final_code_review_instructions = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
+                ).format(
+                    code_summary="",
+                    code_dependencies="",
+                    code=code,
+                    code_metadata=metadata,
+                    additional_instructions="",
+                )
             )
+
+            if not additional_instructions or additional_instructions == "":
+                code_review_prompt = (
+                    self.conversation_manager.prompt_manager.get_prompt(
+                        "code_review", "GENERIC_CODE_REVIEW_TEMPLATE"
+                    ).format(
+                        base_code_review_instructions=base_code_review_instructions,
+                        final_code_review_instructions=final_code_review_instructions,
+                    )
+                )
+            else:
+                code_review_prompt = (
+                    self.conversation_manager.prompt_manager.get_prompt(
+                        "code_review", "CUSTOM_CODE_REVIEW_TEMPLATE"
+                    ).format(
+                        base_code_review_instructions=base_code_review_instructions,
+                        code_review_instructions=additional_instructions,
+                        final_code_review_instructions=final_code_review_instructions,
+                    )
+                )
 
             # Use language model to predict based on the formatted prompt.
             json_data = llm.predict(
@@ -280,6 +289,47 @@ class CodeReviewTool:
 
             # Extend comment results with comments from current template's review.
             comment_results.extend(data["comments"])
+
+        else:
+            # Format additional instructions if provided.
+            if additional_instructions:
+                additional_instructions = f"\nIn addition to the base code review instructions, consider these user-provided instructions:\n{additional_instructions}\n"
+
+            final_code_review_instructions = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
+                ).format(
+                    code_summary="",
+                    code_dependencies="",
+                    code=code,
+                    code_metadata=metadata,
+                    additional_instructions=additional_instructions,
+                )
+            )
+
+            # Iterate over each template and perform a review using the language model.
+            for template in templates:
+                # Get individual prompt for each type of review from the template and format it.
+                code_review_prompt = (
+                    self.conversation_manager.prompt_manager.get_prompt(
+                        "code_review", template["name"]
+                    ).format(
+                        base_code_review_instructions=base_code_review_instructions,
+                        final_code_review_instructions=final_code_review_instructions,
+                    )
+                )
+
+                # Use language model to predict based on the formatted prompt.
+                json_data = llm.predict(
+                    code_review_prompt,
+                    callbacks=self.conversation_manager.agent_callbacks,
+                )
+
+                # Parse JSON data returned by language model prediction into structured data.
+                data = parse_json(json_data, llm)
+
+                # Extend comment results with comments from current template's review.
+                comment_results.extend(data["comments"])
 
         # Sort comments based on their starting line number or addition line start if available.
         comment_results.sort(key=lambda k: k.get("start") or k.get("add_line_start"))
@@ -299,7 +349,11 @@ class CodeReviewTool:
             "comments": comment_results,
         }
 
-        return review_results
+        if self.is_output_json(tool_name):
+            # Return formatted refactor results as a JSON string enclosed in triple backticks for markdown formatting.
+            return f"```json\n{review_results}\n```"
+        else:
+            return self.format_review_results(review_results)
 
     def conduct_code_review_from_url(
         self, target_url: str, additional_instructions: str = None
@@ -311,10 +365,6 @@ class CodeReviewTool:
         :param additional_instructions: Additional instructions provided by users for this specific review task (optional).
         :return: A string containing the formatted results of the code review in JSON.
         """
-
-        # Format additional instructions if provided.
-        if additional_instructions:
-            additional_instructions = f"\nIn addition to the base code review instructions, consider these user-provided instructions:\n{additional_instructions}\n"
 
         # Retrieve file information from the URL.
         file_info = self.retrieve_source_code_from_url(url=target_url)
@@ -336,8 +386,7 @@ class CodeReviewTool:
                 f"Unknown file type {file_info['metadata']['type']} for {target_url}"
             )
 
-        # Return formatted review results as a JSON string enclosed in triple backticks for markdown formatting.
-        return f"```json\n{review}\n```"
+        return review
 
     def _review_diff_from_url(
         self, metadata: dict, target_url: str, additional_instructions: str
@@ -458,10 +507,6 @@ class CodeReviewTool:
         :return: A dictionary containing the results of the code review.
         """
 
-        # Format additional instructions if provided.
-        if additional_instructions:
-            additional_instructions = f"\n--- ADDITIONAL INSTRUCTIONS ---\n{additional_instructions}\n--- ADDITIONAL INSTRUCTIONS ---\n"
-
         # Retrieve file model from database using Documents class and file ID.
         documents = Documents()
         file_model = documents.get_file(file_id=target_file_id)
@@ -488,3 +533,75 @@ class CodeReviewTool:
             llm=llm,
             tool_name=self.conduct_code_review_from_file_id.__name__,
         )
+
+    def is_output_json(self, tool_name: str) -> int:
+        """
+        Retrieves the setting for whether or not to output JSON based on tool configuration.
+        """
+
+        # Access the max_code_size_tokens setting from the tool configuration and return its value.
+        return self.configuration["tool_configurations"][tool_name][
+            "additional_settings"
+        ]["json_output"]["value"]
+
+    def format_review_results(self, review_results: dict) -> str:
+        """
+        Formats the results of a code review into a string.
+
+        :param review_results: The results of a code review.
+        :return: A string containing the formatted results of the code review.
+        """
+        formatted_results = """## Code Review
+- Language: **{language}**
+- File: **{filename_or_url}**
+
+{comments}
+"""
+        comments = ""
+        for comment in review_results["comments"]:
+            start = 1
+            end = 1
+            if "start" in comment:
+                start = comment["start"]
+                end = comment["end"]
+            elif "add_line_start" in comment:
+                start = comment["add_line_start"]
+                end = comment["add_line_end"]
+            elif "remove_line_start" in comment:
+                start = comment["remove_line_start"]
+                end = comment["remove_line_end"]
+
+            if "url" in review_results["metadata"]:
+                comments += f" [Line {start} to {end}]({review_results['metadata']['url']}#L{start}-L{end})\n\n"
+            else:
+                comments += f"Line {start} to {end}\n\n"
+
+            comments += "##### Original code:\n"
+            comments += f"```{review_results['language']}\n"
+            comments += comment["original_code_snippet"] + "\n"
+            comments += "```\n\n"
+
+            comments += f"\n{comment['comment']}\n"
+
+            if (
+                comment["suggested_code_snippet"] != ""
+                and comment["suggested_code_snippet"]
+                != comment["original_code_snippet"]
+            ):
+                comments += "\n##### Suggested change:\n"
+                comments += f"```{review_results['language']}\n"
+                comments += comment["suggested_code_snippet"] + "\n"
+                comments += "```\n\n"
+            else:
+                comments += "No suggested code.\n\n"
+
+        formatted_results = formatted_results.format(
+            language=review_results["language"],
+            filename_or_url=review_results["metadata"]["url"]
+            if "url" in review_results["metadata"]
+            else review_results["metadata"]["filename"],
+            comments=comments,
+        )
+
+        # Return the formatted results.
+        return formatted_results
