@@ -332,7 +332,21 @@ class CodeReviewTool:
                 comment_results.extend(data["comments"])
 
         # Sort comments based on their starting line number or addition line start if available.
-        comment_results.sort(key=lambda k: k.get("start") or k.get("add_line_start"))
+        def get_start_line(comment):
+            start = 1
+            if "start" in comment and comment["start"] is not None:
+                start = comment["start"]
+            elif "add_line_start" in comment and comment["add_line_start"] is not None:
+                start = comment["add_line_start"]
+            elif (
+                "remove_line_start" in comment
+                and comment["remove_line_start"] is not None
+            ):
+                start = comment["remove_line_start"]
+
+            return start
+
+        comment_results.sort(key=lambda k: get_start_line(k))
 
         # Extract metadata from the last set of data processed (assumes consistent structure across all templates).
         review_metadata = data["metadata"]
@@ -412,23 +426,23 @@ class CodeReviewTool:
 
         # Initialize an empty list to hold individual change reviews.
         reviews = []
+        metadata["changes"] = []
 
         # Iterate over each change in the diff and conduct a review.
         for change in changes:
             # Prepare metadata specific to this change within the diff.
-            diff_metadata = {
-                "review_metadata": metadata,
-                "diff_metadata": {
+            metadata["changes"].append(
+                {
                     "old_path": change["old_path"],
                     "new_path": change["new_path"],
-                },
-            }
+                }
+            )
 
             # Conduct a review on this particular change and add it to the list of reviews.
             review = self._conduct_diff_code_review(
                 diff_data=change,
                 additional_instructions=additional_instructions,
-                metadata=diff_metadata,
+                metadata=metadata,
                 llm=llm,
             )
 
@@ -576,15 +590,22 @@ class CodeReviewTool:
             else:
                 comments += f"Line {start} to {end}\n\n"
 
-            comments += "##### Original code:\n"
-            comments += f"```{review_results['language']}\n"
-            comments += comment["original_code_snippet"] + "\n"
-            comments += "```\n\n"
+            if (
+                "original_code_snippet" in comment
+                and comment["original_code_snippet"] is not None
+                and comment["original_code_snippet"].strip() != ""
+            ):
+                comments += "##### Original code:\n"
+                comments += f"```{review_results['language']}\n"
+                comments += comment["original_code_snippet"] + "\n"
+                comments += "```\n\n"
 
             comments += f"\n{comment['comment']}\n"
 
             if (
-                comment["suggested_code_snippet"] != ""
+                "suggested_code_snippet" in comment
+                and comment["suggested_code_snippet"] is not None
+                and comment["suggested_code_snippet"].strip() != ""
                 and comment["suggested_code_snippet"]
                 != comment["original_code_snippet"]
             ):
@@ -592,8 +613,6 @@ class CodeReviewTool:
                 comments += f"```{review_results['language']}\n"
                 comments += comment["suggested_code_snippet"] + "\n"
                 comments += "```\n\n"
-            else:
-                comments += "No suggested code.\n\n"
 
         formatted_results = formatted_results.format(
             language=review_results["language"],
