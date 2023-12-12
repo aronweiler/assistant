@@ -36,6 +36,24 @@ DIFF_CODE_REVIEW_FORMAT_TEMPLATE = """The expected json output format is as foll
 ```
 """
 
+CUSTOM_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+
+You are conducting a code review specifically related to the following instructions.  Don't perform any actions except for those related to this set of instructions:
+
+----- CODE REVIEW INSTRUCTIONS -----
+{code_review_instructions}
+----- CODE REVIEW INSTRUCTIONS -----
+
+{final_code_review_instructions}
+"""
+
+GENERIC_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
+
+Please conduct a general code review of the code I've provided.  Be detailed in your analysis, and provide specific feedback on how to improve the code.
+
+{final_code_review_instructions}
+"""
+
 SECURITY_CODE_REVIEW_TEMPLATE = """{base_code_review_instructions}
 
 You are conducting a code review specifically looking for security vulnerabilities.  You should be looking for the following issues:
