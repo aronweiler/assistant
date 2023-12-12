@@ -53,6 +53,11 @@ def _get_openai_llm(model_configuration, **kwargs):
     """Initializes and returns an OpenAI LLM instance."""
     max_tokens = model_configuration.max_completion_tokens
     max_tokens = max_tokens if max_tokens > 0 else None
+    
+    if "model_kwargs" not in kwargs:
+        kwargs["model_kwargs"] = model_configuration.model_kwargs
+    else:
+        kwargs["model_kwargs"].update(model_configuration.model_kwargs)
 
     llm = ChatOpenAI(
         model=model_configuration.model,
