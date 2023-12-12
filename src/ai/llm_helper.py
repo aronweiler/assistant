@@ -57,7 +57,8 @@ def _get_openai_llm(model_configuration, **kwargs):
     if "model_kwargs" not in kwargs:
         kwargs["model_kwargs"] = model_configuration.model_kwargs
     else:
-        kwargs["model_kwargs"].update(model_configuration.model_kwargs)
+        if model_configuration.model_kwargs:
+            kwargs["model_kwargs"].update(model_configuration.model_kwargs)
 
     llm = ChatOpenAI(
         model=model_configuration.model,
