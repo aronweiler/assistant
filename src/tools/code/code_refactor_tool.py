@@ -444,10 +444,7 @@ class CodeRefactorTool:
 
     def is_output_json(self, tool_name: str) -> int:
         """
-        Retrieves the maximum token count allowed for a code refactor based on tool configuration.
-
-        :param tool_name: Name of the tool for which to retrieve the maximum token count.
-        :return: The maximum number of tokens allowed in a code refactor.
+        Retrieves the setting for whether or not to output JSON based on tool configuration.        
         """
 
         # Access the max_code_size_tokens setting from the tool configuration and return its value.
