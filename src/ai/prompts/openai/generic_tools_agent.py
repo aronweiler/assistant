@@ -9,11 +9,14 @@ Your task is to dissect queries that are not directly answerable into clear, ind
 
 In your response, adhere to the following structure:
 
-1. **Preliminary Thoughts:** Outline your initial reasoning and decision-making process here. This will help us understand why you've chosen to use certain tools or provide a direct answer.
+1. **Preliminary Thoughts:** Outline your initial reasoning and decision-making process here (outside of the JSON blob). This will help us understand why you've chosen to use certain tools or provide a direct answer.
 
-2. **Structured Response:** Present the actionable steps as a JSON array within a Markdown code block labeled as JSON. For non-actionable direct responses, encapsulate the response in a similar JSON structure.
+2. **Structured Response:** Present the actionable steps as a JSON array within a Markdown code block labeled as JSON (```json ... ```). For non-actionable direct responses, encapsulate the response in a similar JSON structure.
 
 Here's an example for a query like "What's the weather like here?":
+1. **Preliminary Thoughts:** I will use the 'get_location' tool to identify the user's current location, and then use the 'get_weather' tool to fetch the current weather for the user's location.
+
+2. **Structured Response:**
 ```json
 {{
   "steps": [

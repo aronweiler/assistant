@@ -23,7 +23,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 8192
+                "max_completion_tokens": 8192,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "model_configuration": {
@@ -34,7 +37,10 @@
             "max_model_supported_tokens": 16384,
             "uses_conversation_history": true,
             "max_conversation_history_tokens": 2048,
-            "max_completion_tokens": 4096
+            "max_completion_tokens": 4096,
+            "model_kwargs": {
+                "seed": 500
+            }
         },
         "search_type": "Hybrid",
         "search_top_k": 10,
@@ -53,7 +59,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": true,
                 "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096
+                "max_completion_tokens": 6096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "analyze_with_llm": {
@@ -67,7 +76,10 @@
                 "max_model_supported_tokens": 4096,
                 "uses_conversation_history": true,
                 "max_conversation_history_tokens": 342,
-                "max_completion_tokens": 1418
+                "max_completion_tokens": 1418,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "search_loaded_documents": {
@@ -92,7 +104,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": true,
                 "max_conversation_history_tokens": 512,
-                "max_completion_tokens": 4096
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "search_entire_document": {
@@ -106,7 +121,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": -1,
-                "max_completion_tokens": 0
+                "max_completion_tokens": 0,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "summarize_entire_document": {
@@ -120,7 +138,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 8192
+                "max_completion_tokens": 8192,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "list_documents": {
@@ -150,7 +171,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096
+                "max_completion_tokens": 6096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "get_all_code_in_file": {
@@ -167,7 +191,7 @@
                     "type": "int",
                     "value": 8000,
                     "min": 1,
-                    "max": 8000,
+                    "max": 20000,
                     "step": 25
                 },
                 "enable_security_code_review": {
@@ -215,7 +239,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "conduct_code_review_from_url": {
@@ -228,7 +255,7 @@
                     "type": "int",
                     "value": 8000,
                     "min": 1,
-                    "max": 8000,
+                    "max": 20000,
                     "step": 25
                 },
                 "enable_security_code_review": {
@@ -276,7 +303,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "create_code_review_issue": {
@@ -303,7 +333,7 @@
                     "type": "int",
                     "value": 3000,
                     "min": 1,
-                    "max": 8000,
+                    "max": 20000,
                     "step": 25
                 },
                 "enable_security_code_refactor": {
@@ -351,26 +381,29 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "conduct_code_refactor_from_url": {
             "enabled": false,
-            "return_direct": false,
+            "return_direct": true,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
                     "description": "This is useful for integrating with other tools.",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being refactored.",
                     "type": "int",
-                    "value": 2048,
+                    "value": 20000,
                     "min": 1,
-                    "max": 8000,
+                    "max": 20000,
                     "step": 25
                 },
                 "enable_security_code_refactor": {
@@ -432,7 +465,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "query_spreadsheet": {
@@ -446,7 +482,10 @@
                 "max_model_supported_tokens": 16384,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096
+                "max_completion_tokens": 6096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "get_weather": {
