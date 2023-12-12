@@ -31,13 +31,13 @@
         },
         "model_configuration": {
             "llm_type": "openai",
-            "model": "gpt-3.5-turbo-16k",
+            "model": "gpt-3.5-turbo",
             "temperature": 0.0,
             "max_retries": 3,
-            "max_model_supported_tokens": 16384,
+            "max_model_supported_tokens": 4097,
             "uses_conversation_history": true,
-            "max_conversation_history_tokens": 2048,
-            "max_completion_tokens": 4096,
+            "max_conversation_history_tokens": 256,
+            "max_completion_tokens": 2817,
             "model_kwargs": {
                 "seed": 500
             }
@@ -185,6 +185,12 @@
             "enabled": false,
             "return_direct": false,
             "additional_settings": {
+                "json_output": {
+                    "label": "Output the refactored code as JSON",
+                    "description": "This is useful for integrating with other tools.",
+                    "type": "bool",
+                    "value": false
+                },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being reviewed.",
@@ -247,8 +253,14 @@
         },
         "conduct_code_review_from_url": {
             "enabled": false,
-            "return_direct": false,
+            "return_direct": true,
             "additional_settings": {
+                "json_output": {
+                    "label": "Output the refactored code as JSON",
+                    "description": "This is useful for integrating with other tools.",
+                    "type": "bool",
+                    "value": false
+                },
                 "max_code_size_tokens": {
                     "label": "Max Code Size Tokens",
                     "description": "The maximum number of tokens to allow for code being reviewed.",
@@ -262,7 +274,7 @@
                     "label": "Perform a security code review",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_performance_code_review": {
                     "label": "Perform a performance code review",
@@ -274,33 +286,33 @@
                     "label": "Perform a memory code review",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_correctness_code_review": {
                     "label": "Perform a correctness code review",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_maintainability_code_review": {
                     "label": "Perform a maintainability code review",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_reliability_code_review": {
                     "label": "Perform a reliability code review",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 }
             },
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
+                "model": "gpt-4-1106-preview",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 16384,
+                "max_model_supported_tokens": 128000,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
@@ -451,7 +463,10 @@
                 "max_model_supported_tokens": 128000,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
             }
         },
         "create_cvss_evaluation": {
