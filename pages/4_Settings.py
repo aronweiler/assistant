@@ -231,6 +231,18 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         "*Note: This will not give memory to the tools that do not use it.*"
     )
 
+    st_sucks_col1.number_input(
+        "Model Seed Value",
+        value=tool_configuration["model_configuration"]["model_kwargs"].get("seed", 500)
+        if "model_kwargs" in tool_configuration["model_configuration"]
+        else 500,
+        key=f"{tool_name}-seed",
+    )
+    st_sucks_col2.markdown("Set this to a value to seed the model.  ")
+    st_sucks_col2.markdown(
+        "Same seed values in the same requests will produce more deterministic results."
+    )
+
     def update_sliders(
         max_supported_tokens,
         max_model_completion_tokens,
@@ -427,7 +439,7 @@ def save_tool_settings(tools, configuration):
         enabled = st.session_state[tool_name]
         if enabled != existing_tool_configuration["enabled"]:
             needs_saving = True
-            
+
         return_direct = st.session_state[f"{tool_name}-return-direct"]
         if return_direct != existing_tool_configuration["return_direct"]:
             needs_saving = True
@@ -439,7 +451,7 @@ def save_tool_settings(tools, configuration):
         if needs_saving:
             st.toast(f"Saving {tool_name} settings...")
             save_tool_settings_to_file(
-                tool_name=tool_name,                
+                tool_name=tool_name,
                 enabled=enabled,
                 return_direct=return_direct,
                 model_configuration=model_configuration,
@@ -510,6 +522,16 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
         ):
             needs_saving = True
 
+        seed = st.session_state[f"{tool_name}-seed"]
+        if (
+            "model_kwargs" not in existing_tool_configuration["model_configuration"]
+            or seed
+            != existing_tool_configuration["model_configuration"]["model_kwargs"][
+                "seed"
+            ]
+        ):
+            needs_saving = True
+
         model_configuration = {
             "llm_type": llm_type,
             "model": model,
@@ -519,6 +541,7 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
             "uses_conversation_history": uses_conversation_history,
             "max_conversation_history_tokens": max_conversation_history_tokens,
             "max_completion_tokens": max_completion_tokens,
+            "model_kwargs": {"seed": seed},
         }
 
     return model_configuration, needs_saving

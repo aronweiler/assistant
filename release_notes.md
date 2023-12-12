@@ -1,3 +1,9 @@
+### December 12, 2023 -- RELEASE NOTES: Jarvis 0.66
+- Updated code reviewing to support better integration with the UI
+- Additional options for code reviewing on the tool settings page
+- Added model seed values to help with more deterministic output
+
+
 ### December 11, 2023 -- RELEASE NOTES: Jarvis 0.65
 ⚠️ Compatibility Break ⚠️
 - This release refactors the database to remove unused tables, fields, etc.
