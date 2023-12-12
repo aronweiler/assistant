@@ -31,7 +31,7 @@ from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandle
 
 from src.utilities.hash_utilities import calculate_sha256
 
-from src.documents.document_loader import load_and_split_documents
+from src.documents.document_loader import DocumentLoader
 from streamlit_extras.stylable_container import stylable_container
 
 IMAGE_TYPES = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg"]
@@ -732,7 +732,9 @@ def ingest_files(
             is_code = st.session_state.ingestion_settings.file_type == "Code"
 
             # Pass the root temp dir to the ingestion function
-            documents = asyncio.run(load_and_split_documents(
+            document_loader = DocumentLoader()
+            
+            documents = asyncio.run(document_loader.load_and_split_documents(
                 document_directory=root_temp_dir,
                 split_documents=split_documents,
                 is_code=is_code,
