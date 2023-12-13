@@ -48,6 +48,8 @@ The steps to run the docker version is as follows:
 
 ## Updating Jarvis (Docker)
 
+If you are currently at version `0.64` or earlier, you will need to follow [these instructions](https://github.com/aronweiler/assistant/blob/main/release_notes.md#december-11-2023----release-notes-jarvis-065).
+
 *🥳 Following these update instructions **WILL NOT ERASE YOUR DATA** 🥳*
  
 Run the following commands in a terminal window in the same directory as the Jarvis `docker-compose.yml`:
