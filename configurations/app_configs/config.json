@@ -513,7 +513,31 @@
         },
         "get_text_from_website": {
             "enabled": true,
-            "return_direct": false
+            "return_direct": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-3.5-turbo-16k",
+                "temperature": 0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 16384,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 0,
+                "max_completion_tokens": 8000,
+                "model_kwargs": {
+                    "seed": 500
+                }
+            },
+            "additional_settings": {
+                "max_chunk_size": {
+                    "label": "Max Webpage Chunk Size",
+                    "description": "The maximum number of tokens to return before starting to split the webpage into chunks.",
+                    "type": "int",
+                    "value": 4000,
+                    "min": 1,
+                    "max": 20000000,
+                    "step": 100
+                }
+            }
         },
         "get_news_for_topic": {
             "enabled": false,
