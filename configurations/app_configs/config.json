@@ -31,13 +31,13 @@
         },
         "model_configuration": {
             "llm_type": "openai",
-            "model": "gpt-3.5-turbo",
+            "model": "gpt-3.5-turbo-16k",
             "temperature": 0.0,
             "max_retries": 3,
-            "max_model_supported_tokens": 4097,
+            "max_model_supported_tokens": 16384,
             "uses_conversation_history": true,
-            "max_conversation_history_tokens": 256,
-            "max_completion_tokens": 2817,
+            "max_conversation_history_tokens": 2048,
+            "max_completion_tokens": 8000,
             "model_kwargs": {
                 "seed": 500
             }
@@ -509,6 +509,10 @@
         },
         "get_time": {
             "enabled": false,
+            "return_direct": false
+        },
+        "get_text_from_website": {
+            "enabled": true,
             "return_direct": false
         },
         "get_news_for_topic": {

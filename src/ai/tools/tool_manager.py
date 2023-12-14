@@ -27,6 +27,7 @@ from src.ai.agents.code.stubbing_agent import Stubber
 from src.ai.agents.general.generic_tools_agent import GenericTool
 
 from src.tools.images.llava import LlavaTool
+from src.tools.web.website_tool import WebsiteTool
 
 
 class ToolManager:
@@ -154,6 +155,12 @@ class ToolManager:
         "get_time": {
             "display_name": "Time",
             "help_text": "Get the current time in the specified IANA time zone.",
+            "enabled_by_default": True,
+            "requires_documents": False,
+        },
+        "get_text_from_website":{
+            "display_name": "Get Text from Website",
+            "help_text": "Reads text from the specified URL.",
             "enabled_by_default": True,
             "requires_documents": False,
         },
@@ -306,6 +313,8 @@ class ToolManager:
             conversation_manager=self.conversation_manager,
         )
         weather_tool = WeatherTool()
+        
+        website_tool = WebsiteTool()
 
         llava_tool = LlavaTool(
             llava_path=os.environ.get("LLAVA_PATH", None),
@@ -452,6 +461,12 @@ class ToolManager:
                 additional_instructions="current_time_zone (str): The IANA time zone to get the current time in, for example: 'America/New_York'.",
                 function=TimeTool().get_time,
                 return_direct=self.should_return_direct(TimeTool().get_time.__name__),
+            ),
+            GenericTool(
+                description="Reads text from the specified URL.",
+                additional_instructions="URL (str): The URL to read text from.",
+                function=website_tool.get_text_from_website,
+                return_direct=self.should_return_direct(website_tool.get_text_from_website.__name__),
             ),
             GenericTool(
                 description="Get a list of news headlines and article URLs for a specified term.",
