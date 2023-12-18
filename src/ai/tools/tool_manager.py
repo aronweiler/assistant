@@ -504,7 +504,7 @@ class ToolManager:
             ),
             GenericTool(
                 description="Reads text from the specified URL.",
-                additional_instructions="URL (str): The URL to read text from.",
+                additional_instructions="Pass in the URL of the target website, along with the user's original query.",
                 function=website_tool.get_text_from_website,
                 return_direct=self.should_return_direct(
                     website_tool.get_text_from_website.__name__

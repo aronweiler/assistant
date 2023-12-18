@@ -38,25 +38,24 @@ class WebsiteTool:
         soup = BeautifulSoup(full_html, "html.parser")
         raw_text_no_html = soup.get_text(strip=True, separator=" ")
 
-        self.get_summary_or_text(raw_text_no_html, user_query)
+        return self.get_summary_or_text(raw_text_no_html, url, user_query)
 
-        return raw_text_no_html
-
-    def get_summary_or_text(self, text: str, user_query: str) -> str:
+    def get_summary_or_text(self, text: str, url: str, user_query: str) -> str:
         """Returns a summary of the text if it is larger than the max chunk size, otherwise returns the text"""
         additional_settings = self.configuration["tool_configurations"][
             self.get_text_from_website.__name__
-        ].get("additional_settings", 2048)
+        ]["additional_settings"]
 
-        max_chunk_size = additional_settings["max_chunk_size"]
+        max_chunk_size = additional_settings["max_chunk_size"]["value"]
 
         num_tokens = num_tokens_from_string(text)
         if num_tokens > max_chunk_size:
-            return self.get_summary(
+            summary = self.get_summary(
                 text=text, user_query=user_query, max_chunk_size=max_chunk_size
             )
+            return f"The chunk size of {max_chunk_size} was exceeded, so here is a summary of the user's request for {url}:\n\n{summary}"
         else:
-            return text
+            return f"Here is the raw text of {url}:\n\n{text}"
 
     def get_summary(self, text: str, user_query: str, max_chunk_size: int) -> str:
         """Returns a summary of the text"""
