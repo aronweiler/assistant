@@ -106,6 +106,15 @@
       "justMyCode": false
     },
     {
+      "name": "Documentation Runner",
+      "type": "python",
+      "request": "launch",
+      "program": "src/runners/documentation/documentation_runner.py",
+      "args": ["/repos/assistant/src/tools/documents", ".py"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Run Gitlab Issue Creator",
       "type": "python",
       "request": "launch",
