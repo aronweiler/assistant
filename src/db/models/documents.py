@@ -323,7 +323,7 @@ class Documents(VectorDatabase):
             question_embeddings = []
             for question_number in range(1, 6):
                 question = getattr(document, f"question_{question_number}")
-                if question.strip() != "":
+                if str(question).strip() != "":
                     question_embedding = get_embedding_with_model(
                         question,
                         model_name=document.embedding_model_name,
