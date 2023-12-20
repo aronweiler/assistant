@@ -8,6 +8,7 @@ from langchain.base_language import BaseLanguageModel
 
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.tools.code.code_commit_tool import CodeCommitTool
+from src.tools.code.code_retriever_tool import CodeRetrieverTool
 from src.tools.code.issue_tool import IssueTool
 
 from src.tools.documents.document_tool import DocumentTool
@@ -97,6 +98,12 @@ class ToolManager:
             "help_text": "Gets all of the code in the target file.",
             "enabled_by_default": True,
             "requires_documents": True,
+        },
+        "retrieve_source_code_from_url": {
+            "display_name": "Get Source Code from URL",
+            "help_text": "Gets source code from supported provider, such as a GitHub or GitLab.",
+            "enabled_by_default": True,
+            "requires_documents": False,
         },
         "conduct_code_review_from_file_id": {
             "display_name": "Perform a Code Review on Loaded Code File",
@@ -299,6 +306,10 @@ class ToolManager:
             configuration=self.configuration,
             conversation_manager=self.conversation_manager,
         )
+        code_retriever_tool = CodeRetrieverTool(
+            configuration=self.configuration,
+            conversation_manager=self.conversation_manager,
+        )        
         issue_tool = IssueTool(
             configuration=self.configuration,
             conversation_manager=self.conversation_manager,
@@ -421,6 +432,14 @@ class ToolManager:
                 function=code_tool.get_all_code_in_file,
                 return_direct=self.should_return_direct(
                     code_tool.get_all_code_in_file.__name__
+                ),
+            ),
+            GenericTool(
+                description="Gets source code from a specified URL",
+                additional_instructions="Use this tool to get source code from a source control provider, such as GitHub or GitLab.",                
+                function=code_retriever_tool.retrieve_source_code_from_url,
+                return_direct=self.should_return_direct(
+                    code_retriever_tool.retrieve_source_code_from_url.__name__
                 ),
             ),
             GenericTool(

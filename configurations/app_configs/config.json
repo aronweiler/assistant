@@ -181,6 +181,10 @@
             "enabled": false,
             "return_direct": false
         },
+        "retrieve_source_code_from_url": {
+            "enabled": true,
+            "return_direct": false
+        },
         "conduct_code_review_from_file_id": {
             "enabled": false,
             "return_direct": false,
@@ -516,13 +520,13 @@
             "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0,
+                "model": "gpt-4-1106-preview",
+                "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 16384,
+                "max_model_supported_tokens": 128000,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 8000,
+                "max_completion_tokens": 4096,
                 "model_kwargs": {
                     "seed": 500
                 }
