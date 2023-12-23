@@ -90,6 +90,7 @@ class Conversation(ModelBase):
     conversation_summary = Column(String, nullable=False)
     needs_summary = Column(Boolean, nullable=False, default=True)
     last_selected_collection_id = Column(Integer, nullable=False, default=-1)
+    last_selected_code_repo = Column(Integer, nullable=False, default=-1)
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
@@ -296,3 +297,32 @@ class DocumentCollection(ModelBase):
     documents = relationship("Document", back_populates="collection")
 
     files = relationship("File", back_populates="collection")
+
+
+class CodeRepository(ModelBase):
+    __tablename__ = "code_repositories"
+
+    id = Column(Integer, primary_key=True)
+    code_repository_address = Column(String, nullable=False, unique=True)
+    branch_name = Column(String, nullable=False)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    code_files = relationship(
+        "CodeFile", back_populates="code_repository"
+    )
+    
+class CodeFile(ModelBase):
+    __tablename__ = "code_files"
+
+    id = Column(Integer, primary_key=True)
+    code_repository_id = Column(Integer, ForeignKey("code_repositories.id"), nullable=False)
+    code_file_name = Column(String, nullable=False)
+    code_file_commit = Column(String, nullable=False)
+    code_file_content = Column(String, nullable=False)    
+    code_file_summary = Column(String, nullable=False)
+    code_file_summary_embedding = Column(Vector(dim=None), nullable=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    code_repository = relationship("CodeRepository", back_populates="code_files")
+
+    __table_args__ = (UniqueConstraint("code_repository_id", "code_file_name"),)
