@@ -354,10 +354,7 @@ class CodeRefactorTool:
         """
 
         # Retrieve file information from the URL.
-        retriever = CodeRetrieverTool(
-            configuration=self.configuration,
-            conversation_manager=self.conversation_manager,
-        )
+        retriever = CodeRetrieverTool()
         file_info = retriever.retrieve_source_code_from_url(url=target_url)
 
         # Determine the type of file and conduct appropriate type of refactor.

@@ -352,10 +352,7 @@ class CodeReviewTool:
         """
 
         # Retrieve file information from the URL.
-        retriever = CodeRetrieverTool(
-            configuration=self.configuration,
-            conversation_manager=self.conversation_manager,
-        )
+        retriever = CodeRetrieverTool()
         file_info = retriever.retrieve_source_code_from_url(url=target_url)
 
         # Initialize an empty string to hold the review results.

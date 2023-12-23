@@ -34,18 +34,11 @@ class CodeRetrieverTool:
     }
 
     def __init__(
-        self,
-        configuration,
-        conversation_manager: ConversationManager,
+        self
     ):
         """
-        Initializes the CodeRetrieverTool with a given configuration and an conversation manager.
-
-        :param configuration: Configuration settings for the tool.
-        :param conversation_manager: The manager that handles interactions with language models.
+        Initializes the CodeRetrieverTool
         """
-        self.configuration = configuration
-        self.conversation_manager = conversation_manager
 
         # Constants for environment variables and source control providers
         self.source_control_provider = os.getenv(
@@ -53,6 +46,31 @@ class CodeRetrieverTool:
         ).lower()
         self.source_control_url = os.getenv("source_control_url")
         self.source_control_pat = os.getenv("source_control_pat")
+
+    def get_branches(self, url: str) -> List[str]:
+        """
+        Retrieves branches from a given URL using the appropriate source control provider.
+
+        :param url: The URL from which to retrieve the branches.
+        :return: The retrieved branches or an error message if retrieval is not supported.
+        """
+        # Get the corresponding retriever class from the map using provider name in lowercase.
+        retriever_class = self.source_control_to_retriever_map.get(
+            self.source_control_provider
+        )
+
+        # If no retriever class is found, return an error message indicating unsupported branch retrieval.
+        if not retriever_class:
+            return [f"Source control provider {self.source_control_provider} does not support branch retrieval"]
+
+        # Instantiate the retriever with necessary credentials from environment variables.
+        retriever_instance = retriever_class(
+            self.source_control_url,
+            self.source_control_pat,
+        )
+
+        # Use the instantiated retriever to fetch branches from the provided URL.
+        return retriever_instance.retrieve_branches(url=url)
 
     def retrieve_source_code_from_url(self, url: str) -> str:
         """
