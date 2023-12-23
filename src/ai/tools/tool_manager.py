@@ -306,10 +306,7 @@ class ToolManager:
             configuration=self.configuration,
             conversation_manager=self.conversation_manager,
         )
-        code_retriever_tool = CodeRetrieverTool(
-            configuration=self.configuration,
-            conversation_manager=self.conversation_manager,
-        )        
+        code_retriever_tool = CodeRetrieverTool()        
         issue_tool = IssueTool(
             configuration=self.configuration,
             conversation_manager=self.conversation_manager,
