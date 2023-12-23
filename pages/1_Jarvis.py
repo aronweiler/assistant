@@ -98,35 +98,10 @@ class RagUI:
 
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
-                if "rag_ai" in st.session_state:
-                    # with st.container():
-                    # Create a form for the collection creation:
-                    if (
-                        "show_create_collection" in st.session_state
-                        and st.session_state.show_create_collection
-                    ):
-                        with st.form(key="new_collection", clear_on_submit=True):
-                            col1, col2 = st.columns(2)
-                            
-                            col1.text_input(
-                                "Collection name",
-                                key="new_collection_name",
-                            )
-                            
-                            col2.selectbox(
-                                "Collection type",
-                                options=["Remote (OpenAI)", "Local (HF)"],
-                                key="new_collection_type"
-                            )
-
-                            st.form_submit_button(
-                                "Create New Collection",
-                                type="primary",
-                                on_click=ui_shared.create_collection,
-                            )
+                if "rag_ai" in st.session_state:                    
 
                     logging.debug("Creating collection selectbox")
-                    ui_shared.create_collection_selectbox(ai=st.session_state["rag_ai"])
+                    ui_shared.create_documents_and_code_collections(ai=st.session_state["rag_ai"])
 
                     if "rag_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()
@@ -164,6 +139,7 @@ class RagUI:
                                     # )
                                     
 
+                            st.divider()
                             st.markdown("#### Options")
 
                             with st.expander("Search", expanded=False):  # , expanded=expanded):

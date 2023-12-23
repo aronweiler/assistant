@@ -16,6 +16,8 @@ from src.configuration.assistant_configuration import (
 )
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.db.models.code import Code
+from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 from src.utilities.configuration_utilities import (
     get_app_configuration,
@@ -319,6 +321,20 @@ def delete_conversation(conversation_id):
 
     set_confirm_conversation_delete(False)
 
+def get_available_code_repositories():
+    # Time the operation:
+    repos = Code().get_repositories()
+
+    # Create a dictionary of repo id to repo address
+    repos_list = [
+        f"{repo.id}:{repo.code_repository_address} ({repo.branch_name})"
+        for repo in repos
+    ]
+
+    repos_list.insert(0, "-1:---")
+
+    return repos_list
+
 
 def get_available_collections():
     # Time the operation:
@@ -328,7 +344,7 @@ def get_available_collections():
 
     logging.info(f"get_available_collections() took {total_time} seconds")
 
-    # Create a dictionary of collection id to collection summary
+    # Create a dictionary of collection id to collection name
     collections_list = [
         f"{collection.id}:{collection.collection_name} - {collection.collection_type}"
         for collection in collections
@@ -950,12 +966,86 @@ def on_change_collection():
     )
 
 
-def create_collection_selectbox(ai):
-    st.markdown("Selected document collection:")
+def create_documents_and_code_collections(ai):
+    documents_tab, code_tab = st.tabs(["Documents", "Code"])
+    
+    _create_documents_collection_tab(ai, documents_tab)
+    _create_code_collection_tab(ai, code_tab)
+    
+def _create_code_collection_tab(ai, code_tab:DeltaGenerator):
+    code_tab.markdown("Selected code repository:")
 
-    col1, col2 = st.columns([0.80, 0.2])
+    col1, col2 = code_tab.columns([0.80, 0.2])
 
-    st.caption(
+    code_tab.caption(
+        "The code repository selected here determines which code is used by the AI."
+    )
+
+    available_repos = get_available_code_repositories()
+    selected_repo_index = 0
+    # Find the index of the selected collection
+    for i, repo in enumerate(available_repos):
+        if int(repo.split(":")[0]) == int(
+            ai.conversation_manager.get_conversation().last_selected_code_repo
+        ):
+            selected_repo_index = i
+            break
+
+    col1.selectbox(
+        label="Active code repository",
+        index=int(selected_repo_index),
+        options=available_repos,
+        key="active_code_repo",
+        placeholder="Select a repository",
+        label_visibility="collapsed",
+        format_func=lambda x: x.split(":")[1],
+        on_change=None,
+    )
+
+    show_add_code_repo = col2.button(
+        "➕", help="Add a new code repository", key="show_add_code_repo"
+    )
+    
+    # Create a form for the collection creation:
+    if (show_add_code_repo):
+        with code_tab:
+            col1, col2, col3 = code_tab.columns(3)
+            with st.form(key="new_repo", clear_on_submit=True):
+                
+                
+                col1.text_input(
+                    "Repository address",
+                    key="new_repo_address",
+                )
+                
+                # Create the refresh button to refresh the branches from the repo
+                col2.button(
+                    "🔄",
+                    help="Refresh branches",
+                    key="refresh_branches",
+                    on_click=refresh_branches,
+                    kwargs={"col3": col3},
+                )
+                    
+                
+                # col3.selectbox(
+                #     "Branch name",
+                #     options=["Remote (OpenAI)", "Local (HF)"],
+                #     key="new_collection_type"
+                # )
+
+                st.form_submit_button(
+                    "Add Repository",
+                    type="primary",
+                    on_click=add_repository,
+                )
+    
+def _create_documents_collection_tab(ai, documents_tab:DeltaGenerator):
+    documents_tab.markdown("Selected document collection:")
+
+    col1, col2 = documents_tab.columns([0.80, 0.2])
+
+    documents_tab.caption(
         "The document collection selected here determines which documents are used to answer questions."
     )
 
@@ -980,10 +1070,54 @@ def create_collection_selectbox(ai):
         on_change=on_change_collection,
     )
 
-    col2.button(
+    show_create_collection = col2.button(
         "➕", help="Create a new document collection", key="show_create_collection"
     )
+    
+    # Create a form for the collection creation:
+    if (show_create_collection):
+        with documents_tab:
+            with st.form(key="new_collection", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+                
+                col1.text_input(
+                    "Collection name",
+                    key="new_collection_name",
+                )
+                
+                col2.selectbox(
+                    "Collection type",
+                    options=["Remote (OpenAI)", "Local (HF)"],
+                    key="new_collection_type"
+                )
 
+                st.form_submit_button(
+                    "Create New Collection",
+                    type="primary",
+                    on_click=create_collection,
+                )
+
+def add_repository():
+    pass
+
+def refresh_branches(col3):
+    """Refreshes the branches for the specified repo address"""
+    repo_address = st.session_state.get("new_repo_address")
+    
+    if repo_address:
+        retriever = CodeRetrieverTool()
+        branches = retriever.get_branches(repo_address)
+
+        if branches:
+            col3.selectbox(
+                "Branch name",
+                options=branches,
+                key="new_branch_name"
+            )
+        else:
+            st.error("Could not find any branches for this repo")
+    else:
+        st.error("Please enter a repo address")
 
 def refresh_messages_session_state(ai_instance):
     """Pulls the messages from the token buffer on the AI for the first time, and put them into the session state"""
