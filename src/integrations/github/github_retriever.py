@@ -18,6 +18,20 @@ class GitHubRetriever:
             source_control_pat=source_control_pat
         )
 
+    def retrieve_branches(self, url):
+        url_info = github_shared.parse_url(url=url)
+        
+        repo_path = url_info["repo_path"]
+        
+        try:
+            repo = self._gh.get_repo(repo_path)
+        except Exception as ex:
+            raise Exception(f"Failed to retrieve repo {url} from server")
+
+        branches = repo.get_branches()
+
+        return [b.name for b in branches]
+
     def retrieve_data(self, url):
         url_info = github_shared.parse_url(url=url)
 
