@@ -34,3 +34,12 @@ class Code(VectorDatabase):
             ).all()
 
             return [CodeRepositoryModel.from_database_model(c) for c in repositories]
+
+    def add_repository(self, address: str, branch_name: str):
+        with self.session_context(self.Session()) as session:
+            session.add(
+                CodeRepository(
+                    code_repository_address=address,
+                    branch_name=branch_name,
+                )
+            )

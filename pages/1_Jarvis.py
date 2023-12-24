@@ -111,32 +111,13 @@ class RagUI:
                                 collection_id
                             )
 
-                            loaded_docs = (
-                                st.session_state.rag_ai.conversation_manager.get_loaded_documents_for_display()
-                            )
+                            
 
                             loaded_docs_delimited = (
                                 st.session_state.rag_ai.conversation_manager.get_loaded_documents_delimited()
                             )
 
-                            with st.expander(
-                                label=f"({len(loaded_docs)}) documents in {ui_shared.get_selected_collection_name()}",
-                                expanded=False,
-                            ):   
-                                # TODO: Add capabilities to edit the collection (delete documents)                      
-                                #st.button("✏️ Edit Collection")       
-                                for doc in loaded_docs:
-                                    st.write(doc)
-                                    # col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
-                                    # # TODO: Put a thumbnail of the images here (maybe icon for documents)
-                                    # col1.write(doc)
-                                    # col3.button(
-                                    #     "🗑️",
-                                    #     help="Delete this document from the collection",
-                                    #     #on_click=set_confirm_conversation_item_delete,
-                                    #     #kwargs={"val": True, "id": message["id"]},
-                                    #     key=str(uuid.uuid4()),
-                                    # )
+                            
                                     
 
                             st.divider()
