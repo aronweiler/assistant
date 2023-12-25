@@ -323,7 +323,7 @@ class CodeFile(ModelBase):
         Integer, ForeignKey("code_repositories.id"), nullable=False
     )
     code_file_name = Column(String, nullable=False)
-    code_file_commit = Column(String, nullable=False)
+    code_file_sha = Column(String, nullable=False)
     code_file_content = Column(String, nullable=False)
     code_file_summary = Column(String, nullable=False)
     code_file_summary_embedding = Column(Vector(dim=None), nullable=True)
