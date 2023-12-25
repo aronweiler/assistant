@@ -1,3 +1,5 @@
+import datetime
+import logging
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
@@ -54,17 +56,26 @@ def create_code_collection_tab(ai, tab: DeltaGenerator):
 
         if col2.button("➕", help="Add a new code repository", key="show_add_code_repo"):
             st.session_state.adding_repo = True
-       
+
         repo_id = streamlit_shared.get_selected_code_repo_id()
 
         if not st.session_state.get("adding_repo", False) and repo_id != -1:
-            # Show the scan repo button            
+            # Show the scan repo button
             scan_col_1, scan_col_2 = st.columns([0.6, 0.4])
-            repo = Code().get_repository(repo_id)           
-            if repo: 
+            repo = Code().get_repository(repo_id)
+            if repo:
                 scan_col_1.markdown(f"Last scan: **{repo.last_scanned or 'Never'}**")
-                scan_col_2.button("Scan repository", help="Scan the code repository", key="scan_repo", on_click=scan_repo, args=(tab, ai, ))
-                        
+                scan_col_2.button(
+                    "Scan repository",
+                    help="Scan the code repository",
+                    key="scan_repo",
+                    on_click=scan_repo,
+                    args=(
+                        tab,
+                        ai,
+                    ),
+                )
+
         elif st.session_state.get("adding_repo", False):
             col1.caption("Repository address:")
             col1.text_input(
@@ -140,42 +151,85 @@ def on_change_code_repo():
         streamlit_shared.get_selected_conversation_id(), code_repo_id
     )
 
-def scan_repo(tab: DeltaGenerator, ai:RetrievalAugmentedGenerationAI):
+
+def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
     """Scans the selected repo"""
     code_repo_id = streamlit_shared.get_selected_code_repo_id()
     code_repo = Code().get_repository(code_repo_id)
     retriever = CodeRetrieverTool()
-    
-    files = retriever.scan_repo(code_repo.code_repository_address, code_repo.branch_name)
-    
-    with tab:    
+
+    files = retriever.scan_repo(
+        code_repo.code_repository_address, code_repo.branch_name
+    )
+
+    with tab:
         st.info(f"Found {len(files)} files")
-        
+
         if len(files) > 0:
             progress_bar = st.progress(0)
             progress_text = st.empty()
-            
+
             for i, file in enumerate(files):
                 progress_text.text(f"Processing {file.path}")
-                process_code_file(file, ai, code_repo.code_repository_address, code_repo.branch_name)
+                process_code_file(
+                    file=file,
+                    ai=ai,
+                    repo_address=code_repo.code_repository_address,
+                    branch_name=code_repo.branch_name,
+                    code_repo_id=code_repo_id,
+                )
                 progress_bar.progress((i + 1) / len(files))
-                
-            
+
             progress_bar.empty()
-            
+
+            Code().update_last_scanned(code_repo_id, datetime.datetime.now())
+
             st.success(f"Done scanning {len(files)} files!")
-        
-def process_code_file(file, ai: RetrievalAugmentedGenerationAI, repo_address: str, branch_name: str):
+
+
+def process_code_file(
+    file,
+    ai: RetrievalAugmentedGenerationAI,
+    repo_address: str,
+    branch_name: str,
+    code_repo_id: int,
+):
     """Processes the code file"""
+    code_helper = Code()
+
+    # Skip the file if the same file (sha) has already been processed
+    if code_helper.code_file_exists(code_repo_id, file.sha):
+        logging.info(f"Skipping file {file.path} as it has already been processed")
+        return
+
     # Retrieve the code from the file
-    code_data = CodeRetrieverTool().get_code_from_repo_and_branch(file.path, repo_address, branch_name)
-    
-    code = code_data['file_content']
-    
+    code_data = CodeRetrieverTool().get_code_from_repo_and_branch(
+        file.path, repo_address, branch_name
+    )
+
+    code = code_data["file_content"]
+
     # Generate the keywords from the code
     keywords_and_descriptions = ai.generate_keywords_from_code_file(code)
-    
+
+    if (
+        not keywords_and_descriptions
+        or "keywords" not in keywords_and_descriptions
+        or "descriptions" not in keywords_and_descriptions
+        or "summary" not in keywords_and_descriptions
+    ):
+        logging.warning(
+            f"Skipping file {file.path} as no keywords, descriptions, or summary were generated"
+        )
+        return
+
     # Store the code and keywords in the database
-    code_helper = Code()
-    code_helper.add_code(file.path, code, keywords_and_descriptions)
-    
+
+    code_helper.add_update_code(
+        file_name=file.path,
+        file_sha=file.sha,
+        file_content=code,
+        keywords_and_descriptions=keywords_and_descriptions,
+        repository_id=code_repo_id,
+        file_summary=keywords_and_descriptions["summary"],
+    )
