@@ -94,7 +94,9 @@ class Conversation(ModelBase):
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
-    conversation_messages = relationship("ConversationMessage", back_populates="conversation")
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="conversation"
+    )
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
@@ -143,7 +145,9 @@ class ConversationMessage(ModelBase):
     )
 
     # Define the foreign key constraint to ensure the conversation_id exists in the conversations table
-    conversation_constraint = ForeignKeyConstraint([conversation_id], ["conversations.id"])
+    conversation_constraint = ForeignKeyConstraint(
+        [conversation_id], ["conversations.id"]
+    )
 
     # Define the CheckConstraint to enforce conversation_id existing in conversation_messages table
     conversation_check_constraint = CheckConstraint(
@@ -305,24 +309,60 @@ class CodeRepository(ModelBase):
     id = Column(Integer, primary_key=True)
     code_repository_address = Column(String, nullable=False, unique=True)
     branch_name = Column(String, nullable=False)
+    last_scanned = Column(DateTime, nullable=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
-    code_files = relationship(
-        "CodeFile", back_populates="code_repository"
-    )
-    
+    code_files = relationship("CodeFile", back_populates="code_repository")
+
+
 class CodeFile(ModelBase):
     __tablename__ = "code_files"
 
     id = Column(Integer, primary_key=True)
-    code_repository_id = Column(Integer, ForeignKey("code_repositories.id"), nullable=False)
+    code_repository_id = Column(
+        Integer, ForeignKey("code_repositories.id"), nullable=False
+    )
     code_file_name = Column(String, nullable=False)
     code_file_commit = Column(String, nullable=False)
-    code_file_content = Column(String, nullable=False)    
+    code_file_content = Column(String, nullable=False)
     code_file_summary = Column(String, nullable=False)
     code_file_summary_embedding = Column(Vector(dim=None), nullable=True)
+
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
     code_repository = relationship("CodeRepository", back_populates="code_files")
 
     __table_args__ = (UniqueConstraint("code_repository_id", "code_file_name"),)
+
+
+class CodeKeyword(ModelBase):
+    __tablename__ = "code_keywords"
+
+    id = Column(Integer, primary_key=True)
+    code_file_id = Column(Integer, ForeignKey("code_files.id"), nullable=False)
+    keyword = Column(String, nullable=False)
+
+    # Relationship to associate keywords with a specific code file.
+    code_file = relationship("CodeFile", back_populates="code_keywords")
+
+
+CodeFile.code_keywords = relationship(
+    "CodeKeyword", order_by=CodeKeyword.id, back_populates="code_file"
+)
+
+
+class CodeDescription(ModelBase):
+    __tablename__ = "code_descriptions"
+
+    id = Column(Integer, primary_key=True)
+    code_file_id = Column(Integer, ForeignKey("code_files.id"), nullable=False)
+    description_text = Column(String, nullable=False)
+    description_text_embedding = Column(Vector(dim=None), nullable=True)
+
+    # Relationship to associate descriptions with a specific code file.
+    code_file = relationship("CodeFile", back_populates="code_descriptions")
+
+
+CodeFile.code_descriptions = relationship(
+    "CodeDescription", order_by=CodeDescription.id, back_populates="code_file"
+)
