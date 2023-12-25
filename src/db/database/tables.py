@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
+    Table,
     Uuid,
     DateTime,
     ForeignKey,
@@ -303,6 +304,20 @@ class DocumentCollection(ModelBase):
     files = relationship("File", back_populates="collection")
 
 
+# Association table for the many-to-many relationship
+code_repository_files_association = Table(
+    "code_repository_files",
+    ModelBase.metadata,
+    Column(
+        "code_repository_id",
+        Integer,
+        ForeignKey("code_repositories.id"),
+        primary_key=True,
+    ),
+    Column("code_file_id", Integer, ForeignKey("code_files.id"), primary_key=True),
+)
+
+
 class CodeRepository(ModelBase):
     __tablename__ = "code_repositories"
 
@@ -312,27 +327,33 @@ class CodeRepository(ModelBase):
     last_scanned = Column(DateTime, nullable=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
-    code_files = relationship("CodeFile", back_populates="code_repository")
+    # Update the relationship to use the association table
+    code_files = relationship(
+        "CodeFile",
+        secondary=code_repository_files_association,
+        back_populates="code_repositories",
+    )
 
 
 class CodeFile(ModelBase):
     __tablename__ = "code_files"
 
     id = Column(Integer, primary_key=True)
-    code_repository_id = Column(
-        Integer, ForeignKey("code_repositories.id"), nullable=False
-    )
     code_file_name = Column(String, nullable=False)
     code_file_sha = Column(String, nullable=False)
     code_file_content = Column(String, nullable=False)
     code_file_summary = Column(String, nullable=False)
+
     code_file_summary_embedding = Column(Vector(dim=None), nullable=True)
 
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
-    code_repository = relationship("CodeRepository", back_populates="code_files")
-
-    __table_args__ = (UniqueConstraint("code_repository_id", "code_file_name"),)
+    # Update the relationship to use the association table
+    code_repositories = relationship(
+        "CodeRepository",
+        secondary=code_repository_files_association,
+        back_populates="code_files",
+    )
 
 
 class CodeKeyword(ModelBase):
