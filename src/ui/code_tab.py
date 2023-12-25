@@ -164,6 +164,8 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
 
     with tab:
         st.info(f"Found {len(files)} files")
+        
+        unprocessed_files = []
 
         if len(files) > 0:
             progress_bar = st.progress(0)
@@ -171,13 +173,15 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
 
             for i, file in enumerate(files):
                 progress_text.text(f"Processing {file.path}")
-                process_code_file(
+                if not process_code_file(
                     file=file,
                     ai=ai,
                     repo_address=code_repo.code_repository_address,
                     branch_name=code_repo.branch_name,
                     code_repo_id=code_repo_id,
-                )
+                ):
+                    unprocessed_files.append(file.path)
+                    
                 progress_bar.progress((i + 1) / len(files))
 
             progress_bar.empty()
@@ -185,6 +189,10 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
             Code().update_last_scanned(code_repo_id, datetime.datetime.now())
 
             st.success(f"Done scanning {len(files)} files!")
+            
+            if len(unprocessed_files) > 0:
+                st.warning(f"Could not process {len(unprocessed_files)} files:")
+                st.write(unprocessed_files)
 
 
 def process_code_file(
@@ -198,9 +206,9 @@ def process_code_file(
     code_helper = Code()
 
     # Skip the file if the same file (sha) has already been processed
-    if code_helper.code_file_exists(code_repo_id, file.sha):
+    if code_helper.code_file_exists(code_repo_id=code_repo_id, code_file_name=file.path, file_sha=file.sha):
         logging.info(f"Skipping file {file.path} as it has already been processed")
-        return
+        return True
 
     # Retrieve the code from the file
     code_data = CodeRetrieverTool().get_code_from_repo_and_branch(
@@ -209,19 +217,26 @@ def process_code_file(
 
     code = code_data["file_content"]
 
-    # Generate the keywords from the code
-    keywords_and_descriptions = ai.generate_keywords_from_code_file(code)
+    if code.strip() != "":
+        # Generate the keywords from the code
+        keywords_and_descriptions = ai.generate_keywords_from_code_file(code)
 
-    if (
-        not keywords_and_descriptions
-        or "keywords" not in keywords_and_descriptions
-        or "descriptions" not in keywords_and_descriptions
-        or "summary" not in keywords_and_descriptions
-    ):
-        logging.warning(
-            f"Skipping file {file.path} as no keywords, descriptions, or summary were generated"
-        )
-        return
+        if (
+            not keywords_and_descriptions
+            or "keywords" not in keywords_and_descriptions
+            or "descriptions" not in keywords_and_descriptions
+            or "summary" not in keywords_and_descriptions
+        ):
+            logging.warning(
+                f"Skipping file {file.path} as no keywords, descriptions, or summary were generated"
+            )
+            return False
+    else:
+        keywords_and_descriptions = {
+            "keywords": [],
+            "descriptions": [],
+            "summary": "",
+        }
 
     # Store the code and keywords in the database
 
@@ -233,3 +248,5 @@ def process_code_file(
         repository_id=code_repo_id,
         file_summary=keywords_and_descriptions["summary"],
     )
+    
+    return True

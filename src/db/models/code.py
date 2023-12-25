@@ -82,11 +82,12 @@ class Code(VectorDatabase):
             )
             session.commit()
 
-    def code_file_exists(self, code_repo_id: int, file_sha: str) -> bool:
+    def code_file_exists(self, code_repo_id: int, code_file_name:str, file_sha: str) -> bool:
         with self.session_context(self.Session()) as session:
             return (
                 session.query(CodeFile)
                 .filter(CodeFile.code_repository_id == code_repo_id)
+                .filter(CodeFile.code_file_name == code_file_name)
                 .filter(CodeFile.code_file_sha == file_sha)
                 .count()
                 > 0
@@ -155,7 +156,7 @@ class Code(VectorDatabase):
                         text=file_summary,
                         collection_type="Remote",
                         instruction="Represent the summary for retrieval: ",
-                    ),
+                    ) if file_summary.strip() != "" else None,
                 )
                 session.add(code_file)            
                 session.commit()
