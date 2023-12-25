@@ -341,6 +341,21 @@ def get_selected_collection_id():
 
     return selected_collection_id
 
+def get_selected_code_repo_id():
+    """Gets the selected code repo id from the selectbox"""
+    selected_code_repo_pair = st.session_state.get("active_code_repo")
+
+    if not selected_code_repo_pair:
+        return None
+
+    selected_code_repo_id = selected_code_repo_pair.split(":")[0]
+
+    logging.info(
+        f"get_selected_code_repo_id(): selected_code_repo_id: {selected_code_repo_id}"
+    )
+
+    return selected_code_repo_id
+
 
 def get_selected_collection_type():
     collection_id = get_selected_collection_id()

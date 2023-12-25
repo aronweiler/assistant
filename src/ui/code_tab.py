@@ -1,5 +1,6 @@
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
+from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.db.models.code import Code
 from src.db.models.conversations import Conversations
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
@@ -53,8 +54,18 @@ def create_code_collection_tab(ai, tab: DeltaGenerator):
 
         if col2.button("➕", help="Add a new code repository", key="show_add_code_repo"):
             st.session_state.adding_repo = True
+       
+        repo_id = streamlit_shared.get_selected_code_repo_id()
 
-        if st.session_state.get("adding_repo", False):
+        if not st.session_state.get("adding_repo", False) and repo_id != -1:
+            # Show the scan repo button            
+            scan_col_1, scan_col_2 = st.columns([0.6, 0.4])
+            repo = Code().get_repository(repo_id)           
+            if repo: 
+                scan_col_1.markdown(f"Last scan: **{repo.last_scanned or 'Never'}**")
+                scan_col_2.button("Scan repository", help="Scan the code repository", key="scan_repo", on_click=scan_repo, args=(tab, ai, ))
+                        
+        elif st.session_state.get("adding_repo", False):
             col1.caption("Repository address:")
             col1.text_input(
                 "Repository address",
@@ -69,14 +80,13 @@ def create_code_collection_tab(ai, tab: DeltaGenerator):
 
 
 def add_repository():
-    
     code = Code()
-    
+
     code.add_repository(
         st.session_state.get("new_repo_address", ""),
         st.session_state.get("new_branch_name", ""),
     )
-    
+
     # Reset the adding repo state
     st.session_state.adding_repo = False
 
@@ -109,18 +119,63 @@ def show_branches(tab: DeltaGenerator):
                     col2.button(
                         "Cancel",
                         type="secondary",
-                        on_click=lambda: st.session_state.update({"adding_repo": False}),
+                        on_click=lambda: st.session_state.update(
+                            {"adding_repo": False}
+                        ),
                     )
                 else:
                     st.error("Could not find any branches for this repo")
             else:
                 st.info("Please enter a repo address")
 
+
 def on_change_code_repo():
     """Called when the code repo is changed"""
-    # Set the last active collection for this conversation (conversation)
+    # Set the last active code repo for this conversation (conversation)
     code_repo_id = streamlit_shared.get_selected_code_repo_id()
+
     conversations_helper = Conversations()
+
     conversations_helper.update_selected_code_repo(
         streamlit_shared.get_selected_conversation_id(), code_repo_id
     )
+
+def scan_repo(tab: DeltaGenerator, ai:RetrievalAugmentedGenerationAI):
+    """Scans the selected repo"""
+    code_repo_id = streamlit_shared.get_selected_code_repo_id()
+    code_repo = Code().get_repository(code_repo_id)
+    retriever = CodeRetrieverTool()
+    
+    files = retriever.scan_repo(code_repo.code_repository_address, code_repo.branch_name)
+    
+    with tab:    
+        st.info(f"Found {len(files)} files")
+        
+        if len(files) > 0:
+            progress_bar = st.progress(0)
+            progress_text = st.empty()
+            
+            for i, file in enumerate(files):
+                progress_text.text(f"Processing {file.path}")
+                process_code_file(file, ai, code_repo.code_repository_address, code_repo.branch_name)
+                progress_bar.progress((i + 1) / len(files))
+                
+            
+            progress_bar.empty()
+            
+            st.success(f"Done scanning {len(files)} files!")
+        
+def process_code_file(file, ai: RetrievalAugmentedGenerationAI, repo_address: str, branch_name: str):
+    """Processes the code file"""
+    # Retrieve the code from the file
+    code_data = CodeRetrieverTool().get_code_from_repo_and_branch(file.path, repo_address, branch_name)
+    
+    code = code_data['file_content']
+    
+    # Generate the keywords from the code
+    keywords_and_descriptions = ai.generate_keywords_from_code_file(code)
+    
+    # Store the code and keywords in the database
+    code_helper = Code()
+    code_helper.add_code(file.path, code, keywords_and_descriptions)
+    
