@@ -15,6 +15,8 @@ CODE_DETAILS_EXTRACTION_TEMPLATE = """Please examine the following code carefull
 
 I would like you to extract a list of keywords that can be used to later search this code. The keywords should include things like variable names, function names, class names, and other items of interest. Please also include short descriptions (no more than a sentence or two) of the goals and functionality that is represented in this code, being sure to capture any functionality that could be of interest to someone searching the codebase.
 
+Additionally, please write a detailed summary of what this code does. This summary should be at least a paragraph long, and should be written in a way that is understandable to someone who is not familiar with the codebase.
+
 Your output should be in a JSON blob with the following format:
 
 ```json
@@ -28,9 +30,10 @@ Your output should be in a JSON blob with the following format:
         "short description 1",
         "short description 2",
         "etc."        
-    ]
+    ],
+    "summary": "detailed summary"
 }}
 ```
 
-AI: Sure, here is a JSON blob with the keywords and descriptions:
+AI: Sure, here is a JSON blob with the keywords, descriptions, and summary:
 """
