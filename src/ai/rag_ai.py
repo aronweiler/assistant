@@ -210,6 +210,27 @@ class RetrievalAugmentedGenerationAI:
             self.conversation_manager.conversation_needs_summary = False
             logging.debug(f"Generated summary: {conversation_summary}")
 
+    def generate_keywords_from_code_file(self, code:str) -> dict:
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
+                "model_configuration"
+            ],
+            tags=["retrieval-augmented-generation-ai"],
+            streaming=False,
+        )
+
+        response = llm.predict(
+            self.prompt_manager.get_prompt(
+                "code_general",
+                "CODE_DETAILS_EXTRACTION_TEMPLATE",
+            ).format(code=code),
+            timeout=30000,
+        )
+
+        keywords = parse_json(text=response, llm=llm)
+
+        return keywords
+
     # Required by the Jarvis UI when ingesting files
     def generate_detailed_document_chunk_summary(
         self,
