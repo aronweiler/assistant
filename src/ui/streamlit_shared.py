@@ -1060,11 +1060,11 @@ def handle_chat(main_window_container, ai_instance, configuration):
         help_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
 
         col1.markdown(
-            f'<div align="right" title="Select the mode to use. Auto will automatically switch between a Conversation Only and Tool Using AI based on the users input.">{help_icon} <b>AI Mode:</b></div>',
+            f'<div align="right" title="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.">{help_icon} <b>AI Mode:</b></div>',
             unsafe_allow_html=True,
         )
 
-        ai_modes = ["Auto", "Conversation Only"]
+        ai_modes = ["Auto", "Code", "Conversation Only"]
 
         col2.selectbox(
             label="Mode",
@@ -1074,7 +1074,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 get_app_configuration()["jarvis_ai"].get("ai_mode", "Auto")
             ),
             key="ai_mode",
-            help="Select the mode to use. 'Auto' will automatically switch between 'Conversation Only' and 'Tool Using AI' based on the user's input.",
+            help="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.",
             on_change=set_ai_mode,
         )
 
