@@ -99,7 +99,9 @@ class RetrievalAugmentedGenerationAI:
 
         # Initialize the tool manager and load the available tools
         self.tool_manager = ToolManager(configuration=self.configuration)
-        self.tool_manager.initialize_tools(self.configuration, self.conversation_manager)
+        self.tool_manager.initialize_tools(
+            self.configuration, self.conversation_manager
+        )
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -210,7 +212,7 @@ class RetrievalAugmentedGenerationAI:
             self.conversation_manager.conversation_needs_summary = False
             logging.debug(f"Generated summary: {conversation_summary}")
 
-    def generate_keywords_from_code_file(self, code:str) -> dict:
+    def generate_keywords_from_code_file(self, code: str) -> dict:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"
