@@ -43,6 +43,15 @@ class Conversations(VectorDatabase):
 
             session.commit()
 
+    def update_selected_code_repo(
+        self, conversation_id: UUID, code_repo_id: int
+    ) -> None:
+        with self.session_context(self.Session()) as session:
+            session.query(Conversation).filter(
+                Conversation.id == conversation_id
+            ).update({Conversation.last_selected_code_repo: code_repo_id})
+            session.commit()
+
     def update_conversation_collection(
         self,
         conversation_id: UUID,
