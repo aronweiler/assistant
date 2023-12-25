@@ -162,9 +162,12 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
         code_repo.code_repository_address, code_repo.branch_name
     )
 
+    # Unlink all of the previously scanned files, if any, from this repo
+    Code().unlink_code_files(code_repo_id)
+
     with tab:
         st.info(f"Found {len(files)} files")
-        
+
         unprocessed_files = []
 
         if len(files) > 0:
@@ -181,7 +184,7 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
                     code_repo_id=code_repo_id,
                 ):
                     unprocessed_files.append(file.path)
-                    
+
                 progress_bar.progress((i + 1) / len(files))
 
             progress_bar.empty()
@@ -189,7 +192,7 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
             Code().update_last_scanned(code_repo_id, datetime.datetime.now())
 
             st.success(f"Done scanning {len(files)} files!")
-            
+
             if len(unprocessed_files) > 0:
                 st.warning(f"Could not process {len(unprocessed_files)} files:")
                 st.write(unprocessed_files)
@@ -206,8 +209,18 @@ def process_code_file(
     code_helper = Code()
 
     # Skip the file if the same file (sha) has already been processed
-    if code_helper.code_file_exists(code_repo_id=code_repo_id, code_file_name=file.path, file_sha=file.sha):
-        logging.info(f"Skipping file {file.path} as it has already been processed")
+    existing_code_file_id = code_helper.get_code_file_id(
+        code_file_name=file.path, file_sha=file.sha
+    )
+    if existing_code_file_id:
+        # Link the code file with the code repo
+        code_helper.link_code_file_to_repo(
+            code_file_id=existing_code_file_id, code_repo_id=code_repo_id
+        )
+
+        logging.info(
+            f"The file `{file.path}` has already been processed- linking it to this repo."
+        )
         return True
 
     # Retrieve the code from the file
@@ -248,5 +261,5 @@ def process_code_file(
         repository_id=code_repo_id,
         file_summary=keywords_and_descriptions["summary"],
     )
-    
+
     return True
