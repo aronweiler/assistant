@@ -20,6 +20,7 @@ from src.db.database.tables import (
     CodeKeyword,
     CodeRepository,
     CodeFile,
+    code_repository_files_association,
 )
 
 from src.db.models.vector_database import VectorDatabase, SearchType
@@ -82,16 +83,35 @@ class Code(VectorDatabase):
             )
             session.commit()
 
-    def code_file_exists(self, code_repo_id: int, code_file_name:str, file_sha: str) -> bool:
+    def code_file_exists(
+        self, code_file_name: str, file_sha: str
+    ) -> bool:
         with self.session_context(self.Session()) as session:
+            # We now need to join CodeFile with the association table and then filter by repository ID
             return (
                 session.query(CodeFile)
-                .filter(CodeFile.code_repository_id == code_repo_id)
+                .join(
+                    code_repository_files_association,
+                    CodeFile.id == code_repository_files_association.c.code_file_id,
+                )
                 .filter(CodeFile.code_file_name == code_file_name)
                 .filter(CodeFile.code_file_sha == file_sha)
                 .count()
                 > 0
             )
+
+    def link_code_file_to_repo(self, code_file_id: int, code_repo_id: int):
+        with self.session_context(self.Session()) as session:
+            # Link the code file with the repository
+            assoc_entry = {
+                "code_repository_id": code_repo_id,
+                "code_file_id": code_file_id,
+            }
+
+            session.execute(
+                code_repository_files_association.insert().values(**assoc_entry)
+            )                  
+             
 
     def add_update_code(
         self,
@@ -102,51 +122,49 @@ class Code(VectorDatabase):
         file_summary: str,
         keywords_and_descriptions: dict,
     ):
-        # Create the code file, adding the keywords and the descriptions as well
+        # Create or update the code file, adding the keywords and descriptions as well
         with self.session_context(self.Session()) as session:
-            
-            # If the code file already exists, then update it
+            # Check if the code file already exists regardless of repository
             existing_code_file = (
                 session.query(CodeFile)
-                .filter(CodeFile.code_repository_id == repository_id)
                 .filter(CodeFile.code_file_name == file_name)
+                .filter(CodeFile.code_file_sha == file_sha)
                 .one_or_none()
             )
-            
-            if existing_code_file:                
-                if existing_code_file.code_file_sha == file_sha:
-                    # The file has not changed, so we don't need to update it
-                    logging.info(f"Code file {file_name} has not changed, so we don't need to update it")
-                    return
-                
-                logging.info(f"Code file {file_name} has changed, so we need to update it")
-                
-                existing_code_file.code_file_sha = file_sha
-                existing_code_file.code_file_content = file_content
-                existing_code_file.code_file_summary = file_summary
-                existing_code_file.code_file_summary_embedding = get_embedding(
-                    text=file_summary,
-                    collection_type="Remote",
-                    instruction="Represent the summary for retrieval: ",
+
+            if existing_code_file:
+                logging.info(f"Code file {file_name} already exists.")
+
+                # Check if this repository is already linked to this code file
+                link_exists = (
+                    session.query(code_repository_files_association)
+                    .filter_by(
+                        code_repository_id=repository_id,
+                        code_file_id=existing_code_file.id,
+                    )
+                    .count()
+                    > 0
                 )
-                
-                session.add(existing_code_file)
-                session.commit()
-                
-                # Delete the existing keywords and descriptions
-                session.query(CodeKeyword).filter(
-                    CodeKeyword.code_file_id == existing_code_file.id
-                ).delete()
-                session.query(CodeDescription).filter(
-                    CodeDescription.code_file_id == existing_code_file.id
-                ).delete()
-                session.commit()
+
+                if not link_exists:
+                    # Link the existing code file with the new repository
+                    assoc_entry = {
+                        "code_repository_id": repository_id,
+                        "code_file_id": existing_code_file.id,
+                    }
+                    session.execute(
+                        code_repository_files_association.insert().values(**assoc_entry)
+                    )
+                    session.commit()
+
+                    # If the file exists, we don't need to update the keywords and descriptions
+                    return
+
             else:
-                logging.info(f"Code file {file_name} does not exist, so we need to create it")
-                
-                # Create the code file
-                code_file = CodeFile(
-                    code_repository_id=repository_id,
+                logging.info(f"Creating a new entry for code file {file_name}.")
+
+                # Create a new CodeFile instance since it doesn't exist yet
+                new_code_file = CodeFile(
                     code_file_name=file_name,
                     code_file_sha=file_sha,
                     code_file_content=file_content,
@@ -156,20 +174,35 @@ class Code(VectorDatabase):
                         text=file_summary,
                         collection_type="Remote",
                         instruction="Represent the summary for retrieval: ",
-                    ) if file_summary.strip() != "" else None,
+                    )
+                    if file_summary.strip() != ""
+                    else None,
                 )
-                session.add(code_file)            
-                session.commit()
+
+                session.add(new_code_file)
+                session.flush()  # Flush to assign an ID to new_code_file
+
+                # Link the new code file with the repository
+                assoc_entry = {
+                    "code_repository_id": repository_id,
+                    "code_file_id": new_code_file.id,
+                }
+
+                session.execute(
+                    code_repository_files_association.insert().values(**assoc_entry)
+                )
+
+                code_file_id = new_code_file.id
 
             for keyword in keywords_and_descriptions["keywords"]:
-                code_keyword = CodeKeyword(code_file_id=code_file.id, keyword=keyword)
+                code_keyword = CodeKeyword(code_file_id=code_file_id, keyword=keyword)
 
                 session.add(code_keyword)
                 session.commit()
 
             for description in keywords_and_descriptions["descriptions"]:
                 code_description = CodeDescription(
-                    code_file_id=code_file.id,
+                    code_file_id=code_file_id,
                     description_text=description,
                     description_text_embedding=get_embedding(
                         text=description,
@@ -180,3 +213,60 @@ class Code(VectorDatabase):
 
                 session.add(code_description)
                 session.commit()
+
+    def get_code_file(self, code_repo_id: int, code_file_name: str) -> CodeFileModel:
+        with self.session_context(self.Session()) as session:
+            # Join CodeFile with the association table and filter by repository ID and file name
+            code_file = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.code_file_valid,
+                    CodeFile.record_created,
+                )
+                .join(
+                    code_repository_files_association,
+                    CodeFile.id == code_repository_files_association.c.code_file_id,
+                )
+                .filter(
+                    code_repository_files_association.c.code_repository_id
+                    == code_repo_id
+                )
+                .filter(CodeFile.code_file_name == code_file_name)
+                .one_or_none()
+            )
+
+            return CodeFileModel.from_database_model(code_file) if code_file else None
+
+    def get_code_file_id(self, code_file_name: str, file_sha:str) -> int:
+        with self.session_context(self.Session()) as session:
+            code_file = (
+                session.query(
+                    CodeFile.id,
+                )
+                .filter(CodeFile.code_file_name == code_file_name)
+                .filter(CodeFile.code_file_sha == file_sha)
+                .one_or_none()
+            )
+
+            return code_file.id if code_file else None            
+
+    def unlink_code_files(self, code_repo_id: int):
+        with self.session_context(self.Session()) as session:
+            # Unlink the code files from the repository
+            session.query(code_repository_files_association).filter(
+                code_repository_files_association.c.code_repository_id == code_repo_id
+            ).delete(synchronize_session="fetch")
+            session.commit()
+
+    def update_code_file_valid(self, id: int, code_file_valid: bool):
+        with self.session_context(self.Session()) as session:
+            # Update the valid status of a specific code file by its ID
+            session.query(CodeFile).filter(CodeFile.id == id).update(
+                {CodeFile.code_file_valid: code_file_valid}, synchronize_session="fetch"
+            )
+            session.commit()
