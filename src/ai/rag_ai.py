@@ -141,16 +141,19 @@ class RetrievalAugmentedGenerationAI:
         logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
 
-        if ai_mode == "Conversation Only":
-            logging.debug("Running chain 'Conversation Only' mode")
+        if ai_mode.lower().startswith("conversation"):
+            logging.debug("Running chain in 'Conversation Only' mode")
             results = self.run_chain(
                 query=query,
                 kwargs=kwargs,
             )
-        else:
+        elif ai_mode.lower().startswith("auto"):
             # Run the agent
-            logging.debug("Running agent 'Auto' mode")
+            logging.debug("Running agent in 'Auto' mode")
             results = self.run_agent(query=query, kwargs=kwargs)
+        elif ai_mode.lower().startswith("code"):
+            logging.debug("Running agent in 'Code' mode")
+            raise NotImplementedError("Code mode is not yet implemented")
 
         # if results is a list, collapse it into a single string
         if isinstance(results, list):

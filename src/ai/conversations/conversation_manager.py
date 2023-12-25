@@ -1,8 +1,10 @@
 import logging
 
 from langchain.base_language import BaseLanguageModel
+from src.db.models.code import Code
 
 from src.db.models.conversation_messages import ConversationMessages, SearchType, ConversationMessageModel
+from src.db.models.domain.code_repository_model import CodeRepositoryModel
 from src.db.models.users import Users
 from src.db.models.documents import Documents
 from src.db.models.conversations import Conversations
@@ -62,6 +64,7 @@ class ConversationManager:
         self.conversation_messages_helper = ConversationMessages()
         self.users_helper = Users()
         self.documents_helper = Documents()
+        self.code_helper = Code()
         
         self.agent_callbacks = []
         self.llm_callbacks = []
@@ -97,6 +100,15 @@ class ConversationManager:
         )
 
         self.conversation_needs_summary = False
+
+    def get_selected_repository(self) -> CodeRepositoryModel:
+        """Gets the selected repository, if any, for the current conversation."""
+        conversation = self.get_conversation()
+        
+        if conversation.last_selected_code_repo  != -1:
+            return self.code_helper.get_repository(conversation.last_selected_code_repo)
+        
+        return None
 
     def get_loaded_documents_for_display(self):
         """Gets the loaded documents for the specified collection."""
