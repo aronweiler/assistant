@@ -322,10 +322,13 @@ class CodeRepository(ModelBase):
     __tablename__ = "code_repositories"
 
     id = Column(Integer, primary_key=True)
-    code_repository_address = Column(String, nullable=False, unique=True)
+    code_repository_address = Column(String, nullable=False)
     branch_name = Column(String, nullable=False)
     last_scanned = Column(DateTime, nullable=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    # Create a unique constraint on the code_repository_address and branch_name
+    __table_args__ = (UniqueConstraint("code_repository_address", "branch_name"),)
 
     # Update the relationship to use the association table
     code_files = relationship(
