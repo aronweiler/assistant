@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 from typing import List, Any
+from requests import Session
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy import func, select, column, cast, or_
@@ -83,9 +84,7 @@ class Code(VectorDatabase):
             )
             session.commit()
 
-    def code_file_exists(
-        self, code_file_name: str, file_sha: str
-    ) -> bool:
+    def code_file_exists(self, code_file_name: str, file_sha: str) -> bool:
         with self.session_context(self.Session()) as session:
             # We now need to join CodeFile with the association table and then filter by repository ID
             return (
@@ -110,8 +109,7 @@ class Code(VectorDatabase):
 
             session.execute(
                 code_repository_files_association.insert().values(**assoc_entry)
-            )                  
-             
+            )
 
     def add_update_code(
         self,
@@ -225,7 +223,6 @@ class Code(VectorDatabase):
                     CodeFile.code_file_content,
                     CodeFile.code_file_summary,
                     CodeFile.code_file_summary_embedding,
-                    CodeFile.code_file_valid,
                     CodeFile.record_created,
                 )
                 .join(
@@ -242,7 +239,7 @@ class Code(VectorDatabase):
 
             return CodeFileModel.from_database_model(code_file) if code_file else None
 
-    def get_code_file_id(self, code_file_name: str, file_sha:str) -> int:
+    def get_code_file_id(self, code_file_name: str, file_sha: str) -> int:
         with self.session_context(self.Session()) as session:
             code_file = (
                 session.query(
@@ -253,7 +250,7 @@ class Code(VectorDatabase):
                 .one_or_none()
             )
 
-            return code_file.id if code_file else None            
+            return code_file.id if code_file else None
 
     def unlink_code_files(self, code_repo_id: int):
         with self.session_context(self.Session()) as session:
@@ -270,3 +267,127 @@ class Code(VectorDatabase):
                 {CodeFile.code_file_valid: code_file_valid}, synchronize_session="fetch"
             )
             session.commit()
+
+    def search_code_files(
+        self, similarity_query: str, keywords: List[str], top_k=10
+    ) -> List[CodeFileModel]:
+        with self.session_context(self.Session()) as session:
+            # Perform similarity search on CodeFile.code_file_summary_embedding
+            code_file_similarity_results = self._get_similarity_results(
+                session, CodeFile.code_file_summary_embedding, similarity_query, top_k
+            )
+
+            # Perform similarity search on CodeDescription.description_text_embedding
+            code_description_similarity_results = self._get_similarity_results(
+                session,
+                CodeDescription.description_text_embedding,
+                similarity_query,
+                top_k,
+            )
+
+            # Perform keyword search on CodeKeywords.keyword
+            keyword_search_results = self._get_keyword_search_results(
+                session, keywords, top_k
+            )
+
+            # Combine results from the three searches
+            combined_results = (
+                code_file_similarity_results
+                + code_description_similarity_results
+                + keyword_search_results
+            )
+
+            # Sort combined results by relevance
+            sorted_combined_results = sorted(
+                combined_results,
+                key=lambda x: x[1]
+                if x[1] is not None
+                else 0.5,  # Assuming the second element is the relevance score, handling none for keyword search
+                reverse=False,  # Assuming lower scores indicate higher relevance
+            )
+
+            # Create a unique list of code files, always keeping the first result
+            unique_results = []
+            unique_ids = []
+            for result in sorted_combined_results:
+                if result[0].id not in unique_ids:
+                    unique_results.append(result)
+                    unique_ids.append(result[0].id)
+
+            # Return the top_k results as CodeFileModel objects
+            return [
+                CodeFileModel.from_database_model(result[0])
+                for result in unique_results[:top_k]
+            ]
+
+    def _get_similarity_results(
+        self, session: Session, embedding_column, similarity_query, top_k: int
+    ):
+        query_embedding = get_embedding(
+            text=similarity_query,
+            collection_type="Remote",  # OpenAI embeddings TODO: Add open-source embeddings
+            instruction="Represent the query for retrieval: ",
+        )
+
+        emb_val = cast(query_embedding, pgvector.sqlalchemy.Vector)
+        cosine_distance = func.cosine_distance(embedding_column, emb_val)
+
+        statement = (
+            select(CodeFile)
+            .order_by(cosine_distance)
+            .limit(top_k)
+            .add_columns(cosine_distance)
+        )
+        result = session.execute(statement).fetchall()
+
+        return [(code_file, distance) for code_file, distance in result]
+
+    def _get_keyword_search_results(
+        self, session: Session, keywords: List[str], top_k: int
+    ):
+        keyword_query = (
+            session.query(CodeKeyword.code_file_id)  # Select only code_file_id
+            .filter(
+                or_(
+                    func.lower(CodeKeyword.keyword).contains(func.lower(kword))
+                    for kword in keywords
+                )
+            )
+            .limit(top_k)
+            .subquery()
+        )
+
+        statement = select(CodeFile).join(
+            keyword_query, CodeFile.id == keyword_query.c.code_file_id
+        )
+
+        result = session.execute(statement).scalars().all()
+
+        return [
+            (CodeFileModel.from_database_model(code_file), None) for code_file in result
+        ]  # No distance for keyword search
+
+
+# Testing
+if __name__ == "__main__":
+    code = Code()
+
+    # Test get_repositories
+    repositories = code.get_repositories()
+    print(repositories)
+
+    # Test searching for code
+    code_files = code.search_code_files(
+        "What is the meaning of the Auto setting on the UI?",
+        ["Auto", "UI", "Setting"],
+        20,
+    )
+
+    print(
+        "\n\n".join(
+            [
+                f"{cf.code_file_name} summary:\n{cf.code_file_summary}"
+                for cf in code_files
+            ]
+        )
+    )
