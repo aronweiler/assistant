@@ -260,14 +260,6 @@ class Code(VectorDatabase):
             ).delete(synchronize_session="fetch")
             session.commit()
 
-    def update_code_file_valid(self, id: int, code_file_valid: bool):
-        with self.session_context(self.Session()) as session:
-            # Update the valid status of a specific code file by its ID
-            session.query(CodeFile).filter(CodeFile.id == id).update(
-                {CodeFile.code_file_valid: code_file_valid}, synchronize_session="fetch"
-            )
-            session.commit()
-
     def search_code_files(
         self, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
