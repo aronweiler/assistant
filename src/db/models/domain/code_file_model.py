@@ -4,7 +4,6 @@ from src.db.database.tables import CodeFile
 class CodeFileModel:
     def __init__(
         self,
-        code_repository_id,
         code_file_name,
         code_file_sha,
         code_file_content,
@@ -13,7 +12,6 @@ class CodeFileModel:
         record_created=None,
     ):
         self.id = id
-        self.code_repository_id = code_repository_id
         self.code_file_name = code_file_name
         self.code_file_sha = code_file_sha
         self.code_file_content = code_file_content
@@ -23,7 +21,6 @@ class CodeFileModel:
     def to_database_model(self):
         return CodeFile(
             id=self.id,
-            code_repository_id=self.code_repository_id,
             code_file_name=self.code_file_name,
             code_file_sha=self.code_file_sha,
             code_file_content=self.code_file_content,
@@ -37,7 +34,6 @@ class CodeFileModel:
             return None
         return cls(
             id=db_code_file.id,
-            code_repository_id=db_code_file.code_repository_id,
             code_file_name=db_code_file.code_file_name,
             code_file_sha=db_code_file.code_file_sha,
             code_file_content=db_code_file.code_file_content,
