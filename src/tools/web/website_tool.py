@@ -89,7 +89,7 @@ class WebsiteTool:
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
 
             existing_summary = llm.predict(
-                prompt=prompt, callbacks=self.conversation_manager.agent_callbacks
+                text=prompt, callbacks=self.conversation_manager.agent_callbacks
             )
 
         return existing_summary

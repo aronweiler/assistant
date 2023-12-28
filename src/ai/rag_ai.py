@@ -99,7 +99,9 @@ class RetrievalAugmentedGenerationAI:
 
         # Initialize the tool manager and load the available tools
         self.tool_manager = ToolManager(configuration=self.configuration)
-        self.tool_manager.initialize_tools(self.configuration, self.conversation_manager)
+        self.tool_manager.initialize_tools(
+            self.configuration, self.conversation_manager
+        )
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -139,16 +141,19 @@ class RetrievalAugmentedGenerationAI:
         logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
 
-        if ai_mode == "Conversation Only":
-            logging.debug("Running chain 'Conversation Only' mode")
+        if ai_mode.lower().startswith("conversation"):
+            logging.debug("Running chain in 'Conversation Only' mode")
             results = self.run_chain(
                 query=query,
                 kwargs=kwargs,
             )
-        else:
+        elif ai_mode.lower().startswith("auto"):
             # Run the agent
-            logging.debug("Running agent 'Auto' mode")
+            logging.debug("Running agent in 'Auto' mode")
             results = self.run_agent(query=query, kwargs=kwargs)
+        elif ai_mode.lower().startswith("code"):
+            logging.debug("Running agent in 'Code' mode")
+            raise NotImplementedError("Code mode is not yet implemented")
 
         # if results is a list, collapse it into a single string
         if isinstance(results, list):
@@ -209,6 +214,27 @@ class RetrievalAugmentedGenerationAI:
             self.conversation_manager.set_conversation_summary(conversation_summary)
             self.conversation_manager.conversation_needs_summary = False
             logging.debug(f"Generated summary: {conversation_summary}")
+
+    def generate_keywords_from_code_file(self, code: str) -> dict:
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
+                "model_configuration"
+            ],
+            tags=["retrieval-augmented-generation-ai"],
+            streaming=False,
+        )
+
+        response = llm.predict(
+            self.prompt_manager.get_prompt(
+                "code_general",
+                "CODE_DETAILS_EXTRACTION_TEMPLATE",
+            ).format(code=code),
+            timeout=30000,
+        )
+
+        keywords = parse_json(text=response, llm=llm)
+
+        return keywords
 
     # Required by the Jarvis UI when ingesting files
     def generate_detailed_document_chunk_summary(

@@ -11,11 +11,17 @@ import requests
 
 from streamlit.runtime.scriptrunner import RerunException
 
+import src.ui.code_tab as code_tab
+import src.ui.document_tab as document_tab
+
 from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
 )
 
+
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.db.models.code import Code
+from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 from src.utilities.configuration_utilities import (
     get_app_configuration,
@@ -109,99 +115,99 @@ def get_conversation_id_index(conversation_pairs, selected_conversation):
 
 def load_conversation_selectbox(load_ai_callback, tab: DeltaGenerator):
     """Loads the conversation selectbox"""
+    with tab:
+        try:
+            conversation_pairs = get_conversation_pairs()
+            if conversation_pairs is None:
+                return
 
-    try:
-        conversation_pairs = get_conversation_pairs()
-        if conversation_pairs is None:
-            return
+            index = 0
+            if "rag_ai" in st.session_state:
+                selected_conversation = st.session_state[
+                    "rag_ai"
+                ].conversation_manager.conversation_id
+                index = get_conversation_id_index(conversation_pairs, selected_conversation)
 
-        index = 0
-        if "rag_ai" in st.session_state:
-            selected_conversation = st.session_state[
-                "rag_ai"
-            ].conversation_manager.conversation_id
-            index = get_conversation_id_index(conversation_pairs, selected_conversation)
-
-        tab.selectbox(
-            "Select Conversation",
-            conversation_pairs,
-            index=index,
-            key="conversation_summary_selectbox",
-            format_func=lambda x: x.split(":")[1],
-            on_change=load_ai_callback,
-        )
-
-        col1, col2, col3, col4 = tab.columns([0.15, 0.35, 0.15, 0.25])
-
-        col3.button(
-            "➕",
-            help="Create a new conversation",
-            key="new_chat_button",
-            on_click=create_conversation,
-            kwargs={
-                "conversation_summary": "Empty Chat",
-                "load_ai_callback": load_ai_callback,
-            },
-        )
-
-        # col3
-        if col4.button(
-            "✏️",
-            key="edit_conversation",
-            help="Edit this conversation name",
-            use_container_width=False,
-        ):
-            selected_conversation_pair = st.session_state.get(
-                "conversation_summary_selectbox"
+            st.selectbox(
+                "Select Conversation",
+                conversation_pairs,
+                index=index,
+                key="conversation_summary_selectbox",
+                format_func=lambda x: x.split(":")[1],
+                on_change=load_ai_callback,
             )
 
-            with tab.form(key="edit_conversation_name_form", clear_on_submit=True):
-                # col1a, col2a = tab.columns(2)
-                st.text_input(
-                    "Edit conversation name",
-                    key="new_conversation_name",
-                    value=selected_conversation_pair.split(":")[1],
+            col1, col2, col3, col4 = st.columns([0.15, 0.35, 0.15, 0.25])
+
+            col3.button(
+                "➕",
+                help="Create a new conversation",
+                key="new_chat_button",
+                on_click=create_conversation,
+                kwargs={
+                    "conversation_summary": "Empty Chat",
+                    "load_ai_callback": load_ai_callback,
+                },
+            )
+
+            # col3
+            if col4.button(
+                "✏️",
+                key="edit_conversation",
+                help="Edit this conversation name",
+                use_container_width=False,
+            ):
+                selected_conversation_pair = st.session_state.get(
+                    "conversation_summary_selectbox"
                 )
 
-                st.form_submit_button(
-                    label="Save",
-                    # key="save_conversation_name",
-                    help="Click to save",
-                    type="primary",
-                    on_click=update_conversation_name,
+                with tab.form(key="edit_conversation_name_form", clear_on_submit=True):
+                    # col1a, col2a = tab.columns(2)
+                    st.text_input(
+                        "Edit conversation name",
+                        key="new_conversation_name",
+                        value=selected_conversation_pair.split(":")[1],
+                    )
+
+                    st.form_submit_button(
+                        label="Save",
+                        # key="save_conversation_name",
+                        help="Click to save",
+                        type="primary",
+                        on_click=update_conversation_name,
+                    )
+
+            if "confirm_conversation_delete" not in st.session_state:
+                st.session_state.confirm_conversation_delete = False
+
+            if st.session_state.confirm_conversation_delete == False:
+                col1.button(
+                    "🗑️",
+                    help="Delete this conversation",
+                    on_click=set_confirm_conversation_delete,
+                    kwargs={"val": True},
+                    key=str(uuid.uuid4()),
+                )
+            else:
+                col2.button(
+                    "✅",
+                    help="Click to confirm delete",
+                    key=str(uuid.uuid4()),
+                    on_click=delete_conversation,
+                    kwargs={"conversation_id": get_selected_conversation_id()},
+                )
+                col1.button(
+                    "❌",
+                    help="Click to cancel delete",
+                    on_click=set_confirm_conversation_delete,
+                    kwargs={"val": False},
+                    key=str(uuid.uuid4()),
                 )
 
-        if "confirm_conversation_delete" not in st.session_state:
-            st.session_state.confirm_conversation_delete = False
+        except Exception as e:
+            logging.error(f"Error loading conversation selectbox: {e}")
 
-        if st.session_state.confirm_conversation_delete == False:
-            col1.button(
-                "🗑️",
-                help="Delete this conversation",
-                on_click=set_confirm_conversation_delete,
-                kwargs={"val": True},
-                key=str(uuid.uuid4()),
-            )
-        else:
-            col2.button(
-                "✅",
-                help="Click to confirm delete",
-                key=str(uuid.uuid4()),
-                on_click=delete_conversation,
-                kwargs={"conversation_id": get_selected_conversation_id()},
-            )
-            col1.button(
-                "❌",
-                help="Click to cancel delete",
-                on_click=set_confirm_conversation_delete,
-                kwargs={"val": False},
-                key=str(uuid.uuid4()),
-            )
-
-    except Exception as e:
-        logging.error(f"Error loading conversation selectbox: {e}")
-
-    tab.divider()
+        st.divider()
 
 
 def set_confirm_conversation_delete(val):
@@ -320,25 +326,6 @@ def delete_conversation(conversation_id):
     set_confirm_conversation_delete(False)
 
 
-def get_available_collections():
-    # Time the operation:
-    start_time = time.time()
-    collections = Documents().get_collections()
-    total_time = time.time() - start_time
-
-    logging.info(f"get_available_collections() took {total_time} seconds")
-
-    # Create a dictionary of collection id to collection summary
-    collections_list = [
-        f"{collection.id}:{collection.collection_name} - {collection.collection_type}"
-        for collection in collections
-    ]
-
-    collections_list.insert(0, "-1:---")
-
-    return collections_list
-
-
 def get_selected_collection_id():
     """Gets the selected collection id from the selectbox"""
     selected_collection_pair = st.session_state.get("active_collection")
@@ -353,6 +340,21 @@ def get_selected_collection_id():
     )
 
     return selected_collection_id
+
+def get_selected_code_repo_id():
+    """Gets the selected code repo id from the selectbox"""
+    selected_code_repo_pair = st.session_state.get("active_code_repo")
+
+    if not selected_code_repo_pair:
+        return None
+
+    selected_code_repo_id = selected_code_repo_pair.split(":")[0]
+
+    logging.info(
+        f"get_selected_code_repo_id(): selected_code_repo_id: {selected_code_repo_id}"
+    )
+
+    return selected_code_repo_id
 
 
 def get_selected_collection_type():
@@ -400,27 +402,6 @@ def get_selected_collection_name():
     selected_collection_name = selected_collection_pair.split(":")[1]
 
     return selected_collection_name
-
-
-def create_collection():
-    if st.session_state["new_collection_name"]:
-        collection_type = st.session_state.get("new_collection_type", "Local (HF)")
-
-        collection = Documents().create_collection(
-            st.session_state["new_collection_name"], collection_type
-        )
-
-        logging.info(
-            f"New collection created: {collection.id} - {collection.collection_name}"
-        )
-
-        if "rag_ai" in st.session_state:
-            st.session_state.rag_ai.conversation_manager.collection_id = collection.id
-            st.session_state.rag_ai.conversation_manager.conversations_helper.update_conversation_collection(
-                get_selected_conversation_id(), collection.id
-            )
-
-        return collection.id
 
 
 def set_ingestion_settings():
@@ -733,14 +714,16 @@ def ingest_files(
 
             # Pass the root temp dir to the ingestion function
             document_loader = DocumentLoader()
-            
-            documents = asyncio.run(document_loader.load_and_split_documents(
-                document_directory=root_temp_dir,
-                split_documents=split_documents,
-                is_code=is_code,
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap,
-            ))
+
+            documents = asyncio.run(
+                document_loader.load_and_split_documents(
+                    document_directory=root_temp_dir,
+                    split_documents=split_documents,
+                    is_code=is_code,
+                    chunk_size=chunk_size,
+                    chunk_overlap=chunk_overlap,
+                )
+            )
 
             if documents == None:
                 st.warning(
@@ -941,48 +924,11 @@ def show_version():
         st.sidebar.info(f"Version: {version}")
 
 
-def on_change_collection():
-    # Set the last active collection for this conversation (conversation)
-    collection_id = get_selected_collection_id()
-    interactions_helper = Conversations()
-    interactions_helper.update_conversation_collection(
-        get_selected_conversation_id(), collection_id
-    )
+def create_documents_and_code_collections(ai):
+    documents_tab, code = st.tabs(["Documents", "Code"])
 
-
-def create_collection_selectbox(ai):
-    st.markdown("Selected document collection:")
-
-    col1, col2 = st.columns([0.80, 0.2])
-
-    st.caption(
-        "The document collection selected here determines which documents are used to answer questions."
-    )
-
-    available_collections = get_available_collections()
-    selected_collection_id_index = 0
-    # Find the index of the selected collection
-    for i, collection in enumerate(available_collections):
-        if int(collection.split(":")[0]) == int(
-            ai.conversation_manager.get_conversation().last_selected_collection_id
-        ):
-            selected_collection_id_index = i
-            break
-
-    col1.selectbox(
-        label="Active document collection",
-        index=int(selected_collection_id_index),
-        options=available_collections,
-        key="active_collection",
-        placeholder="Select a collection",
-        label_visibility="collapsed",
-        format_func=lambda x: x.split(":")[1],
-        on_change=on_change_collection,
-    )
-
-    col2.button(
-        "➕", help="Create a new document collection", key="show_create_collection"
-    )
+    document_tab.create_documents_collection_tab(ai, documents_tab)
+    code_tab.create_code_collection_tab(ai, code)
 
 
 def refresh_messages_session_state(ai_instance):
@@ -1114,11 +1060,11 @@ def handle_chat(main_window_container, ai_instance, configuration):
         help_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
 
         col1.markdown(
-            f'<div align="right" title="Select the mode to use. Auto will automatically switch between a Conversation Only and Tool Using AI based on the users input.">{help_icon} <b>AI Mode:</b></div>',
+            f'<div align="right" title="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.">{help_icon} <b>AI Mode:</b></div>',
             unsafe_allow_html=True,
         )
 
-        ai_modes = ["Auto", "Conversation Only"]
+        ai_modes = ["Auto", "Code", "Conversation Only"]
 
         col2.selectbox(
             label="Mode",
@@ -1128,7 +1074,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 get_app_configuration()["jarvis_ai"].get("ai_mode", "Auto")
             ),
             key="ai_mode",
-            help="Select the mode to use. 'Auto' will automatically switch between 'Conversation Only' and 'Tool Using AI' based on the user's input.",
+            help="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.",
             on_change=set_ai_mode,
         )
 

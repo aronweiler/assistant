@@ -98,35 +98,10 @@ class RagUI:
 
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
-                if "rag_ai" in st.session_state:
-                    # with st.container():
-                    # Create a form for the collection creation:
-                    if (
-                        "show_create_collection" in st.session_state
-                        and st.session_state.show_create_collection
-                    ):
-                        with st.form(key="new_collection", clear_on_submit=True):
-                            col1, col2 = st.columns(2)
-                            
-                            col1.text_input(
-                                "Collection name",
-                                key="new_collection_name",
-                            )
-                            
-                            col2.selectbox(
-                                "Collection type",
-                                options=["Remote (OpenAI)", "Local (HF)"],
-                                key="new_collection_type"
-                            )
-
-                            st.form_submit_button(
-                                "Create New Collection",
-                                type="primary",
-                                on_click=ui_shared.create_collection,
-                            )
+                if "rag_ai" in st.session_state:                    
 
                     logging.debug("Creating collection selectbox")
-                    ui_shared.create_collection_selectbox(ai=st.session_state["rag_ai"])
+                    ui_shared.create_documents_and_code_collections(ai=st.session_state["rag_ai"])
 
                     if "rag_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()
@@ -136,34 +111,16 @@ class RagUI:
                                 collection_id
                             )
 
-                            loaded_docs = (
-                                st.session_state.rag_ai.conversation_manager.get_loaded_documents_for_display()
-                            )
+                            
 
                             loaded_docs_delimited = (
                                 st.session_state.rag_ai.conversation_manager.get_loaded_documents_delimited()
                             )
 
-                            with st.expander(
-                                label=f"({len(loaded_docs)}) documents in {ui_shared.get_selected_collection_name()}",
-                                expanded=False,
-                            ):   
-                                # TODO: Add capabilities to edit the collection (delete documents)                      
-                                #st.button("✏️ Edit Collection")       
-                                for doc in loaded_docs:
-                                    st.write(doc)
-                                    # col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
-                                    # # TODO: Put a thumbnail of the images here (maybe icon for documents)
-                                    # col1.write(doc)
-                                    # col3.button(
-                                    #     "🗑️",
-                                    #     help="Delete this document from the collection",
-                                    #     #on_click=set_confirm_conversation_item_delete,
-                                    #     #kwargs={"val": True, "id": message["id"]},
-                                    #     key=str(uuid.uuid4()),
-                                    # )
+                            
                                     
 
+                            st.divider()
                             st.markdown("#### Options")
 
                             with st.expander("Search", expanded=False):  # , expanded=expanded):

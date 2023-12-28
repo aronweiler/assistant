@@ -25,6 +25,8 @@ from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 from src.integrations.github.github_issue_creator import GitHubIssueCreator
 from src.integrations.github.github_retriever import GitHubRetriever
 
+from src.tools.code.code_retriever_tool import CodeRetrieverTool
+
 
 class CodeReviewTool:
     """
@@ -32,12 +34,6 @@ class CodeReviewTool:
     It can retrieve files from URLs, conduct reviews on diffs or entire files,
     and format the results in a structured way.
     """
-
-    # Mapping of source control provider names to their respective retriever classes.
-    source_control_to_retriever_map = {
-        "gitlab": GitlabRetriever,
-        "github": GitHubRetriever,
-    }
 
     def __init__(
         self,
@@ -90,31 +86,6 @@ class CodeReviewTool:
                 )
 
         return templates
-
-    def retrieve_source_code_from_url(self, url: str) -> str:
-        """
-        Retrieves source code from a given URL using the appropriate source control provider.
-
-        :param url: The URL from which to retrieve the source code file.
-        :return: The retrieved source code or an error message if retrieval is not supported.
-        """
-        # Get the corresponding retriever class from the map using provider name in lowercase.
-        retriever_class = self.source_control_to_retriever_map.get(
-            self.source_control_provider
-        )
-
-        # If no retriever class is found, return an error message indicating unsupported file retrieval.
-        if not retriever_class:
-            return f"Source control provider {self.source_control_provider} does not support file retrieval"
-
-        # Instantiate the retriever with necessary credentials from environment variables.
-        retriever_instance = retriever_class(
-            self.source_control_url,
-            self.source_control_pat,
-        )
-
-        # Use the instantiated retriever to fetch data from the provided URL.
-        return retriever_instance.retrieve_data(url=url)
 
     def _conduct_diff_code_review(
         self,
@@ -381,7 +352,8 @@ class CodeReviewTool:
         """
 
         # Retrieve file information from the URL.
-        file_info = self.retrieve_source_code_from_url(url=target_url)
+        retriever = CodeRetrieverTool()
+        file_info = retriever.retrieve_source_code_from_url(url=target_url)
 
         # Initialize an empty string to hold the review results.
         review = ""

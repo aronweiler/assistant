@@ -4,32 +4,78 @@ import re
 import sys
 
 import dotenv
+from src.integrations.github import github_file_iterator
 
+# Append the root directory of the project to the system path for module importing.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
+# Import shared GitHub integration utilities.
 import src.integrations.github.github_shared as github_shared
 
 
 class GitHubRetriever:
     def __init__(self, source_control_url, source_control_pat):
+        # Initialize a logger instance for this class.
         self._logger = logging.getLogger(__name__)
+        # Store the base URL for the source control (GitHub).
         self._source_control_url = source_control_url
+        # Retrieve a GitHub client using the provided personal access token (PAT).
         self._gh = github_shared.retrieve_github_client(
             source_control_pat=source_control_pat
         )
 
-    def retrieve_data(self, url):
+    def retrieve_branches(self, url):
+        # Parse the URL to extract repository information.
         url_info = github_shared.parse_url(url=url)
 
-        if url_info["type"] == "file":
-            return self.retrieve_file_data(url=url)
-        elif url_info["type"] == "diff":
-            return self.retrieve_pull_request_data(url=url)
+        # Extract the repository path from the URL info dictionary.
+        repo_path = url_info["repo_path"]
 
-    def retrieve_file_data(self, url):
+        try:
+            # Attempt to get the repository object from GitHub.
+            repo = self._gh.get_repo(repo_path)
+        except Exception as ex:
+            # If there's an error, raise an exception with a custom message.
+            raise Exception(f"Failed to retrieve repo {url} from server")
+
+        # Get all branches from the repository object.
+        branches = repo.get_branches()
+
+        # Return a list of branch names extracted from branch objects.
+        return [b.name for b in branches]
+    
+    def scan_repository(self, url, branch_name):
+        # Parse the URL to extract repository information.
+        url_info = github_shared.parse_url(url=url)
+
+        # Extract the repository path from the URL info dictionary.
+        repo_path = url_info["repo_path"]
+
+        return github_file_iterator.get_text_based_files_from_repo(self._gh, repository_name=repo_path, branch_name=branch_name)
+
+    def retrieve_data(self, url):
+        # Parse the URL to determine if it's pointing to a file or a pull request (diff).
+        url_info = github_shared.parse_url(url=url)
+
+        # Depending on the type of content pointed by URL, call appropriate retrieval method.
+        if url_info["type"] == "file":
+            return self._retrieve_file_data(url=url)
+        elif url_info["type"] == "diff":
+            return self._retrieve_pull_request_data(url=url)
+        
+    def retrieve_code(self, path: str, repo_address:str, branch_name: str) -> str:
+        url = f"{repo_address}/blob/{branch_name}/{path}"
+        
+        # Parse the URL to extract file and repository information.
+        return self._retrieve_file_data(url=url)
+
+    def _retrieve_file_data(self, url):
+        # Parse the URL to extract file and repository information.
         url_info = github_shared.parse_url(url=url)
 
         domain = url_info["domain"]
+
+        # Check if domain matches authorized instance; raise exception if not.
         if domain not in self._source_control_url:
             raise Exception(
                 f"URL domain ({domain}) is different than authorized instance ({self._source_control_url})"
@@ -38,17 +84,21 @@ class GitHubRetriever:
         repo_path = url_info["repo_path"]
 
         try:
+            # Attempt to get the repository object from GitHub using its path.
             repo = self._gh.get_repo(repo_path)
         except Exception as ex:
             raise Exception(f"Failed to retrieve repo {repo_path} from server")
 
         ref = url_info["ref"]
+
         file_path = url_info["file_path"]
 
+        # Retrieve file contents from GitHub given its path and reference (branch/tag/commit).
         f = repo.get_contents(file_path, ref=ref)
 
         file_content = f.decoded_content.decode("UTF-8")
 
+        # Return a dictionary containing various details about the file retrieved.
         return {
             "type": "file",
             "project_id": "N/A",
@@ -59,7 +109,8 @@ class GitHubRetriever:
             "repo_path": repo_path,
         }
 
-    def retrieve_pull_request_data(self, url):
+    def _retrieve_pull_request_data(self, url):
+         # Parse the URL to extract pull request and repository information.
         url_info = github_shared.parse_url(url=url)
 
         if url_info["domain"] not in self._source_control_url:

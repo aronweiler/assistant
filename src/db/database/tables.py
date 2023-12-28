@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
+    Table,
     Uuid,
     DateTime,
     ForeignKey,
@@ -90,10 +91,13 @@ class Conversation(ModelBase):
     conversation_summary = Column(String, nullable=False)
     needs_summary = Column(Boolean, nullable=False, default=True)
     last_selected_collection_id = Column(Integer, nullable=False, default=-1)
+    last_selected_code_repo = Column(Integer, nullable=False, default=-1)
     user_id = Column(Integer, ForeignKey("users.id"))
     is_deleted = Column(Boolean, nullable=False, default=False)
 
-    conversation_messages = relationship("ConversationMessage", back_populates="conversation")
+    conversation_messages = relationship(
+        "ConversationMessage", back_populates="conversation"
+    )
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], ["users.id"])
@@ -142,7 +146,9 @@ class ConversationMessage(ModelBase):
     )
 
     # Define the foreign key constraint to ensure the conversation_id exists in the conversations table
-    conversation_constraint = ForeignKeyConstraint([conversation_id], ["conversations.id"])
+    conversation_constraint = ForeignKeyConstraint(
+        [conversation_id], ["conversations.id"]
+    )
 
     # Define the CheckConstraint to enforce conversation_id existing in conversation_messages table
     conversation_check_constraint = CheckConstraint(
@@ -296,3 +302,91 @@ class DocumentCollection(ModelBase):
     documents = relationship("Document", back_populates="collection")
 
     files = relationship("File", back_populates="collection")
+
+
+# Association table for the many-to-many relationship
+code_repository_files_association = Table(
+    "code_repository_files",
+    ModelBase.metadata,
+    Column(
+        "code_repository_id",
+        Integer,
+        ForeignKey("code_repositories.id"),
+        primary_key=True,
+    ),
+    Column("code_file_id", Integer, ForeignKey("code_files.id"), primary_key=True),
+)
+
+
+class CodeRepository(ModelBase):
+    __tablename__ = "code_repositories"
+
+    id = Column(Integer, primary_key=True)
+    code_repository_address = Column(String, nullable=False)
+    branch_name = Column(String, nullable=False)
+    last_scanned = Column(DateTime, nullable=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    # Create a unique constraint on the code_repository_address and branch_name
+    __table_args__ = (UniqueConstraint("code_repository_address", "branch_name"),)
+
+    # Update the relationship to use the association table
+    code_files = relationship(
+        "CodeFile",
+        secondary=code_repository_files_association,
+        back_populates="code_repositories",
+    )
+
+
+class CodeFile(ModelBase):
+    __tablename__ = "code_files"
+
+    id = Column(Integer, primary_key=True)
+    code_file_name = Column(String, nullable=False)
+    code_file_sha = Column(String, nullable=False)
+    code_file_content = Column(String, nullable=False)
+    code_file_summary = Column(String, nullable=False)
+
+    code_file_summary_embedding = Column(Vector(dim=None), nullable=True)
+
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    # Update the relationship to use the association table
+    code_repositories = relationship(
+        "CodeRepository",
+        secondary=code_repository_files_association,
+        back_populates="code_files",
+    )
+
+
+class CodeKeyword(ModelBase):
+    __tablename__ = "code_keywords"
+
+    id = Column(Integer, primary_key=True)
+    code_file_id = Column(Integer, ForeignKey("code_files.id"), nullable=False)
+    keyword = Column(String, nullable=False)
+
+    # Relationship to associate keywords with a specific code file.
+    code_file = relationship("CodeFile", back_populates="code_keywords")
+
+
+CodeFile.code_keywords = relationship(
+    "CodeKeyword", order_by=CodeKeyword.id, back_populates="code_file"
+)
+
+
+class CodeDescription(ModelBase):
+    __tablename__ = "code_descriptions"
+
+    id = Column(Integer, primary_key=True)
+    code_file_id = Column(Integer, ForeignKey("code_files.id"), nullable=False)
+    description_text = Column(String, nullable=False)
+    description_text_embedding = Column(Vector(dim=None), nullable=True)
+
+    # Relationship to associate descriptions with a specific code file.
+    code_file = relationship("CodeFile", back_populates="code_descriptions")
+
+
+CodeFile.code_descriptions = relationship(
+    "CodeDescription", order_by=CodeDescription.id, back_populates="code_file"
+)
