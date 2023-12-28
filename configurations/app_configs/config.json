@@ -14,16 +14,17 @@
             }
         },
         "show_llm_thoughts": true,
+        "use_tool_memory": true,
         "file_ingestion_configuration": {
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0.7,
+                "model": "gpt-4-1106-preview",
+                "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 16384,
+                "max_model_supported_tokens": 128000,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 8192,
+                "max_completion_tokens": 4096,
                 "model_kwargs": {
                     "seed": 500
                 }
@@ -36,7 +37,7 @@
             "max_retries": 3,
             "max_model_supported_tokens": 128000,
             "uses_conversation_history": true,
-            "max_conversation_history_tokens": 2048,
+            "max_conversation_history_tokens": 26000,
             "max_completion_tokens": 4096,
             "model_kwargs": {
                 "seed": 500
@@ -128,7 +129,7 @@
             }
         },
         "summarize_entire_document": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
@@ -330,7 +331,7 @@
             "return_direct": false
         },
         "commit_single_code_file": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false
         },
         "conduct_code_refactor_from_file_id": {
@@ -404,8 +405,8 @@
             }
         },
         "conduct_code_refactor_from_url": {
-            "enabled": false,
-            "return_direct": true,
+            "enabled": true,
+            "return_direct": false,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
