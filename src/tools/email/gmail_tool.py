@@ -3,7 +3,7 @@ import os
 import logging
 from typing import List
 
-from langchain.tools.gmail.utils import build_resource_service, get_gmail_credentials
+from langchain_community.tools.gmail.utils import build_resource_service, get_gmail_credentials
 from langchain.agents.agent_toolkits import GmailToolkit
 
 
