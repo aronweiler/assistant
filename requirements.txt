@@ -15,9 +15,10 @@ sqlalchemy
 # AI
 # Note: You need a C++ compiler to install llama-cpp-python if you are building this outside of the docker container
 # https://cmake.org/download/#latest
-llama-cpp-python==0.1.54
-openai==0.27.7
-langchain==0.0.181
+llama-cpp-python
+openai
+langchain
+langchain-experimental
 
 # REST
 requests==2.26.0
