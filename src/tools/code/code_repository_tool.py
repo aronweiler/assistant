@@ -34,8 +34,23 @@ class CodeRepositoryTool:
         self.configuration = configuration
         self.conversation_manager = conversation_manager
 
+    def list_code_files(self, repository_id: int):
+        """Lists the code files in the given repository."""
+
+        code_files = self.conversation_manager.code_helper.get_code_files(
+            repository_id=repository_id
+        )
+
+        return "\n".join(
+            [
+                f"### {code_file.code_file_name}\n**Summary:** {code_file.code_file_summary}"
+                for code_file in code_files
+            ]
+        )
+
     def search_loaded_repository(
         self,
+        repository_id: int,
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
@@ -105,6 +120,7 @@ class CodeRepositoryTool:
             pass
 
         return self._search_repository_documents(
+            repository_id=repository_id,
             semantic_similarity_query=semantic_similarity_query,
             keywords_list=keywords_list,
             user_query=user_query,
@@ -112,6 +128,7 @@ class CodeRepositoryTool:
 
     def _search_repository_documents(
         self,
+        repository_id: int,
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
@@ -119,6 +136,7 @@ class CodeRepositoryTool:
         code_file_model_search_results: List[
             CodeFileModel
         ] = self.conversation_manager.code_helper.search_code_files(
+            repository_id=repository_id,
             similarity_query=semantic_similarity_query,
             keywords_list=keywords_list,
             top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
