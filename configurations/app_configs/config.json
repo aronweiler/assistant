@@ -47,7 +47,7 @@
         "search_top_k": 10,
         "frequency_penalty": 0.3,
         "presence_penalty": 0.7,
-        "ai_mode": "Conversation Only"
+        "ai_mode": "Auto"
     },
     "tool_configurations": {
         "default": {
@@ -331,7 +331,7 @@
             "return_direct": false
         },
         "commit_single_code_file": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false
         },
         "conduct_code_refactor_from_file_id": {
@@ -405,7 +405,7 @@
             }
         },
         "conduct_code_refactor_from_url": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false,
             "additional_settings": {
                 "json_output": {
