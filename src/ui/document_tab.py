@@ -61,7 +61,8 @@ def create_documents_collection_tab(ai, tab: DeltaGenerator):
                     on_click=create_collection,
                 )
 
-        if "rag_ai" in st.session_state:
+        selected_collection_id = streamlit_shared.get_selected_collection_id()
+        if "rag_ai" in st.session_state and selected_collection_id != '-1':
             loaded_docs = (
                 st.session_state.rag_ai.conversation_manager.get_loaded_documents_for_display()
             )
@@ -118,3 +119,5 @@ def on_change_collection():
     interactions_helper.update_conversation_collection(
         streamlit_shared.get_selected_conversation_id(), collection_id
     )
+    st.session_state.rag_ai.conversation_manager.collection_id = collection_id
+    
