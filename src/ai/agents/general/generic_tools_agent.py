@@ -354,15 +354,35 @@ class GenericToolsAgent(BaseSingleActionAgent):
         else:
             selected_repo_prompt = ""
 
+        if loaded_documents:
+            loaded_documents_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "LOADED_DOCUMENTS_TEMPLATE",
+            ).format(
+                loaded_documents=loaded_documents
+            )
+        else:
+            loaded_documents_prompt = ""
+            
+        if chat_history and len(chat_history) > 0:
+            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "CHAT_HISTORY_TEMPLATE",
+            ).format(
+                chat_history=chat_history
+            )
+        else:
+            chat_history_prompt = ""
+
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
         ).format(
             system_prompt=system_prompt,
             available_tool_descriptions=available_tools,
-            loaded_documents=loaded_documents,
-            selected_repository=selected_repo_prompt,
-            chat_history=chat_history,
+            loaded_documents_prompt=loaded_documents_prompt,
+            selected_repository_prompt=selected_repo_prompt,
+            chat_history_prompt=chat_history_prompt,
             user_query=f"{user_name} ({user_email}): {user_query}",
         )
 
@@ -494,7 +514,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 self.conversation_manager.get_loaded_documents_for_reference()
             )
         else:
-            return "No documents loaded."
+            return None
 
     def get_chat_history(self):
         if self.conversation_manager:

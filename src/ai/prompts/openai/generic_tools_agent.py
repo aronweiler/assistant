@@ -1,10 +1,7 @@
 PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """
 {system_prompt}
-Please start by reviewing the provided documents, focusing on their relevance to the tools at your disposal for task completion.
---- LOADED DOCUMENTS ---
-{loaded_documents}
---- LOADED DOCUMENTS ---
-{selected_repository}
+{loaded_documents_prompt}
+{selected_repository_prompt}
 Your task is to dissect queries that are not directly answerable into clear, independent steps using the available tools. Each step should be self-contained and free of co-references.
 
 In your response, adhere to the following structure:
@@ -37,12 +34,7 @@ Remember to consult the list of available tools and utilize them appropriately. 
 --- AVAILABLE TOOLS ---
 {available_tool_descriptions}
 --- AVAILABLE TOOLS ---
-
-Consider the chat history for additional context.
---- CHAT HISTORY ---
-{chat_history}
---- CHAT HISTORY ---
-
+{chat_history_prompt}
 Review the user's query to decide on a direct answer or a systematic breakdown.
 --- USER QUERY ---
 {user_query}
@@ -61,11 +53,25 @@ If you are ready to present your structured response, proceed below. If not, ple
 AI: Sure, here are my thoughts and my response in JSON (inside a markdown ```json ``` code block):
 """
 
+LOADED_DOCUMENTS_TEMPLATE = """
+Please start by reviewing the provided documents, focusing on their relevance to the tools at your disposal for task completion.
+--- LOADED DOCUMENTS ---
+{loaded_documents}
+--- LOADED DOCUMENTS ---
+"""
+
 SELECTED_REPO_TEMPLATE = """
 The following is a code repository that the user has selected for this conversation.
 --- SELECTED REPOSITORY ---
 {selected_repository}
 --- SELECTED REPOSITORY ---
+"""
+
+CHAT_HISTORY_TEMPLATE = """
+Consider the chat history for additional context.
+--- CHAT HISTORY ---
+{chat_history}
+--- CHAT HISTORY ---
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a sequence of AIs that have been assisting a user with their inquiry. Your predecessors have compiled all the necessary information, and your task is to provide a definitive answer. The user's query and all relevant context have been outlined below.
