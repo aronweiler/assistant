@@ -3,7 +3,11 @@ import logging
 from langchain.base_language import BaseLanguageModel
 from src.db.models.code import Code
 
-from src.db.models.conversation_messages import ConversationMessages, SearchType, ConversationMessageModel
+from src.db.models.conversation_messages import (
+    ConversationMessages,
+    SearchType,
+    ConversationMessageModel,
+)
 from src.db.models.domain.code_repository_model import CodeRepositoryModel
 from src.db.models.users import Users
 from src.db.models.documents import Documents
@@ -27,6 +31,7 @@ class ConversationManager:
         max_conversation_history_tokens: int = 1000,
         uses_conversation_history: bool = True,
         collection_id: int = None,
+        selected_repository: CodeRepositoryModel = None,
         tool_kwargs: dict = {},
         user_id: int = None,
         user_name: str = None,
@@ -43,6 +48,7 @@ class ConversationManager:
         self.prompt_manager = prompt_manager
         self.tool_kwargs = tool_kwargs
         self.collection_id = collection_id
+        self.selected_repository = selected_repository
         self.user_id = user_id
         self.user_name = user_name
         self.user_location = user_location
@@ -65,7 +71,7 @@ class ConversationManager:
         self.users_helper = Users()
         self.documents_helper = Documents()
         self.code_helper = Code()
-        
+
         self.agent_callbacks = []
         self.llm_callbacks = []
 
@@ -101,13 +107,26 @@ class ConversationManager:
 
         self.conversation_needs_summary = False
 
+    def set_selected_repository(self, repository: CodeRepositoryModel):
+        """Sets the selected repository for the current conversation."""
+
+        self.conversations_helper.update_selected_code_repo(
+            self.conversation_id, repository.id
+        )
+
+        self.selected_repository = repository
+
     def get_selected_repository(self) -> CodeRepositoryModel:
         """Gets the selected repository, if any, for the current conversation."""
+
+        if self.selected_repository:
+            return self.selected_repository
+
         conversation = self.get_conversation()
-        
-        if conversation.last_selected_code_repo  != -1:
+
+        if conversation.last_selected_code_repo != -1:
             return self.code_helper.get_repository(conversation.last_selected_code_repo)
-        
+
         return None
 
     def get_loaded_documents_for_display(self):
@@ -123,7 +142,9 @@ class ConversationManager:
 
         return [
             f"{file.file_name} (Class: '{file.file_classification}')"
-            for file in self.documents_helper.get_files_in_collection(self.collection_id)
+            for file in self.documents_helper.get_files_in_collection(
+                self.collection_id
+            )
         ]
 
     def get_loaded_documents_count(self):
@@ -150,7 +171,9 @@ class ConversationManager:
 
         return [
             f"file_id='{file.id}' ({file.file_name}, Class: '{file.file_classification}')"
-            for file in self.documents_helper.get_files_in_collection(self.collection_id)
+            for file in self.documents_helper.get_files_in_collection(
+                self.collection_id
+            )
         ]
 
     def get_loaded_documents_delimited(self):
@@ -166,7 +189,9 @@ class ConversationManager:
 
         return [
             f"{file.id}:{file.file_name}"
-            for file in self.documents_helper.get_files_in_collection(self.collection_id)
+            for file in self.documents_helper.get_files_in_collection(
+                self.collection_id
+            )
         ]
 
     def get_conversation(self):
@@ -203,7 +228,8 @@ class ConversationManager:
         """Creates the conversation memory for the conversation."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
-            self.conversation_id, conversation_messages=self.conversation_messages_helper
+            self.conversation_id,
+            conversation_messages=self.conversation_messages_helper,
         )
 
         self.postgres_chat_message_history.user_id = self.user_id

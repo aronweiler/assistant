@@ -342,6 +342,18 @@ class GenericToolsAgent(BaseSingleActionAgent):
         loaded_documents = self.get_loaded_documents()
         chat_history = self.get_chat_history()
 
+        selected_repo = self.conversation_manager.get_selected_repository()
+
+        if selected_repo:
+            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "SELECTED_REPO_TEMPLATE",
+            ).format(
+                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
+            )
+        else:
+            selected_repo_prompt = ""
+
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
@@ -349,6 +361,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             system_prompt=system_prompt,
             available_tool_descriptions=available_tools,
             loaded_documents=loaded_documents,
+            selected_repository=selected_repo_prompt,
             chat_history=chat_history,
             user_query=f"{user_name} ({user_email}): {user_query}",
         )

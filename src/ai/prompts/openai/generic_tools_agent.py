@@ -4,7 +4,7 @@ Please start by reviewing the provided documents, focusing on their relevance to
 --- LOADED DOCUMENTS ---
 {loaded_documents}
 --- LOADED DOCUMENTS ---
-
+{selected_repository}
 Your task is to dissect queries that are not directly answerable into clear, independent steps using the available tools. Each step should be self-contained and free of co-references.
 
 In your response, adhere to the following structure:
@@ -59,6 +59,13 @@ Key Points to Remember:
 If you are ready to present your structured response, proceed below. If not, please provide more detail in your Preliminary Thoughts.
 
 AI: Sure, here are my thoughts and my response in JSON (inside a markdown ```json ``` code block):
+"""
+
+SELECTED_REPO_TEMPLATE = """
+The following is a code repository that the user has selected for this conversation.
+--- SELECTED REPOSITORY ---
+{selected_repository}
+--- SELECTED REPOSITORY ---
 """
 
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a sequence of AIs that have been assisting a user with their inquiry. Your predecessors have compiled all the necessary information, and your task is to provide a definitive answer. The user's query and all relevant context have been outlined below.
