@@ -66,12 +66,28 @@ class Code(VectorDatabase):
 
     def add_repository(self, address: str, branch_name: str):
         with self.session_context(self.Session()) as session:
+            # Check if the repository already exists
+            existing_repository = (
+                session.query(CodeRepository)
+                .filter(CodeRepository.code_repository_address == address)
+                .filter(CodeRepository.branch_name == branch_name)
+                .one_or_none()
+            )
+
+            if existing_repository:
+                logging.info(
+                    f"Repository {address} on branch {branch_name} already exists."
+                )
+                return
+
+            # Add the new repository since it does not exist
             session.add(
                 CodeRepository(
                     code_repository_address=address,
                     branch_name=branch_name,
                 )
             )
+            session.commit()
 
     def update_last_scanned(self, code_repo_id: int, last_scanned: datetime):
         with self.session_context(self.Session()) as session:
@@ -261,17 +277,22 @@ class Code(VectorDatabase):
             session.commit()
 
     def search_code_files(
-        self, similarity_query: str, keywords: List[str], top_k=10
+        self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
             # Perform similarity search on CodeFile.code_file_summary_embedding
             code_file_similarity_results = self._get_similarity_results(
-                session, CodeFile.code_file_summary_embedding, similarity_query, top_k
+                session,
+                repository_id,
+                CodeFile.code_file_summary_embedding,
+                similarity_query,
+                top_k,
             )
 
             # Perform similarity search on CodeDescription.description_text_embedding
             code_description_similarity_results = self._get_similarity_results(
                 session,
+                repository_id,
                 CodeDescription.description_text_embedding,
                 similarity_query,
                 top_k,
@@ -279,7 +300,7 @@ class Code(VectorDatabase):
 
             # Perform keyword search on CodeKeywords.keyword
             keyword_search_results = self._get_keyword_search_results(
-                session, keywords, top_k
+                session, repository_id, keywords, top_k
             )
 
             # Combine results from the three searches
@@ -313,7 +334,7 @@ class Code(VectorDatabase):
             ]
 
     def _get_similarity_results(
-        self, session: Session, embedding_column, similarity_query, top_k: int
+        self, session: Session, repository_id, embedding_column, similarity_query, top_k: int
     ):
         query_embedding = get_embedding(
             text=similarity_query,
