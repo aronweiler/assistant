@@ -187,6 +187,8 @@ class File(ModelBase):
     file_classification = Column(String, nullable=True)
     file_summary = Column(String, nullable=True)
     file_hash = Column(String, nullable=False)
+    chunk_size = Column(Integer, nullable=False)
+    chunk_overlap = Column(Integer, nullable=False)
     file_data = Column(LargeBinary, nullable=False)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
