@@ -189,6 +189,7 @@ class File(ModelBase):
     file_hash = Column(String, nullable=False)
     chunk_size = Column(Integer, nullable=False)
     chunk_overlap = Column(Integer, nullable=False)
+    document_count = Column(Integer, nullable=False, default=0)
     file_data = Column(LargeBinary, nullable=False)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
 
