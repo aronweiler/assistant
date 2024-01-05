@@ -2,6 +2,7 @@ import logging
 import os
 from threading import Timer
 import time
+from typing import List
 import uuid
 import asyncio
 
@@ -126,7 +127,9 @@ def load_conversation_selectbox(load_ai_callback, tab: DeltaGenerator):
                 selected_conversation = st.session_state[
                     "rag_ai"
                 ].conversation_manager.conversation_id
-                index = get_conversation_id_index(conversation_pairs, selected_conversation)
+                index = get_conversation_id_index(
+                    conversation_pairs, selected_conversation
+                )
 
             st.selectbox(
                 "Select Conversation",
@@ -340,6 +343,7 @@ def get_selected_collection_id():
     )
 
     return selected_collection_id
+
 
 def get_selected_code_repo_id():
     """Gets the selected code repo id from the selectbox"""
@@ -596,6 +600,8 @@ def ingest_files(
     """Ingests the uploaded files into the specified collection"""
 
     documents_helper = Documents()
+    document_loader = DocumentLoader()
+    documents = None
 
     if not active_collection_id:
         st.error("No collection selected")
@@ -645,57 +651,133 @@ def ingest_files(
                     file_name, active_collection_id
                 )
 
-                if existing_file and not overwrite_existing_files:
-                    st.warning(
-                        f"File '{file_name}' already exists, and overwrite is not enabled"
+                if existing_file:
+                    if not overwrite_existing_files:
+                        # See if the hash on this file matches the one we have stored
+                        if existing_file.file_hash == calculate_sha256(
+                            uploaded_file_path
+                        ):
+                            # It matches, so split the file using the existing document chunks settings
+                            st.info(
+                                f"File '{file_name}' already exists, and the hash matches, so we're checking to see if it's a RESUME op..."
+                            )
+                            logging.info(
+                                f"File '{file_name}' already exists, and the hash matches, so we're checking to see if it's a RESUME op..."
+                            )
+
+                            if (
+                                existing_file.file_classification
+                                != st.session_state.ingestion_settings.file_type
+                            ):
+                                st.error(
+                                    f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
+                                )
+                                logging.error(
+                                    f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
+                                )
+                                
+                            # TODO: Fix all of this- it's a total inefficient mess, the document ingestion needs to be completely re-written
+
+                            # Split the document
+                            documents = asyncio.run(
+                                document_loader.load_and_split_documents(
+                                    document_directory=root_temp_dir,
+                                    split_documents=split_documents,
+                                    is_code=existing_file.file_classification == "Code",
+                                    chunk_size=existing_file.chunk_size,
+                                    chunk_overlap=existing_file.chunk_overlap,
+                                )
+                            )
+                            
+                            # Get the documents that match this file name
+                            matching_documents = [
+                                d
+                                for d in documents
+                                if d.metadata["filename"].replace(root_temp_dir, "").strip("/")
+                                == file_name
+                            ]
+
+                            if len(matching_documents) == existing_file.document_count or existing_file.document_count == 0:
+                                files.append(existing_file)
+
+                                # # Save the split documents
+                                # save_split_documents(
+                                #     active_collection_id,
+                                #     status,
+                                #     create_chunk_questions,
+                                #     summarize_chunks,
+                                #     summarize_document,
+                                #     ai,
+                                #     documents_helper,
+                                #     ingest_progress_bar,
+                                #     root_temp_dir,
+                                #     files,
+                                #     documents,
+                                # )
+
+                                # # Done!
+                                # st.balloons()
+                                # return
+                            else:
+                                st.error(
+                                    f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
+                                )
+                                logging.error(
+                                    f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
+                                )
+
+                        st.warning(
+                            f"File '{file_name}' already exists, and overwrite is not enabled"
+                        )
+                        logging.warning(
+                            f"File '{file_name}' already exists, and overwrite is not enabled"
+                        )
+                        logging.debug(f"Deleting temp file: {uploaded_file_path}")
+                        os.remove(uploaded_file_path)
+
+                        continue
+
+                elif not existing_file or overwrite_existing_files:
+                    if overwrite_existing_files:
+                        # Delete the document chunks
+                        documents_helper.delete_document_chunks_by_file_id(
+                            existing_file.id
+                        )
+
+                        # Delete the existing file
+                        documents_helper.delete_file(existing_file.id)
+
+                    # File does not exist (or was deleted)
+                    # Read the file
+                    with open(uploaded_file_path, "rb") as file:
+                        file_data = file.read()
+
+                    # Start off with the default file classification
+                    file_classification = st.session_state.ingestion_settings.file_type
+
+                    # Override the classification if necessary
+                    # Get the file extension
+                    file_extension = os.path.splitext(file_name)[1]
+                    # Check to see if it's an image
+                    if file_extension in IMAGE_TYPES:
+                        # It's an image, reclassify it
+                        file_classification = "Image"
+
+                    # Create the file
+                    logging.info(f"Creating file '{file_name}'...")
+                    file_model = documents_helper.create_file(
+                        FileModel(
+                            user_id=st.session_state.user_id,
+                            collection_id=active_collection_id,
+                            file_name=file_name,
+                            file_hash=calculate_sha256(uploaded_file_path),
+                            file_classification=file_classification,
+                            chunk_size=chunk_size,
+                            chunk_overlap=chunk_overlap,                            
+                        ),
+                        file_data,
                     )
-                    logging.warning(
-                        f"File '{file_name}' already exists, and overwrite is not enabled"
-                    )
-                    logging.debug(f"Deleting temp file: {uploaded_file_path}")
-                    os.remove(uploaded_file_path)
-                    # status.update(
-                    #     label=f"File '{file_name}' already exists, and overwrite is not enabled",
-                    #     state="error",
-                    # )
-
-                    continue
-
-                if existing_file and overwrite_existing_files:
-                    # Delete the document chunks
-                    documents_helper.delete_document_chunks_by_file_id(existing_file.id)
-
-                    # Delete the existing file
-                    documents_helper.delete_file(existing_file.id)
-
-                # Read the file
-                with open(uploaded_file_path, "rb") as file:
-                    file_data = file.read()
-
-                # Start off with the default file classification
-                file_classification = st.session_state.ingestion_settings.file_type
-
-                # Override the classification if necessary
-                # Get the file extension
-                file_extension = os.path.splitext(file_name)[1]
-                # Check to see if it's an image
-                if file_extension in IMAGE_TYPES:
-                    # It's an image, reclassify it
-                    file_classification = "Image"
-
-                # Create the file
-                logging.info(f"Creating file '{file_name}'...")
-                file_model = documents_helper.create_file(
-                    FileModel(
-                        user_id=st.session_state.user_id,
-                        collection_id=active_collection_id,
-                        file_name=file_name,
-                        file_hash=calculate_sha256(uploaded_file_path),
-                        file_classification=file_classification,
-                    ),
-                    file_data,
-                )
-                files.append(file_model)
+                    files.append(file_model)
 
             if not files or len(files) == 0:
                 st.warning("Nothing to split... bye!")
@@ -713,17 +795,17 @@ def ingest_files(
             is_code = st.session_state.ingestion_settings.file_type == "Code"
 
             # Pass the root temp dir to the ingestion function
-            document_loader = DocumentLoader()
-
-            documents = asyncio.run(
-                document_loader.load_and_split_documents(
-                    document_directory=root_temp_dir,
-                    split_documents=split_documents,
-                    is_code=is_code,
-                    chunk_size=chunk_size,
-                    chunk_overlap=chunk_overlap,
+            # if we've already split the docs, don't do it again
+            if not documents:
+                documents = asyncio.run(
+                    document_loader.load_and_split_documents(
+                        document_directory=root_temp_dir,
+                        split_documents=split_documents,
+                        is_code=is_code,
+                        chunk_size=chunk_size,
+                        chunk_overlap=chunk_overlap,
+                    )
                 )
-            )
 
             if documents == None:
                 st.warning(
@@ -739,110 +821,172 @@ def ingest_files(
                 )
                 return
 
-            document_chunk_length = len(documents)
-            st.info(f"Saving {document_chunk_length} document chunks...")
-            logging.info(f"Saving {document_chunk_length} document chunks...")
-
-            # For each document, create the file if it doesn't exist and then the document chunks
-            current_chunk = 0
-            for document in documents:
-                current_chunk += 1
-                # Get the file name without the root_temp_dir (preserving any subdirectories)
-                file_name = (
-                    document.metadata["filename"].replace(root_temp_dir, "").strip("/")
-                )
-
-                ingest_progress_bar.progress(
-                    calculate_progress(len(documents), current_chunk),
-                    text=f"Processing document chunk {current_chunk} of {document_chunk_length}",
-                )
-
-                # Get the file reference
-                file = next((f for f in files if f.file_name == file_name), None)
-
-                if not file:
-                    st.error(
-                        f"Could not find file '{file_name}' in the database after uploading"
-                    )
-                    logging.error(
-                        f"Could not find file '{file_name}' in the database after uploading"
-                    )
-                    break
-
-                chunk_questions = []
-                if create_chunk_questions and hasattr(ai, "generate_chunk_questions"):
-                    try:
-                        logging.info("Creating questions for chunk...")
-                        chunk_questions = ai.generate_chunk_questions(
-                            document_text=document.page_content
-                        )
-                    except Exception as e:
-                        logging.error(f"Error creating questions for chunk: {e}")
-                        chunk_questions = []
-
-                summary = ""
-                if summarize_chunks and hasattr(
-                    ai, "generate_detailed_document_chunk_summary"
-                ):
-                    logging.info("Summarizing chunk...")
-                    summary = ai.generate_detailed_document_chunk_summary(
-                        document_text=document.page_content
-                    )
-
-                # Create the document chunks
-                logging.info(f"Inserting document chunk for file '{file_name}'...")
-                documents_helper.store_document(
-                    DocumentModel(
-                        collection_id=active_collection_id,
-                        file_id=file.id,
-                        user_id=st.session_state.user_id,
-                        document_text=document.page_content,
-                        document_text_summary=summary,
-                        document_text_has_summary=summary != "",
-                        additional_metadata=document.metadata,
-                        document_name=document.metadata["filename"],
-                        embedding_model_name=get_selected_collection_embedding_model_name(),
-                        question_1=chunk_questions[0]
-                        if len(chunk_questions) > 0
-                        else "",
-                        question_2=chunk_questions[1]
-                        if len(chunk_questions) > 1
-                        else "",
-                        question_3=chunk_questions[2]
-                        if len(chunk_questions) > 2
-                        else "",
-                        question_4=chunk_questions[3]
-                        if len(chunk_questions) > 3
-                        else "",
-                        question_5=chunk_questions[4]
-                        if len(chunk_questions) > 4
-                        else "",
-                    )
-                )
-
-            summary = ""
-            if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
-                for file in files:
-                    # Note: this generates a summary and also puts it into the DB
-                    ai.generate_detailed_document_summary(file_id=file.id)
-
-                    logging.info(f"Created a summary of file: '{file.file_name}'")
-
-            st.success(
-                f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
+            save_split_documents(
+                active_collection_id,
+                status,
+                create_chunk_questions,
+                summarize_chunks,
+                summarize_document,
+                ai,
+                documents_helper,
+                ingest_progress_bar,
+                root_temp_dir,
+                files,
+                documents,
             )
-            logging.info(
-                f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
-            )
-            status.update(
-                label=f"✅ Ingestion complete",
-                state="complete",
-            )
-
-            ingest_progress_bar.empty()
 
     # Done!
     st.balloons()
+
+
+def save_split_documents(
+    active_collection_id,
+    status,
+    create_chunk_questions,
+    summarize_chunks,
+    summarize_document,
+    ai,
+    documents_helper,
+    ingest_progress_bar,
+    root_temp_dir,
+    files: List[FileModel],
+    documents,
+):
+    document_chunk_length = len(documents)
+    st.info(f"Saving {document_chunk_length} document chunks...")
+    logging.info(f"Saving {document_chunk_length} document chunks...")
+
+    # Update the document counts on the files- this will help if we have to resume
+    file_to_chunk_count = {}
+    for file in files:
+        if file.document_count == 0:
+            # Get the count of documents matching the file name
+            document_count = len(
+                [
+                    d
+                    for d in documents
+                    if d.metadata["filename"].replace(root_temp_dir, "").strip("/")
+                    == file.file_name
+                ]
+            )
+            file.document_count = document_count
+            documents_helper.update_document_count(file.id, document_count)
+
+        # Get the number of documents already in the DB for this file
+        current_document_count = documents_helper.get_document_chunk_count_by_file_id(file.id)
+
+        file_to_chunk_count[file.file_name] = {
+            "current_document_count": current_document_count,
+            "total_document_count": file.document_count,
+        }
+
+    # Since this is all fucked up, and the documents are all in one list (multiple files in the same list)
+    # I need to split this out into multiple lists, each associated with a single file
+    file_documents = {}
+    for document in documents:
+        # Get the file name without the root_temp_dir (preserving any subdirectories)
+        file_name = document.metadata["filename"].replace(root_temp_dir, "").strip("/")
+
+        if file_name in file_documents:
+            doc_list = file_documents[file_name]
+        else:
+            doc_list = []
+
+        doc_list.append(document)
+        file_documents[file_name] = doc_list
+
+    # For each file, loop through the documents
+    current_chunk = 0
+    for file in files:
+        logging.info(
+            f"Processing {len(file_documents[file.file_name])} chunks for {file.file_name}"
+        )
+
+        if not file:
+            st.error(
+                f"Could not find file '{file_name}' in the database after uploading"
+            )
+            logging.error(
+                f"Could not find file '{file_name}' in the database after uploading"
+            )
+            break        
+
+        current_document_count = file_to_chunk_count[file.file_name][
+            "current_document_count"
+        ]
+        
+        file_doc_chunk_len = len(file_documents[file.file_name]) 
+        for index in range(current_document_count, file_doc_chunk_len):
+            # TODO: Fix the progress bar
+            ingest_progress_bar.progress(
+                calculate_progress(file_doc_chunk_len, index + 1),
+                text=f"Processing {file.file_name} chunk {index} of {file_doc_chunk_len}",
+            )
+            
+            document = file_documents[file.file_name][index]
+
+            chunk_questions = []
+            if create_chunk_questions and hasattr(ai, "generate_chunk_questions"):
+                try:
+                    logging.info("Creating questions for chunk...")
+                    chunk_questions = ai.generate_chunk_questions(
+                        document_text=document.page_content
+                    )
+                except Exception as e:
+                    logging.error(f"Error creating questions for chunk: {e}")
+                    chunk_questions = []
+
+            summary = ""
+            if summarize_chunks and hasattr(
+                ai, "generate_detailed_document_chunk_summary"
+            ):
+                logging.info("Summarizing chunk...")
+                summary = ai.generate_detailed_document_chunk_summary(
+                    document_text=document.page_content
+                )
+
+                # Create the document chunks
+            logging.info(f"Inserting document chunk for file '{file_name}'...")
+            documents_helper.store_document(
+                DocumentModel(
+                    collection_id=active_collection_id,
+                    file_id=file.id,
+                    user_id=st.session_state.user_id,
+                    document_text=document.page_content,
+                    document_text_summary=summary,
+                    document_text_has_summary=summary != "",
+                    additional_metadata=document.metadata,
+                    document_name=document.metadata["filename"],
+                    embedding_model_name=get_selected_collection_embedding_model_name(),
+                    question_1=chunk_questions[0] if len(chunk_questions) > 0 else "",
+                    question_2=chunk_questions[1] if len(chunk_questions) > 1 else "",
+                    question_3=chunk_questions[2] if len(chunk_questions) > 2 else "",
+                    question_4=chunk_questions[3] if len(chunk_questions) > 3 else "",
+                    question_5=chunk_questions[4] if len(chunk_questions) > 4 else "",
+                )
+            )           
+            
+
+    summary = ""
+    if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
+        for file in files:
+            # Note: this generates a summary and also puts it into the DB
+            ai.generate_detailed_document_summary(file_id=file.id)
+
+            logging.info(f"Created a summary of file: '{file.file_name}'")
+
+    st.success(
+        f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
+    )
+    logging.info(
+        f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
+    )
+    status.update(
+        label=f"✅ Ingestion complete",
+        state="complete",
+    )
+
+    ingest_progress_bar.empty()
 
 
 def calculate_progress(total_size, current_position):
