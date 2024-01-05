@@ -16,12 +16,25 @@ def tool_class(cls):
 
 
 # Decorator to register a tool function along with its metadata
-def register_tool(description=None, additional_instructions=None, document_classes=[]):
+def register_tool(
+    display_name,
+    description,
+    additional_instructions=None,
+    help_text=None,
+    requires_documents=False,
+    document_classes=[],
+):
+    if help_text is None:
+        help_text = description
+
     def decorator(func):
         func._tool_metadata = {
             "description": description,
             "additional_instructions": additional_instructions,
             "document_classes": document_classes,
+            "display_name": display_name,
+            "help_text": help_text,
+            "requires_documents": requires_documents,
         }
 
         if func.__module__ not in registered_tools:

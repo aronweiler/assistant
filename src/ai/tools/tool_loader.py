@@ -1,6 +1,7 @@
 import logging
 import pkgutil
 import importlib
+import inspect
 import sys
 import os
 
@@ -57,17 +58,26 @@ def get_available_tools(configuration, conversation_manager):
                 generic_tools[function_name] = generic_tool
 
         else:
-            # Initialize the tool with the injected dependencies
-            tool_instance = tool_info["class"](**dependencies)
+            # Get the constructor parameters for the class
+            constructor_params = inspect.signature(
+                tool_info["class"].__init__
+            ).parameters
+
+            # Filter out only the necessary dependencies that match the constructor parameters
+            filtered_dependencies = {
+                k: v for k, v in dependencies.items() if k in constructor_params
+            }
+
+            # Initialize the tool with the filtered dependencies
+            tool_instance = tool_info["class"](**filtered_dependencies)
 
             for function_name, function_info in tool_info["functions"].items():
                 func = getattr(tool_instance, function_name)
-
                 generic_tool = create_generic_tool(configuration, function_name, func)
-
                 generic_tools[function_name] = generic_tool
 
     return generic_tools
+
 
 def create_generic_tool(configuration, function_name, func):
     if hasattr(func, "_tool_metadata"):
