@@ -14,6 +14,9 @@ class CvssTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Create CVSS Evaluation",
+        help_text="Creates a CVSS evaluation from user provided data.",
+        requires_documents=False,
         description="Creates a CVSS evaluation from user provided data.",
         additional_instructions="Use this tool to create a CVSS evaluation (and score) from data provided by the user.  The vulnerability_data argument should be a string containing the data to evaluate- this data should be whatever the user has given you to evaluate.",
     )

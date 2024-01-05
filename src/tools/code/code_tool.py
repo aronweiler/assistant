@@ -24,8 +24,11 @@ class CodeTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Get Code Dependency Graph",
+        help_text="Gets the dependency graph of a code file.",
         description="Gets the dependency graph of a code file.",
         additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
+        requires_documents=True,
         document_classes=["Code"],
     )
     def get_pretty_dependency_graph(self, target_file_id) -> str:
@@ -220,6 +223,9 @@ class CodeTool:
                         others.append(metadata)
 
     @register_tool(
+        display_name="Get All Code In Loaded File",
+        help_text="Gets all of the code in the target file.",
+        requires_documents=True,
         description="Gets all of the code in the target file.",
         additional_instructions="Useful for getting all of the code in a specific 'Code' file when the user asks you to show them code from a particular file.",
         document_classes=["Code"],

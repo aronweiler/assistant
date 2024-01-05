@@ -5,6 +5,9 @@ from src.ai.tools.tool_registry import register_tool
 
 class GNewsTool:
     @register_tool(
+        display_name="Get News for Topic",
+        help_text="Get a list of news headlines and article URLs for a specified term.",
+        requires_documents=False,
         description="Get a list of news headlines and article URLs for a specified term.",
         additional_instructions="When using this tool, always return the Headline, whatever summary there is, the source, and the URL.",
     )
@@ -22,6 +25,9 @@ class GNewsTool:
         return "----".join(headlines)
 
     @register_tool(
+        display_name="Get Top News Headlines",
+        help_text="Get a list of the top news story headlines and article URLs.",
+        requires_documents=False,
         description="Get a list of headlines and article URLs for the top news headlines.",
         additional_instructions="When using this tool, always return the Headline, whatever summary there is, the source, and the URL.",
     )
@@ -36,6 +42,9 @@ class GNewsTool:
         return "----".join(headlines)
 
     @register_tool(
+        display_name="Get Full Article",
+        help_text="Use this to get the full article for the specified headline URL.  Note: This can only be used if you already have the article URL, which means that the other news tools need to be enabled.",
+        requires_documents=False,
         description="Use this to get the full article for the specified headline URL.  Note: This can only be used if you already have the article URL.",
         additional_instructions="url (str): The URL of the article you want to get the full text for, previously returned by get_top_news_headlines or get_news_by_location.",
     )
@@ -51,6 +60,9 @@ class GNewsTool:
         return full_article
 
     @register_tool(
+        display_name="Get News by Location",
+        help_text="Get a list of the headlines and article URLs for the specified location.",
+        requires_documents=False,
         description="Get a list of the headlines and article URLs for the specified location.",
         additional_instructions="location (str): Location to get the news for.  Should be a city, state, or country only.  e.g. 'New York', 'United States', 'California', etc.",
     )

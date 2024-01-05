@@ -10,7 +10,10 @@ class YelpTool:
         return dotenv_values().get("YELP_API_KEY")
 
     @register_tool(
-        description="Searches for businesses matching the criteria and returns a list of businesses.",
+        display_name="Search Businesses",
+        help_text="Searches Yelp for matching criteria and returns a list of businesses.",
+        requires_documents=False,
+        description="Searches Yelp for matching criteria and returns a list of businesses.",
         additional_instructions="Allows specifying the location, search term, categories, whether to only return open businesses, price range (1=low-price, 2=med-price, 3=high=price- can be combined), minimum rating, and maximum number of businesses to return.",
     )
     def search_businesses(
@@ -97,6 +100,9 @@ class YelpTool:
             return None
 
     @register_tool(
+        display_name="Get Business Details",
+        help_text="Retrieves details of a specific business.",
+        requires_documents=False,
         description="Retrieves details of a specific business, matching the business_id.",
         additional_instructions="business_id is the id of the business, discovered by using the search_businesses tool.",
     )

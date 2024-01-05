@@ -10,6 +10,9 @@ from src.ai.tools.tool_registry import register_tool
 
 class WeatherTool:
     @register_tool(
+        display_name="Weather",
+        help_text="Queries the weather at a given location.",
+        requires_documents=False,
         description="Queries the weather at a given location.",
         additional_instructions="Location is a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. 'Phoenix, AZ'. Date is optional, and should be a string ('%Y-%m-%d') representing the date to get the weather for, e.g. '2023-4-15'.  If no date is provided, the weather for the current date will be returned.",
     )

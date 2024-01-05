@@ -345,7 +345,10 @@ class CodeRefactorTool:
         return code
 
     @register_tool(
-        description="Performs a code refactor of a specified code file.",
+        display_name="Perform a Code Refactor on a URL",
+        requires_documents=False,
+        help_text="Performs a code refactor of a specified URL.",
+        description="Performs a code refactor of a specified URL.",
         additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
     )
     def conduct_code_refactor_from_url(
@@ -435,6 +438,9 @@ class CodeRefactorTool:
         ]["json_output"]["value"]
 
     @register_tool(
+        display_name="Perform a Code Refactor on Loaded Code File",
+        help_text="Performs a code refactor of a specified code file.",
+        requires_documents=False,
         description="Performs a code refactor of a specified code file.",
         additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
     )

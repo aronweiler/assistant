@@ -342,6 +342,9 @@ class CodeReviewTool:
             return self.format_review_results(review_results)
 
     @register_tool(
+        display_name="Conduct Code Review from URL",
+        help_text="Conducts a code review on a URL",
+        requires_documents=False,
         description="Performs a code review of a specified code file.",
         additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
     )
@@ -488,6 +491,9 @@ class CodeReviewTool:
         ]["max_code_size_tokens"]["value"]
 
     @register_tool(
+        display_name="Conduct Code Review from Loaded File",
+        help_text="Conducts a code review on a loaded code file",
+        requires_documents=True,
         description="Performs a code review of a specified code file.",
         additional_instructions="Use this tool for conducting a code review on a loaded code file.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
     )

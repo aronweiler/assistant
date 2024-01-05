@@ -33,6 +33,9 @@ class WebsiteTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Get Text From Website",
+        help_text="Reads text from the specified URL.",
+        requires_documents=False,
         description="Reads text from the specified URL.",
         additional_instructions="Pass in the URL of the target website, along with the user's original query.",
     )

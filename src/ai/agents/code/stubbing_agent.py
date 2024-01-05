@@ -61,8 +61,11 @@ class Stubber:
         )
 
     @register_tool(
+        display_name="Create stubs",
         description="Creates stubs for a specified code file.",
         additional_instructions="Create mocks / stubs for the dependencies of a given code file. Use this when the user asks you to mock or stub out the dependencies for a given file.",
+        help_text="Creates stubs for a specified code file.",
+        requires_documents=True,
         document_classes=["Code"],
     )
     def create_stubs(self, file_id: int):

@@ -6,6 +6,9 @@ from src.ai.tools.tool_registry import register_tool
 
 class TimeTool:
     @register_tool(
+        display_name="Get Time",
+        help_text="Get the current time in the specified IANA time zone.",
+        requires_documents=False,
         description="Get the current time in the specified IANA time zone.",
         additional_instructions="current_time_zone (str): The IANA time zone to get the current time in, for example: 'America/New_York'.",
     )

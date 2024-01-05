@@ -60,6 +60,9 @@ class CodeCommitTool:
         self.source_control_pat = os.getenv("source_control_pat")
 
     @register_tool(
+        display_name="Commit Code",
+        help_text="Commits code to a source control repository.",
+        requires_documents=False,
         description="Commits a single code file to source control.",
         additional_instructions="Call this tool when the user requests that you commit code to source control.  ",
     )

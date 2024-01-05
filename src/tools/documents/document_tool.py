@@ -36,8 +36,11 @@ class DocumentTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Search Loaded Documents",
         description="Searches the loaded documents for a query.",
         additional_instructions="Searches the loaded files (or the specified file when target_file_id is set).  The user's input should be reworded to be both a keyword search (keywords_list: list of important keywords) and a semantic similarity search query (semantic_similarity_query: a meaningful phrase).  user_query should be a succinctly phrased version of the original user input (phrased as the ultimate question to answer). The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.  Note: This tool only looks at a small subset of the document content in its search, it is not good for getting large chunks of content.",
+        help_text="Searches the loaded documents for a query. If the query is directed at a specific document, this will search just that document, otherwise, it will search all loaded documents.",
+        requires_documents=True,
         document_classes=["Document", "Code", "Spreadsheet"],
     )
     def search_loaded_documents(
@@ -225,9 +228,12 @@ class DocumentTool:
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     @register_tool(
+        display_name="Summarize Entire Document",
         description="Summarizes an entire document.",
         additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
+        help_text="Summarizes an entire document using one of the summarization methods.  ⚠️ If you did not ingest your documents with the summary turned on, this can be slow and expensive, as it will process the entire document.",
         document_classes=["Code", "Spreadsheet", "Document"],
+        requires_documents=True,
     )
     def summarize_entire_document(self, target_file_id: int):
         """Useful for getting a summary of an entire specific document.  The target_file_id argument is required.
@@ -387,7 +393,12 @@ class DocumentTool:
 
         return result["output_text"]
 
-    @register_tool(description="Lists all loaded documents.")
+    @register_tool(
+        display_name="List Documents",
+        description="Lists all loaded documents.",
+        help_text="Lists all loaded documents.",
+        requires_documents=False,
+    )
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.
         Always use this tool to get the file ID (if you don't already know it) before calling anything else that requires it.
@@ -398,8 +409,11 @@ class DocumentTool:
         )
 
     @register_tool(
+        display_name="Search Entire Document",
         description="Exhaustively searches a single document for one or more queries.",
         additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",
+        help_text="Exhaustively searches a single document for one or more queries. ⚠️ This can be slow and expensive, as it will process the entire target document.",
+        requires_documents=True,
         document_classes=["Document", "Code", "Spreadsheet"],
     )
     def search_entire_document(self, target_file_id: int, queries: List[str]):

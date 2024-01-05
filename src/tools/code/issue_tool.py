@@ -61,6 +61,9 @@ class IssueTool:
         return retriever.retrieve_issue_data(url=url)
 
     @register_tool(
+        display_name="Create Issue from Code Review",
+        help_text="Creates an issue on your selected provider from a Code Review",
+        requires_documents=False,
         description="Creates an issue from a Code Review.",
         additional_instructions="Call this tool when the user requests an issue be created from a code review.",
     )
