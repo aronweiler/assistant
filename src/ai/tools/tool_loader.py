@@ -38,7 +38,7 @@ def get_available_tools(configuration, conversation_manager):
     # Load all tool modules to ensure they are registered
     load_tool_modules()
 
-    generic_tools = {}
+    generic_tools = []
     # Initialize all registered tools with dependencies
     for module_name, tool_info in registered_tools.items():
         # Inject dependencies based on the function signature
@@ -55,7 +55,7 @@ def get_available_tools(configuration, conversation_manager):
                     configuration, function_name, function_info["function"]
                 )
 
-                generic_tools[function_name] = generic_tool
+                generic_tools.append(generic_tool)
 
         else:
             # Get the constructor parameters for the class
@@ -74,7 +74,7 @@ def get_available_tools(configuration, conversation_manager):
             for function_name, function_info in tool_info["functions"].items():
                 func = getattr(tool_instance, function_name)
                 generic_tool = create_generic_tool(configuration, function_name, func)
-                generic_tools[function_name] = generic_tool
+                generic_tools.append(generic_tool)
 
     return generic_tools
 
@@ -97,6 +97,9 @@ def create_generic_tool(configuration, function_name, func):
         name=function_name,
         return_direct=return_direct,
         document_classes=tool_metadata.get("document_classes", []),
+        display_name=tool_metadata.get("display_name", function_name),
+        requires_documents=tool_metadata.get("requires_documents", False),
+        help_text=tool_metadata.get("help_text", None),
     )
 
     return generic_tool
