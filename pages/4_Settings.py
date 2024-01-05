@@ -314,7 +314,7 @@ def show_additional_settings(configuration, tool_name, tool_details):
     # If there are additional settings, get the settings and show the widgets
     if "additional_settings" in configuration["tool_configurations"][tool_name]:
         with st.expander(
-            label=f"🦿 {tool_details['display_name']} Additional Settings",
+            label=f"🦿 {tool_details.display_name} Additional Settings",
             expanded=False,
         ):
             additional_settings = configuration["tool_configurations"][tool_name][
@@ -383,7 +383,7 @@ def show_model_settings(configuration, tool_name, tool_details):
         tool_configuration = configuration["tool_configurations"][tool_name]
 
         with st.expander(
-            label=f"⚙️ {tool_details['display_name']} Model Settings",
+            label=f"⚙️ {tool_details.display_name} Model Settings",
             expanded=False,
         ):
             generate_model_settings(
@@ -395,14 +395,14 @@ def show_model_settings(configuration, tool_name, tool_details):
 
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
-    tool_manager = ToolManager(configuration=configuration)
+    tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
 
     tools = tool_manager.get_all_tools()
 
     # Create a toggle to enable/disable each tool
     for tool_name, tool_details in tools.items():
-        st.markdown(f"#### {tool_details['display_name']}")
-        st.markdown(tool_details["help_text"])
+        st.markdown(f"#### {tool_details.display_name}")
+        st.markdown(tool_details.help_text)
         col1, col2, col3 = st.columns([3, 5, 5])
         col1.toggle(
             "Enabled",

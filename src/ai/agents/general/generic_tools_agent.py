@@ -20,9 +20,12 @@ from src.utilities.parsing_utilities import parse_json
 class GenericTool:
     def __init__(
         self,
+        display_name,
         description,
         function,
         name=None,
+        requires_documents=False,
+        help_text=None,
         document_classes=[],
         return_direct=False,
         additional_instructions=None,
@@ -37,6 +40,9 @@ class GenericTool:
             func=self.function, return_direct=return_direct, description=description
         )
         self.document_classes = document_classes
+        self.display_name = display_name
+        self.requires_documents = requires_documents
+        self.help_text = help_text if help_text else self.description
 
     def extract_function_schema(self, func):
         import inspect
