@@ -23,7 +23,7 @@ class GenericTool:
         description,
         function,
         name=None,
-        document_class=None,
+        document_classes=[],
         return_direct=False,
         additional_instructions=None,
     ):
@@ -36,7 +36,7 @@ class GenericTool:
         self.structured_tool = StructuredTool.from_function(
             func=self.function, return_direct=return_direct, description=description
         )
-        self.document_class = document_class
+        self.document_classes = document_classes
 
     def extract_function_schema(self, func):
         import inspect
@@ -495,8 +495,9 @@ class GenericToolsAgent(BaseSingleActionAgent):
             else:
                 additional_instructions = ""
 
-            if tool.document_class:
-                document_class = f"\nIMPORTANT: Only use this tool with '{tool.document_class}' class files. For other types of files, refer to specialized tools."
+            if tool.document_classes:
+                classes = ", ".join(tool.document_classes)
+                document_class = f"\nIMPORTANT: Only use this tool with documents with classifications of: '{classes}'. For other types of files, refer to specialized tools."
             else:
                 document_class = ""
 
