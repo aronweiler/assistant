@@ -5,6 +5,7 @@ from typing import List
 # Importing necessary modules and classes for the tool.
 from langchain.base_language import BaseLanguageModel
 from src.ai.llm_helper import get_tool_llm
+from src.ai.tools.tool_registry import register_tool, tool_class
 from src.integrations.github import github_issue_creator
 from src.tools.code.issue_tool import IssueTool
 
@@ -27,7 +28,7 @@ from src.integrations.github.github_retriever import GitHubRetriever
 
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
-
+@tool_class
 class CodeReviewTool:
     """
     A tool for conducting code reviews using different source control providers.
@@ -340,6 +341,10 @@ class CodeReviewTool:
         else:
             return self.format_review_results(review_results)
 
+    @register_tool(
+        description="Performs a code review of a specified code file.",
+        additional_instructions="Use this tool for conducting a code review on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
+    )
     def conduct_code_review_from_url(
         self, target_url: str, additional_instructions: str = None
     ) -> str:
@@ -482,6 +487,10 @@ class CodeReviewTool:
             "additional_settings"
         ]["max_code_size_tokens"]["value"]
 
+    @register_tool(
+        description="Performs a code review of a specified code file.",
+        additional_instructions="Use this tool for conducting a code review on a loaded code file.  Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
+    )
     def conduct_code_review_from_file_id(
         self, target_file_id: int, additional_instructions: str = None
     ) -> dict:

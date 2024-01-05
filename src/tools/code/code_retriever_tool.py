@@ -5,6 +5,7 @@ from typing import List
 # Importing necessary modules and classes for the tool.
 from langchain.base_language import BaseLanguageModel
 from src.ai.llm_helper import get_tool_llm
+from src.ai.tools.tool_registry import register_tool, tool_class
 from src.integrations.github import github_issue_creator
 from src.tools.code.issue_tool import IssueTool
 
@@ -25,7 +26,7 @@ from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 from src.integrations.github.github_issue_creator import GitHubIssueCreator
 from src.integrations.github.github_retriever import GitHubRetriever
 
-
+@tool_class
 class CodeRetrieverTool:
     # Mapping of source control provider names to their respective retriever classes.
     source_control_to_retriever_map = {
@@ -98,11 +99,13 @@ class CodeRetrieverTool:
 
         # Use the instantiated retriever to fetch branches from the provided URL.
         files = retriever_instance.scan_repository(url=url, branch_name=branch_name)
-        
+
         # TODO: Verify this works with whatever gitlab is doing
         return files
 
-    def get_code_from_repo_and_branch(self, path: str, repo_address:str, branch_name: str) -> str:
+    def get_code_from_repo_and_branch(
+        self, path: str, repo_address: str, branch_name: str
+    ) -> str:
         """
         Retrieves code from a given repo using the appropriate source control provider.
 
@@ -127,8 +130,14 @@ class CodeRetrieverTool:
         )
 
         # Use the instantiated retriever to fetch code from the provided URL.
-        return retriever_instance.retrieve_code(path=path, repo_address=repo_address, branch_name=branch_name)
+        return retriever_instance.retrieve_code(
+            path=path, repo_address=repo_address, branch_name=branch_name
+        )
 
+    @register_tool(
+        description="Gets source code from a specified URL",
+        additional_instructions="Use this tool to get source code from a source control provider, such as GitHub or GitLab.",
+    )
     def retrieve_source_code_from_url(self, url: str) -> str:
         """
         Retrieves source code from a given URL using the appropriate source control provider.
@@ -153,7 +162,7 @@ class CodeRetrieverTool:
 
         # Use the instantiated retriever to fetch data from the provided URL.
         return retriever_instance.retrieve_data(url=url)
-    
+
     def retrieve_source_code(self, url: str) -> str:
         """
         Retrieves source code from a given URL using the appropriate source control provider.

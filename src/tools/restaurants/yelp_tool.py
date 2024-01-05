@@ -1,5 +1,6 @@
 import requests
 
+from src.ai.tools.tool_registry import register_tool, tool_class
 
 class YelpTool:
     def get_yelp_api_key(self):
@@ -8,6 +9,10 @@ class YelpTool:
         load_dotenv()
         return dotenv_values().get("YELP_API_KEY")
 
+    @register_tool(
+        description="Searches for businesses matching the criteria and returns a list of businesses.",
+        additional_instructions="Allows specifying the location, search term, categories, whether to only return open businesses, price range (1=low-price, 2=med-price, 3=high=price- can be combined), minimum rating, and maximum number of businesses to return.",
+    )
     def search_businesses(
         self,
         location: str,
@@ -91,6 +96,10 @@ class YelpTool:
             print("Error occurred during API request:", e)
             return None
 
+    @register_tool(
+        description="Retrieves details of a specific business, matching the business_id.",
+        additional_instructions="business_id is the id of the business, discovered by using the search_businesses tool.",
+    )
     def get_all_business_details(self, business_id: str):
         """Retrieves details of all businesses matching the search criteria
 

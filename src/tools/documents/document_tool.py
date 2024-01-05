@@ -11,6 +11,7 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.tools.tool_registry import register_tool, tool_class
 from src.utilities.parsing_utilities import parse_json
 
 from src.utilities.token_helper import num_tokens_from_string
@@ -24,6 +25,7 @@ from src.ai.llm_helper import get_tool_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
 
+@tool_class
 class DocumentTool:
     def __init__(
         self,
@@ -33,6 +35,11 @@ class DocumentTool:
         self.configuration = configuration
         self.conversation_manager = conversation_manager
 
+    @register_tool(
+        description="Searches the loaded documents for a query.",
+        additional_instructions="Searches the loaded files (or the specified file when target_file_id is set).  The user's input should be reworded to be both a keyword search (keywords_list: list of important keywords) and a semantic similarity search query (semantic_similarity_query: a meaningful phrase).  user_query should be a succinctly phrased version of the original user input (phrased as the ultimate question to answer). The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.  Note: This tool only looks at a small subset of the document content in its search, it is not good for getting large chunks of content.",
+        document_classes=["Document", "Code", "Spreadsheet"],
+    )
     def search_loaded_documents(
         self,
         semantic_similarity_query: str,
@@ -137,7 +144,9 @@ class DocumentTool:
         search_type = self.conversation_manager.tool_kwargs.get("search_type", "Hybrid")
 
         keyword_documents = []
-        if (search_type == "Hybrid" or search_type == "Keyword") and len(keywords_list) > 0:
+        if (search_type == "Hybrid" or search_type == "Keyword") and len(
+            keywords_list
+        ) > 0:
             keyword_documents = (
                 self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=keywords_list,
@@ -198,7 +207,9 @@ class DocumentTool:
             streaming=True,
         )
 
-        result = llm.predict(prompt, callbacks=self.conversation_manager.agent_callbacks)
+        result = llm.predict(
+            prompt, callbacks=self.conversation_manager.agent_callbacks
+        )
 
         return result
 
@@ -213,6 +224,11 @@ class DocumentTool:
         return summary
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
+    @register_tool(
+        description="Summarizes an entire document.",
+        additional_instructions="This tool should only be used for getting a very general summary of an entire document. Do not use this tool for specific queries about topics, roles, or details. Instead, directly search the loaded documents for specific information related to the user's query. The target_file_id argument is required.",
+        document_classes=["Code", "Spreadsheet", "Document"],
+    )
     def summarize_entire_document(self, target_file_id: int):
         """Useful for getting a summary of an entire specific document.  The target_file_id argument is required.
 
@@ -371,6 +387,7 @@ class DocumentTool:
 
         return result["output_text"]
 
+    @register_tool(description="Lists all loaded documents.")
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.
         Always use this tool to get the file ID (if you don't already know it) before calling anything else that requires it.
@@ -380,6 +397,11 @@ class DocumentTool:
             self.conversation_manager.get_loaded_documents_for_display()
         )
 
+    @register_tool(
+        description="Exhaustively searches a single document for one or more queries.",
+        additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",
+        document_classes=["Document", "Code", "Spreadsheet"],
+    )
     def search_entire_document(self, target_file_id: int, queries: List[str]):
         """Search the entire document."""
 
