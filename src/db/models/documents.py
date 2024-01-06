@@ -37,10 +37,14 @@ class Documents(VectorDatabase):
             session.commit()
 
             return DocumentCollectionModel.from_database_model(collection)
-    
+
     def delete_collection(self, collection_id) -> None:
         with self.session_context(self.Session()) as session:
-            collection = session.query(DocumentCollection).filter(DocumentCollection.id == collection_id).first()
+            collection = (
+                session.query(DocumentCollection)
+                .filter(DocumentCollection.id == collection_id)
+                .first()
+            )
 
             session.delete(collection)
             session.commit()
@@ -102,7 +106,7 @@ class Documents(VectorDatabase):
             session.commit()
 
             return FileModel.from_database_model(file)
-        
+
     def set_collection_id_for_file(self, file_id: int, collection_id: int) -> FileModel:
         with self.session_context(self.Session()) as session:
             file = session.query(File).filter(File.id == file_id).first()
@@ -142,6 +146,9 @@ class Documents(VectorDatabase):
                     File.user_id,
                     File.file_name,
                     File.file_hash,
+                    File.chunk_size,
+                    File.chunk_overlap,
+                    File.document_count,
                     File.id,
                     File.file_classification,
                     File.file_summary,
@@ -160,6 +167,9 @@ class Documents(VectorDatabase):
                 File.user_id,
                 File.file_name,
                 File.file_hash,
+                File.chunk_size,
+                File.chunk_overlap,
+                File.document_count,
                 File.id,
                 File.file_classification,
                 File.file_summary,
@@ -176,6 +186,9 @@ class Documents(VectorDatabase):
                     File.user_id,
                     File.file_name,
                     File.file_hash,
+                    File.chunk_size,
+                    File.chunk_overlap,
+                    File.document_count,
                     File.id,
                     File.file_classification,
                     File.file_summary,
@@ -202,6 +215,9 @@ class Documents(VectorDatabase):
                     File.user_id,
                     File.file_name,
                     File.file_hash,
+                    File.chunk_size,
+                    File.chunk_overlap,
+                    File.document_count,
                     File.id,
                     File.file_classification,
                     File.file_summary,
@@ -213,6 +229,15 @@ class Documents(VectorDatabase):
             )
 
             return FileModel.from_database_model(file)
+
+    def get_document_chunk_count_by_file_id(self, target_file_id) -> int:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == target_file_id).first()
+
+            if file is None:
+                raise ValueError(f"File with ID '{target_file_id}' does not exist")
+
+            return session.query(Document).filter(Document.file_id == file.id).count()
 
     def get_document_chunks_by_file_id(self, target_file_id) -> List[DocumentModel]:
         with self.session_context(self.Session()) as session:
@@ -245,18 +270,18 @@ class Documents(VectorDatabase):
             )
 
             return [DocumentModel.from_database_model(d) for d in documents]
-        
-    def set_collection_id_for_document_chunks(self, file_id: int, collection_id: int) -> None:
+
+    def set_collection_id_for_document_chunks(
+        self, file_id: int, collection_id: int
+    ) -> None:
         with self.session_context(self.Session()) as session:
             documents = (
-                session.query(Document)
-                .filter(Document.file_id == file_id)
-                .all()
+                session.query(Document).filter(Document.file_id == file_id).all()
             )
-            
+
             for document in documents:
                 document.collection_id = collection_id
-            
+
             session.commit()
 
     def get_document_summaries(self, target_file_id) -> List[str]:
@@ -299,6 +324,12 @@ class Documents(VectorDatabase):
             for document in documents:
                 session.delete(document)
 
+            session.commit()
+
+    def update_document_count(self, file_id: int, document_chunk_count: int) -> None:
+        with self.session_context(self.Session()) as session:
+            file = session.query(File).filter(File.id == file_id).first()
+            file.document_count = document_chunk_count
             session.commit()
 
     def store_document(self, document: DocumentModel) -> DocumentModel:

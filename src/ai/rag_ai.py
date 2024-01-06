@@ -98,10 +98,7 @@ class RetrievalAugmentedGenerationAI:
         )
 
         # Initialize the tool manager and load the available tools
-        self.tool_manager = ToolManager(configuration=self.configuration)
-        self.tool_manager.initialize_tools(
-            self.configuration, self.conversation_manager
-        )
+        self.tool_manager = ToolManager(configuration=self.configuration, conversation_manager=self.conversation_manager)
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -117,7 +114,7 @@ class RetrievalAugmentedGenerationAI:
 
         agent_executor = AgentExecutor.from_agent_and_tools(
             agent=agent,
-            tools=[t.structured_tool for t in tools],
+            tools=[tool.structured_tool for tool in tools],
             verbose=True,
             max_execution_time=agent_timeout,  # early_stopping_method="generate" <- this is not supported, but somehow in their docs
         )

@@ -20,10 +20,13 @@ from src.utilities.parsing_utilities import parse_json
 class GenericTool:
     def __init__(
         self,
+        display_name,
         description,
         function,
         name=None,
-        document_class=None,
+        requires_documents=False,
+        help_text=None,
+        document_classes=[],
         return_direct=False,
         additional_instructions=None,
     ):
@@ -36,7 +39,10 @@ class GenericTool:
         self.structured_tool = StructuredTool.from_function(
             func=self.function, return_direct=return_direct, description=description
         )
-        self.document_class = document_class
+        self.document_classes = document_classes
+        self.display_name = display_name
+        self.requires_documents = requires_documents
+        self.help_text = help_text if help_text else self.description
 
     def extract_function_schema(self, func):
         import inspect
@@ -342,14 +348,47 @@ class GenericToolsAgent(BaseSingleActionAgent):
         loaded_documents = self.get_loaded_documents()
         chat_history = self.get_chat_history()
 
+        selected_repo = self.conversation_manager.get_selected_repository()
+
+        if selected_repo:
+            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "SELECTED_REPO_TEMPLATE",
+            ).format(
+                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
+            )
+        else:
+            selected_repo_prompt = ""
+
+        if loaded_documents:
+            loaded_documents_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "LOADED_DOCUMENTS_TEMPLATE",
+            ).format(
+                loaded_documents=loaded_documents
+            )
+        else:
+            loaded_documents_prompt = ""
+            
+        if chat_history and len(chat_history) > 0:
+            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "CHAT_HISTORY_TEMPLATE",
+            ).format(
+                chat_history=chat_history
+            )
+        else:
+            chat_history_prompt = ""
+
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
         ).format(
             system_prompt=system_prompt,
             available_tool_descriptions=available_tools,
-            loaded_documents=loaded_documents,
-            chat_history=chat_history,
+            loaded_documents_prompt=loaded_documents_prompt,
+            selected_repository_prompt=selected_repo_prompt,
+            chat_history_prompt=chat_history_prompt,
             user_query=f"{user_name} ({user_email}): {user_query}",
         )
 
@@ -462,8 +501,9 @@ class GenericToolsAgent(BaseSingleActionAgent):
             else:
                 additional_instructions = ""
 
-            if tool.document_class:
-                document_class = f"\nIMPORTANT: Only use this tool with '{tool.document_class}' class files. For other types of files, refer to specialized tools."
+            if tool.document_classes:
+                classes = ", ".join(tool.document_classes)
+                document_class = f"\nIMPORTANT: Only use this tool with documents with classifications of: '{classes}'. For other types of files, refer to specialized tools."
             else:
                 document_class = ""
 
@@ -481,7 +521,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 self.conversation_manager.get_loaded_documents_for_reference()
             )
         else:
-            return "No documents loaded."
+            return None
 
     def get_chat_history(self):
         if self.conversation_manager:

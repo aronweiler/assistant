@@ -5,6 +5,7 @@ from typing import Any, List, Tuple, Union
 from langchain.agents import Tool, AgentExecutor, BaseMultiActionAgent
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
+from src.ai.tools.tool_registry import register_tool, tool_class
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
@@ -21,18 +22,24 @@ from src.db.models.domain.file_model import FileModel
 
 # Create an basic agent that takes a single input, runs it through a tool, and returns the output
 
-
+@tool_class
 class Stubber:
     def __init__(
         self,
-        code_tool: CodeTool,
-        document_tool: DocumentTool,
+        configuration,
         conversation_manager: ConversationManager,
         callbacks: list = [],
     ) -> None:
         self.conversation_manager = conversation_manager
         self.agent = StubbingAgent()
         self.callbacks = callbacks
+
+        code_tool: CodeTool = CodeTool(
+            configuration=configuration, conversation_manager=conversation_manager
+        )
+        document_tool: DocumentTool = DocumentTool(
+            configuration=configuration, conversation_manager=conversation_manager
+        )
 
         tools = [
             StructuredTool.from_function(
@@ -53,6 +60,14 @@ class Stubber:
             agent=self.agent, tools=tools, verbose=True
         )
 
+    @register_tool(
+        display_name="Create stubs",
+        description="Creates stubs for a specified code file.",
+        additional_instructions="Create mocks / stubs for the dependencies of a given code file. Use this when the user asks you to mock or stub out the dependencies for a given file.",
+        help_text="Creates stubs for a specified code file.",
+        requires_documents=True,
+        document_classes=["Code"],
+    )
     def create_stubs(self, file_id: int):
         """Create mocks / stubs for the dependencies of a given code file.
 
@@ -91,9 +106,7 @@ class StubbingAgent(BaseMultiActionAgent):
 
             return AgentAction(
                 tool="get_dependency_graph",
-                tool_input={
-                    "target_file_id": kwargs["file_id"]
-                },
+                tool_input={"target_file_id": kwargs["file_id"]},
                 log=f"Getting dependency graph for file: {kwargs['file_id']}",
             )
 
@@ -105,9 +118,7 @@ class StubbingAgent(BaseMultiActionAgent):
 
             available_stubs = []
             for stub in stub_names.items():
-                available_stubs.append(
-                    f"For {stub[0]} use: {stub[1]}"
-                )
+                available_stubs.append(f"For {stub[0]} use: {stub[1]}")
 
             # Find the file_id for each dependency
             actions = []
@@ -133,12 +144,12 @@ class StubbingAgent(BaseMultiActionAgent):
             final_result = (
                 "\n\n".join([result[1]["code"] for result in intermediate_steps[1:]])
                 + "\n\nHere's a helpful file to include these stubs: \n\n```\n"
-                + '\n'.join([f"#include \"{stub}\"" for stub in stub_names.values()])
+                + "\n".join([f'#include "{stub}"' for stub in stub_names.values()])
                 + "\n```"
             )
 
             return AgentFinish({"output": final_result}, log="Finished stubbing")
-        
+
     def get_stub_names(self, code_dependency: CodeDependency):
         dependency_names = self.get_unique_dependency_names(code_dependency)
         # Create a list of available stubs by iterating through each dependency, hacking off the file extension, and adding "stub" to the end, and then re-adding the file extension

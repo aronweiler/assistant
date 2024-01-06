@@ -1,8 +1,21 @@
 from src.db.database.tables import File
 
+
 class FileModel:
-    def __init__(self, collection_id, user_id, file_name, file_hash, id = None, file_classification=None,
-                 file_summary=None, record_created=None):
+    def __init__(
+        self,
+        collection_id,
+        user_id,
+        file_name,
+        file_hash,
+        chunk_size,
+        chunk_overlap,
+        document_count=0,
+        id=None,
+        file_classification=None,
+        file_summary=None,
+        record_created=None,
+    ):
         self.id = id
         self.collection_id = collection_id
         self.user_id = user_id
@@ -11,6 +24,9 @@ class FileModel:
         self.file_summary = file_summary
         self.record_created = record_created
         self.file_hash = file_hash
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.document_count = document_count
 
     def to_database_model(self):
         return File(
@@ -22,6 +38,9 @@ class FileModel:
             file_summary=self.file_summary,
             record_created=self.record_created,
             file_hash=self.file_hash,
+            chunk_size=self.chunk_size,
+            chunk_overlap=self.chunk_overlap,
+            document_count=self.document_count,
         )
 
     @classmethod
@@ -37,4 +56,7 @@ class FileModel:
             file_summary=db_file.file_summary,
             record_created=db_file.record_created,
             file_hash=db_file.file_hash,
+            chunk_size=db_file.chunk_size,
+            chunk_overlap=db_file.chunk_overlap,
+            document_count=db_file.document_count,
         )

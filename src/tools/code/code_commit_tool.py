@@ -23,7 +23,10 @@ from src.utilities.parsing_utilities import parse_json
 from src.integrations.gitlab.gitlab_committer import GitlabCommitter
 from src.integrations.github.github_committer import GitHubCommitter
 
+from src.ai.tools.tool_registry import register_tool, tool_class
 
+
+@tool_class
 class CodeCommitTool:
     """
     A tool for committing code to a source control repository.
@@ -56,6 +59,13 @@ class CodeCommitTool:
         self.source_control_url = os.getenv("source_control_url")
         self.source_control_pat = os.getenv("source_control_pat")
 
+    @register_tool(
+        display_name="Commit Code",
+        help_text="Commits code to a source control repository.",
+        requires_documents=False,
+        description="Commits a single code file to source control.",
+        additional_instructions="Call this tool when the user requests that you commit code to source control.  ",
+    )
     def commit_single_code_file(
         self,
         source_branch: str,
@@ -84,7 +94,10 @@ class CodeCommitTool:
                 f"Source control provider {self.source_control_provider} is not supported."
             )
 
-        committer = committer_class(source_control_pat=self.source_control_pat, source_control_url=self.source_control_url)
+        committer = committer_class(
+            source_control_pat=self.source_control_pat,
+            source_control_url=self.source_control_url,
+        )
 
         code_and_file_paths = [{"code": code, "file_path": file_path}]
 
@@ -96,12 +109,14 @@ class CodeCommitTool:
                 commit_message=commit_message,
                 code_and_file_paths=code_and_file_paths,
             )
-            
-            return f"Successfully committed code.  Details: \n\n" \
-                   f"- Source branch: {source_branch}\n" \
-                   f"- Target branch: {target_branch}\n" \
-                   f"- Repository: {repository}\n" \
-                   f"- Commit message: {commit_message}\n" \
-                   f"- File path: {file_path}\n"
+
+            return (
+                f"Successfully committed code.  Details: \n\n"
+                f"- Source branch: {source_branch}\n"
+                f"- Target branch: {target_branch}\n"
+                f"- Repository: {repository}\n"
+                f"- Commit message: {commit_message}\n"
+                f"- File path: {file_path}\n"
+            )
         except Exception as ex:
             return f"Failed to commit code: {ex}"

@@ -4,6 +4,7 @@ import logging
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
+from src.ai.tools.tool_registry import register_tool, tool_class
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -16,12 +17,20 @@ from src.utilities.token_helper import num_tokens_from_string
 from src.tools.code.code_dependency import CodeDependency
 from src.ai.llm_helper import get_tool_llm
 
-
+@tool_class
 class CodeTool:
     def __init__(self, configuration, conversation_manager: ConversationManager):
         self.configuration = configuration
         self.conversation_manager = conversation_manager
 
+    @register_tool(
+        display_name="Get Code Dependency Graph",
+        help_text="Gets the dependency graph of a code file.",
+        description="Gets the dependency graph of a code file.",
+        additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
+        requires_documents=True,
+        document_classes=["Code"],
+    )
     def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
 
@@ -213,6 +222,14 @@ class CodeTool:
                     else:
                         others.append(metadata)
 
+    @register_tool(
+        display_name="Get All Code In Loaded File",
+        help_text="Gets all of the code in the target file.",
+        requires_documents=True,
+        description="Gets all of the code in the target file.",
+        additional_instructions="Useful for getting all of the code in a specific 'Code' file when the user asks you to show them code from a particular file.",
+        document_classes=["Code"],
+    )
     def get_all_code_in_file(self, target_file_id: int):
         """Useful for getting all of the code in a loaded 'Code' file.
 
@@ -355,9 +372,11 @@ class CodeTool:
             "code_stubbing", "C_STUBBING_TEMPLATE"
         )
 
-        stub_dependencies_template = self.conversation_manager.prompt_manager.get_prompt(
-            "code_stubbing",
-            "STUB_DEPENDENCIES_TEMPLATE",
+        stub_dependencies_template = (
+            self.conversation_manager.prompt_manager.get_prompt(
+                "code_stubbing",
+                "STUB_DEPENDENCIES_TEMPLATE",
+            )
         )
 
         # Loop over all of the document chunks and have the LLM create a fake version of each for us

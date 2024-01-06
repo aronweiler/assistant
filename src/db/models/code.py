@@ -66,12 +66,28 @@ class Code(VectorDatabase):
 
     def add_repository(self, address: str, branch_name: str):
         with self.session_context(self.Session()) as session:
+            # Check if the repository already exists
+            existing_repository = (
+                session.query(CodeRepository)
+                .filter(CodeRepository.code_repository_address == address)
+                .filter(CodeRepository.branch_name == branch_name)
+                .one_or_none()
+            )
+
+            if existing_repository:
+                logging.info(
+                    f"Repository {address} on branch {branch_name} already exists."
+                )
+                return
+
+            # Add the new repository since it does not exist
             session.add(
                 CodeRepository(
                     code_repository_address=address,
                     branch_name=branch_name,
                 )
             )
+            session.commit()
 
     def update_last_scanned(self, code_repo_id: int, last_scanned: datetime):
         with self.session_context(self.Session()) as session:
@@ -212,6 +228,32 @@ class Code(VectorDatabase):
                 session.add(code_description)
                 session.commit()
 
+    def get_code_files(self, repository_id: int) -> List[CodeFileModel]:
+        with self.session_context(self.Session()) as session:
+            # We now need to join CodeFile with the association table and then filter by repository ID
+            code_files = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.record_created,
+                )
+                .join(
+                    code_repository_files_association,
+                    CodeFile.id == code_repository_files_association.c.code_file_id,
+                )
+                .filter(
+                    code_repository_files_association.c.code_repository_id
+                    == repository_id
+                )
+                .all()
+            )
+
+            return [CodeFileModel.from_database_model(c) for c in code_files]
+
     def get_code_file(self, code_repo_id: int, code_file_name: str) -> CodeFileModel:
         with self.session_context(self.Session()) as session:
             # Join CodeFile with the association table and filter by repository ID and file name
@@ -261,17 +303,22 @@ class Code(VectorDatabase):
             session.commit()
 
     def search_code_files(
-        self, similarity_query: str, keywords: List[str], top_k=10
+        self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
             # Perform similarity search on CodeFile.code_file_summary_embedding
             code_file_similarity_results = self._get_similarity_results(
-                session, CodeFile.code_file_summary_embedding, similarity_query, top_k
+                session,
+                repository_id,
+                CodeFile.code_file_summary_embedding,
+                similarity_query,
+                top_k,
             )
 
             # Perform similarity search on CodeDescription.description_text_embedding
             code_description_similarity_results = self._get_similarity_results(
                 session,
+                repository_id,
                 CodeDescription.description_text_embedding,
                 similarity_query,
                 top_k,
@@ -279,7 +326,7 @@ class Code(VectorDatabase):
 
             # Perform keyword search on CodeKeywords.keyword
             keyword_search_results = self._get_keyword_search_results(
-                session, keywords, top_k
+                session, repository_id, keywords, top_k
             )
 
             # Combine results from the three searches
@@ -313,11 +360,16 @@ class Code(VectorDatabase):
             ]
 
     def _get_similarity_results(
-        self, session: Session, embedding_column, similarity_query, top_k: int
+        self,
+        session: Session,
+        repository_id: int,
+        embedding_column,
+        similarity_query,
+        top_k: int,
     ):
         query_embedding = get_embedding(
             text=similarity_query,
-            collection_type="Remote",  # OpenAI embeddings TODO: Add open-source embeddings
+            collection_type="Remote",
             instruction="Represent the query for retrieval: ",
         )
 
@@ -326,6 +378,13 @@ class Code(VectorDatabase):
 
         statement = (
             select(CodeFile)
+            .join(
+                code_repository_files_association,
+                CodeFile.id == code_repository_files_association.c.code_file_id,
+            )
+            .filter(
+                code_repository_files_association.c.code_repository_id == repository_id
+            )
             .order_by(cosine_distance)
             .limit(top_k)
             .add_columns(cosine_distance)
@@ -335,10 +394,18 @@ class Code(VectorDatabase):
         return [(code_file, distance) for code_file, distance in result]
 
     def _get_keyword_search_results(
-        self, session: Session, keywords: List[str], top_k: int
+        self, session: Session, repository_id: int, keywords: List[str], top_k: int
     ):
         keyword_query = (
-            session.query(CodeKeyword.code_file_id)  # Select only code_file_id
+            session.query(CodeKeyword.code_file_id)
+            .join(
+                code_repository_files_association,
+                CodeKeyword.code_file_id
+                == code_repository_files_association.c.code_file_id,
+            )
+            .filter(
+                code_repository_files_association.c.code_repository_id == repository_id
+            )
             .filter(
                 or_(
                     func.lower(CodeKeyword.keyword).contains(func.lower(kword))
@@ -370,6 +437,7 @@ if __name__ == "__main__":
 
     # Test searching for code
     code_files = code.search_code_files(
+        1,
         "What is the meaning of the Auto setting on the UI?",
         ["Auto", "UI", "Setting"],
         20,

@@ -6,6 +6,7 @@ from langchain.memory.token_buffer import ConversationTokenBufferMemory
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
 from src.ai.system_info import get_system_information
+from src.ai.tools.tool_registry import register_tool
 
 
 class LLMTool:
@@ -19,6 +20,10 @@ class LLMTool:
         self.conversation_manager = conversation_manager
         self.llm_callbacks = llm_callbacks
 
+    # @register_tool(
+    #     description="Analyze results of another query or queries.",
+    #     additional_instructions="This tool is useful for when you want to combine data you have gathered, or just take a moment to think about things.  IMPORTANT: This tool does not have access to documents, or any data outside of what you pass in the 'data_to_analyze' argument.",
+    # )
     def analyze_with_llm(self, query: str, data_to_analyze: str):
         """Uses an LLM to answer a query.  This is useful for when you want to just generate a response from an LLM with the given query."""
 

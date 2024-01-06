@@ -6,6 +6,7 @@ from typing import List
 
 from langchain.base_language import BaseLanguageModel
 from src.ai.llm_helper import get_tool_llm
+from src.ai.tools.tool_registry import register_tool, tool_class
 from src.integrations.github import github_issue_creator
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -24,6 +25,7 @@ from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 from src.integrations.github.github_issue_creator import GitHubIssueCreator
 from src.integrations.github.github_retriever import GitHubRetriever
 
+@tool_class
 class IssueTool:
     source_control_to_issue_creator_map: dict = {
         "gitlab": GitlabIssueCreator,
@@ -33,7 +35,7 @@ class IssueTool:
         "gitlab": GitlabIssueRetriever,
         "github": None,
     }
-    
+
     def __init__(
         self,
         configuration,
@@ -58,6 +60,13 @@ class IssueTool:
 
         return retriever.retrieve_issue_data(url=url)
 
+    @register_tool(
+        display_name="Create Issue from Code Review",
+        help_text="Creates an issue on your selected provider from a Code Review",
+        requires_documents=False,
+        description="Creates an issue from a Code Review.",
+        additional_instructions="Call this tool when the user requests an issue be created from a code review.",
+    )
     def create_code_review_issue(
         self,
         review_data: dict,

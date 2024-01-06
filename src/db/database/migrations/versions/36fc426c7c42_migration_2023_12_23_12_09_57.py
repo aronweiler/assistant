@@ -40,7 +40,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('code_repository_id', 'code_file_name')
     )
-    op.add_column('conversations', sa.Column('last_selected_code_repo', sa.Integer(), nullable=False))
+    op.add_column('conversations', sa.Column('last_selected_code_repo', sa.Integer(), nullable=False, server_default='-1'))
     # ### end Alembic commands ###
 
 

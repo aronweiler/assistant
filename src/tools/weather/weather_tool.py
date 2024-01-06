@@ -5,31 +5,40 @@ import os
 from datetime import datetime
 import logging
 
+from src.ai.tools.tool_registry import register_tool
+
 
 class WeatherTool:
-
+    @register_tool(
+        display_name="Weather",
+        help_text="Queries the weather at a given location.",
+        requires_documents=False,
+        description="Queries the weather at a given location.",
+        additional_instructions="Location is a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. 'Phoenix, AZ'. Date is optional, and should be a string ('%Y-%m-%d') representing the date to get the weather for, e.g. '2023-4-15'.  If no date is provided, the weather for the current date will be returned.",
+    )
     def get_weather(self, location: str, date: str = None) -> str:
         """Get the weather for a location and date.
         Location is required, and should be a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. "Phoenix, AZ".
-        Date is optional, and should be a string ("%Y-%m-%d") representing the date to get the weather for, e.g. "2023-4-15".  If no date is provided, the weather for the current date will be returned."""
-        
+        Date is optional, and should be a string ("%Y-%m-%d") representing the date to get the weather for, e.g. "2023-4-15".  If no date is provided, the weather for the current date will be returned.
+        """
+
         logging.debug(f"Weather Query: {location}, {date}")
-        
+
         try:
-           
             # Parse the date string from the query
             date_format = "%Y-%m-%d"
             try:
                 if date is not None:
-                    parsed_date = datetime.strptime(date, date_format).date() 
+                    parsed_date = datetime.strptime(date, date_format).date()
                 else:
                     parsed_date = datetime.now().date()
             except:
                 parsed_date = None
 
-            try:   
-                
-                result = self.get_or_create_eventloop().run_until_complete(self.get(location))         
+            try:
+                result = self.get_or_create_eventloop().run_until_complete(
+                    self.get(location)
+                )
             except asyncio.TimeoutError:
                 return "Timeout: The operation took too long to complete."
 
@@ -37,13 +46,23 @@ class WeatherTool:
                 logging.debug("Looking for the current weather")
                 return f"The temperature for {location} is {result.current.temperature} degrees. Feels like: {result.current.feels_like} degrees. Description: {result.current.description}. Humidity: {result.current.humidity}."
             else:
-                logging.debug("Looking for a forecast for the date: " + str(parsed_date))
+                logging.debug(
+                    "Looking for a forecast for the date: " + str(parsed_date)
+                )
                 # Look for the date in the forecast
                 for forecast in result.forecasts:
                     logging.debug("Forecast date: " + str(forecast.date))
                     if forecast.date == parsed_date:
-                        return f"The hourly forecast for {location} on {forecast.date}:\n" + "\n".join([f"Time: {fc.time}, temp: {fc.temperature}, description: {fc.description}" for fc in forecast.hourly])
-                       
+                        return (
+                            f"The hourly forecast for {location} on {forecast.date}:\n"
+                            + "\n".join(
+                                [
+                                    f"Time: {fc.time}, temp: {fc.temperature}, description: {fc.description}"
+                                    for fc in forecast.hourly
+                                ]
+                            )
+                        )
+
                 return f"Could not find a forecast for {parsed_date}."
         except Exception as e:
             logging.error(e)
@@ -68,13 +87,12 @@ class WeatherTool:
                 return asyncio.get_event_loop()
             else:
                 raise ex
-            
 
 
 # Test code
 if __name__ == "__main__":
     tool = WeatherTool()
 
-    result = tool.run("{\"location\": \"San Diego\", \"date\": \"2023-07-29\"}")
+    result = tool.run('{"location": "San Diego", "date": "2023-07-29"}')
 
     print(result)

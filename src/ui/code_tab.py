@@ -145,10 +145,8 @@ def on_change_code_repo():
     # Set the last active code repo for this conversation (conversation)
     code_repo_id = streamlit_shared.get_selected_code_repo_id()
 
-    conversations_helper = Conversations()
-
-    conversations_helper.update_selected_code_repo(
-        streamlit_shared.get_selected_conversation_id(), code_repo_id
+    st.session_state.rag_ai.conversation_manager.set_selected_repository(
+        Code().get_repository(code_repo_id)
     )
 
 

@@ -4,6 +4,7 @@ from typing import List
 
 # Importing necessary modules and classes for the tool.
 from langchain.base_language import BaseLanguageModel
+from src.ai.tools.tool_registry import register_tool, tool_class
 
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
@@ -30,6 +31,7 @@ from src.integrations.github.github_issue_creator import GitHubIssueCreator
 from src.integrations.github.github_retriever import GitHubRetriever
 
 
+@tool_class
 class CodeRefactorTool:
     """
     A tool for conducting code refactors using different source control providers.
@@ -342,6 +344,13 @@ class CodeRefactorTool:
 
         return code
 
+    @register_tool(
+        display_name="Perform a Code Refactor on a URL",
+        requires_documents=False,
+        help_text="Performs a code refactor of a specified URL.",
+        description="Performs a code refactor of a specified URL.",
+        additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
+    )
     def conduct_code_refactor_from_url(
         self, target_url: str, additional_instructions: str = None
     ) -> str:
@@ -428,6 +437,13 @@ class CodeRefactorTool:
             "additional_settings"
         ]["json_output"]["value"]
 
+    @register_tool(
+        display_name="Perform a Code Refactor on Loaded Code File",
+        help_text="Performs a code refactor of a specified code file.",
+        requires_documents=False,
+        description="Performs a code refactor of a specified code file.",
+        additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
+    )
     def conduct_code_refactor_from_file_id(
         self, target_file_id: int, additional_instructions: str = None
     ) -> dict:
