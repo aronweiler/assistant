@@ -92,13 +92,48 @@ class CodeRepositoryTool:
         }
 
     @register_tool(
-        display_name="Search a Code Repository",
+        display_name="Search Repository for File Info",
         requires_documents=False,
-        help_text="Performs a search of a loaded code repository.",
-        description="Performs a search of a loaded code repository.",
+        description="Searches the loaded repository and returns a list of file IDs, names, and summaries.",
+        additional_instructions="Provide a semantic similarity query and a list of keywords to perform the search."
+    )
+    def search_repository_for_file_info(
+        self,
+        semantic_similarity_query: str,
+        keywords_list: List[str]
+    ):
+        """Searches the loaded repository for the given query and returns file IDs, names, and summaries."""
+        try:
+            # Perform the search using the existing _search_repository_documents method
+            code_file_model_search_results: List[CodeFileModel] = self.conversation_manager.code_helper.search_code_files(
+                repository_id=self.conversation_manager.get_selected_repository().id,
+                similarity_query=semantic_similarity_query,
+                keywords=keywords_list,
+                top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
+            )
+
+            # Extract the required information from the search results
+            file_info_list = [
+                {
+                    'file_id': result.id,
+                    'file_name': result.code_file_name,
+                    'file_summary': result.code_file_summary
+                }
+                for result in code_file_model_search_results
+            ]
+
+            # Return the list of file information
+            return file_info_list
+        except Exception as e:
+            return f'An error occurred during the search: {str(e)}'
+
+    @register_tool(
+        display_name="Search a Code Repository and Get Code",
+        requires_documents=False,
+        description="Performs a search of a loaded code repository, and returns all code content related to the user's query.",
         additional_instructions="Performs a search of the loaded code repository using the specified semantic similarity query and keyword list.",
     )
-    def search_loaded_repository(
+    def search_repository_full_content(
         self,
         semantic_similarity_query: str,
         keywords_list: List[str],

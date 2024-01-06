@@ -482,7 +482,11 @@
             "enabled": true,
             "return_direct": false
         },
-        "search_loaded_repository": {
+        "search_repository_for_file_info": {
+            "enabled": true,
+            "return_direct": false
+        },
+        "search_repository_full_content": {
             "enabled": true,
             "return_direct": false,
             "additional_settings": {
