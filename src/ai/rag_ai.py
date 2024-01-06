@@ -212,7 +212,7 @@ class RetrievalAugmentedGenerationAI:
             self.conversation_manager.conversation_needs_summary = False
             logging.debug(f"Generated summary: {conversation_summary}")
 
-    def generate_keywords_from_code_file(self, code: str) -> dict:
+    def generate_keywords_and_descriptions_from_code_file(self, code: str) -> dict:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"

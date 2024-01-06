@@ -220,44 +220,47 @@ def process_code_file(
             f"The file `{file.path}` has already been processed- linking it to this repo."
         )
         return True
+    try:
+        # Retrieve the code from the file
+        code_data = CodeRetrieverTool().get_code_from_repo_and_branch(
+            file.path, repo_address, branch_name
+        )
 
-    # Retrieve the code from the file
-    code_data = CodeRetrieverTool().get_code_from_repo_and_branch(
-        file.path, repo_address, branch_name
-    )
+        code = code_data["file_content"]
 
-    code = code_data["file_content"]
+        if code.strip() != "":
+            # Generate the keywords from the code
+            keywords_and_descriptions = ai.generate_keywords_and_descriptions_from_code_file(code)
 
-    if code.strip() != "":
-        # Generate the keywords from the code
-        keywords_and_descriptions = ai.generate_keywords_from_code_file(code)
+            if (
+                not keywords_and_descriptions
+                or "keywords" not in keywords_and_descriptions
+                or "descriptions" not in keywords_and_descriptions
+                or "summary" not in keywords_and_descriptions
+            ):
+                logging.warning(
+                    f"Skipping file {file.path} as no keywords, descriptions, or summary were generated"
+                )
+                return False
+        else:
+            keywords_and_descriptions = {
+                "keywords": [],
+                "descriptions": [],
+                "summary": "",
+            }
 
-        if (
-            not keywords_and_descriptions
-            or "keywords" not in keywords_and_descriptions
-            or "descriptions" not in keywords_and_descriptions
-            or "summary" not in keywords_and_descriptions
-        ):
-            logging.warning(
-                f"Skipping file {file.path} as no keywords, descriptions, or summary were generated"
-            )
-            return False
-    else:
-        keywords_and_descriptions = {
-            "keywords": [],
-            "descriptions": [],
-            "summary": "",
-        }
+        # Store the code and keywords in the database
 
-    # Store the code and keywords in the database
+        code_helper.add_update_code(
+            file_name=file.path,
+            file_sha=file.sha,
+            file_content=code,
+            keywords_and_descriptions=keywords_and_descriptions,
+            repository_id=code_repo_id,
+            file_summary=keywords_and_descriptions["summary"],
+        )
 
-    code_helper.add_update_code(
-        file_name=file.path,
-        file_sha=file.sha,
-        file_content=code,
-        keywords_and_descriptions=keywords_and_descriptions,
-        repository_id=code_repo_id,
-        file_summary=keywords_and_descriptions["summary"],
-    )
-
-    return True
+        return True
+    except Exception as e:
+        logging.error(f"Could not process file {file.path}: {e}")
+        return False
