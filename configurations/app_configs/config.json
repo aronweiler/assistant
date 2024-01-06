@@ -474,8 +474,12 @@
                 }
             }
         },
+        "get_repository_file_list": {
+            "enabled": true,
+            "return_direct": false
+        },
         "search_loaded_repository": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false,
             "additional_settings": {
                 "split_prompt": {

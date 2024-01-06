@@ -25,6 +25,7 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
+
 @tool_class
 class CodeRepositoryTool:
     def __init__(
@@ -35,19 +36,28 @@ class CodeRepositoryTool:
         self.configuration = configuration
         self.conversation_manager = conversation_manager
 
-    def list_code_files(self, repository_id: int):
-        """Lists the code files in the given repository."""
+    @register_tool(
+        display_name="Get Repository File List",
+        requires_documents=False,
+        description="Gets the list of files and directories in a loaded code repository.",
+        additional_instructions="Use this tool to get a list of the files and directories in a loaded code repository- good for understanding the structure of the repository.  Set `include_summary` to `true` if you want summaries of each of the files as well.  Note: Unless it is absolutely vital to answer the user's query, don't set `include_summary` to `true`- it will slow things down significantly.",
+    )
+    def get_repository_file_list(
+        self, include_summary: bool = False
+    ):
+        """Gets the list of files and directories in a loaded code repository."""
 
         code_files = self.conversation_manager.code_helper.get_code_files(
-            repository_id=repository_id
+            repository_id=self.conversation_manager.get_selected_repository().id
         )
 
-        return "\n".join(
-            [
-                f"### {code_file.code_file_name}\n**Summary:** {code_file.code_file_summary}"
-                for code_file in code_files
-            ]
-        )
+        result = ""
+        for code_file in code_files:
+            result += f"**\n{code_file.code_file_name}\n**"
+            if include_summary:
+                result += f"Summary: {code_file.code_file_summary}\n"                
+                
+        return result
 
     @register_tool(
         display_name="Search a Code Repository",
@@ -150,18 +160,29 @@ class CodeRepositoryTool:
             top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
         )
 
-        prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "document", "QUESTION_PROMPT_TEMPLATE"
+        identify_likely_files_prompt = (
+            self.conversation_manager.prompt_manager.get_prompt(
+                "code_general", "IDENTIFY_LIKELY_FILES_TEMPLATE"
+            )
         )
 
-        prompt = prompt.format(
-            summaries="\n\n".join(
-                [
-                    f"### {result.code_file_name}\n**Summary:** {result.code_file_summary}"
-                    for result in code_file_model_search_results
-                ]
-            ),
-            question=user_query,
+        summaries = ""
+        for result in code_file_model_search_results:
+            # Get the code file keywords, and descriptions
+            keywords = self.conversation_manager.code_helper.get_code_file_keywords(
+                result.id
+            )
+            descriptions = (
+                self.conversation_manager.code_helper.get_code_file_descriptions(
+                    result.id
+                )
+            )
+
+            summaries += f"\n### (ID: {result.id}) {result.code_file_name}\n**Summary:** {result.code_file_summary}\n**Keywords:** {', '.join(keywords)}\n**Descriptions:** {', '.join(descriptions)}\n\n"
+
+        identify_likely_files_prompt = identify_likely_files_prompt.format(
+            summaries=summaries,
+            user_query=user_query,
         )
 
         llm = get_tool_llm(
@@ -171,10 +192,46 @@ class CodeRepositoryTool:
         )
 
         result = llm.predict(
-            prompt, callbacks=self.conversation_manager.agent_callbacks
+            identify_likely_files_prompt,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        return result
+        # Now we have the result of which file(s) the AI thinks are most likely to contain the code that we're looking for
+        likely_file_ids = parse_json(result, llm)
+
+        code_contents = []
+        for file_id in likely_file_ids:
+            code_file: CodeFileModel = (
+                self.conversation_manager.code_helper.get_code_file_by_id(file_id)
+            )
+            code_contents.append(
+                {
+                    "file": code_file.code_file_name,
+                    "content": code_file.code_file_content,
+                }
+            )
+
+        # Now we have the code contents, we can run it through the LLM to try to answer the question
+        answer_query_prompt = self.conversation_manager.prompt_manager.get_prompt(
+            "code_general", "ANSWER_QUERY_TEMPLATE"
+        )
+
+        code_contents_string = ""
+        for code_content in code_contents:
+            code_contents_string += (
+                f"**{code_content['file']}:**\n```\n{code_content['content']}\n```\n\n"
+            )
+
+        answer_query_prompt = answer_query_prompt.format(
+            code_contents=code_contents_string,
+            user_query=user_query,
+        )
+
+        answer = llm.predict(
+            answer_query_prompt, callbacks=self.conversation_manager.agent_callbacks
+        )
+
+        return answer
 
     def get_page_or_line(self, document):
         if "page" in document.additional_metadata:
