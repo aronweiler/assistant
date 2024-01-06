@@ -22,6 +22,7 @@ def register_tool(
     additional_instructions=None,
     help_text=None,
     requires_documents=False,
+    requires_repository=False,
     document_classes=[],
 ):
     if help_text is None:
@@ -35,6 +36,7 @@ def register_tool(
             "display_name": display_name,
             "help_text": help_text,
             "requires_documents": requires_documents,
+            "requires_repository": requires_repository,
         }
 
         if func.__module__ not in registered_tools:

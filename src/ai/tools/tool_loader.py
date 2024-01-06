@@ -10,7 +10,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.ai.tools.tool_registry import registered_tools
-from src.ai.agents.general.generic_tools_agent import GenericTool
+from src.ai.agents.general.generic_tool import GenericTool
 from src.utilities.configuration_utilities import get_app_configuration
 
 
@@ -100,6 +100,7 @@ def create_generic_tool(configuration, function_name, func):
         display_name=tool_metadata.get("display_name", function_name),
         requires_documents=tool_metadata.get("requires_documents", False),
         help_text=tool_metadata.get("help_text", None),
+        requires_repository=tool_metadata.get("requires_repository", False),
     )
 
     return generic_tool

@@ -38,7 +38,7 @@ class CodeRepositoryTool:
 
     @register_tool(
         display_name="Get Repository File List",
-        requires_documents=False,
+        requires_repository=True,
         description="Gets the list of files and directories in a loaded code repository.",
         additional_instructions="Use this tool to get a list of the files and directories in a loaded code repository- good for understanding the structure of the repository.  Set `include_summary` to `true` if you want summaries of each of the files as well.  Note: Unless it is absolutely vital to answer the user's query, don't set `include_summary` to `true`- it will slow things down significantly.",
     )
@@ -61,7 +61,7 @@ class CodeRepositoryTool:
 
     @register_tool(
         display_name="Get Repository Code File",
-        requires_documents=False,
+        requires_repository=True,
         description="Gets a specific code file from a loaded code repository by name or ID.",
         additional_instructions="Provide either the name or the ID of the code file you wish to retrieve."
     )
@@ -93,7 +93,7 @@ class CodeRepositoryTool:
 
     @register_tool(
         display_name="Search Repository for File Info",
-        requires_documents=False,
+        requires_repository=True,
         description="Searches the loaded repository and returns a list of file IDs, names, and summaries.",
         additional_instructions="Provide a semantic similarity query and a list of keywords to perform the search."
     )
@@ -129,7 +129,7 @@ class CodeRepositoryTool:
 
     @register_tool(
         display_name="Search a Code Repository and Get Code",
-        requires_documents=False,
+        requires_repository=True,
         description="Performs a search of a loaded code repository, and returns all code content related to the user's query.",
         additional_instructions="Performs a search of the loaded code repository using the specified semantic similarity query and keyword list.",
     )
