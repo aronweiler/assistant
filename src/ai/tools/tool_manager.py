@@ -21,7 +21,7 @@ class ToolManager:
         tools_that_should_be_enabled = [
             tool
             for tool in self.tools
-            if self.is_tool_enabled(tool)
+            if self.is_tool_enabled(tool.name)
         ]
 
         # Now filter them down based on document-related tools, and if there are documents loaded
@@ -34,9 +34,9 @@ class ToolManager:
 
         return tools_that_should_be_enabled
 
-    def is_tool_enabled(self, tool) -> bool:
+    def is_tool_enabled(self, tool_name) -> bool:
         # See if this tool name is in the environment
-        config = self.configuration["tool_configurations"].get(tool.name, None)
+        config = self.configuration["tool_configurations"].get(tool_name, None)
         if config is not None:
             # If it is, use the value
             return config.get("enabled", False)
