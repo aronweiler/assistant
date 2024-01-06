@@ -9,72 +9,13 @@ from langchain.agents import AgentExecutor, BaseMultiActionAgent, BaseSingleActi
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
+from src.ai.agents.general.generic_tool import GenericTool
 
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.configuration.assistant_configuration import ModelConfiguration
 
 from src.utilities.parsing_utilities import parse_json
-
-
-class GenericTool:
-    def __init__(
-        self,
-        display_name,
-        description,
-        function,
-        name=None,
-        requires_documents=False,
-        help_text=None,
-        document_classes=[],
-        return_direct=False,
-        additional_instructions=None,
-    ):
-        self.description = description
-        self.additional_instructions = additional_instructions
-        self.function = function
-        self.schema = self.extract_function_schema(function)
-        self.schema_name = self.schema["name"]
-        self.name = name if name else self.schema["name"]
-        self.structured_tool = StructuredTool.from_function(
-            func=self.function, return_direct=return_direct, description=description
-        )
-        self.document_classes = document_classes
-        self.display_name = display_name
-        self.requires_documents = requires_documents
-        self.help_text = help_text if help_text else self.description
-
-    def extract_function_schema(self, func):
-        import inspect
-
-        sig = inspect.signature(func)
-        parameters = []
-
-        def stringify_annotation(parameter):
-            if hasattr(
-                parameter.annotation, "__origin__"
-            ):  # This checks if it's a special type from typing
-                return str(parameter.annotation).replace(
-                    "typing.", ""
-                )  # Strips the 'typing.' part if present
-            elif hasattr(parameter.annotation, "__name__"):
-                return parameter.annotation.__name__
-            else:
-                return str(parameter.annotation)
-
-        for param_name, param in sig.parameters.items():
-            param_info = {
-                "argument_name": param_name,
-                "argument_type": stringify_annotation(param),
-                "required": "optional"
-                if param.default != inspect.Parameter.empty
-                else "required",
-            }
-            parameters.append(param_info)
-
-        schema = {"name": func.__name__, "parameters": parameters}
-
-        return schema
 
 
 class GenericToolsAgent(BaseSingleActionAgent):
@@ -235,13 +176,21 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
-        tool_names = {tool.name for tool in tools}
+        tool_names = [tool.name for tool in tools]
 
         # Create a new list to store the filtered steps
         filtered_steps = []
 
         # Iterate over each step and check if its tool is in the set of tool names
         for step in steps:
+            if "tool" not in step:
+                logging.error(
+                    f"Step does not have a tool: {step}.  Skipping this step."
+                )
+                self.wrong_tool_calls.append(step)
+                
+                continue
+            
             if step["tool"] in tool_names:
                 filtered_steps.append(step)
             else:
@@ -361,22 +310,20 @@ class GenericToolsAgent(BaseSingleActionAgent):
             selected_repo_prompt = ""
 
         if loaded_documents:
-            loaded_documents_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent",
-                "LOADED_DOCUMENTS_TEMPLATE",
-            ).format(
-                loaded_documents=loaded_documents
+            loaded_documents_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "generic_tools_agent",
+                    "LOADED_DOCUMENTS_TEMPLATE",
+                ).format(loaded_documents=loaded_documents)
             )
         else:
             loaded_documents_prompt = ""
-            
+
         if chat_history and len(chat_history) > 0:
             chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
                 "generic_tools_agent",
                 "CHAT_HISTORY_TEMPLATE",
-            ).format(
-                chat_history=chat_history
-            )
+            ).format(chat_history=chat_history)
         else:
             chat_history_prompt = ""
 
