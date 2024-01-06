@@ -35,5 +35,37 @@ Your output should be in a JSON blob with the following format:
 }}
 ```
 
+Please make sure that the JSON is valid and properly formatted.
+
 AI: Sure, here is a JSON blob with the keywords, descriptions, and summary:
+"""
+
+IDENTIFY_LIKELY_FILES_TEMPLATE = """Please take a look at the following code file summaries and identify which ones are most likely to contain the code that is relevant to the user's query. You can select multiple summaries if you think that multiple files are likely to contain the code that you are looking for.
+
+User Query: {user_query}
+
+{summaries}
+
+Please read the details of the files above, and respond with a list of the file IDs most likely to match the user's query in the following JSON format. For example, if you think that the files with IDs 23, and 44 are likely to contain the relevant code, you would respond with the following:
+
+```json
+[23, 44, ...]
+```
+
+As a reminder, you're looking for code that answers the user's query of: {user_query}
+
+AI: Sure, here are the file IDs (in JSON list form) that are most likely to contain the relevant code:
+"""
+
+ANSWER_QUERY_TEMPLATE = """I would like you to examine the following code very carefully, and answer the user's query of: {user_query}
+
+{code_contents}
+
+Remember, the user's query is: {user_query}
+
+Please provide an answer if possible.  If the code does not contain an answer to the user's query, please respond with an explanation of why the code does not contain an answer.
+
+If the code above can be used to answer the query, be sure to include the file names of the code that contained the answer.
+
+AI: Sure, I have examined the code, and here is my response:
 """

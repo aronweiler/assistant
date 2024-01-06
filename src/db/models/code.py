@@ -254,7 +254,26 @@ class Code(VectorDatabase):
 
             return [CodeFileModel.from_database_model(c) for c in code_files]
 
-    def get_code_file(self, code_repo_id: int, code_file_name: str) -> CodeFileModel:
+    def get_code_file_by_id(self, code_file_id: int) -> CodeFileModel:
+        with self.session_context(self.Session()) as session:
+            # We now need to join CodeFile with the association table and then filter by repository ID
+            code_file = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.record_created,
+                )
+                .filter(CodeFile.id == code_file_id)
+                .one_or_none()
+            )
+
+            return CodeFileModel.from_database_model(code_file) if code_file else None
+
+    def get_code_file_by_name(self, code_repo_id: int, code_file_name: str) -> CodeFileModel:
         with self.session_context(self.Session()) as session:
             # Join CodeFile with the association table and filter by repository ID and file name
             code_file = (
@@ -293,6 +312,26 @@ class Code(VectorDatabase):
             )
 
             return code_file.id if code_file else None
+
+    def get_code_file_keywords(self, code_file_id: int) -> List[str]:
+        with self.session_context(self.Session()) as session:
+            keywords = (
+                session.query(CodeKeyword.keyword)
+                .filter(CodeKeyword.code_file_id == code_file_id)
+                .all()
+            )
+
+            return [keyword.keyword for keyword in keywords]
+        
+    def get_code_file_descriptions(self, code_file_id: int) -> List[str]:
+        with self.session_context(self.Session()) as session:
+            descriptions = (
+                session.query(CodeDescription.description_text)
+                .filter(CodeDescription.code_file_id == code_file_id)
+                .all()
+            )
+
+            return [description.description_text for description in descriptions]
 
     def unlink_code_files(self, code_repo_id: int):
         with self.session_context(self.Session()) as session:
