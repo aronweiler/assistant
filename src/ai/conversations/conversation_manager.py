@@ -48,7 +48,10 @@ class ConversationManager:
         self.prompt_manager = prompt_manager
         self.tool_kwargs = tool_kwargs
         self.collection_id = collection_id
-        self.selected_repository = selected_repository
+        
+        if selected_repository is not None:
+            self.set_selected_repository(selected_repository)
+        
         self.user_id = user_id
         self.user_name = user_name
         self.user_location = user_location
@@ -114,13 +117,10 @@ class ConversationManager:
             self.conversation_id, repository.id
         )
 
-        self.selected_repository = repository
 
     def get_selected_repository(self) -> CodeRepositoryModel:
         """Gets the selected repository, if any, for the current conversation."""
 
-        if self.selected_repository:
-            return self.selected_repository
 
         conversation = self.get_conversation()
 
