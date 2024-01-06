@@ -11,6 +11,7 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.tools.tool_registry import register_tool, tool_class
 from src.db.models.domain.code_file_model import CodeFileModel
 from src.utilities.parsing_utilities import parse_json
 
@@ -24,7 +25,7 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
-
+@tool_class
 class CodeRepositoryTool:
     def __init__(
         self,
@@ -48,6 +49,13 @@ class CodeRepositoryTool:
             ]
         )
 
+    @register_tool(
+        display_name="Search a Code Repository",
+        requires_documents=False,
+        help_text="Performs a search of a loaded code repository.",
+        description="Performs a search of a loaded code repository.",
+        additional_instructions="Performs a search of the loaded code repository using the specified semantic similarity query and keyword list.",
+    )
     def search_loaded_repository(
         self,
         repository_id: int,
@@ -138,7 +146,7 @@ class CodeRepositoryTool:
         ] = self.conversation_manager.code_helper.search_code_files(
             repository_id=repository_id,
             similarity_query=semantic_similarity_query,
-            keywords_list=keywords_list,
+            keywords=keywords_list,
             top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
         )
 
@@ -158,7 +166,7 @@ class CodeRepositoryTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.search_loaded_documents.__name__,
+            func_name=self.search_loaded_repository.__name__,
             streaming=True,
         )
 
