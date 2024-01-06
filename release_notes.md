@@ -1,3 +1,9 @@
+### January 5, 2024 -- RELEASE NOTES: Jarvis 0.68
+- Added ability to resume file ingestion when interrupted (needs documentation and more usability)
+- Refactored tool registration and tool management, making it much easier to add new tools.
+- First pass of code repo ingestion, and searching.
+- Numerous bug fixes.
+
 ### December 19, 2023 -- RELEASE NOTES: Jarvis 0.67
 - Added read website tool
 - Fixed some document ingestion bugs
