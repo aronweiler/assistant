@@ -60,6 +60,38 @@ class CodeRepositoryTool:
         return result
 
     @register_tool(
+        display_name="Get Repository Code File",
+        requires_documents=False,
+        description="Gets a specific code file from a loaded code repository by name or ID.",
+        additional_instructions="Provide either the name or the ID of the code file you wish to retrieve."
+    )
+    def get_repository_code_file(
+        self,
+        file_name: str = None,
+        file_id: int = None
+    ):
+        """Gets a specific code file from a loaded code repository by name or ID."""
+        if file_name is not None:
+            # Get the code file by name
+            code_file = self.conversation_manager.code_helper.get_code_file_by_name(
+                code_repo_id=self.conversation_manager.get_selected_repository().id,
+                code_file_name=file_name
+            )
+        elif file_id is not None:
+            # Get the code file by ID
+            code_file = self.conversation_manager.code_helper.get_code_file_by_id(file_id)
+        else:
+            return 'Please provide either a file name or file ID.'
+
+        if code_file is None:
+            return 'Code file not found.'
+
+        return {
+            'file_name': code_file.code_file_name,
+            'file_content': code_file.code_file_content
+        }
+
+    @register_tool(
         display_name="Search a Code Repository",
         requires_documents=False,
         help_text="Performs a search of a loaded code repository.",
@@ -68,7 +100,6 @@ class CodeRepositoryTool:
     )
     def search_loaded_repository(
         self,
-        repository_id: int,
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
@@ -138,7 +169,7 @@ class CodeRepositoryTool:
             pass
 
         return self._search_repository_documents(
-            repository_id=repository_id,
+            repository_id=self.conversation_manager.get_selected_repository().id,
             semantic_similarity_query=semantic_similarity_query,
             keywords_list=keywords_list,
             user_query=user_query,

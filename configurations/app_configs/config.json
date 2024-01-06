@@ -84,7 +84,7 @@
             }
         },
         "search_loaded_documents": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false,
             "additional_settings": {
                 "split_prompt": {
@@ -475,6 +475,10 @@
             }
         },
         "get_repository_file_list": {
+            "enabled": true,
+            "return_direct": false
+        },
+        "get_repository_code_file": {
             "enabled": true,
             "return_direct": false
         },
