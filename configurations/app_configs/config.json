@@ -486,6 +486,27 @@
             "enabled": true,
             "return_direct": false
         },
+        "generate_codebase_summary": {
+            "enabled": true,
+            "return_direct": false
+        },
+        "locate_functionality_in_repository": {
+            "enabled": true,
+            "return_direct": false,
+            "model_configuration": {
+                "llm_type": "openai",
+                "model": "gpt-4-1106-preview",
+                "temperature": 0.0,
+                "max_retries": 3,
+                "max_model_supported_tokens": 128000,
+                "uses_conversation_history": false,
+                "max_conversation_history_tokens": 0,
+                "max_completion_tokens": 4096,
+                "model_kwargs": {
+                    "seed": 500
+                }
+            }
+        },
         "search_repository_full_content": {
             "enabled": true,
             "return_direct": false,

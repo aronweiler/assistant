@@ -42,9 +42,7 @@ class CodeRepositoryTool:
         description="Gets the list of files and directories in a loaded code repository.",
         additional_instructions="Use this tool to get a list of the files and directories in a loaded code repository- good for understanding the structure of the repository.  Set `include_summary` to `true` if you want summaries of each of the files as well.  Note: Unless it is absolutely vital to answer the user's query, don't set `include_summary` to `true`- it will slow things down significantly.",
     )
-    def get_repository_file_list(
-        self, include_summary: bool = False
-    ):
+    def get_repository_file_list(self, include_summary: bool = False):
         """Gets the list of files and directories in a loaded code repository."""
 
         code_files = self.conversation_manager.code_helper.get_code_files(
@@ -55,57 +53,157 @@ class CodeRepositoryTool:
         for code_file in code_files:
             result += f"**\n{code_file.code_file_name}\n**"
             if include_summary:
-                result += f"Summary: {code_file.code_file_summary}\n"                
-                
+                result += f"Summary: {code_file.code_file_summary}\n"
+
         return result
+
+    @register_tool(
+        display_name="Generate Codebase Summary",
+        requires_repository=True,
+        description="Generates a summary of the entire codebase in a loaded repository.",
+        additional_instructions="Use this tool to get a high-level overview of the codebase, including file counts and lines of code.",
+    )
+    def generate_codebase_summary(self):
+        """Generates a summary of the entire codebase in a loaded repository."""
+        code_files = self.conversation_manager.code_helper.get_code_files(
+            repository_id=self.conversation_manager.get_selected_repository().id
+        )
+
+        file_count = len(code_files)
+        total_lines = 0
+        file_type_breakdown = {}
+
+        for code_file in code_files:
+            # Count lines of code
+            lines = code_file.code_file_content.count("\n") + 1
+            total_lines += lines
+
+            # Breakdown by file type
+            file_extension = code_file.code_file_name.split(".")[-1]
+            if file_extension not in file_type_breakdown:
+                file_type_breakdown[file_extension] = {"count": 0, "lines": 0}
+            file_type_breakdown[file_extension]["count"] += 1
+            file_type_breakdown[file_extension]["lines"] += lines
+
+        # Generate summary report
+        summary = f"Codebase Summary:\n"
+        summary += f"Total number of files: {file_count}\n"
+        summary += f"Total lines of code: {total_lines}\n"
+        summary += "Breakdown by file type:\n"
+        for file_type, stats in file_type_breakdown.items():
+            summary += (
+                f"  * .{file_type}: {stats['count']} files, {stats['lines']} lines\n"
+            )
+
+        return summary
 
     @register_tool(
         display_name="Get Repository Code File",
         requires_repository=True,
         description="Gets a specific code file from a loaded code repository by name or ID.",
-        additional_instructions="Provide either the name or the ID of the code file you wish to retrieve."
+        additional_instructions="Provide either the name or the ID of the code file you wish to retrieve.",
     )
-    def get_repository_code_file(
-        self,
-        file_name: str = None,
-        file_id: int = None
-    ):
+    def get_repository_code_file(self, file_name: str = None, file_id: int = None):
         """Gets a specific code file from a loaded code repository by name or ID."""
         if file_name is not None:
             # Get the code file by name
             code_file = self.conversation_manager.code_helper.get_code_file_by_name(
                 code_repo_id=self.conversation_manager.get_selected_repository().id,
-                code_file_name=file_name
+                code_file_name=file_name,
             )
         elif file_id is not None:
             # Get the code file by ID
-            code_file = self.conversation_manager.code_helper.get_code_file_by_id(file_id)
+            code_file = self.conversation_manager.code_helper.get_code_file_by_id(
+                file_id
+            )
         else:
-            return 'Please provide either a file name or file ID.'
+            return "Please provide either a file name or file ID."
 
         if code_file is None:
-            return 'Code file not found.'
+            return "Code file not found."
 
         return {
-            'file_name': code_file.code_file_name,
-            'file_content': code_file.code_file_content
+            "file_name": code_file.code_file_name,
+            "file_content": code_file.code_file_content,
         }
+
+    @register_tool(
+        display_name="Functionality Locator",
+        requires_repository=True,
+        description="Locates specific functionality within the codebase.",
+        additional_instructions="Provide a description or keywords related to the functionality you're looking for.",
+    )
+    def locate_functionality_in_repository(
+        self, description: str, keywords_list: List[str]
+    ):
+        """Locates specific functionality within the codebase."""
+        try:
+            # Use the search_repository_for_file_info tool to find files that may contain the desired functionality
+            file_info_list = self.search_repository_for_file_info(
+                semantic_similarity_query=description, keywords_list=keywords_list
+            )
+
+            # Process the results to extract relevant code snippets
+            functionality_snippets = []
+            for file_info in file_info_list:
+                code_file = self.get_repository_code_file(file_id=file_info["file_id"])
+
+                get_relevant_snippets_prompt = (
+                    self.conversation_manager.prompt_manager.get_prompt(
+                        "code_general", "GET_RELEVANT_SNIPPETS_TEMPLATE"
+                    )
+                ).format(
+                    code=code_file["file_content"],
+                    description=description,
+                )
+
+                llm = get_tool_llm(
+                    configuration=self.configuration,
+                    func_name=self.locate_functionality_in_repository.__name__,
+                    streaming=True,
+                )
+
+                relevant_snippets = parse_json(
+                    llm.predict(
+                        get_relevant_snippets_prompt,
+                        callbacks=self.conversation_manager.agent_callbacks,
+                    ),
+                    llm=llm,
+                )
+
+                if isinstance(relevant_snippets, str):
+                    relevant_snippets = [relevant_snippets]
+
+                if len(relevant_snippets) == 0:
+                    relevant_snippets = ["No relevant snippets found."]
+
+                functionality_snippets.append(
+                    {
+                        "file_name": file_info["file_name"],
+                        "file_id": file_info["file_id"],
+                        "snippets": relevant_snippets,  # Replace with actual snippets extracted from 'file_content'
+                    }
+                )
+
+            return functionality_snippets
+        except Exception as e:
+            return f"An error occurred during the search: {str(e)}"
 
     @register_tool(
         display_name="Search Repository for File Info",
         requires_repository=True,
         description="Searches the loaded repository and returns a list of file IDs, names, and summaries.",
-        additional_instructions="Provide a semantic similarity query and a list of keywords to perform the search."
+        additional_instructions="Provide a semantic similarity query and a list of keywords to perform the search.",
     )
     def search_repository_for_file_info(
-        self,
-        semantic_similarity_query: str,
-        keywords_list: List[str]
+        self, semantic_similarity_query: str, keywords_list: List[str]
     ):
         """Searches the loaded repository for the given query and returns file IDs, names, and summaries."""
         try:
             # Perform the search using the existing _search_repository_documents method
-            code_file_model_search_results: List[CodeFileModel] = self.conversation_manager.code_helper.search_code_files(
+            code_file_model_search_results: List[
+                CodeFileModel
+            ] = self.conversation_manager.code_helper.search_code_files(
                 repository_id=self.conversation_manager.get_selected_repository().id,
                 similarity_query=semantic_similarity_query,
                 keywords=keywords_list,
@@ -115,9 +213,9 @@ class CodeRepositoryTool:
             # Extract the required information from the search results
             file_info_list = [
                 {
-                    'file_id': result.id,
-                    'file_name': result.code_file_name,
-                    'file_summary': result.code_file_summary
+                    "file_id": result.id,
+                    "file_name": result.code_file_name,
+                    "file_summary": result.code_file_summary,
                 }
                 for result in code_file_model_search_results
             ]
@@ -125,7 +223,7 @@ class CodeRepositoryTool:
             # Return the list of file information
             return file_info_list
         except Exception as e:
-            return f'An error occurred during the search: {str(e)}'
+            return f"An error occurred during the search: {str(e)}"
 
     @register_tool(
         display_name="Search a Code Repository and Get Code",

@@ -71,3 +71,38 @@ If the code above can be used to answer the query, be sure to include the file n
 
 AI: Sure, I have examined the code, and here is my response:
 """
+
+GET_RELEVANT_SNIPPETS_TEMPLATE = """Please examine the following code carefully:
+
+----- CODE -----
+{code}
+----- CODE -----
+
+I would like you to extract a list of relevant code snippets from the code above that relates to the description below.
+
+Description: {description}
+
+Please provide a list of code snippets in a JSON blob with the following format:
+
+```json
+[
+    {{
+        "file_id": 123,
+        "start_line": 12,
+        "end_line": 15,
+        "code": "code snippet"
+    }},
+    {{
+        "file_id": 456,
+        "start_line": 1,
+        "end_line": 5,
+        "code": "code snippet"
+    }},
+    ...
+]
+```
+
+If none of the provided code is relevant to the description, please respond with an empty list. (e.g. `[]`)
+
+AI: Sure, here is a JSON blob with the relevant code snippets:
+"""
