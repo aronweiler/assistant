@@ -365,11 +365,11 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if len(self.wrong_tool_calls) > 0:
             formatted_wrong_tool_calls = "\n".join(
                 [
-                    f"({p['tool']}): {p['step_description']}"
+                    f"{p}"
                     for p in self.wrong_tool_calls
                 ]
             )
-            helpful_context = f"The planning AI (which came up with the idea to use this tool call) failed with regards to these tasks: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (incorrect) tool calls, and let them inform your tool use here."
+            helpful_context = f"The planning AI (which is supposed to plan out steps to accomplish the user's goal) came up with these invalid tool calls: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (or incorrect) tool calls, and let them inform your tool use and eventual answer here."
 
             # Reset the wrong tool calls
             self.wrong_tool_calls = []

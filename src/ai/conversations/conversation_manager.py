@@ -114,7 +114,7 @@ class ConversationManager:
         """Sets the selected repository for the current conversation."""
 
         self.conversations_helper.update_selected_code_repo(
-            self.conversation_id, repository.id
+            self.conversation_id, repository.id if repository is not None else -1
         )
 
 
