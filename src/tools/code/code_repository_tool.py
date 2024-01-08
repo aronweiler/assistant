@@ -37,6 +37,28 @@ class CodeRepositoryTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Look Up File in Repository",
+        requires_repository=True,
+        description="Looks up a file in the repository by partial file name.",
+        additional_instructions="Use this tool to find a file in the loaded repository when you don't know the full name (path + name + extension). Provide at least a partial file name.  This tool will return a list of possible matching files.  Set include_summary to `true` if reading a short summary of each possible file would help to narrow down your search.",
+    )
+    def look_up_file_in_repository(self, partial_file_name: str, include_summary: bool = False):
+        """Looks up a file in the repository by partial file name."""
+        code_files = self.conversation_manager.code_helper.get_code_files_by_partial_name(
+            repository_id=self.conversation_manager.get_selected_repository().id, partial_file_name=partial_file_name
+        )
+        
+        results = ""
+        for code_file in code_files:
+            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"
+            if include_summary:
+                results += f"Summary: {code_file.code_file_summary}\n"
+        
+        return results
+       
+       
+
+    @register_tool(
         display_name="Get Repository File List",
         requires_repository=True,
         description="Gets the list of files and directories in a loaded code repository.",
@@ -58,12 +80,12 @@ class CodeRepositoryTool:
         return result
 
     @register_tool(
-        display_name="Generate Codebase Summary",
+        display_name="Retrieve Codebase Metrics",
         requires_repository=True,
         description="Generates a summary of the entire codebase in a loaded repository.",
         additional_instructions="Use this tool to get a high-level overview of the codebase, including file counts and lines of code.",
     )
-    def generate_codebase_summary(self):
+    def retrieve_codebase_metrics(self):
         """Generates a summary of the entire codebase in a loaded repository."""
         code_files = self.conversation_manager.code_helper.get_code_files(
             repository_id=self.conversation_manager.get_selected_repository().id
@@ -101,7 +123,7 @@ class CodeRepositoryTool:
         display_name="Get Repository Code File",
         requires_repository=True,
         description="Gets a specific code file from a loaded code repository by name or ID.",
-        additional_instructions="Provide either the name or the ID of the code file you wish to retrieve.",
+        additional_instructions="Provide either the name or the ID of the code file you wish to retrieve.  file_name should be the full name of the file, including the path and extension.  file_id should be the ID of the file.  Either of these can be retrieved using the `Get Repository File List` tool.",
     )
     def get_repository_code_file(self, file_name: str = None, file_id: int = None):
         """Gets a specific code file from a loaded code repository by name or ID."""
