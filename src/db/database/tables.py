@@ -1,3 +1,10 @@
+# This file contains the SQLAlchemy ORM class definitions for a database schema used in the assistant application. 
+# Each class within this file represents a distinct table in the database, with attributes corresponding to the table columns. 
+# The classes also define relationships between tables, such as one-to-many and many-to-many associations, 
+# which facilitate the querying and manipulation of related data. 
+# The file is structured to provide a clear mapping between the application's data models and the underlying database structure, 
+# enabling efficient data storage, retrieval, and management.
+
 from sqlalchemy import (
     Column,
     Integer,
