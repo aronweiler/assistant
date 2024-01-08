@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 def parse_json(text: str, llm: BaseLanguageModel) -> dict:
     
+    original_text = text
+    
     # So....
     text = text.strip()
     
@@ -69,4 +71,4 @@ def parse_json(text: str, llm: BaseLanguageModel) -> dict:
                 return parse_json(llm_fixed_json, None)
             else:
                 logger.error("Failed to parse JSON, and no LLM was provided to try to fix it.")
-                raise Exception(f"Could not parse LLM output: {text}") from e            
+                raise Exception(f"Could not parse LLM output: {original_text}") from e            
