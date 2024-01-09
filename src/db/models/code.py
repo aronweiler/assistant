@@ -7,7 +7,7 @@ from typing import List, Any
 from requests import Session
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlalchemy import func, select, column, cast, or_
+from sqlalchemy import and_, func, select, column, cast, or_
 
 import pgvector.sqlalchemy
 
@@ -470,60 +470,25 @@ class Code(VectorDatabase):
 
         return [(code_file, distance) for code_file, distance in result]
 
-    def _get_keyword_search_results(
-        self, session: Session, repository_id: int, keywords: List[str], top_k: int
-    ):
-        keyword_query = (
-            session.query(CodeKeyword.code_file_id)
-            .join(
-                code_repository_files_association,
-                CodeKeyword.code_file_id
-                == code_repository_files_association.c.code_file_id,
-            )
-            .filter(
-                code_repository_files_association.c.code_repository_id == repository_id
-            )
-            .filter(
-                or_(
-                    func.lower(CodeKeyword.keyword).contains(func.lower(kword))
-                    for kword in keywords
-                )
-            )
-            .limit(top_k)
-            .subquery()
-        )
+    def _get_keyword_search_results(self, session: Session, repository_id: int, keywords: List[str], top_k: int) -> List[CodeFileModel]:
+        # Query the code_files table for matches in the code_content field
+        code_content_matches = session.query(CodeFile).filter(
+            CodeFile.code_repositories.any(id=repository_id),
+            or_(*[CodeFile.code_file_content.like(f'%{keyword}%') for keyword in keywords])
+        ).limit(top_k).all()
 
-        content_query = (
-            session.query(CodeFile.id)
-            .join(
-                code_repository_files_association,
-                CodeFile.id == code_repository_files_association.c.code_file_id,
-            )
-            .filter(
-                code_repository_files_association.c.code_repository_id == repository_id
-            )
-            .filter(
-                or_(
-                    func.lower(CodeFile.code_file_content).contains(func.lower(kword))
-                    for kword in keywords
-                )
-            )
-            .limit(top_k)
-            .subquery()
-        )
+        # Query the code_keywords table for matches in the keyword field
+        keyword_matches = session.query(CodeFile).join(CodeKeyword, CodeFile.id == CodeKeyword.code_file_id).filter(
+            CodeFile.code_repositories.any(id=repository_id),
+            or_(*[CodeKeyword.keyword.like(f'%{keyword}%') for keyword in keywords])
+        ).limit(top_k).all()
 
-        statement = (
-            select(CodeFile)
-            .join(
-                keyword_query, CodeFile.id == keyword_query.c.code_file_id, isouter=True
-            )
-            .join(content_query, CodeFile.id == content_query.c.id, isouter=True)
-        )
+        # Combine the results and remove duplicates
+        combined_results = list(set(code_content_matches + keyword_matches))
 
-        result = session.execute(statement).scalars().all()
-
+        # Return the top_k results as CodeFileModel objects
         return [
-            (CodeFileModel.from_database_model(code_file), None) for code_file in result
+            (CodeFileModel.from_database_model(code_file), None) for code_file in combined_results[:top_k]
         ]  # No distance for keyword search
 
 
