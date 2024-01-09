@@ -230,7 +230,9 @@ def process_code_file(
 
         if code.strip() != "":
             # Generate the keywords from the code
-            keywords_and_descriptions = ai.generate_keywords_and_descriptions_from_code_file(code)
+            keywords_and_descriptions = (
+                ai.generate_keywords_and_descriptions_from_code_file(code)
+            )
 
             if (
                 not keywords_and_descriptions
