@@ -74,9 +74,11 @@ AI: Sure, I have examined the code, and here is my response:
 
 GET_RELEVANT_SNIPPETS_TEMPLATE = """Please examine the following code carefully:
 
------ CODE -----
+file_id: {file_id}
+file_name: {file_name}
+```
 {code}
------ CODE -----
+```
 
 I would like you to extract a list of relevant code snippets from the code above that relates to the description below.
 
@@ -102,7 +104,7 @@ Please provide a list of code snippets in a JSON blob with the following format:
 ]
 ```
 
-If none of the provided code is relevant to the description, please respond with an empty list. (e.g. `[]`)
+If none of the provided code is relevant to the description, please respond with an empty list. (e.g. `[]`)  If responding with an empty list, do not respond with any other text at all (such as an explanation)- just the empty list.
 
 AI: Sure, here is a JSON blob with the relevant code snippets:
 """

@@ -37,14 +37,12 @@ class CodeRepositoryTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
-        display_name="Look Up File in Repository",
+        display_name="File Name Search",
         requires_repository=True,
-        description="Looks up a file in the repository by partial file name.",
-        additional_instructions="Use this tool to find a file in the loaded repository when you don't know the full name (path + name + extension). Provide at least a partial file name.  This tool will return a list of possible matching files.  Set include_summary to `true` if reading a short summary of each possible file would help to narrow down your search.",
+        description="Search for files by providing a partial or full file name.",
+        additional_instructions="Input a partial or complete file name to receive a list of matching files from the repository. Include a summary by setting `include_summary` to `true` if you need help identifying the correct file.",
     )
-    def look_up_file_in_repository(
-        self, partial_file_name: str, include_summary: bool = False
-    ):
+    def file_name_search(self, partial_file_name: str, include_summary: bool = False):
         """Looks up a file in the repository by partial file name."""
         code_files = (
             self.conversation_manager.code_helper.get_code_files_by_partial_name(
@@ -62,12 +60,12 @@ class CodeRepositoryTool:
         return results
 
     @register_tool(
-        display_name="Get Repository File List",
+        display_name="Repository Structure Overview",
         requires_repository=True,
-        description="Gets the list of files and directories in a loaded code repository.",
-        additional_instructions="Use this tool to get a list of the files and directories in a loaded code repository- good for understanding the structure of the repository.  Set `include_summary` to `true` if you want summaries of each of the files as well.  Note: Unless it is absolutely vital to answer the user's query, don't set `include_summary` to `true`- it will slow things down significantly.",
+        description="Obtain a hierarchical list of all files and directories within the repository.",
+        additional_instructions="Retrieve a structured list of the repository's contents. For detailed file summaries, set `include_summary` to `true`, but be aware this may increase processing time.",
     )
-    def get_repository_file_list(self, include_summary: bool = False):
+    def repository_structure_overview(self, include_summary: bool = False):
         """Gets the list of files and directories in a loaded code repository."""
 
         code_files = self.conversation_manager.code_helper.get_code_files(
@@ -83,12 +81,12 @@ class CodeRepositoryTool:
         return result
 
     @register_tool(
-        display_name="Retrieve Codebase Metrics",
+        display_name="Codebase Analysis",
         requires_repository=True,
-        description="Retrieve codebase metrics for a loaded code repository.",
-        additional_instructions="Use this tool to get the total number of files, lines of code, and breakdown of files by file type.",
+        description="Generate metrics summarizing the repository's codebase, such as file counts and lines of code.",
+        additional_instructions="This tool provides an overview of the repository's size and composition, including the total number of files, lines of code, and a file type distribution.",
     )
-    def retrieve_codebase_metrics(self):
+    def codebase_analysis(self):
         """Generates a summary of the entire codebase in a loaded repository."""
         code_files = self.conversation_manager.code_helper.get_code_files(
             repository_id=self.conversation_manager.get_selected_repository().id
@@ -123,26 +121,20 @@ class CodeRepositoryTool:
         return summary
 
     @register_tool(
-        display_name="Get Repository Code File",
+        display_name="Specific File Retrieval",
         requires_repository=True,
-        description="Gets a specific code file from a loaded code repository by name or ID.",
-        additional_instructions="Provide either the name or the ID of the code file you wish to retrieve.  file_name should be the full name of the file, including the path and extension.  file_id should be the ID of the file.  Either of these can be retrieved using the `Get Repository File List` tool.",
+        description="Retrieve a particular file from the repository using its unique identifier.",
+        additional_instructions="To fetch a specific file, supply its ID. Use the 'Repository Structure Overview' tool to find necessary file identifiers.",
     )
-    def get_repository_code_file(self, file_name: str = None, file_id: int = None):
+    def specific_file_retrieval(self, file_id: int):
         """Gets a specific code file from a loaded code repository by name or ID."""
-        if file_name is not None:
-            # Get the code file by name
-            code_file = self.conversation_manager.code_helper.get_code_file_by_name(
-                code_repo_id=self.conversation_manager.get_selected_repository().id,
-                code_file_name=file_name,
-            )
-        elif file_id is not None:
+        if file_id is not None:
             # Get the code file by ID
             code_file = self.conversation_manager.code_helper.get_code_file_by_id(
                 file_id
             )
         else:
-            return "Please provide either a file name or file ID."
+            return "Please provide a file ID.  File IDs can be found by using the repository structure overview tool."
 
         if code_file is None:
             return "Code file not found."
@@ -153,16 +145,16 @@ class CodeRepositoryTool:
         }
 
     @register_tool(
-        display_name="Locate Files Containing a Particular Function or Functions",
+        display_name="Function Presence Check",
         requires_repository=True,
-        description="Searches the loaded repository for the partial (or full) function names and returns a list of associated file IDs, names, and summaries.",
-        additional_instructions="Use this tool to find a set of files containing the specified (full or partial) function names, which you can then get the code for (after getting the ID here).",
+        description="Identify files containing specified functions by their names.",
+        additional_instructions="List the names of functions to locate files that contain them. This tool returns file IDs and names, which can be used to retrieve the full file content.",
     )
-    def locate_files_containing_function(self, partial_function_names: List[str]):
+    def function_presence_check(self, partial_function_names: List[str]):
         """Locate Files Containing a Particular Function or Functions"""
         try:
-            # Use the search_repository_for_file_info tool to find files that may contain the desired functionality
-            file_info_list = self.search_repository_for_file_info(
+            # Use the file_information_discovery tool to find files that may contain the desired functionality
+            file_info_list = self.file_information_discovery(
                 semantic_similarity_query="",
                 keywords_list=partial_function_names,
             )
@@ -172,38 +164,38 @@ class CodeRepositoryTool:
             return f"An error occurred during the search: {str(e)}"
 
     @register_tool(
-        display_name="Functionality Locator",
+        display_name="Codebase Functionality Search",
         requires_repository=True,
-        description="Locates specific functionality within the codebase.",
-        additional_instructions="Use this tool to find specific functionality within the codebase.  Provide a description or keywords related to the functionality you're looking for.  This tool returns relevant code file names and IDs, as well as any relevant code snippets.",
+        description="Find code snippets related to a described functionality within the repository.",
+        additional_instructions="Describe the functionality or provide keywords to locate relevant code snippets across the repository. Results include file names, IDs, and extracted code segments.",
     )
-    def locate_functionality_in_repository(
-        self, description: str, keywords_list: List[str]
-    ):
+    def codebase_functionality_search(self, description: str, keywords_list: List[str]):
         """Locates specific functionality within the codebase."""
         try:
-            # Use the search_repository_for_file_info tool to find files that may contain the desired functionality
-            file_info_list = self.search_repository_for_file_info(
+            # Use the file_information_discovery tool to find files that may contain the desired functionality
+            file_info_list = self.file_information_discovery(
                 semantic_similarity_query=description, keywords_list=keywords_list
             )
 
             # Process the results to extract relevant code snippets
             functionality_snippets = []
             for file_info in file_info_list:
-                code_file = self.get_repository_code_file(file_id=file_info["file_id"])
+                code_file = self.specific_file_retrieval(file_id=file_info["file_id"])
 
                 get_relevant_snippets_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
                         "code_general", "GET_RELEVANT_SNIPPETS_TEMPLATE"
                     )
                 ).format(
+                    file_id=file_info["file_id"],
+                    file_name=file_info["file_name"],
                     code=code_file["file_content"],
                     description=description,
                 )
 
                 llm = get_tool_llm(
                     configuration=self.configuration,
-                    func_name=self.locate_functionality_in_repository.__name__,
+                    func_name=self.codebase_functionality_search.__name__,
                     streaming=True,
                 )
 
@@ -236,12 +228,12 @@ class CodeRepositoryTool:
             return f"An error occurred during the search: {str(e)}"
 
     @register_tool(
-        display_name="Search Repository for File Info",
+        display_name="File Information Discovery",
         requires_repository=True,
-        description="Searches the loaded repository and returns a list of file IDs, names, and summaries.",
-        additional_instructions="Use this tool to find a specific file, which you can then get the code for (after getting the ID here).  Provide a semantic similarity query and a list of keywords to perform the search.  The values returned by this tool are limited (due to size) and usually do not encompass ALL of the functionality in the repository.",
+        description="Search the repository for files based on a query and keywords, returning concise file information.",
+        additional_instructions="Use a combination of a semantic query and keywords to search for files. This tool returns file IDs, names, and summaries, suitable for obtaining an overview without full file contents.",
     )
-    def search_repository_for_file_info(
+    def file_information_discovery(
         self, semantic_similarity_query: str, keywords_list: List[str]
     ):
         """Searches the loaded repository for the given query and returns file IDs, names, and summaries."""
@@ -272,12 +264,12 @@ class CodeRepositoryTool:
             return f"An error occurred during the search: {str(e)}"
 
     @register_tool(
-        display_name="Search a Code Repository and Get Code",
+        display_name="Comprehensive Repository Search",
         requires_repository=True,
-        description="Performs a search of a loaded code repository, and returns all code content related to the user's query.",
-        additional_instructions="Performs a search of the loaded code repository using the specified semantic similarity query and keyword list.  This tool will return FULL code files for any matching results, but will be limited due to size, and so should not be used to exhaustively list out files.",
+        description="Conduct an extensive search of the repository to return complete file contents related to a query.",
+        additional_instructions="Perform a detailed search using a semantic query and keywords. This tool returns the full content of matching files but is limited by size constraints and should not be used for exhaustive file listings.",
     )
-    def search_repository_full_content(
+    def comprehensive_repository_search(
         self,
         semantic_similarity_query: str,
         keywords_list: List[str],
@@ -288,7 +280,7 @@ class CodeRepositoryTool:
         try:
             # Get the split prompt settings
             split_prompt_settings = self.configuration["tool_configurations"][
-                self.search_loaded_repository.__name__
+                self.comprehensive_repository_search.__name__
             ]["additional_settings"]["split_prompt"]
 
             split_prompts = split_prompt_settings["value"]

@@ -258,7 +258,7 @@
         },
         "conduct_code_review_from_url": {
             "enabled": false,
-            "return_direct": true,
+            "return_direct": false,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
@@ -406,7 +406,7 @@
         },
         "conduct_code_refactor_from_url": {
             "enabled": false,
-            "return_direct": true,
+            "return_direct": false,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
@@ -433,7 +433,7 @@
                     "label": "Perform a performance code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": false
+                    "value": true
                 },
                 "enable_memory_code_refactor": {
                     "label": "Perform a memory code refactor",
@@ -474,31 +474,31 @@
                 }
             }
         },
-        "get_repository_file_list": {
+        "repository_structure_overview": {
             "enabled": true,
             "return_direct": false
         },
-        "get_repository_code_file": {
+        "specific_file_retrieval": {
             "enabled": true,
             "return_direct": false
         },
-        "search_repository_for_file_info": {
+        "file_information_discovery": {
             "enabled": true,
             "return_direct": false
         },
-        "retrieve_codebase_metrics": {
+        "codebase_analysis": {
             "enabled": true,
             "return_direct": false
         },
-        "look_up_file_in_repository": {
+        "file_name_search": {
             "enabled": true,
             "return_direct": false
         },
-        "locate_files_containing_function": {
+        "function_presence_check": {
             "enabled": true,
             "return_direct": false
         },
-        "locate_functionality_in_repository": {
+        "codebase_functionality_search": {
             "enabled": true,
             "return_direct": false,
             "model_configuration": {
@@ -515,7 +515,7 @@
                 }
             }
         },
-        "search_repository_full_content": {
+        "comprehensive_repository_search": {
             "enabled": true,
             "return_direct": false,
             "additional_settings": {

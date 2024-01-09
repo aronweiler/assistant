@@ -376,7 +376,7 @@ class Code(VectorDatabase):
         self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
-            if similarity_query != "":
+            if similarity_query.strip() != "":
                 # Perform similarity search on CodeFile.code_file_summary_embedding
                 code_file_similarity_results = self._get_similarity_results(
                     session,
@@ -408,9 +408,7 @@ class Code(VectorDatabase):
 
             # Combine results from the three searches
             combined_results = (
-                code_file_similarity_results
-                + code_description_similarity_results
-                + keyword_search_results
+                code_file_similarity_results + code_description_similarity_results
             )
 
             # Sort combined results by relevance
@@ -418,7 +416,7 @@ class Code(VectorDatabase):
                 combined_results,
                 key=lambda x: x[1]
                 if x[1] is not None
-                else 0.5,  # Assuming the second element is the relevance score, handling none for keyword search
+                else 0.5,  # Assuming the second element is the relevance score, handling none for keyword search (not in this list anymore, but keeping this)
                 reverse=False,  # Assuming lower scores indicate higher relevance
             )
 
@@ -428,6 +426,13 @@ class Code(VectorDatabase):
             for result in sorted_combined_results:
                 if result[0].id not in unique_ids:
                     unique_results.append(result)
+                    unique_ids.append(result[0].id)
+
+            # Prepend the keyword search results to the unique list, but only if the id is not already in the list
+            # Keyword results are inserted because they are the most relevant
+            for result in keyword_search_results:
+                if result[0].id not in unique_ids:
+                    unique_results.insert(0, result)
                     unique_ids.append(result[0].id)
 
             # Return the top_k results as CodeFileModel objects
@@ -470,25 +475,46 @@ class Code(VectorDatabase):
 
         return [(code_file, distance) for code_file, distance in result]
 
-    def _get_keyword_search_results(self, session: Session, repository_id: int, keywords: List[str], top_k: int) -> List[CodeFileModel]:
+    def _get_keyword_search_results(
+        self, session: Session, repository_id: int, keywords: List[str], top_k: int
+    ) -> List[CodeFileModel]:
         # Query the code_files table for matches in the code_content field
-        code_content_matches = session.query(CodeFile).filter(
-            CodeFile.code_repositories.any(id=repository_id),
-            or_(*[CodeFile.code_file_content.like(f'%{keyword}%') for keyword in keywords])
-        ).limit(top_k).all()
+        code_content_matches = (
+            session.query(CodeFile)
+            .filter(
+                CodeFile.code_repositories.any(id=repository_id),
+                or_(
+                    *[
+                        CodeFile.code_file_content.like(f"%{keyword}%")
+                        for keyword in keywords
+                    ]
+                ),
+            )
+            .limit(top_k)
+            .all()
+        )
 
         # Query the code_keywords table for matches in the keyword field
-        keyword_matches = session.query(CodeFile).join(CodeKeyword, CodeFile.id == CodeKeyword.code_file_id).filter(
-            CodeFile.code_repositories.any(id=repository_id),
-            or_(*[CodeKeyword.keyword.like(f'%{keyword}%') for keyword in keywords])
-        ).limit(top_k).all()
+        keyword_matches = (
+            session.query(CodeFile)
+            .join(CodeKeyword, CodeFile.id == CodeKeyword.code_file_id)
+            .filter(
+                CodeFile.code_repositories.any(id=repository_id),
+                or_(
+                    *[CodeKeyword.keyword.like(f"%{keyword}%") for keyword in keywords]
+                ),
+            )
+            .limit(top_k)
+            .all()
+        )
 
         # Combine the results and remove duplicates
         combined_results = list(set(code_content_matches + keyword_matches))
 
         # Return the top_k results as CodeFileModel objects
         return [
-            (CodeFileModel.from_database_model(code_file), None) for code_file in combined_results[:top_k]
+            (CodeFileModel.from_database_model(code_file), None)
+            for code_file in combined_results[:top_k]
         ]  # No distance for keyword search
 
 
