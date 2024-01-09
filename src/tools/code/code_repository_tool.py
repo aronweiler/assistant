@@ -145,6 +145,41 @@ class CodeRepositoryTool:
         }
 
     @register_tool(
+        display_name="Retrieve Code Files by Folder",
+        description="Retrieves all code files from the database that reside in a specified folder.",
+        additional_instructions=None,
+        requires_repository=True,
+    )
+    def get_code_files_by_folder(
+        self, repository_id: int, folder_path: str, include_summary: bool
+    ) -> List[CodeFileModel]:
+        """Retrieves all code files from the database that reside in a specified folder."""
+        try:
+            code_files = self.conversation_manager.code_helper.get_code_files_by_folder(
+                repository_id=repository_id, folder_path=folder_path
+            )
+
+            if code_files is None or len(code_files) == 0:
+                return "No code files found in the specified folder."
+
+            # Extract the required information from the search results
+            file_info_list = [
+                {
+                    "file_id": result.id,
+                    "file_name": result.code_file_name,
+                    "file_summary": result.code_file_summary
+                    if include_summary
+                    else None,
+                }
+                for result in code_files
+            ]
+
+            # Return the list of file information
+            return file_info_list
+        except Exception as e:
+            return f"An error occurred during the search: {str(e)}"
+
+    @register_tool(
         display_name="Function Presence Check",
         requires_repository=True,
         description="Identify files containing specified functions by their names.",

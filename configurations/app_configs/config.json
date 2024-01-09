@@ -405,8 +405,8 @@
             }
         },
         "conduct_code_refactor_from_url": {
-            "enabled": false,
-            "return_direct": false,
+            "enabled": true,
+            "return_direct": true,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
@@ -433,7 +433,7 @@
                     "label": "Perform a performance code refactor",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_memory_code_refactor": {
                     "label": "Perform a memory code refactor",
@@ -491,6 +491,10 @@
             "return_direct": false
         },
         "file_name_search": {
+            "enabled": true,
+            "return_direct": false
+        },
+        "get_code_files_by_folder": {
             "enabled": true,
             "return_direct": false
         },

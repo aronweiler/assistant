@@ -372,6 +372,41 @@ class Code(VectorDatabase):
             ).delete(synchronize_session="fetch")
             session.commit()
 
+    def get_code_files_by_folder(self, repository_id: int, folder_path: str) -> List[CodeFileModel]:
+        """Retrieves all code files from the database that reside in a specified folder.
+
+        Args:
+            repository_id (int): The ID of the repository.
+            folder_path (str): The path of the folder within the repository.
+
+        Returns:
+            List[CodeFileModel]: A list of CodeFileModel instances representing the code files.
+        """
+        with self.session_context(self.Session()) as session:
+            # We need to join CodeFile with the association table and then filter by repository ID and folder path
+            code_files = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.record_created,
+                )
+                .join(
+                    code_repository_files_association,
+                    CodeFile.id == code_repository_files_association.c.code_file_id,
+                )
+                .filter(
+                    code_repository_files_association.c.code_repository_id == repository_id,
+                    CodeFile.code_file_name.like(f'{folder_path}/%')
+                )
+                .all()
+            )
+
+            return [CodeFileModel.from_database_model(c) for c in code_files]
+
     def search_code_files(
         self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
