@@ -376,7 +376,6 @@ class Code(VectorDatabase):
         self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
-            
             if similarity_query != "":
                 # Perform similarity search on CodeFile.code_file_summary_embedding
                 code_file_similarity_results = self._get_similarity_results(
@@ -386,7 +385,7 @@ class Code(VectorDatabase):
                     similarity_query,
                     top_k,
                 )
-                
+
                 # Perform similarity search on CodeDescription.description_text_embedding
                 code_description_similarity_results = self._get_similarity_results(
                     session,
@@ -399,7 +398,6 @@ class Code(VectorDatabase):
                 code_file_similarity_results = []
                 code_description_similarity_results = []
 
-                
             if keywords != []:
                 # Perform keyword search on CodeKeywords.keyword
                 keyword_search_results = self._get_keyword_search_results(
@@ -495,8 +493,31 @@ class Code(VectorDatabase):
             .subquery()
         )
 
-        statement = select(CodeFile).join(
-            keyword_query, CodeFile.id == keyword_query.c.code_file_id
+        content_query = (
+            session.query(CodeFile.id)
+            .join(
+                code_repository_files_association,
+                CodeFile.id == code_repository_files_association.c.code_file_id,
+            )
+            .filter(
+                code_repository_files_association.c.code_repository_id == repository_id
+            )
+            .filter(
+                or_(
+                    func.lower(CodeFile.code_file_content).contains(func.lower(kword))
+                    for kword in keywords
+                )
+            )
+            .limit(top_k)
+            .subquery()
+        )
+
+        statement = (
+            select(CodeFile)
+            .join(
+                keyword_query, CodeFile.id == keyword_query.c.code_file_id, isouter=True
+            )
+            .join(content_query, CodeFile.id == content_query.c.id, isouter=True)
         )
 
         result = session.execute(statement).scalars().all()
