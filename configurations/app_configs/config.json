@@ -406,7 +406,7 @@
         },
         "conduct_code_refactor_from_url": {
             "enabled": false,
-            "return_direct": false,
+            "return_direct": true,
             "additional_settings": {
                 "json_output": {
                     "label": "Output the refactored code as JSON",
@@ -491,6 +491,10 @@
             "return_direct": false
         },
         "look_up_file_in_repository": {
+            "enabled": true,
+            "return_direct": false
+        },
+        "locate_files_containing_function": {
             "enabled": true,
             "return_direct": false
         },
