@@ -183,7 +183,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         # Iterate over each step and check if its tool is in the set of tool names
         for step in steps:
-            if "tool" not in step:
+            if "tool" not in step or step["tool"].strip() == "":
                 logging.error(
                     f"Step does not have a tool: {step}.  Skipping this step."
                 )
