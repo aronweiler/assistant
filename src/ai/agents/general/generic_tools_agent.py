@@ -374,11 +374,35 @@ class GenericToolsAgent(BaseSingleActionAgent):
             # Reset the wrong tool calls
             self.wrong_tool_calls = []
 
+        selected_repo = self.conversation_manager.get_selected_repository()
+        loaded_documents = self.get_loaded_documents()
+
+        if selected_repo:
+            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "SELECTED_REPO_TEMPLATE",
+            ).format(
+                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
+            )
+        else:
+            selected_repo_prompt = ""
+
+        if loaded_documents:
+            loaded_documents_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "generic_tools_agent",
+                    "LOADED_DOCUMENTS_TEMPLATE",
+                ).format(loaded_documents=loaded_documents)
+            )
+        else:
+            loaded_documents_prompt = ""
+
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "TOOL_USE_TEMPLATE",
         ).format(
-            loaded_documents=self.get_loaded_documents(),
+            selected_repository_prompt=selected_repo_prompt,
+            loaded_documents_prompt=loaded_documents_prompt,
             helpful_context=helpful_context,
             tool_name=tool_name,
             tool_details=tool_details,

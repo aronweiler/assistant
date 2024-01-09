@@ -43,7 +43,7 @@ Review the user's query to decide on a direct answer or a systematic breakdown.
 It is crucial to ensure the clarity of each step and to eliminate any co-references.
 
 Key Points to Remember:
-- Use only the tools provided.
+- Use only the tools provided. Do not use placeholders for tools that do not exist.
 - Resolve all co-references to make each step executable independently.
 - Encapsulate responses in a Markdown code block marked as JSON.
 - Confirm the syntax of the JSON structure before finalizing your response.
@@ -113,12 +113,8 @@ AI: Sure, here is my response in JSON (inside a markdown ```json ``` code block)
 TOOL_USE_TEMPLATE = """{system_prompt}
 
 Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:
-
-Documents currently loaded (note each document's ID):
---- LOADED DOCUMENTS ---
-{loaded_documents}
---- LOADED DOCUMENTS ---
-
+{loaded_documents_prompt}
+{selected_repository_prompt}
 Previous user interactions:
 --- CHAT HISTORY ---
 {chat_history}
@@ -134,7 +130,7 @@ Details of the '{tool_name}' tool to be used:
 {tool_details}
 --- TOOL DETAILS ---
 
-Pay close attention to the required arguments for this tool, and make sure to include them in the JSON output.
+Pay close attention to the required arguments for this tool, and make sure to include them in the JSON output.  Do not use placeholders for values- only use actual values.  If you don't have a value for a required argument, then you cannot use the tool.
 
 I want you to use the '{tool_name}' tool in order to do the following:
 --- TOOL USE DESCRIPTION ---
