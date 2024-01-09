@@ -153,6 +153,25 @@ class CodeRepositoryTool:
         }
 
     @register_tool(
+        display_name="Locate Files Containing a Particular Function or Functions",
+        requires_repository=True,
+        description="Searches the loaded repository for the partial (or full) function names and returns a list of associated file IDs, names, and summaries.",
+        additional_instructions="Use this tool to find a set of files containing the specified (full or partial) function names, which you can then get the code for (after getting the ID here).",
+    )
+    def locate_files_containing_function(self, partial_function_names: List[str]):
+        """Locate Files Containing a Particular Function or Functions"""
+        try:
+            # Use the search_repository_for_file_info tool to find files that may contain the desired functionality
+            file_info_list = self.search_repository_for_file_info(
+                semantic_similarity_query="",
+                keywords_list=partial_function_names,
+            )
+
+            return file_info_list
+        except Exception as e:
+            return f"An error occurred during the search: {str(e)}"
+
+    @register_tool(
         display_name="Functionality Locator",
         requires_repository=True,
         description="Locates specific functionality within the codebase.",
@@ -200,7 +219,9 @@ class CodeRepositoryTool:
                     relevant_snippets = [relevant_snippets]
 
                 if len(relevant_snippets) == 0:
-                    relevant_snippets = [f"No relevant snippets found in {file_info['file_name']}."]
+                    relevant_snippets = [
+                        f"No relevant snippets found in {file_info['file_name']}."
+                    ]
 
                 functionality_snippets.append(
                     {

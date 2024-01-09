@@ -376,28 +376,37 @@ class Code(VectorDatabase):
         self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
-            # Perform similarity search on CodeFile.code_file_summary_embedding
-            code_file_similarity_results = self._get_similarity_results(
-                session,
-                repository_id,
-                CodeFile.code_file_summary_embedding,
-                similarity_query,
-                top_k,
-            )
+            
+            if similarity_query != "":
+                # Perform similarity search on CodeFile.code_file_summary_embedding
+                code_file_similarity_results = self._get_similarity_results(
+                    session,
+                    repository_id,
+                    CodeFile.code_file_summary_embedding,
+                    similarity_query,
+                    top_k,
+                )
+                
+                # Perform similarity search on CodeDescription.description_text_embedding
+                code_description_similarity_results = self._get_similarity_results(
+                    session,
+                    repository_id,
+                    CodeDescription.description_text_embedding,
+                    similarity_query,
+                    top_k,
+                )
+            else:
+                code_file_similarity_results = []
+                code_description_similarity_results = []
 
-            # Perform similarity search on CodeDescription.description_text_embedding
-            code_description_similarity_results = self._get_similarity_results(
-                session,
-                repository_id,
-                CodeDescription.description_text_embedding,
-                similarity_query,
-                top_k,
-            )
-
-            # Perform keyword search on CodeKeywords.keyword
-            keyword_search_results = self._get_keyword_search_results(
-                session, repository_id, keywords, top_k
-            )
+                
+            if keywords != []:
+                # Perform keyword search on CodeKeywords.keyword
+                keyword_search_results = self._get_keyword_search_results(
+                    session, repository_id, keywords, top_k
+                )
+            else:
+                keyword_search_results = []
 
             # Combine results from the three searches
             combined_results = (
