@@ -123,26 +123,38 @@ class CodeRepositoryTool:
     @register_tool(
         display_name="Specific File Retrieval",
         requires_repository=True,
-        description="Retrieve a particular file from the repository using its unique identifier.",
-        additional_instructions="To fetch a specific file, supply its ID. Use the 'Repository Structure Overview' tool to find necessary file identifiers.",
+        description="Retrieve a particular file (or files) from the repository using its unique identifier.",
+        additional_instructions="To retrieve a file or files, pass in a list of file IDs. Use the 'Repository Structure Overview' tool to find necessary file identifiers.",
     )
-    def specific_file_retrieval(self, file_id: int):
+    def specific_file_retrieval(self, file_ids: List[int]):
         """Gets a specific code file from a loaded code repository by name or ID."""
-        if file_id is not None:
+        # Handle the case where the file_ids is a single int
+
+        if file_ids is None or len(file_ids) == 0:
+            return "Please provide one or more file IDs.  File IDs can be found by using the repository structure overview tool."
+
+        if isinstance(file_ids, int):
+            file_ids = [file_ids]
+
+        code_files = []
+        for file_id in file_ids:
             # Get the code file by ID
             code_file = self.conversation_manager.code_helper.get_code_file_by_id(
                 file_id
             )
-        else:
-            return "Please provide a file ID.  File IDs can be found by using the repository structure overview tool."
 
-        if code_file is None:
-            return "Code file not found."
+            if code_file is not None:
+                code_files.append(code_file)
 
-        return {
-            "file_name": code_file.code_file_name,
-            "file_content": code_file.code_file_content,
-        }
+        if code_files is None or len(code_files) == 0:
+            return "Code file(s) with the provided IDs were not found."
+
+        return "\n".join(
+            [
+                f"**{code_file.code_file_name}**\n{code_file.code_file_content}\n\n"
+                for code_file in code_files
+            ]
+        )
 
     @register_tool(
         display_name="Retrieve Code Files by Folder",
@@ -155,9 +167,21 @@ class CodeRepositoryTool:
     ) -> List[CodeFileModel]:
         """Retrieves all code files from the database that reside in a specified folder."""
         try:
-            code_files = self.conversation_manager.code_helper.get_code_files_by_folder(
-                repository_id=repository_id, folder_path=folder_path
-            )
+            if (
+                folder_path is None
+                or folder_path == ""
+                or folder_path == "/"
+                or folder_path == "\\"
+            ):
+                code_files = self.conversation_manager.code_helper.get_code_files(
+                    repository_id=repository_id
+                )
+            else:
+                code_files = (
+                    self.conversation_manager.code_helper.get_code_files_by_folder(
+                        repository_id=repository_id, folder_path=folder_path
+                    )
+                )
 
             if code_files is None or len(code_files) == 0:
                 return "No code files found in the specified folder."
@@ -215,7 +239,9 @@ class CodeRepositoryTool:
             # Process the results to extract relevant code snippets
             functionality_snippets = []
             for file_info in file_info_list:
-                code_file = self.specific_file_retrieval(file_id=file_info["file_id"])
+                code_file = self.specific_file_retrieval(
+                    file_ids=[file_info["file_id"]]
+                )
 
                 get_relevant_snippets_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
@@ -324,7 +350,7 @@ class CodeRepositoryTool:
             if split_prompts > 1:
                 llm = get_tool_llm(
                     configuration=self.configuration,
-                    func_name=self.search_loaded_repository.__name__,
+                    func_name=self.comprehensive_repository_search.__name__,
                     streaming=True,
                     # Crank up the frequency and presence penalties to make the LLM give us more variety
                     model_kwargs={
@@ -424,7 +450,7 @@ class CodeRepositoryTool:
 
         llm = get_tool_llm(
             configuration=self.configuration,
-            func_name=self.search_loaded_repository.__name__,
+            func_name=self.comprehensive_repository_search.__name__,
             streaming=True,
         )
 
