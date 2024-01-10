@@ -218,6 +218,12 @@ class GenericToolsAgent(BaseSingleActionAgent):
             llm=self.llm,
         )
 
+        if "final_answer" in action_json:
+            return AgentFinish(
+                return_values={"output": action_json["final_answer"]},
+                log="Agent finished, answering directly.",
+            )
+
         action = AgentAction(
             tool=action_json["tool"],
             tool_input=action_json["tool_args"] if "tool_args" in action_json else {},
@@ -396,6 +402,15 @@ class GenericToolsAgent(BaseSingleActionAgent):
             )
         else:
             loaded_documents_prompt = ""
+            
+        chat_history = self.get_chat_history()
+        if chat_history and len(chat_history) > 0:
+            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "CHAT_HISTORY_TEMPLATE",
+            ).format(chat_history=chat_history)
+        else:
+            chat_history_prompt = ""
 
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
@@ -408,7 +423,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
-            chat_history=self.get_chat_history(),
+            chat_history_prompt=chat_history_prompt,
             system_prompt=self.get_system_prompt(
                 system_information,
             ),

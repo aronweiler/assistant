@@ -112,32 +112,27 @@ AI: Sure, here is my response in JSON (inside a markdown ```json ``` code block)
 
 TOOL_USE_TEMPLATE = """{system_prompt}
 
-Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:
-{loaded_documents_prompt}
+Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:{loaded_documents_prompt}
 {selected_repository_prompt}
-Previous user interactions:
---- CHAT HISTORY ---
-{chat_history}
---- CHAT HISTORY ---
-
+{chat_history_prompt}
 Additional context for the tool's use:
 --- HELPFUL CONTEXT ---
 {helpful_context}
 --- HELPFUL CONTEXT ---
 
-Details of the '{tool_name}' tool to be used:
+Details of the `{tool_name}` tool you will be constructing a call for:
 --- TOOL DETAILS ---
 {tool_details}
 --- TOOL DETAILS ---
 
 Pay close attention to the required arguments for this tool, and make sure to include them in the JSON output.  Do not use placeholders for values- only use actual values.  If you don't have a value for a required argument, then you cannot use the tool.
 
-I want you to use the '{tool_name}' tool in order to do the following:
+I want you to use the `{tool_name}` tool in order to do the following:
 --- TOOL USE DESCRIPTION ---
 {tool_use_description}
 --- TOOL USE DESCRIPTION ---
 
-Ensure the JSON includes all required arguments for '{tool_name}'. Format your response as follows:
+Ensure the JSON includes all required arguments for `{tool_name}`. Format your response as follows:
 
 ```json
 {{
