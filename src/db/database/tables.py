@@ -412,3 +412,19 @@ class CodeDescription(ModelBase):
 CodeFile.code_descriptions = relationship(
     "CodeDescription", order_by=CodeDescription.id, back_populates="code_file"
 )
+
+
+class ToolCallResults(ModelBase):
+    __tablename__ = 'tool_call_results'
+
+    id = Column(Integer, primary_key=True)
+    conversation_id = Column(Uuid, ForeignKey('conversations.id'), nullable=False)
+    tool_name = Column(String, nullable=False)
+    tool_arguments = Column(String, nullable=True)
+    tool_results = Column(String, nullable=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    # Define the relationship with Conversation
+    conversation = relationship('Conversation', back_populates='tool_call_results')
+
+Conversation.tool_call_results = relationship('ToolCallResults', order_by=ToolCallResults.id, back_populates='conversation')

@@ -17,6 +17,8 @@ from src.configuration.assistant_configuration import ModelConfiguration
 
 from src.utilities.parsing_utilities import parse_json
 
+from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
+
 
 class GenericToolsAgent(BaseSingleActionAgent):
     model_configuration: ModelConfiguration = None
