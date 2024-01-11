@@ -1,3 +1,10 @@
+### ### January 10, 2024 -- RELEASE NOTES: Jarvis 0.69
+- Introduced new tools and features for enhanced code search, retrieval, and repository file management, including direct answer support in GenericToolsAgent.
+- Streamlined development workflow with updated tool handling, refined keyword search functionality, and added code retrieval by folder feature.
+- Improved codebase maintainability with comprehensive refactoring, better comments, and removal of outdated files.
+- Enhanced user experience through improved error messaging, display features in GenericToolsAgent, and optimized conversation tracking methods.
+- Advanced configuration management with updates to config.json and the introduction of standardized tool creation via the GenericTool class.
+
 ### January 5, 2024 -- RELEASE NOTES: Jarvis 0.68
 - Added ability to resume file ingestion when interrupted (needs documentation and more usability)
 - Refactored tool registration and tool management, making it much easier to add new tools.
