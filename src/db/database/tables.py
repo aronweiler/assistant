@@ -1,3 +1,10 @@
+# This file contains the SQLAlchemy ORM class definitions for a database schema used in the assistant application. 
+# Each class within this file represents a distinct table in the database, with attributes corresponding to the table columns. 
+# The classes also define relationships between tables, such as one-to-many and many-to-many associations, 
+# which facilitate the querying and manipulation of related data. 
+# The file is structured to provide a clear mapping between the application's data models and the underlying database structure, 
+# enabling efficient data storage, retrieval, and management.
+
 from sqlalchemy import (
     Column,
     Integer,
@@ -21,7 +28,8 @@ from datetime import datetime
 Base = declarative_base()
 
 
-# ModelBase allows us to access the relationships of a model by using the [] operator
+# ModelBase serves as a base class for all models. It provides common functionality and ensures that
+# the derived classes are mapped to tables in the database.
 class ModelBase(Base):
     __abstract__ = True  # This makes ModelBase an abstract class, so it won't create a table in the database
 
@@ -30,6 +38,7 @@ class ModelBase(Base):
     )
 
 
+# User model represents a user in the system with their associated properties and relationships.
 class User(ModelBase):
     __tablename__ = "users"
 
@@ -83,6 +92,7 @@ class User(ModelBase):
 #     user = relationship("User", back_populates="user_settings")
 
 
+# Conversation model represents a conversation in the system with its properties and relationships.
 class Conversation(ModelBase):
     __tablename__ = "conversations"
 
@@ -112,6 +122,7 @@ class Conversation(ModelBase):
     user = relationship("User", back_populates="conversations")
 
 
+# ConversationMessage model represents a message within a conversation, including its properties and relationships.
 class ConversationMessage(ModelBase):
     __tablename__ = "conversation_messages"
 
@@ -164,6 +175,7 @@ class ConversationMessage(ModelBase):
     )
 
 
+# ConversationRoleType model represents the role types that can be assigned to messages within a conversation.
 class ConversationRoleType(ModelBase):
     __tablename__ = "conversation_role_types"
 
@@ -175,6 +187,7 @@ class ConversationRoleType(ModelBase):
     )
 
 
+# File model represents a file within the system, including its properties and relationships to other models.
 class File(ModelBase):
     __tablename__ = "files"
 
@@ -225,6 +238,7 @@ class File(ModelBase):
     __table_args__ = (UniqueConstraint("collection_id", "file_name"),)
 
 
+# Document model represents a document within the system, detailing its properties and relationships.
 class Document(ModelBase):
     __tablename__ = "documents"
 
@@ -294,6 +308,7 @@ class Document(ModelBase):
     file = relationship("File", back_populates="documents")
 
 
+# DocumentCollection model represents a collection of documents, including its properties and relationships.
 class DocumentCollection(ModelBase):
     __tablename__ = "document_collections"
 
@@ -307,7 +322,7 @@ class DocumentCollection(ModelBase):
     files = relationship("File", back_populates="collection")
 
 
-# Association table for the many-to-many relationship
+# Association table for the many-to-many relationship between code repositories and code files.
 code_repository_files_association = Table(
     "code_repository_files",
     ModelBase.metadata,
@@ -321,6 +336,7 @@ code_repository_files_association = Table(
 )
 
 
+# CodeRepository model represents a code repository, including its properties and relationships.
 class CodeRepository(ModelBase):
     __tablename__ = "code_repositories"
 
@@ -341,6 +357,7 @@ class CodeRepository(ModelBase):
     )
 
 
+# CodeFile model represents a file within a code repository, detailing its properties and relationships.
 class CodeFile(ModelBase):
     __tablename__ = "code_files"
 
@@ -362,6 +379,7 @@ class CodeFile(ModelBase):
     )
 
 
+# CodeKeyword model represents a keyword associated with a code file.
 class CodeKeyword(ModelBase):
     __tablename__ = "code_keywords"
 
@@ -378,6 +396,7 @@ CodeFile.code_keywords = relationship(
 )
 
 
+# CodeDescription model represents a description of a code file, including its properties and relationships.
 class CodeDescription(ModelBase):
     __tablename__ = "code_descriptions"
 

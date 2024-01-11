@@ -4,7 +4,7 @@ import logging
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.tools.tool_loader import get_available_tools
 
-from src.ai.agents.general.generic_tools_agent import GenericTool
+from src.ai.agents.general.generic_tool import GenericTool
 
 
 class ToolManager:
@@ -30,6 +30,14 @@ class ToolManager:
                 tool
                 for tool in tools_that_should_be_enabled
                 if not tool.requires_documents
+            ]
+            
+        # Now filter them down based on repo-related tools, and if there is a repository loaded
+        if self.conversation_manager.get_selected_repository() is None:
+            tools_that_should_be_enabled = [
+                tool
+                for tool in tools_that_should_be_enabled
+                if not tool.requires_repository
             ]
 
         return tools_that_should_be_enabled

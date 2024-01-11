@@ -20,6 +20,12 @@ def create_documents_collection_tab(ai, tab: DeltaGenerator):
         selected_collection_id_index = 0
         # Find the index of the selected collection
         for i, collection in enumerate(available_collections):
+            conversation = ai.conversation_manager.get_conversation()
+            
+            if conversation is None:
+                selected_collection_id_index = -1
+                break
+            
             if int(collection.split(":")[0]) == int(
                 ai.conversation_manager.get_conversation().last_selected_collection_id
             ):

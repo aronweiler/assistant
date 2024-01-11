@@ -85,16 +85,22 @@ class Conversations(VectorDatabase):
 
     def get_conversation_by_user_id(self, user_id: int) -> List[ConversationModel]:
         with self.session_context(self.Session()) as session:
-            query = session.query(
-                Conversation.conversation_summary,
-                Conversation.needs_summary,
-                Conversation.last_selected_collection_id,
-                Conversation.last_selected_code_repo,
-                Conversation.user_id,
-                Conversation.id,
-                Conversation.is_deleted,
-                Conversation.record_created,
-            ).filter(Conversation.user_id == user_id, Conversation.is_deleted == False)
+            query = (
+                session.query(
+                    Conversation.conversation_summary,
+                    Conversation.needs_summary,
+                    Conversation.last_selected_collection_id,
+                    Conversation.last_selected_code_repo,
+                    Conversation.user_id,
+                    Conversation.id,
+                    Conversation.is_deleted,
+                    Conversation.record_created,
+                )
+                .filter(
+                    Conversation.user_id == user_id, Conversation.is_deleted == False
+                )
+                .order_by(Conversation.record_created)
+            )
 
             return [ConversationModel.from_database_model(i) for i in query.all()]
 

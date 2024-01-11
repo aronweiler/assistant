@@ -7,7 +7,7 @@ from typing import List, Any
 from requests import Session
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
-from sqlalchemy import func, select, column, cast, or_
+from sqlalchemy import and_, func, select, column, cast, or_
 
 import pgvector.sqlalchemy
 
@@ -254,7 +254,57 @@ class Code(VectorDatabase):
 
             return [CodeFileModel.from_database_model(c) for c in code_files]
 
-    def get_code_file(self, code_repo_id: int, code_file_name: str) -> CodeFileModel:
+    def get_code_file_by_id(self, code_file_id: int) -> CodeFileModel:
+        with self.session_context(self.Session()) as session:
+            # We now need to join CodeFile with the association table and then filter by repository ID
+            code_file = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.record_created,
+                )
+                .filter(CodeFile.id == code_file_id)
+                .one_or_none()
+            )
+
+            return CodeFileModel.from_database_model(code_file) if code_file else None
+
+    def get_code_files_by_partial_name(
+        self, repository_id: int, partial_file_name: str
+    ) -> List[CodeFileModel]:
+        with self.session_context(self.Session()) as session:
+            # We now need to join CodeFile with the association table and then filter by repository ID
+            code_files = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.record_created,
+                )
+                .join(
+                    code_repository_files_association,
+                    CodeFile.id == code_repository_files_association.c.code_file_id,
+                )
+                .filter(
+                    code_repository_files_association.c.code_repository_id
+                    == repository_id
+                )
+                .filter(CodeFile.code_file_name.contains(partial_file_name))
+                .all()
+            )
+
+            return [CodeFileModel.from_database_model(c) for c in code_files]
+
+    def get_code_file_by_name(
+        self, code_repo_id: int, code_file_name: str
+    ) -> CodeFileModel:
         with self.session_context(self.Session()) as session:
             # Join CodeFile with the association table and filter by repository ID and file name
             code_file = (
@@ -294,6 +344,26 @@ class Code(VectorDatabase):
 
             return code_file.id if code_file else None
 
+    def get_code_file_keywords(self, code_file_id: int) -> List[str]:
+        with self.session_context(self.Session()) as session:
+            keywords = (
+                session.query(CodeKeyword.keyword)
+                .filter(CodeKeyword.code_file_id == code_file_id)
+                .all()
+            )
+
+            return [keyword.keyword for keyword in keywords]
+
+    def get_code_file_descriptions(self, code_file_id: int) -> List[str]:
+        with self.session_context(self.Session()) as session:
+            descriptions = (
+                session.query(CodeDescription.description_text)
+                .filter(CodeDescription.code_file_id == code_file_id)
+                .all()
+            )
+
+            return [description.description_text for description in descriptions]
+
     def unlink_code_files(self, code_repo_id: int):
         with self.session_context(self.Session()) as session:
             # Unlink the code files from the repository
@@ -302,38 +372,78 @@ class Code(VectorDatabase):
             ).delete(synchronize_session="fetch")
             session.commit()
 
+    def get_code_files_by_folder(self, repository_id: int, folder_path: str) -> List[CodeFileModel]:
+        """Retrieves all code files from the database that reside in a specified folder.
+
+        Args:
+            repository_id (int): The ID of the repository.
+            folder_path (str): The path of the folder within the repository.
+
+        Returns:
+            List[CodeFileModel]: A list of CodeFileModel instances representing the code files.
+        """
+        with self.session_context(self.Session()) as session:
+            # We need to join CodeFile with the association table and then filter by repository ID and folder path
+            code_files = (
+                session.query(
+                    CodeFile.id,
+                    CodeFile.code_file_name,
+                    CodeFile.code_file_sha,
+                    CodeFile.code_file_content,
+                    CodeFile.code_file_summary,
+                    CodeFile.code_file_summary_embedding,
+                    CodeFile.record_created,
+                )
+                .join(
+                    code_repository_files_association,
+                    CodeFile.id == code_repository_files_association.c.code_file_id,
+                )
+                .filter(
+                    code_repository_files_association.c.code_repository_id == repository_id,
+                    CodeFile.code_file_name.like(f'{folder_path}/%')
+                )
+                .all()
+            )
+
+            return [CodeFileModel.from_database_model(c) for c in code_files]
+
     def search_code_files(
         self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
-            # Perform similarity search on CodeFile.code_file_summary_embedding
-            code_file_similarity_results = self._get_similarity_results(
-                session,
-                repository_id,
-                CodeFile.code_file_summary_embedding,
-                similarity_query,
-                top_k,
-            )
+            if similarity_query.strip() != "":
+                # Perform similarity search on CodeFile.code_file_summary_embedding
+                code_file_similarity_results = self._get_similarity_results(
+                    session,
+                    repository_id,
+                    CodeFile.code_file_summary_embedding,
+                    similarity_query,
+                    top_k,
+                )
 
-            # Perform similarity search on CodeDescription.description_text_embedding
-            code_description_similarity_results = self._get_similarity_results(
-                session,
-                repository_id,
-                CodeDescription.description_text_embedding,
-                similarity_query,
-                top_k,
-            )
+                # Perform similarity search on CodeDescription.description_text_embedding
+                code_description_similarity_results = self._get_similarity_results(
+                    session,
+                    repository_id,
+                    CodeDescription.description_text_embedding,
+                    similarity_query,
+                    top_k,
+                )
+            else:
+                code_file_similarity_results = []
+                code_description_similarity_results = []
 
-            # Perform keyword search on CodeKeywords.keyword
-            keyword_search_results = self._get_keyword_search_results(
-                session, repository_id, keywords, top_k
-            )
+            if keywords != []:
+                # Perform keyword search on CodeKeywords.keyword
+                keyword_search_results = self._get_keyword_search_results(
+                    session, repository_id, keywords, top_k
+                )
+            else:
+                keyword_search_results = []
 
             # Combine results from the three searches
             combined_results = (
-                code_file_similarity_results
-                + code_description_similarity_results
-                + keyword_search_results
+                code_file_similarity_results + code_description_similarity_results
             )
 
             # Sort combined results by relevance
@@ -341,7 +451,7 @@ class Code(VectorDatabase):
                 combined_results,
                 key=lambda x: x[1]
                 if x[1] is not None
-                else 0.5,  # Assuming the second element is the relevance score, handling none for keyword search
+                else 0.5,  # Assuming the second element is the relevance score, handling none for keyword search (not in this list anymore, but keeping this)
                 reverse=False,  # Assuming lower scores indicate higher relevance
             )
 
@@ -351,6 +461,13 @@ class Code(VectorDatabase):
             for result in sorted_combined_results:
                 if result[0].id not in unique_ids:
                     unique_results.append(result)
+                    unique_ids.append(result[0].id)
+
+            # Prepend the keyword search results to the unique list, but only if the id is not already in the list
+            # Keyword results are inserted because they are the most relevant
+            for result in keyword_search_results:
+                if result[0].id not in unique_ids:
+                    unique_results.insert(0, result)
                     unique_ids.append(result[0].id)
 
             # Return the top_k results as CodeFileModel objects
@@ -395,35 +512,44 @@ class Code(VectorDatabase):
 
     def _get_keyword_search_results(
         self, session: Session, repository_id: int, keywords: List[str], top_k: int
-    ):
-        keyword_query = (
-            session.query(CodeKeyword.code_file_id)
-            .join(
-                code_repository_files_association,
-                CodeKeyword.code_file_id
-                == code_repository_files_association.c.code_file_id,
-            )
+    ) -> List[CodeFileModel]:
+        # Query the code_files table for matches in the code_content field
+        code_content_matches = (
+            session.query(CodeFile)
             .filter(
-                code_repository_files_association.c.code_repository_id == repository_id
-            )
-            .filter(
+                CodeFile.code_repositories.any(id=repository_id),
                 or_(
-                    func.lower(CodeKeyword.keyword).contains(func.lower(kword))
-                    for kword in keywords
-                )
+                    *[
+                        CodeFile.code_file_content.like(f"%{keyword}%")
+                        for keyword in keywords
+                    ]
+                ),
             )
             .limit(top_k)
-            .subquery()
+            .all()
         )
 
-        statement = select(CodeFile).join(
-            keyword_query, CodeFile.id == keyword_query.c.code_file_id
+        # Query the code_keywords table for matches in the keyword field
+        keyword_matches = (
+            session.query(CodeFile)
+            .join(CodeKeyword, CodeFile.id == CodeKeyword.code_file_id)
+            .filter(
+                CodeFile.code_repositories.any(id=repository_id),
+                or_(
+                    *[CodeKeyword.keyword.like(f"%{keyword}%") for keyword in keywords]
+                ),
+            )
+            .limit(top_k)
+            .all()
         )
 
-        result = session.execute(statement).scalars().all()
+        # Combine the results and remove duplicates
+        combined_results = list(set(code_content_matches + keyword_matches))
 
+        # Return the top_k results as CodeFileModel objects
         return [
-            (CodeFileModel.from_database_model(code_file), None) for code_file in result
+            (CodeFileModel.from_database_model(code_file), None)
+            for code_file in combined_results[:top_k]
         ]  # No distance for keyword search
 
 

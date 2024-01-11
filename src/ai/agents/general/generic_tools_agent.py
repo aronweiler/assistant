@@ -9,72 +9,13 @@ from langchain.agents import AgentExecutor, BaseMultiActionAgent, BaseSingleActi
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
+from src.ai.agents.general.generic_tool import GenericTool
 
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.configuration.assistant_configuration import ModelConfiguration
 
 from src.utilities.parsing_utilities import parse_json
-
-
-class GenericTool:
-    def __init__(
-        self,
-        display_name,
-        description,
-        function,
-        name=None,
-        requires_documents=False,
-        help_text=None,
-        document_classes=[],
-        return_direct=False,
-        additional_instructions=None,
-    ):
-        self.description = description
-        self.additional_instructions = additional_instructions
-        self.function = function
-        self.schema = self.extract_function_schema(function)
-        self.schema_name = self.schema["name"]
-        self.name = name if name else self.schema["name"]
-        self.structured_tool = StructuredTool.from_function(
-            func=self.function, return_direct=return_direct, description=description
-        )
-        self.document_classes = document_classes
-        self.display_name = display_name
-        self.requires_documents = requires_documents
-        self.help_text = help_text if help_text else self.description
-
-    def extract_function_schema(self, func):
-        import inspect
-
-        sig = inspect.signature(func)
-        parameters = []
-
-        def stringify_annotation(parameter):
-            if hasattr(
-                parameter.annotation, "__origin__"
-            ):  # This checks if it's a special type from typing
-                return str(parameter.annotation).replace(
-                    "typing.", ""
-                )  # Strips the 'typing.' part if present
-            elif hasattr(parameter.annotation, "__name__"):
-                return parameter.annotation.__name__
-            else:
-                return str(parameter.annotation)
-
-        for param_name, param in sig.parameters.items():
-            param_info = {
-                "argument_name": param_name,
-                "argument_type": stringify_annotation(param),
-                "required": "optional"
-                if param.default != inspect.Parameter.empty
-                else "required",
-            }
-            parameters.append(param_info)
-
-        schema = {"name": func.__name__, "parameters": parameters}
-
-        return schema
 
 
 class GenericToolsAgent(BaseSingleActionAgent):
@@ -235,13 +176,21 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
-        tool_names = {tool.name for tool in tools}
+        tool_names = [tool.name for tool in tools]
 
         # Create a new list to store the filtered steps
         filtered_steps = []
 
         # Iterate over each step and check if its tool is in the set of tool names
         for step in steps:
+            if "tool" not in step or step["tool"].strip() == "":
+                logging.error(
+                    f"Step does not have a tool: {step}.  Skipping this step."
+                )
+                self.wrong_tool_calls.append(step)
+                
+                continue
+            
             if step["tool"] in tool_names:
                 filtered_steps.append(step)
             else:
@@ -268,6 +217,12 @@ class GenericToolsAgent(BaseSingleActionAgent):
             text,
             llm=self.llm,
         )
+
+        if "final_answer" in action_json:
+            return AgentFinish(
+                return_values={"output": action_json["final_answer"]},
+                log="Agent finished, answering directly.",
+            )
 
         action = AgentAction(
             tool=action_json["tool"],
@@ -361,22 +316,20 @@ class GenericToolsAgent(BaseSingleActionAgent):
             selected_repo_prompt = ""
 
         if loaded_documents:
-            loaded_documents_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent",
-                "LOADED_DOCUMENTS_TEMPLATE",
-            ).format(
-                loaded_documents=loaded_documents
+            loaded_documents_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "generic_tools_agent",
+                    "LOADED_DOCUMENTS_TEMPLATE",
+                ).format(loaded_documents=loaded_documents)
             )
         else:
             loaded_documents_prompt = ""
-            
+
         if chat_history and len(chat_history) > 0:
             chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
                 "generic_tools_agent",
                 "CHAT_HISTORY_TEMPLATE",
-            ).format(
-                chat_history=chat_history
-            )
+            ).format(chat_history=chat_history)
         else:
             chat_history_prompt = ""
 
@@ -418,26 +371,59 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if len(self.wrong_tool_calls) > 0:
             formatted_wrong_tool_calls = "\n".join(
                 [
-                    f"({p['tool']}): {p['step_description']}"
+                    f"{p}"
                     for p in self.wrong_tool_calls
                 ]
             )
-            helpful_context = f"The planning AI (which came up with the idea to use this tool call) failed with regards to these tasks: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (incorrect) tool calls, and let them inform your tool use here."
+            helpful_context = f"The planning AI (which is supposed to plan out steps to accomplish the user's goal) came up with these invalid tool calls: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (or incorrect) tool calls, and let them inform your tool use and eventual answer here."
 
             # Reset the wrong tool calls
             self.wrong_tool_calls = []
+
+        selected_repo = self.conversation_manager.get_selected_repository()
+        loaded_documents = self.get_loaded_documents()
+
+        if selected_repo:
+            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "SELECTED_REPO_TEMPLATE",
+            ).format(
+                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
+            )
+        else:
+            selected_repo_prompt = ""
+
+        if loaded_documents:
+            loaded_documents_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "generic_tools_agent",
+                    "LOADED_DOCUMENTS_TEMPLATE",
+                ).format(loaded_documents=loaded_documents)
+            )
+        else:
+            loaded_documents_prompt = ""
+            
+        chat_history = self.get_chat_history()
+        if chat_history and len(chat_history) > 0:
+            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
+                "generic_tools_agent",
+                "CHAT_HISTORY_TEMPLATE",
+            ).format(chat_history=chat_history)
+        else:
+            chat_history_prompt = ""
 
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "TOOL_USE_TEMPLATE",
         ).format(
-            loaded_documents=self.get_loaded_documents(),
+            selected_repository_prompt=selected_repo_prompt,
+            loaded_documents_prompt=loaded_documents_prompt,
             helpful_context=helpful_context,
             tool_name=tool_name,
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
-            chat_history=self.get_chat_history(),
+            chat_history_prompt=chat_history_prompt,
             system_prompt=self.get_system_prompt(
                 system_information,
             ),
