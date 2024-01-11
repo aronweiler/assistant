@@ -2,6 +2,7 @@ PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """
 {system_prompt}
 {loaded_documents_prompt}
 {selected_repository_prompt}
+{previous_tool_calls_prompt}
 Your task is to dissect queries that are not directly answerable into clear, independent steps using the available tools. Each step should be self-contained and free of co-references.
 
 In your response, adhere to the following structure:
@@ -74,6 +75,13 @@ Consider the chat history for additional context.
 --- CHAT HISTORY ---
 """
 
+PREVIOUS_TOOL_CALLS_TEMPLATE = """
+The following are previous tool calls that were made in this conversation.  If required, you can request the full results of these tool calls using the ID.
+--- PREVIOUS TOOL CALLS ---
+{previous_tool_calls}
+--- PREVIOUS TOOL CALLS ---
+"""
+
 ANSWER_PROMPT_TEMPLATE = """You are the final AI in a sequence of AIs that have been assisting a user with their inquiry. Your predecessors have compiled all the necessary information, and your task is to provide a definitive answer. The user's query and all relevant context have been outlined below.
 
 User's Query:
@@ -115,6 +123,7 @@ TOOL_USE_TEMPLATE = """{system_prompt}
 Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:{loaded_documents_prompt}
 {selected_repository_prompt}
 {chat_history_prompt}
+{previous_tool_calls_prompt}
 Additional context for the tool's use:
 --- HELPFUL CONTEXT ---
 {helpful_context}

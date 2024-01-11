@@ -243,7 +243,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if self.step_index == -1:
             # Handle the case where no steps could be found
             step = {
-                "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.step_plans, indent=4)}"
+                "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.wrong_tool_calls, indent=4)}"
             }
         else:
             step = self.step_plans["steps"][self.step_index]
@@ -312,6 +312,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         available_tools = self.get_available_tool_descriptions(self.tools)
         loaded_documents = self.get_loaded_documents()
         chat_history = self.get_chat_history()
+        previous_tool_calls = self.get_previous_tool_call_headers()
 
         selected_repo = self.conversation_manager.get_selected_repository()
 
@@ -343,6 +344,16 @@ class GenericToolsAgent(BaseSingleActionAgent):
         else:
             chat_history_prompt = ""
 
+        if previous_tool_calls and len(previous_tool_calls) > 0:
+            previous_tool_calls_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "generic_tools_agent",
+                    "PREVIOUS_TOOL_CALLS_TEMPLATE",
+                ).format(previous_tool_calls=previous_tool_calls)
+            )
+        else:
+            previous_tool_calls_prompt = ""
+
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
@@ -352,6 +363,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             loaded_documents_prompt=loaded_documents_prompt,
             selected_repository_prompt=selected_repo_prompt,
             chat_history_prompt=chat_history_prompt,
+            previous_tool_calls_prompt=previous_tool_calls_prompt,
             user_query=f"{user_name} ({user_email}): {user_query}",
         )
 
@@ -389,6 +401,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         selected_repo = self.conversation_manager.get_selected_repository()
         loaded_documents = self.get_loaded_documents()
+        previous_tool_calls = self.get_previous_tool_call_headers()
 
         if selected_repo:
             selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
@@ -409,6 +422,16 @@ class GenericToolsAgent(BaseSingleActionAgent):
             )
         else:
             loaded_documents_prompt = ""
+
+        if previous_tool_calls and len(previous_tool_calls) > 0:
+            previous_tool_calls_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt(
+                    "generic_tools_agent",
+                    "PREVIOUS_TOOL_CALLS_TEMPLATE",
+                ).format(previous_tool_calls=previous_tool_calls)
+            )
+        else:
+            previous_tool_calls_prompt = ""
 
         chat_history = self.get_chat_history()
         if chat_history and len(chat_history) > 0:
@@ -431,6 +454,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             tool_use_description=step["step_description"],
             user_query=user_query,
             chat_history_prompt=chat_history_prompt,
+            previous_tool_calls_prompt=previous_tool_calls_prompt,
             system_prompt=self.get_system_prompt(
                 system_information,
             ),
@@ -467,6 +491,23 @@ class GenericToolsAgent(BaseSingleActionAgent):
         )
 
         return system_prompt
+
+    def get_previous_tool_call_headers(self):
+        previous_tool_calls: List[
+            ToolCallResultsModel
+        ] = self.conversation_manager.conversations_helper.get_tool_call_results(
+            self.conversation_manager.conversation_id
+        )
+
+        if not previous_tool_calls or len(previous_tool_calls) == 0:
+            return None
+
+        return "\n".join(
+            [
+                f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}"
+                for tool_call in previous_tool_calls
+            ]
+        )
 
     def get_tool_string(self, tool):
         args_schema = "\n\t".join(
