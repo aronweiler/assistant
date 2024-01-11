@@ -238,8 +238,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
         self, intermediate_steps, **kwargs: Any
     ) -> AgentAction:
         # Create the first tool use prompt
-        tool_use_prompt = self.get_tool_use_retry_prompt(
-            step=self.step_plans["steps"][self.step_index],
+        if self.step_index == -1:
+            # Handle the case where no steps could be found
+            step = {"step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.step_plans, indent=4)}"}
+        else:
+            step = self.step_plans["steps"][self.step_index]
+            
+        tool_use_prompt = self.get_tool_use_retry_prompt(            
+            step=step,
             previous_tool_attempts=self.get_tool_calls_from_failed_steps(
                 intermediate_steps
             ),
