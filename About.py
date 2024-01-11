@@ -38,10 +38,13 @@ def setup_streamlit_interface():
     Configures the Streamlit page and displays the UI components for the application.
     """
     # Set Streamlit page configuration
-    st.set_page_config(page_title=PAGE_TITLE, page_icon=PAGE_ICON)
+    try:
+        st.set_page_config(page_title=PAGE_TITLE, page_icon=PAGE_ICON)
 
-    # Display the header for the About section
-    st.write(ABOUT_JARVIS_HEADER)
+        # Display the header for the About section
+        st.write(ABOUT_JARVIS_HEADER)
+    except:
+        pass
 
     # Display the version information from the shared UI module
     ui_shared.show_version()
