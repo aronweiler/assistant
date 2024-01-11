@@ -1061,9 +1061,12 @@ def show_version():
                     "[Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
                 )
             else:
-                st.sidebar.info(
-                    f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
-                )
+                try:
+                    st.sidebar.info(
+                        f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
+                    )
+                except:
+                    pass
         else:
             st.sidebar.info(
                 f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
@@ -1285,6 +1288,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     llm_callback = StreamingOnlyCallbackHandler(llm_container)
                     agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
+                        max_thought_containers=10,                        
                         expand_new_thoughts=True,
                         collapse_completed_thoughts=True,
                     )
@@ -1336,6 +1340,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 logging.debug(f"Result: {result}")
 
                 llm_container.markdown(result)
+                
 
 
 def set_jarvis_ai_config_element(key, value):

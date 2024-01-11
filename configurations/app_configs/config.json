@@ -145,6 +145,10 @@
                 }
             }
         },
+        "get_previous_tool_call_results": {
+            "enabled": true,
+            "return_direct": false
+        },
         "list_documents": {
             "enabled": false,
             "return_direct": false
@@ -586,7 +590,7 @@
             }
         },
         "get_weather": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false
         },
         "get_time": {
