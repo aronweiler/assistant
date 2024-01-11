@@ -188,9 +188,9 @@ class GenericToolsAgent(BaseSingleActionAgent):
                     f"Step does not have a tool: {step}.  Skipping this step."
                 )
                 self.wrong_tool_calls.append(step)
-                
+
                 continue
-            
+
             if step["tool"] in tool_names:
                 filtered_steps.append(step)
             else:
@@ -240,11 +240,13 @@ class GenericToolsAgent(BaseSingleActionAgent):
         # Create the first tool use prompt
         if self.step_index == -1:
             # Handle the case where no steps could be found
-            step = {"step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.step_plans, indent=4)}"}
+            step = {
+                "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.step_plans, indent=4)}"
+            }
         else:
             step = self.step_plans["steps"][self.step_index]
-            
-        tool_use_prompt = self.get_tool_use_retry_prompt(            
+
+        tool_use_prompt = self.get_tool_use_retry_prompt(
             step=step,
             previous_tool_attempts=self.get_tool_calls_from_failed_steps(
                 intermediate_steps
@@ -376,10 +378,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         if len(self.wrong_tool_calls) > 0:
             formatted_wrong_tool_calls = "\n".join(
-                [
-                    f"{p}"
-                    for p in self.wrong_tool_calls
-                ]
+                [f"{p}" for p in self.wrong_tool_calls]
             )
             helpful_context = f"The planning AI (which is supposed to plan out steps to accomplish the user's goal) came up with these invalid tool calls: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (or incorrect) tool calls, and let them inform your tool use and eventual answer here."
 
@@ -408,7 +407,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             )
         else:
             loaded_documents_prompt = ""
-            
+
         chat_history = self.get_chat_history()
         if chat_history and len(chat_history) > 0:
             chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
