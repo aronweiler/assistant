@@ -124,6 +124,8 @@ class RetrievalAugmentedGenerationAI:
         )
 
         agent_executor.return_intermediate_steps = True
+        
+        agent_executor.callbacks = self.conversation_manager.agent_callbacks
 
         return agent_executor
 
