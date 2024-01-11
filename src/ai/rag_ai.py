@@ -146,7 +146,7 @@ class RetrievalAugmentedGenerationAI:
 
         if ai_mode.lower().startswith("conversation"):
             logging.debug("Running chain in 'Conversation Only' mode")
-            results = self.run_chain(
+            output = self.run_chain(
                 query=query,
                 kwargs=kwargs,
             )
@@ -154,32 +154,33 @@ class RetrievalAugmentedGenerationAI:
             # Run the agent
             logging.debug("Running agent in 'Auto' mode")
             results = self.run_agent(query=query, kwargs=kwargs)
+
+            output = results["output"]
+
+            for step in results["intermediate_steps"]:
+                self.conversation_manager.conversations_helper.add_tool_call_results(
+                    conversation_id=self.conversation_manager.conversation_id,
+                    tool_name=step[0].tool,
+                    tool_arguments=json.dumps(step[0].tool_input),
+                    tool_results=step[1],
+                )
         elif ai_mode.lower().startswith("code"):
             logging.debug("Running agent in 'Code' mode")
             raise NotImplementedError("Code mode is not yet implemented")
 
         # if results is a list, collapse it into a single string
-        if isinstance(results, list):
-            results = "\n".join(results)
+        if isinstance(output, list):
+            output = "\n".join(output)
 
         # Adding this after the run so that the agent can't see it in the history
         self.conversation_manager.conversation_token_buffer_memory.save_context(
-            inputs={"input": query}, outputs={"output": results['output']}
+            inputs={"input": query}, outputs={"output": output}
         )
 
-        for step in results['intermediate_steps']:     
-            self.conversation_manager.conversations_helper.add_tool_call_results(
-                conversation_id=self.conversation_manager.conversation_id,
-                tool_name=step[0].tool,
-                tool_arguments=json.dumps(step[0].tool_input),
-                tool_results=step[1],
-            )
-        
-        logging.debug(results)
-
+        logging.debug(output)
         logging.debug("Added results to chat memory")
 
-        return results['output']
+        return output
 
     def run_chain(self, query: str, kwargs: dict = {}):
         return self.chain.run(
@@ -212,7 +213,7 @@ class RetrievalAugmentedGenerationAI:
                 ),
                 "user_name": self.conversation_manager.user_name,
                 "user_email": self.conversation_manager.user_email,
-                #"callbacks": self.conversation_manager.agent_callbacks,
+                # "callbacks": self.conversation_manager.agent_callbacks,
             }
         )
 

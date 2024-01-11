@@ -124,18 +124,22 @@ class Conversations(VectorDatabase):
             )
             session.commit()
 
-    def get_tool_call_results(self, conversation_id: UUID) -> ToolCallResultsModel:
+    def get_tool_call_results(self, conversation_id: UUID) -> List[ToolCallResultsModel]:
         with self.session_context(self.Session()) as session:
-            tool_call_result = (
-                session.query(ToolCallResults)
+            query = (
+                session.query(
+                    ToolCallResults.conversation_id,
+                    ToolCallResults.tool_name,
+                    ToolCallResults.tool_arguments,
+                    ToolCallResults.tool_results,
+                    ToolCallResults.id,
+                    ToolCallResults.record_created,
+                )
                 .filter(ToolCallResults.conversation_id == conversation_id)
-                .one_or_none()
+                .order_by(ToolCallResults.record_created)
             )
-            return (
-                ToolCallResultsModel.from_database_model(tool_call_result)
-                if tool_call_result
-                else None
-            )
+
+            return [ToolCallResultsModel.from_database_model(i) for i in query.all()]            
 
     def get_tool_call_results_by_id(
         self, tool_call_result_id: int
