@@ -2,7 +2,8 @@ from typing import List, Any
 from uuid import UUID
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from src.db.database.tables import Conversation
+from src.db.database.tables import Conversation, ToolCallResults
+from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
 from src.db.models.vector_database import VectorDatabase
 from src.db.models.domain.conversation_model import ConversationModel
 
@@ -110,3 +111,47 @@ class Conversations(VectorDatabase):
                 Conversation.id == conversation_id
             ).update({Conversation.is_deleted: True})
             session.commit()
+
+    def add_tool_call_results(self, conversation_id, tool_name, tool_arguments, tool_results):
+        with self.session_context(self.Session()) as session:
+            session.add(
+                ToolCallResults(
+                    conversation_id=conversation_id,
+                    tool_name=tool_name,
+                    tool_arguments=tool_arguments,
+                    tool_results=tool_results,
+                )
+            )
+            session.commit()
+
+    def get_tool_call_results(self, conversation_id: UUID) -> List[ToolCallResultsModel]:
+        with self.session_context(self.Session()) as session:
+            query = (
+                session.query(
+                    ToolCallResults.conversation_id,
+                    ToolCallResults.tool_name,
+                    ToolCallResults.tool_arguments,
+                    ToolCallResults.tool_results,
+                    ToolCallResults.id,
+                    ToolCallResults.record_created,
+                )
+                .filter(ToolCallResults.conversation_id == conversation_id)
+                .order_by(ToolCallResults.record_created)
+            )
+
+            return [ToolCallResultsModel.from_database_model(i) for i in query.all()]            
+
+    def get_tool_call_results_by_id(
+        self, tool_call_result_id: int
+    ) -> ToolCallResultsModel:
+        with self.session_context(self.Session()) as session:
+            tool_call_result = (
+                session.query(ToolCallResults)
+                .filter(ToolCallResults.id == tool_call_result_id)
+                .one_or_none()
+            )
+            return (
+                ToolCallResultsModel.from_database_model(tool_call_result)
+                if tool_call_result
+                else None
+            )

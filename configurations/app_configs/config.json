@@ -145,6 +145,10 @@
                 }
             }
         },
+        "get_previous_tool_call_results": {
+            "enabled": true,
+            "return_direct": false
+        },
         "list_documents": {
             "enabled": false,
             "return_direct": false
@@ -482,6 +486,10 @@
             "enabled": true,
             "return_direct": false
         },
+        "get_file_summary": {
+            "enabled": true,
+            "return_direct": false
+        },
         "file_information_discovery": {
             "enabled": true,
             "return_direct": false
@@ -582,11 +590,11 @@
             }
         },
         "get_weather": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false
         },
         "get_time": {
-            "enabled": false,
+            "enabled": true,
             "return_direct": false
         },
         "get_text_from_website": {

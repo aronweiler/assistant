@@ -37,12 +37,27 @@ class CodeRepositoryTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Get File Summary",
+        requires_repository=True,
+        description="Used to get the summary of a specific repository file.",
+        additional_instructions="Input an ID for a code file.",
+    )
+    def get_file_summary(self, file_id: int):
+        """Gets the summary of a specific repository file."""
+        code_file = self.conversation_manager.code_helper.get_code_file_by_id(file_id)
+
+        if code_file is None:
+            return "File not found."
+
+        return code_file.code_file_summary
+
+    @register_tool(
         display_name="File Name Search",
         requires_repository=True,
         description="Search for files by providing a partial or full file name.",
-        additional_instructions="Input a partial or complete file name to receive a list of matching files from the repository. Include a summary by setting `include_summary` to `true` if you need help identifying the correct file.",
+        additional_instructions="Input a partial or complete file name to receive a list of matching files from the repository.",
     )
-    def file_name_search(self, partial_file_name: str, include_summary: bool = False):
+    def file_name_search(self, partial_file_name: str):
         """Looks up a file in the repository by partial file name."""
         code_files = (
             self.conversation_manager.code_helper.get_code_files_by_partial_name(
@@ -53,10 +68,8 @@ class CodeRepositoryTool:
 
         results = ""
         for code_file in code_files:
-            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"
-            if include_summary:
-                results += f"Summary: {code_file.code_file_summary}\n"
-
+            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"       
+                 
         return results
 
     @register_tool(
@@ -151,7 +164,7 @@ class CodeRepositoryTool:
 
         return "\n".join(
             [
-                f"**{code_file.code_file_name}**\n{code_file.code_file_content}\n\n"
+                f"**{code_file.code_file_name}**\n```\n{code_file.code_file_content}\n```\n\n"
                 for code_file in code_files
             ]
         )
@@ -467,6 +480,7 @@ class CodeRepositoryTool:
             code_file: CodeFileModel = (
                 self.conversation_manager.code_helper.get_code_file_by_id(file_id)
             )
+            
             code_contents.append(
                 {
                     "file": code_file.code_file_name,

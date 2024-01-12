@@ -675,7 +675,7 @@ def ingest_files(
                                 logging.error(
                                     f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
                                 )
-                                
+
                             # TODO: Fix all of this- it's a total inefficient mess, the document ingestion needs to be completely re-written
 
                             # Split the document
@@ -688,16 +688,21 @@ def ingest_files(
                                     chunk_overlap=existing_file.chunk_overlap,
                                 )
                             )
-                            
+
                             # Get the documents that match this file name
                             matching_documents = [
                                 d
                                 for d in documents
-                                if d.metadata["filename"].replace(root_temp_dir, "").strip("/")
+                                if d.metadata["filename"]
+                                .replace(root_temp_dir, "")
+                                .strip("/")
                                 == file_name
                             ]
 
-                            if len(matching_documents) == existing_file.document_count or existing_file.document_count == 0:
+                            if (
+                                len(matching_documents) == existing_file.document_count
+                                or existing_file.document_count == 0
+                            ):
                                 files.append(existing_file)
 
                                 # # Save the split documents
@@ -773,7 +778,7 @@ def ingest_files(
                             file_hash=calculate_sha256(uploaded_file_path),
                             file_classification=file_classification,
                             chunk_size=chunk_size,
-                            chunk_overlap=chunk_overlap,                            
+                            chunk_overlap=chunk_overlap,
                         ),
                         file_data,
                     )
@@ -873,7 +878,9 @@ def save_split_documents(
             documents_helper.update_document_count(file.id, document_count)
 
         # Get the number of documents already in the DB for this file
-        current_document_count = documents_helper.get_document_chunk_count_by_file_id(file.id)
+        current_document_count = documents_helper.get_document_chunk_count_by_file_id(
+            file.id
+        )
 
         file_to_chunk_count[file.file_name] = {
             "current_document_count": current_document_count,
@@ -909,20 +916,20 @@ def save_split_documents(
             logging.error(
                 f"Could not find file '{file_name}' in the database after uploading"
             )
-            break        
+            break
 
         current_document_count = file_to_chunk_count[file.file_name][
             "current_document_count"
         ]
-        
-        file_doc_chunk_len = len(file_documents[file.file_name]) 
+
+        file_doc_chunk_len = len(file_documents[file.file_name])
         for index in range(current_document_count, file_doc_chunk_len):
             # TODO: Fix the progress bar
             ingest_progress_bar.progress(
                 calculate_progress(file_doc_chunk_len, index + 1),
                 text=f"Processing {file.file_name} chunk {index} of {file_doc_chunk_len}",
             )
-            
+
             document = file_documents[file.file_name][index]
 
             chunk_questions = []
@@ -964,8 +971,7 @@ def save_split_documents(
                     question_4=chunk_questions[3] if len(chunk_questions) > 3 else "",
                     question_5=chunk_questions[4] if len(chunk_questions) > 4 else "",
                 )
-            )           
-            
+            )
 
     summary = ""
     if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
@@ -1055,9 +1061,12 @@ def show_version():
                     "[Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
                 )
             else:
-                st.sidebar.info(
-                    f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
-                )
+                try:
+                    st.sidebar.info(
+                        f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
+                    )
+                except:
+                    pass
         else:
             st.sidebar.info(
                 f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
@@ -1279,6 +1288,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     llm_callback = StreamingOnlyCallbackHandler(llm_container)
                     agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
+                        max_thought_containers=10,                        
                         expand_new_thoughts=True,
                         collapse_completed_thoughts=True,
                     )
@@ -1330,11 +1340,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 logging.debug(f"Result: {result}")
 
                 llm_container.markdown(result)
-
-                # TODO: Put this thought container text into the DB (it provides great context!)
-                # logging.debug(
-                #     f"TODO: Put this thought container text into the DB (it provides great context!): {results_callback.response}"
-                # )
+                
 
 
 def set_jarvis_ai_config_element(key, value):

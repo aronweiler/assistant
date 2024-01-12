@@ -1,8 +1,8 @@
-# This file contains the SQLAlchemy ORM class definitions for a database schema used in the assistant application. 
-# Each class within this file represents a distinct table in the database, with attributes corresponding to the table columns. 
-# The classes also define relationships between tables, such as one-to-many and many-to-many associations, 
-# which facilitate the querying and manipulation of related data. 
-# The file is structured to provide a clear mapping between the application's data models and the underlying database structure, 
+# This file contains the SQLAlchemy ORM class definitions for a database schema used in the assistant application.
+# Each class within this file represents a distinct table in the database, with attributes corresponding to the table columns.
+# The classes also define relationships between tables, such as one-to-many and many-to-many associations,
+# which facilitate the querying and manipulation of related data.
+# The file is structured to provide a clear mapping between the application's data models and the underlying database structure,
 # enabling efficient data storage, retrieval, and management.
 
 from sqlalchemy import (
@@ -120,6 +120,7 @@ class Conversation(ModelBase):
 
     # Define the relationship with User and Conversation
     user = relationship("User", back_populates="conversations")
+    tool_call_results = relationship("ToolCallResults", back_populates="conversation")
 
 
 # ConversationMessage model represents a message within a conversation, including its properties and relationships.
@@ -411,4 +412,23 @@ class CodeDescription(ModelBase):
 
 CodeFile.code_descriptions = relationship(
     "CodeDescription", order_by=CodeDescription.id, back_populates="code_file"
+)
+
+
+class ToolCallResults(ModelBase):
+    __tablename__ = "tool_call_results"
+
+    id = Column(Integer, primary_key=True)
+    conversation_id = Column(Uuid, ForeignKey("conversations.id"), nullable=False)
+    tool_name = Column(String, nullable=False)
+    tool_arguments = Column(String, nullable=True)
+    tool_results = Column(String, nullable=True)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
+
+    # Define the relationship with Conversation
+    conversation = relationship("Conversation", back_populates="tool_call_results")
+
+
+Conversation.tool_call_results = relationship(
+    "ToolCallResults", order_by=ToolCallResults.id, back_populates="conversation"
 )

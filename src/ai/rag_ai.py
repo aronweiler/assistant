@@ -1,3 +1,4 @@
+import json
 import logging
 from uuid import UUID
 from typing import List
@@ -98,7 +99,10 @@ class RetrievalAugmentedGenerationAI:
         )
 
         # Initialize the tool manager and load the available tools
-        self.tool_manager = ToolManager(configuration=self.configuration, conversation_manager=self.conversation_manager)
+        self.tool_manager = ToolManager(
+            configuration=self.configuration,
+            conversation_manager=self.conversation_manager,
+        )
 
     def create_agent(self, agent_timeout: int = 300):
         tools = self.tool_manager.get_enabled_tools()
@@ -118,6 +122,10 @@ class RetrievalAugmentedGenerationAI:
             verbose=True,
             max_execution_time=agent_timeout,  # early_stopping_method="generate" <- this is not supported, but somehow in their docs
         )
+
+        agent_executor.return_intermediate_steps = True
+        
+        agent_executor.callbacks = self.conversation_manager.agent_callbacks
 
         return agent_executor
 
@@ -140,7 +148,7 @@ class RetrievalAugmentedGenerationAI:
 
         if ai_mode.lower().startswith("conversation"):
             logging.debug("Running chain in 'Conversation Only' mode")
-            results = self.run_chain(
+            output = self.run_chain(
                 query=query,
                 kwargs=kwargs,
             )
@@ -148,23 +156,33 @@ class RetrievalAugmentedGenerationAI:
             # Run the agent
             logging.debug("Running agent in 'Auto' mode")
             results = self.run_agent(query=query, kwargs=kwargs)
+
+            output = results["output"]
+
+            for step in results["intermediate_steps"]:
+                self.conversation_manager.conversations_helper.add_tool_call_results(
+                    conversation_id=self.conversation_manager.conversation_id,
+                    tool_name=step[0].tool,
+                    tool_arguments=json.dumps(step[0].tool_input),
+                    tool_results=step[1],
+                )
         elif ai_mode.lower().startswith("code"):
             logging.debug("Running agent in 'Code' mode")
             raise NotImplementedError("Code mode is not yet implemented")
 
         # if results is a list, collapse it into a single string
-        if isinstance(results, list):
-            results = "\n".join(results)
+        if isinstance(output, list):
+            output = "\n".join(output)
 
         # Adding this after the run so that the agent can't see it in the history
         self.conversation_manager.conversation_token_buffer_memory.save_context(
-            inputs={"input": query}, outputs={"output": results}
+            inputs={"input": query}, outputs={"output": output}
         )
-        logging.debug(results)
 
+        logging.debug(output)
         logging.debug("Added results to chat memory")
 
-        return results
+        return output
 
     def run_chain(self, query: str, kwargs: dict = {}):
         return self.chain.run(
@@ -189,15 +207,19 @@ class RetrievalAugmentedGenerationAI:
 
         # Run the agent
         logging.debug("Running agent")
-        return agent.run(
-            input=query,
-            system_information=get_system_information(
-                self.conversation_manager.user_location
-            ),
-            user_name=self.conversation_manager.user_name,
-            user_email=self.conversation_manager.user_email,
-            callbacks=self.conversation_manager.agent_callbacks,
+        agent_results = agent.invoke(
+            {
+                "input": query,
+                "system_information": get_system_information(
+                    self.conversation_manager.user_location
+                ),
+                "user_name": self.conversation_manager.user_name,
+                "user_email": self.conversation_manager.user_email,
+                # "callbacks": self.conversation_manager.agent_callbacks,
+            }
         )
+
+        return agent_results
 
     def check_summary(self, query):
         if self.conversation_manager.conversation_needs_summary:
