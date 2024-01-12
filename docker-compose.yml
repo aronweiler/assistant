@@ -16,6 +16,8 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=host.docker.internal
     ports:
       - 8500:8500
     volumes:
@@ -29,3 +31,5 @@ services:
       sh -c 'if [ "$ENABLE_DISCORD_BOT" = "true" ]; then python src/discord/bot.py; else sleep infinity; fi'
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=host.docker.internal
