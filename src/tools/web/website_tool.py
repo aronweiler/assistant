@@ -89,12 +89,12 @@ class WebsiteTool:
         for chunk in split_text:
             if not existing_summary:
                 prompt = self.conversation_manager.prompt_manager.get_prompt(
-                    category="summary",
+                    category="summary_prompts",
                     prompt_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
             else:
                 prompt = self.conversation_manager.prompt_manager.get_prompt(
-                    category="summary", prompt_name="SIMPLE_REFINE_TEMPLATE"
+                    category="summary_prompts", prompt_name="SIMPLE_REFINE_TEMPLATE"
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
 
             existing_summary = llm.predict(
