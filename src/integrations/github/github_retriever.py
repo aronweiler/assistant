@@ -164,13 +164,3 @@ class GitHubRetriever:
             "url": url,
             "changes": changes2,
         }
-
-
-if __name__ == "__main__":
-    dotenv.load_dotenv()
-    file_retriever = GitHubRetriever(
-        source_control_url=os.getenv("source_control_url"),
-        source_control_pat=os.getenv("source_control_pat"),
-    )
-
-    file_data = file_retriever.retrieve_file_data(url="")
