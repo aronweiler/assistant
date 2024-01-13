@@ -146,7 +146,7 @@
             }
         },
         "get_previous_tool_call_results": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false
         },
         "list_documents": {
@@ -409,7 +409,7 @@
             }
         },
         "conduct_code_refactor_from_url": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": true,
             "additional_settings": {
                 "json_output": {
@@ -590,11 +590,11 @@
             }
         },
         "get_weather": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false
         },
         "get_time": {
-            "enabled": true,
+            "enabled": false,
             "return_direct": false
         },
         "get_text_from_website": {
