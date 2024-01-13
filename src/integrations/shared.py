@@ -1,3 +1,5 @@
+SUPPORTED_SOURCE_CONTROL_PROVIDERS = ["GitHub", "GitLab"]
+
 # Define a set of file extensions that are considered text-based
 CODE_FILE_EXTENSIONS = [
     ".py",  # Python
