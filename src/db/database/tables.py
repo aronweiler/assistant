@@ -432,3 +432,25 @@ class ToolCallResults(ModelBase):
 Conversation.tool_call_results = relationship(
     "ToolCallResults", order_by=ToolCallResults.id, back_populates="conversation"
 )
+
+
+class SupportedSourceControlProvider(ModelBase):
+    __tablename__ = 'supported_source_control_providers'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+
+class SourceControlProvider(ModelBase):
+    __tablename__ = 'source_control_providers'
+
+    id = Column(Integer, primary_key=True)
+    supported_source_control_provider_id = Column(Integer, ForeignKey('supported_source_control_providers.id'), nullable=False)
+    source_control_provider_name = Column(String, nullable=False, unique=True)
+    source_control_provider_url = Column(String, nullable=False)
+    requires_authentication = Column(Boolean, nullable=False)
+    source_control_access_token = Column(String, nullable=True)
+    last_modified = Column(DateTime, nullable=False, default=datetime.now)
+
+    supported_source_control_provider = relationship('SupportedSourceControlProvider', back_populates='source_control_providers')
+
+SupportedSourceControlProvider.source_control_providers = relationship('SourceControlProvider', order_by=SourceControlProvider.id, back_populates='supported_source_control_provider')

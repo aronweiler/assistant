@@ -11,6 +11,8 @@ from sqlalchemy import and_, func, select, column, cast, or_
 
 import pgvector.sqlalchemy
 
+from src.db.models.domain.source_control_provider_model import SourceControlProviderModel, SupportedSourceControlProviderModel
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.db.models.domain.code_repository_model import CodeRepositoryModel
@@ -21,6 +23,8 @@ from src.db.database.tables import (
     CodeKeyword,
     CodeRepository,
     CodeFile,
+    SourceControlProvider,
+    SupportedSourceControlProvider,
     code_repository_files_association,
 )
 
@@ -552,6 +556,71 @@ class Code(VectorDatabase):
             for code_file in combined_results[:top_k]
         ]  # No distance for keyword search
 
+
+
+    # Add a function to add a supported source control provider  
+    def add_supported_source_control_provider(self, name):  
+        with self.session_context(self.Session()) as session:  
+            session.add(SupportedSourceControlProvider(name=name))  
+            session.commit()  
+
+    # Add a function to retrieve supported source control providers  
+    def get_supported_source_control_providers(self):  
+        with self.session_context(self.Session()) as session:  
+            providers = session.query(SupportedSourceControlProvider).all()  
+            return [SupportedSourceControlProviderModel.from_database_model(provider) for provider in providers]  
+        
+    def get_supported_source_control_provider_by_name(self, name):
+        with self.session_context(self.Session()) as session:
+            provider = session.query(SupportedSourceControlProvider).filter(SupportedSourceControlProvider.name == name).one_or_none()
+            return SupportedSourceControlProviderModel.from_database_model(provider) if provider else None
+
+    # Add a function to add a source control provider  
+    def add_source_control_provider(self, supported_source_control_provider:SupportedSourceControlProviderModel, name, url, requires_auth, access_token):  
+        with self.session_context(self.Session()) as session:  
+            session.add(SourceControlProvider(  
+                supported_source_control_provider_id=supported_source_control_provider.id,  
+                source_control_provider_name=name,  
+                source_control_provider_url=url,  
+                requires_authentication=requires_auth,  
+                source_control_access_token=access_token or None  
+            ))  
+            session.commit()  
+
+    # Add a function to update a source control provider  
+    def update_source_control_provider(self, id, supported_source_control_provider:SupportedSourceControlProviderModel, name, url, requires_auth, access_token):  
+        with self.session_context(self.Session()) as session:  
+            session.query(SourceControlProvider).filter(SourceControlProvider.id == id).update({  
+                SourceControlProvider.supported_source_control_provider_id: supported_source_control_provider.id,  
+                SourceControlProvider.source_control_provider_name: name,  
+                SourceControlProvider.source_control_provider_url: url,  
+                SourceControlProvider.requires_authentication: requires_auth,  
+                SourceControlProvider.source_control_access_token: access_token  
+            })  
+            session.commit()  
+
+    # Add a function to delete a source control provider  
+    def delete_source_control_provider(self, id):  
+        with self.session_context(self.Session()) as session:  
+            session.query(SourceControlProvider).filter(SourceControlProvider.id == id).delete()  
+            session.commit()  
+
+    # Add a function to retrieve all source control providers  
+    def get_all_source_control_providers(self):  
+        with self.session_context(self.Session()) as session:  
+            providers = session.query(SourceControlProvider).all()  
+            return [SourceControlProviderModel.from_database_model(provider) for provider in providers]  
+
+    # Add a function to retrieve a single source control provider  
+    def get_source_control_provider(self, id):  
+        with self.session_context(self.Session()) as session:  
+            provider = session.query(SourceControlProvider).filter(SourceControlProvider.id == id).one_or_none()  
+            return SourceControlProviderModel.from_database_model(provider) if provider else None
+
+    def get_source_control_provider_by_name(self, name):
+        with self.session_context(self.Session()) as session:
+            provider = session.query(SourceControlProvider).filter(SourceControlProvider.source_control_provider_name == name).one_or_none()
+            return SourceControlProviderModel.from_database_model(provider) if provider else None
 
 # Testing
 if __name__ == "__main__":
