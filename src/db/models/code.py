@@ -569,7 +569,12 @@ class Code(VectorDatabase):
         with self.session_context(self.Session()) as session:  
             providers = session.query(SupportedSourceControlProvider).all()  
             return [SupportedSourceControlProviderModel.from_database_model(provider) for provider in providers]  
-        
+    
+    def get_supported_source_control_provider_by_id(self, id):
+        with self.session_context(self.Session()) as session:
+            provider = session.query(SupportedSourceControlProvider).filter(SupportedSourceControlProvider.id == id).one_or_none()
+            return SupportedSourceControlProviderModel.from_database_model(provider) if provider else None
+    
     def get_supported_source_control_provider_by_name(self, name):
         with self.session_context(self.Session()) as session:
             provider = session.query(SupportedSourceControlProvider).filter(SupportedSourceControlProvider.name == name).one_or_none()
@@ -621,6 +626,22 @@ class Code(VectorDatabase):
         with self.session_context(self.Session()) as session:
             provider = session.query(SourceControlProvider).filter(SourceControlProvider.source_control_provider_name == name).one_or_none()
             return SourceControlProviderModel.from_database_model(provider) if provider else None
+        
+    def get_provider_from_url(self, url: str):
+        """
+        Returns the source control provider from a URL.
+
+        :param url: The URL to parse.
+        :return: The source control provider.
+        """
+        # Find the source control provider that starts with the URL (case insensitive)
+        providers = self.get_all_source_control_providers()
+        
+        for provider in providers:
+            if url.lower().startswith(provider.source_control_provider_url.lower()):
+                return SourceControlProviderModel.from_database_model(provider)
+            
+        return None
 
 # Testing
 if __name__ == "__main__":
