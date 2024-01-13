@@ -22,14 +22,6 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
-# Importing integration modules for GitLab and GitHub.
-from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
-from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
-
-from src.integrations.github.github_issue_creator import GitHubIssueCreator
-from src.integrations.github.github_retriever import GitHubRetriever
-
 
 @tool_class
 class CodeRefactorTool:
@@ -38,12 +30,6 @@ class CodeRefactorTool:
     It can retrieve files from URLs or files from the database, conduct refactors on those files,
     and format the results in a structured way.
     """
-
-    # Mapping of source control provider names to their respective retriever classes.
-    source_control_to_retriever_map = {
-        "gitlab": GitlabRetriever,
-        "github": GitHubRetriever,
-    }
 
     def __init__(
         self,
@@ -58,13 +44,6 @@ class CodeRefactorTool:
         """
         self.configuration = configuration
         self.conversation_manager = conversation_manager
-
-        # Constants for environment variables and source control providers
-        self.source_control_provider = os.getenv(
-            "SOURCE_CONTROL_PROVIDER", "github"
-        ).lower()
-        self.source_control_url = os.getenv("source_control_url")
-        self.source_control_pat = os.getenv("source_control_pat")
 
     def get_active_code_refactor_templates(self, tool_name: str) -> List[dict]:
         """

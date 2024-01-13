@@ -18,14 +18,6 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
-# Importing integration modules for GitLab and GitHub.
-from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
-from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
-
-from src.integrations.github.github_issue_creator import GitHubIssueCreator
-from src.integrations.github.github_retriever import GitHubRetriever
-
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 @tool_class
@@ -48,14 +40,7 @@ class CodeReviewTool:
         :param conversation_manager: The manager that handles interactions with language models.
         """
         self.configuration = configuration
-        self.conversation_manager = conversation_manager
-
-        # Constants for environment variables and source control providers
-        self.source_control_provider = os.getenv(
-            "SOURCE_CONTROL_PROVIDER", "github"
-        ).lower()
-        self.source_control_url = os.getenv("source_control_url")
-        self.source_control_pat = os.getenv("source_control_pat")
+        self.conversation_manager = conversation_manager       
 
     def get_active_code_review_templates(self, tool_name: str) -> List[dict]:
         """

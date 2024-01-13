@@ -23,7 +23,6 @@ from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
 from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
 from src.integrations.github.github_issue_creator import GitHubIssueCreator
-from src.integrations.github.github_retriever import GitHubRetriever
 
 @tool_class
 class IssueTool:
@@ -43,20 +42,9 @@ class IssueTool:
     ):
         self.configuration = configuration
         self.conversation_manager = conversation_manager
-
-    @staticmethod
-    def ingest_issue_from_url(url):
-        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
-        retriever = IssueTool.source_control_to_issue_retriever_map[
-            source_control_provider.lower()
-        ]
-        if not retriever:
-            return f"Source control provider {source_control_provider} does not support issue retrieval"
-
-        retriever = retriever(
-            source_control_url=os.getenv("source_control_url"),
-            source_control_pat=os.getenv("source_control_pat"),
-        )
+    
+    def ingest_issue_from_url(self, url):
+        retriever = self.get_issue_retriever_instance(url=url)
 
         return retriever.retrieve_issue_data(url=url)
 
@@ -77,17 +65,10 @@ class IssueTool:
         # Args:
         #     source_code_file_data: A dictionary containing the project ID, file URL, file relative path, ref name, file contents
         #     review_data: A python dictionary containing the code review data to create the issue from
-        """
-        source_control_provider = os.getenv("SOURCE_CONTROL_PROVIDER", "GitHub")
-        issue_creator = self.source_control_to_issue_creator_map[
-            source_control_provider.lower()
-        ]
-        if not issue_creator:
-            return f"Source control provider {source_control_provider} does not support issue creation"
+        """       
 
-        issue_creator = issue_creator(
-            source_control_url=os.getenv("source_control_url"),
-            source_control_pat=os.getenv("source_control_pat"),
+        issue_creator = self.get_issue_creator_instance(
+            url=review_data["source_code_file_data"]["url"]
         )
 
         result = issue_creator.generate_issue(
@@ -95,3 +76,48 @@ class IssueTool:
         )
 
         return f"Successfully created issue at {result['url']}"
+
+
+    def get_issue_creator_instance(self, url):
+        source_control_provider = self.conversation_manager.code_helper.get_provider_from_url(url)
+        
+        if not source_control_provider:
+            raise Exception(f"The URL {url} does not correspond to a configured source control provider.")
+        
+        supported_provider = self.conversation_manager.code_helper.get_supported_source_control_provider_by_id(source_control_provider.supported_source_control_provider_id)
+        
+        # Get the corresponding retriever class from the map using provider name in lowercase.
+        issue_creator_class = self.source_control_to_issue_creator_map.get(
+            supported_provider.name.lower()
+        )
+        
+        # If no retriever class is found, return an error message indicating unsupported code retrieval.
+        if not issue_creator_class:
+            raise f"Source control provider {source_control_provider.source_control_provider_name} does not support issue creation"
+        
+        return issue_creator_class(
+            source_control_pat=source_control_provider.source_control_access_token,
+            source_control_url=source_control_provider.source_control_provider_url,
+        )
+        
+    def get_issue_retriever_instance(self, url):
+        source_control_provider = self.conversation_manager.code_helper.get_provider_from_url(url)
+        
+        if not source_control_provider:
+            raise Exception(f"The URL {url} does not correspond to a configured source control provider.")
+        
+        supported_provider = self.conversation_manager.code_helper.get_supported_source_control_provider_by_id(source_control_provider.supported_source_control_provider_id)
+        
+        # Get the corresponding retriever class from the map using provider name in lowercase.
+        issue_retriever_class = self.source_control_to_issue_retriever_map.get(
+            supported_provider.name.lower()
+        )
+        
+        # If no retriever class is found, return an error message indicating unsupported code retrieval.
+        if not issue_retriever_class:
+            raise f"Source control provider {source_control_provider.source_control_provider_name} does not support issue retrieval"
+        
+        return issue_retriever_class(
+            source_control_pat=source_control_provider.source_control_access_token,
+            source_control_url=source_control_provider.source_control_provider_url,
+        )
