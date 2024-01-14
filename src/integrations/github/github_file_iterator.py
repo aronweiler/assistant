@@ -40,23 +40,3 @@ def is_text_based_extension(file_path: str):
     _, extension = os.path.splitext(file_path)
 
     return extension.lower() in CODE_FILE_EXTENSIONS
-
-
-if __name__ == "__main__":
-    # Example usage
-    repository_name = "aronweiler/assistant"
-
-    # Get the SOURCE_CONTROL_PAT from the environment
-    source_control_pat = os.environ["SOURCE_CONTROL_PAT"]
-
-    # Retrieve the Github client using your source control PAT
-    github_client = github_shared.retrieve_github_client(source_control_pat)
-
-    matching_files = get_text_based_files_from_repo(
-        repository_name=repository_name,
-        branch_name="main",
-        github_client=github_client,
-    )
-
-    for file in matching_files:
-        print(file.path)

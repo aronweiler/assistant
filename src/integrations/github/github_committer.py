@@ -8,8 +8,8 @@ REGULAR_FILE = "100644"
 
 
 class GitHubCommitter:
-    def __init__(self, source_control_pat, source_control_url):
-        self.github = github_shared.retrieve_github_client(source_control_pat)
+    def __init__(self, source_control_pat, source_control_url, requires_authentication=False):
+        self.github = github_shared.retrieve_github_client(source_control_url=source_control_url, source_control_pat=source_control_pat, requires_authentication=requires_authentication)
 
     def commit_changes(
         self,
