@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 from typing import List, Any
+from urllib.parse import urlparse
 from requests import Session
 
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -582,6 +583,13 @@ class Code(VectorDatabase):
 
     # Add a function to add a source control provider  
     def add_source_control_provider(self, supported_source_control_provider:SupportedSourceControlProviderModel, name, url, requires_auth, access_token):  
+        
+        if self.get_source_control_provider_by_name(name):
+            raise Exception(f"A source control provider with the name {name} already exists.")
+        
+        if self.get_provider_from_url(url):
+            raise Exception(f"A source control provider with the same domain '{self._get_domain_name(url)}' already exists.")
+        
         with self.session_context(self.Session()) as session:  
             session.add(SourceControlProvider(  
                 supported_source_control_provider_id=supported_source_control_provider.id,  
@@ -637,11 +645,28 @@ class Code(VectorDatabase):
         # Find the source control provider that starts with the URL (case insensitive)
         providers = self.get_all_source_control_providers()
         
+        domain = self._get_domain_name(url)
+        
         for provider in providers:
-            if url.lower().startswith(provider.source_control_provider_url.lower()):
+            if domain.lower() == self._get_domain_name(provider.source_control_provider_url).lower():
                 return SourceControlProviderModel.from_database_model(provider)
             
         return None
+    
+    
+    def _get_domain_name(self, url):
+        try:
+            # Parse the URL and extract the netloc part which contains the domain name
+            parsed_url = urlparse(url)
+            # Split the netloc by '.' and take the last two parts as domain
+            # This works for most common URLs
+            domain_parts = parsed_url.netloc.split('.')
+            domain = '.'.join(domain_parts[-2:])
+            return domain
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+
 
 # Testing
 if __name__ == "__main__":
