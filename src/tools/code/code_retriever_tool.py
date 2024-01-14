@@ -6,6 +6,7 @@ from typing import List
 from langchain.base_language import BaseLanguageModel
 from src.ai.llm_helper import get_tool_llm
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.db.models.code import Code
 from src.integrations.github import github_issue_creator
 from src.tools.code.issue_tool import IssueTool
 
@@ -32,15 +33,7 @@ class CodeRetrieverTool:
     source_control_to_retriever_map = {
         "gitlab": GitlabRetriever,
         "github": GitHubRetriever,
-    }
-
-    def __init__(self, configuration, conversation_manager: ConversationManager):
-        """
-        Initializes the CodeRetrieverTool
-        """
-        self.configuration = configuration
-        self.conversation_manager = conversation_manager
-        
+    }        
 
     def get_branches(self, url: str) -> List[str]:
         """
@@ -82,6 +75,9 @@ class CodeRetrieverTool:
         :param branch_name: The name of the branch from which to retrieve the code.
         :return: The retrieved code or an error message if retrieval is not supported.
         """
+        # Assemble the URL from the repo address and branch name.
+        url = f"{repo_address}/raw/{branch_name}/{path}"
+        
         # Get the corresponding retriever instance
         retriever_instance = self.get_retriever_instance(url)
 
@@ -127,12 +123,13 @@ class CodeRetrieverTool:
         return retriever_instance.retrieve_data(url=url)
 
     def get_retriever_instance(self, url):
-        source_control_provider = self.conversation_manager.code_helper.get_provider_from_url(url)        
+        code_helper = Code()
+        source_control_provider = code_helper.get_provider_from_url(url)        
         
         if not source_control_provider:
             raise Exception(f"The URL {url} does not correspond to a configured source control provider.")
         
-        supported_provider = self.conversation_manager.code_helper.get_supported_source_control_provider_by_id(source_control_provider.supported_source_control_provider_id)
+        supported_provider = code_helper.get_supported_source_control_provider_by_id(source_control_provider.supported_source_control_provider_id)
         
         # Get the corresponding retriever class from the map using provider name in lowercase.
         retriever_class = self.source_control_to_retriever_map.get(
