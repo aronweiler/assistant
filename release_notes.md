@@ -1,3 +1,9 @@
+### January 14, 2024 -- RELEASE NOTES: Jarvis 0.71
+- Implemented string conversion for tool results and refactored code related to prompt file renaming and tool call headers.
+- Enhanced error handling with detailed messages and added model operations for source control providers.
+- Developed support for multiple source control providers, including verification functions and retrieval methods by ID and URL.
+- Improved source control integration with authentication enhancements for GitHub and GitLab, along with refactoring of JSON parsing.
+
 ### January 11, 2024 -- RELEASE NOTES: Jarvis 0.70
 - Refactored prompt creation in GenericToolsAgent for better failure handling. 
 - Introduced ToolCallResultsModel for managing tool call results and improved JSON parsing to handle nested code blocks more effectively. 
