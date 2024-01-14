@@ -79,7 +79,7 @@ class LLMTool:
         self.chain = LLMChain(
             llm=llm,
             prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "conversational", "CONVERSATIONAL_PROMPT"
+                "conversational_prompts", "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
         )

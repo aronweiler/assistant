@@ -34,17 +34,13 @@ class CodeRetrieverTool:
         "github": GitHubRetriever,
     }
 
-    def __init__(self):
+    def __init__(self, configuration, conversation_manager: ConversationManager):
         """
         Initializes the CodeRetrieverTool
         """
-
-        # Constants for environment variables and source control providers
-        self.source_control_provider = os.getenv(
-            "SOURCE_CONTROL_PROVIDER", "github"
-        ).lower()
-        self.source_control_url = os.getenv("source_control_url")
-        self.source_control_pat = os.getenv("source_control_pat")
+        self.configuration = configuration
+        self.conversation_manager = conversation_manager
+        
 
     def get_branches(self, url: str) -> List[str]:
         """
@@ -52,23 +48,9 @@ class CodeRetrieverTool:
 
         :param url: The URL from which to retrieve the branches.
         :return: The retrieved branches or an error message if retrieval is not supported.
-        """
-        # Get the corresponding retriever class from the map using provider name in lowercase.
-        retriever_class = self.source_control_to_retriever_map.get(
-            self.source_control_provider
-        )
-
-        # If no retriever class is found, return an error message indicating unsupported branch retrieval.
-        if not retriever_class:
-            return [
-                f"Source control provider {self.source_control_provider} does not support branch retrieval"
-            ]
-
-        # Instantiate the retriever with necessary credentials from environment variables.
-        retriever_instance = retriever_class(
-            self.source_control_url,
-            self.source_control_pat,
-        )
+        """        
+        # Get the corresponding retriever instance
+        retriever_instance = self.get_retriever_instance(url)       
 
         # Use the instantiated retriever to fetch branches from the provided URL.
         return retriever_instance.retrieve_branches(url=url)
@@ -80,22 +62,8 @@ class CodeRetrieverTool:
         :param url: The URL from which to scan the repo.
         :return: The retrieved file paths or an error message if retrieval is not supported.
         """
-        # Get the corresponding retriever class from the map using provider name in lowercase.
-        retriever_class = self.source_control_to_retriever_map.get(
-            self.source_control_provider
-        )
-
-        # If no retriever class is found, return an error message indicating unsupported branch retrieval.
-        if not retriever_class:
-            return [
-                f"Source control provider {self.source_control_provider} does not support branch retrieval"
-            ]
-
-        # Instantiate the retriever with necessary credentials from environment variables.
-        retriever_instance = retriever_class(
-            self.source_control_url,
-            self.source_control_pat,
-        )
+        # Get the corresponding retriever instance
+        retriever_instance = self.get_retriever_instance(url)
 
         # Use the instantiated retriever to fetch branches from the provided URL.
         files = retriever_instance.scan_repository(url=url, branch_name=branch_name)
@@ -114,20 +82,8 @@ class CodeRetrieverTool:
         :param branch_name: The name of the branch from which to retrieve the code.
         :return: The retrieved code or an error message if retrieval is not supported.
         """
-        # Get the corresponding retriever class from the map using provider name in lowercase.
-        retriever_class = self.source_control_to_retriever_map.get(
-            self.source_control_provider
-        )
-
-        # If no retriever class is found, return an error message indicating unsupported code retrieval.
-        if not retriever_class:
-            return f"Source control provider {self.source_control_provider} does not support code retrieval"
-
-        # Instantiate the retriever with necessary credentials from environment variables.
-        retriever_instance = retriever_class(
-            self.source_control_url,
-            self.source_control_pat,
-        )
+        # Get the corresponding retriever instance
+        retriever_instance = self.get_retriever_instance(url)
 
         # Use the instantiated retriever to fetch code from the provided URL.
         return retriever_instance.retrieve_code(
@@ -148,23 +104,14 @@ class CodeRetrieverTool:
         :param url: The URL from which to retrieve the source code file.
         :return: The retrieved source code or an error message if retrieval is not supported.
         """
-        # Get the corresponding retriever class from the map using provider name in lowercase.
-        retriever_class = self.source_control_to_retriever_map.get(
-            self.source_control_provider
-        )
+        try:
+            # Get the corresponding retriever instance
+            retriever_instance = self.get_retriever_instance(url)
 
-        # If no retriever class is found, return an error message indicating unsupported file retrieval.
-        if not retriever_class:
-            return f"Source control provider {self.source_control_provider} does not support file retrieval"
-
-        # Instantiate the retriever with necessary credentials from environment variables.
-        retriever_instance = retriever_class(
-            self.source_control_url,
-            self.source_control_pat,
-        )
-
-        # Use the instantiated retriever to fetch data from the provided URL.
-        return retriever_instance.retrieve_data(url=url)
+            # Use the instantiated retriever to fetch data from the provided URL.
+            return retriever_instance.retrieve_data(url=url)
+        except Exception as e:
+            return f"Error retrieving source code.  Please check your source control settings.  Exception: {e}"
 
     def retrieve_source_code(self, url: str) -> str:
         """
@@ -173,20 +120,31 @@ class CodeRetrieverTool:
         :param url: The URL from which to retrieve the source code file.
         :return: The retrieved source code or an error message if retrieval is not supported.
         """
-        # Get the corresponding retriever class from the map using provider name in lowercase.
-        retriever_class = self.source_control_to_retriever_map.get(
-            self.source_control_provider
-        )
-
-        # If no retriever class is found, return an error message indicating unsupported file retrieval.
-        if not retriever_class:
-            return f"Source control provider {self.source_control_provider} does not support file retrieval"
-
-        # Instantiate the retriever with necessary credentials from environment variables.
-        retriever_instance = retriever_class(
-            self.source_control_url,
-            self.source_control_pat,
-        )
+        # Get the corresponding retriever instance
+        retriever_instance = self.get_retriever_instance(url)
 
         # Use the instantiated retriever to fetch data from the provided URL.
         return retriever_instance.retrieve_data(url=url)
+
+    def get_retriever_instance(self, url):
+        source_control_provider = self.conversation_manager.code_helper.get_provider_from_url(url)        
+        
+        if not source_control_provider:
+            raise Exception(f"The URL {url} does not correspond to a configured source control provider.")
+        
+        supported_provider = self.conversation_manager.code_helper.get_supported_source_control_provider_by_id(source_control_provider.supported_source_control_provider_id)
+        
+        # Get the corresponding retriever class from the map using provider name in lowercase.
+        retriever_class = self.source_control_to_retriever_map.get(
+            supported_provider.name.lower()
+        )
+        
+        # If no retriever class is found, return an error message indicating unsupported code retrieval.
+        if not retriever_class:
+            raise f"Source control provider {source_control_provider.source_control_provider_name} does not support code retrieval"
+        
+        return retriever_class(
+            source_control_pat=source_control_provider.source_control_access_token,
+            source_control_url=source_control_provider.source_control_provider_url,
+            requires_authentication=source_control_provider.requires_authentication
+        )

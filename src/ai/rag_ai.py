@@ -93,7 +93,7 @@ class RetrievalAugmentedGenerationAI:
         self.chain = LLMChain(
             llm=self.llm,
             prompt=self.prompt_manager.get_prompt(
-                "conversational", "CONVERSATIONAL_PROMPT"
+                "conversational_prompts", "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
         )
@@ -226,7 +226,7 @@ class RetrievalAugmentedGenerationAI:
             logging.debug("Interaction needs summary, generating one now")
             conversation_summary = self.llm.predict(
                 self.prompt_manager.get_prompt(
-                    "summary",
+                    "summary_prompts",
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )
@@ -245,7 +245,7 @@ class RetrievalAugmentedGenerationAI:
 
         response = llm.predict(
             self.prompt_manager.get_prompt(
-                "code_general",
+                "code_general_prompts",
                 "CODE_DETAILS_EXTRACTION_TEMPLATE",
             ).format(code=code),
             timeout=30000,
@@ -270,7 +270,7 @@ class RetrievalAugmentedGenerationAI:
 
         summary = llm.predict(
             self.prompt_manager.get_prompt(
-                "summary",
+                "summary_prompts",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
@@ -290,7 +290,7 @@ class RetrievalAugmentedGenerationAI:
 
         response = llm.predict(
             self.prompt_manager.get_prompt(
-                "questions",
+                "questions_prompts",
                 "CHUNK_QUESTIONS_TEMPLATE",
             ).format(
                 document_text=document_text, number_of_questions=number_of_questions

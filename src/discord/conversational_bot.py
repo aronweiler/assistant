@@ -61,7 +61,7 @@ class ConversationalBot(discord.Client):
         memory = await get_conversation_memory(self.llm, message)
 
         prompt = self.prompt_manager.get_prompt(
-            "discord_llm",
+            "discord_llm_prompts",
             template,
         )
 

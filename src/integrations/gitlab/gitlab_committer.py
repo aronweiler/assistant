@@ -7,12 +7,12 @@ from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
 
 class GitlabCommitter:
-    def __init__(self, source_control_url: str, source_control_pat: str):
+    def __init__(self, source_control_url: str, source_control_pat: str, requires_authentication=False):
         self.source_control_url = source_control_url
         self.source_control_pat = source_control_pat
 
         self.gitlab = gitlab_shared.retrieve_gitlab_client(
-            source_control_url, source_control_pat, verify_auth=True
+            source_control_url, source_control_pat, requires_authentication=requires_authentication
         )
 
     def commit_changes(

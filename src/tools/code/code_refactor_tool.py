@@ -22,14 +22,6 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
-# Importing integration modules for GitLab and GitHub.
-from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
-from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
-
-from src.integrations.github.github_issue_creator import GitHubIssueCreator
-from src.integrations.github.github_retriever import GitHubRetriever
-
 
 @tool_class
 class CodeRefactorTool:
@@ -38,12 +30,6 @@ class CodeRefactorTool:
     It can retrieve files from URLs or files from the database, conduct refactors on those files,
     and format the results in a structured way.
     """
-
-    # Mapping of source control provider names to their respective retriever classes.
-    source_control_to_retriever_map = {
-        "gitlab": GitlabRetriever,
-        "github": GitHubRetriever,
-    }
 
     def __init__(
         self,
@@ -58,13 +44,6 @@ class CodeRefactorTool:
         """
         self.configuration = configuration
         self.conversation_manager = conversation_manager
-
-        # Constants for environment variables and source control providers
-        self.source_control_provider = os.getenv(
-            "SOURCE_CONTROL_PROVIDER", "github"
-        ).lower()
-        self.source_control_url = os.getenv("source_control_url")
-        self.source_control_pat = os.getenv("source_control_pat")
 
     def get_active_code_refactor_templates(self, tool_name: str) -> List[dict]:
         """
@@ -126,13 +105,13 @@ class CodeRefactorTool:
         # Retrieve base code refactor instructions and format them with file-specific instructions.
         base_code_refactor_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor", "BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE"
+                "code_refactor_prompts", "BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         code_refactor_format_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor", "CODE_REFACTOR_FORMAT_TEMPLATE"
+                "code_refactor_prompts", "CODE_REFACTOR_FORMAT_TEMPLATE"
             )
         )
 
@@ -246,7 +225,7 @@ class CodeRefactorTool:
     ):
         final_code_refactor_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
+                "code_refactor_prompts", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
             ).format(
                 code_summary="",
                 code_dependencies="",
@@ -258,7 +237,7 @@ class CodeRefactorTool:
 
         # Get individual prompt for each type of refactor from the template and format it.
         code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "code_refactor", "CUSTOM_CODE_REFACTOR_TEMPLATE"
+            "code_refactor_prompts", "CUSTOM_CODE_REFACTOR_TEMPLATE"
         ).format(
             base_code_refactor_instructions=base_code_refactor_instructions,
             final_code_refactor_instructions=final_code_refactor_instructions,
@@ -301,7 +280,7 @@ class CodeRefactorTool:
             # into the next refactor.
             final_code_refactor_instructions = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "code_refactor", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
+                    "code_refactor_prompts", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
                 ).format(
                     code_summary="",
                     code_dependencies="",
@@ -313,7 +292,7 @@ class CodeRefactorTool:
 
             # Get individual prompt for each type of refactor from the template and format it.
             code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor", template["name"]
+                "code_refactor_prompts", template["name"]
             ).format(
                 base_code_refactor_instructions=base_code_refactor_instructions,
                 final_code_refactor_instructions=final_code_refactor_instructions,

@@ -14,6 +14,7 @@ from src.ai.agents.general.generic_tool import GenericTool
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.configuration.assistant_configuration import ModelConfiguration
+from src.utilities.configuration_utilities import get_app_configuration
 
 from src.utilities.parsing_utilities import parse_json
 
@@ -311,14 +312,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
         system_prompt = self.get_system_prompt(system_information)
         available_tools = self.get_available_tool_descriptions(self.tools)
         loaded_documents = self.get_loaded_documents()
-        chat_history = self.get_chat_history()
+        chat_history = self.get_chat_history()            
         previous_tool_calls = self.get_previous_tool_call_headers()
-
+        
         selected_repo = self.conversation_manager.get_selected_repository()
 
         if selected_repo:
             selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent",
+                "generic_tools_agent_prompts",
                 "SELECTED_REPO_TEMPLATE",
             ).format(
                 selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
@@ -329,7 +330,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if loaded_documents:
             loaded_documents_prompt = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent",
+                    "generic_tools_agent_prompts",
                     "LOADED_DOCUMENTS_TEMPLATE",
                 ).format(loaded_documents=loaded_documents)
             )
@@ -338,7 +339,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         if chat_history and len(chat_history) > 0:
             chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent",
+                "generic_tools_agent_prompts",
                 "CHAT_HISTORY_TEMPLATE",
             ).format(chat_history=chat_history)
         else:
@@ -347,7 +348,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if previous_tool_calls and len(previous_tool_calls) > 0:
             previous_tool_calls_prompt = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent",
+                    "generic_tools_agent_prompts",
                     "PREVIOUS_TOOL_CALLS_TEMPLATE",
                 ).format(previous_tool_calls=previous_tool_calls)
             )
@@ -355,7 +356,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             previous_tool_calls_prompt = ""
 
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent",
+            "generic_tools_agent_prompts",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
         ).format(
             system_prompt=system_prompt,
@@ -371,7 +372,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     def get_answer_prompt(self, user_query, helpful_context):
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent",
+            "generic_tools_agent_prompts",
             "ANSWER_PROMPT_TEMPLATE",
         ).format(
             user_query=user_query,
@@ -405,7 +406,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         if selected_repo:
             selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent",
+                "generic_tools_agent_prompts",
                 "SELECTED_REPO_TEMPLATE",
             ).format(
                 selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
@@ -416,7 +417,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if loaded_documents:
             loaded_documents_prompt = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent",
+                    "generic_tools_agent_prompts",
                     "LOADED_DOCUMENTS_TEMPLATE",
                 ).format(loaded_documents=loaded_documents)
             )
@@ -426,7 +427,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if previous_tool_calls and len(previous_tool_calls) > 0:
             previous_tool_calls_prompt = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent",
+                    "generic_tools_agent_prompts",
                     "PREVIOUS_TOOL_CALLS_TEMPLATE",
                 ).format(previous_tool_calls=previous_tool_calls)
             )
@@ -436,14 +437,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
         chat_history = self.get_chat_history()
         if chat_history and len(chat_history) > 0:
             chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent",
+                "generic_tools_agent_prompts",
                 "CHAT_HISTORY_TEMPLATE",
             ).format(chat_history=chat_history)
         else:
             chat_history_prompt = ""
 
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent",
+            "generic_tools_agent_prompts",
             "TOOL_USE_TEMPLATE",
         ).format(
             selected_repository_prompt=selected_repo_prompt,
@@ -468,7 +469,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         available_tools = self.get_available_tool_descriptions(self.tools)
 
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent",
+            "generic_tools_agent_prompts",
             "TOOL_USE_RETRY_TEMPLATE",
         ).format(
             loaded_documents=self.get_loaded_documents(),
@@ -484,7 +485,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     def get_system_prompt(self, system_information):
         system_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent",
+            "generic_tools_agent_prompts",
             "SYSTEM_TEMPLATE",
         ).format(
             system_information=system_information,
@@ -493,6 +494,11 @@ class GenericToolsAgent(BaseSingleActionAgent):
         return system_prompt
 
     def get_previous_tool_call_headers(self):
+        
+         # Check the configuration to see if the get_previous_tool_call_results tool is enabled
+        if not get_app_configuration()["tool_configurations"]["get_previous_tool_call_results"].get("enabled", False):               
+            return None
+        
         previous_tool_calls: List[
             ToolCallResultsModel
         ] = self.conversation_manager.conversations_helper.get_tool_call_results(

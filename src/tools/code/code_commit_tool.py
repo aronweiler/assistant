@@ -52,13 +52,6 @@ class CodeCommitTool:
         self.configuration = configuration
         self.conversation_manager = conversation_manager
 
-        # Constants for environment variables and source control providers
-        self.source_control_provider = os.getenv(
-            "SOURCE_CONTROL_PROVIDER", "github"
-        ).lower()
-        self.source_control_url = os.getenv("source_control_url")
-        self.source_control_pat = os.getenv("source_control_pat")
-
     @register_tool(
         display_name="Commit Code",
         help_text="Commits code to a source control repository.",
@@ -86,17 +79,20 @@ class CodeCommitTool:
         :param code: The code to commit.
         :param file_path: The path to the file to commit.
         """
+        source_control_provider = self.conversation_manager.code_helper.get_provider_from_url(repository)
+        
         committer_class = self.source_control_to_committer_map[
-            self.source_control_provider
+            source_control_provider.source_control_provider_name.lower()
         ]
+        
         if committer_class is None:
             raise Exception(
-                f"Source control provider {self.source_control_provider} is not supported."
+                f"Source control provider {source_control_provider.source_control_provider_name} is not supported."
             )
 
         committer = committer_class(
-            source_control_pat=self.source_control_pat,
-            source_control_url=self.source_control_url,
+            source_control_pat=source_control_provider.source_control_access_token,
+            source_control_url=source_control_provider.source_control_provider_url,
         )
 
         code_and_file_paths = [{"code": code, "file_path": file_path}]

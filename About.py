@@ -1,5 +1,6 @@
 # Import necessary modules with clear names
 from src.db.database.creation_utilities import CreationUtilities
+from src.db.models.default_data import ensure_conversation_role_types, ensure_supported_source_control_providers
 from src.db.models.vector_database import VectorDatabase
 import src.ui.streamlit_shared as ui_shared
 import streamlit as st
@@ -10,7 +11,8 @@ PAGE_ICON = "😎"
 ABOUT_JARVIS_HEADER = "# About Jarvis 🤖"
 
 # Documentation strings and error messages
-ERROR_MSG_ROLE_TYPES = "Error ensuring conversation role types: {}. You probably didn't run the `migration_utilities.create_migration()`"
+ERROR_MSG_ROLE_TYPES = "Error ensuring conversation role types are in the database: {}. You probably didn't run the `migration_utilities.create_migration()`"
+ERROR_MSG_SOURCE_CONTROL = "Error ensuring supported source control providers are in the database: {}. You probably didn't run the `migration_utilities.create_migration()`"
 
 
 def verify_database():
@@ -28,9 +30,14 @@ def verify_database():
 
     # Populate default conversation role types
     try:
-        VectorDatabase().ensure_conversation_role_types()
+        ensure_conversation_role_types()
     except Exception as e:
         print(ERROR_MSG_ROLE_TYPES.format(e))
+        
+    try:
+        ensure_supported_source_control_providers()
+    except Exception as e:
+        print(ERROR_MSG_SOURCE_CONTROL.format(e))        
 
 
 def setup_streamlit_interface():

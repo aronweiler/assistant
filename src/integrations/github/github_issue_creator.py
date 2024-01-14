@@ -25,9 +25,11 @@ def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
 
 
 class GitHubIssueCreator:
-    def __init__(self, source_control_url, source_control_pat):
+    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
         self._gh = github_shared.retrieve_github_client(
-            source_control_pat=source_control_pat
+            source_control_pat=source_control_pat,
+            source_control_url=source_control_url,
+            requires_authentication=requires_authentication,
         )
 
     @staticmethod

@@ -14,19 +14,21 @@ import src.integrations.github.github_shared as github_shared
 
 
 class GitHubRetriever:
-    def __init__(self, source_control_url, source_control_pat):
+    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
         # Initialize a logger instance for this class.
         self._logger = logging.getLogger(__name__)
         # Store the base URL for the source control (GitHub).
         self._source_control_url = source_control_url
         # Retrieve a GitHub client using the provided personal access token (PAT).
         self._gh = github_shared.retrieve_github_client(
-            source_control_pat=source_control_pat
+            source_control_pat=source_control_pat,
+            source_control_url=source_control_url,
+            requires_authentication=requires_authentication,
         )
 
     def retrieve_branches(self, url):
         # Parse the URL to extract repository information.
-        url_info = github_shared.parse_url(url=url)
+        url_info = github_shared.parse_url(url=url, client=self._gh)
 
         # Extract the repository path from the URL info dictionary.
         repo_path = url_info["repo_path"]
@@ -46,7 +48,7 @@ class GitHubRetriever:
     
     def scan_repository(self, url, branch_name):
         # Parse the URL to extract repository information.
-        url_info = github_shared.parse_url(url=url)
+        url_info = github_shared.parse_url(url=url, client=self._gh)
 
         # Extract the repository path from the URL info dictionary.
         repo_path = url_info["repo_path"]
@@ -55,7 +57,7 @@ class GitHubRetriever:
 
     def retrieve_data(self, url):
         # Parse the URL to determine if it's pointing to a file or a pull request (diff).
-        url_info = github_shared.parse_url(url=url)
+        url_info = github_shared.parse_url(url=url, client=self._gh)
 
         # Depending on the type of content pointed by URL, call appropriate retrieval method.
         if url_info["type"] == "file":
@@ -71,7 +73,7 @@ class GitHubRetriever:
 
     def _retrieve_file_data(self, url):
         # Parse the URL to extract file and repository information.
-        url_info = github_shared.parse_url(url=url)
+        url_info = github_shared.parse_url(url=url, client=self._gh)
 
         domain = url_info["domain"]
 
@@ -111,7 +113,7 @@ class GitHubRetriever:
 
     def _retrieve_pull_request_data(self, url):
          # Parse the URL to extract pull request and repository information.
-        url_info = github_shared.parse_url(url=url)
+        url_info = github_shared.parse_url(url=url, client=self._gh)
 
         if url_info["domain"] not in self._source_control_url:
             raise Exception(
@@ -164,13 +166,3 @@ class GitHubRetriever:
             "url": url,
             "changes": changes2,
         }
-
-
-if __name__ == "__main__":
-    dotenv.load_dotenv()
-    file_retriever = GitHubRetriever(
-        source_control_url=os.getenv("source_control_url"),
-        source_control_pat=os.getenv("source_control_pat"),
-    )
-
-    file_data = file_retriever.retrieve_file_data(url="")

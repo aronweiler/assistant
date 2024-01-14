@@ -51,4 +51,4 @@ class PromptManager:
 if __name__ == "__main__":
     pm = PromptManager(llm_type="openai")
 
-    print(pm.get_prompt(category="conversational", prompt_name="CONVERSATIONAL_PROMPT"))
+    print(pm.get_prompt(category="conversational_prompts", prompt_name="CONVERSATIONAL_PROMPT"))

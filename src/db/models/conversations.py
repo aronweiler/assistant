@@ -113,6 +113,11 @@ class Conversations(VectorDatabase):
             session.commit()
 
     def add_tool_call_results(self, conversation_id, tool_name, tool_arguments, tool_results):
+        
+        # If the tool_results is a list or dict, convert it to a string
+        if isinstance(tool_results, (list, dict)):
+            tool_results = str(tool_results)
+        
         with self.session_context(self.Session()) as session:
             session.add(
                 ToolCallResults(

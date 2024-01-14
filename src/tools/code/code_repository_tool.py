@@ -258,7 +258,7 @@ class CodeRepositoryTool:
 
                 get_relevant_snippets_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
-                        "code_general", "GET_RELEVANT_SNIPPETS_TEMPLATE"
+                        "code_general_prompts", "GET_RELEVANT_SNIPPETS_TEMPLATE"
                     )
                 ).format(
                     file_id=file_info["file_id"],
@@ -374,7 +374,7 @@ class CodeRepositoryTool:
 
                 additional_prompt_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
-                        "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
+                        "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
 
@@ -438,7 +438,7 @@ class CodeRepositoryTool:
 
         identify_likely_files_prompt = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_general", "IDENTIFY_LIKELY_FILES_TEMPLATE"
+                "code_general_prompts", "IDENTIFY_LIKELY_FILES_TEMPLATE"
             )
         )
 
@@ -490,7 +490,7 @@ class CodeRepositoryTool:
 
         # Now we have the code contents, we can run it through the LLM to try to answer the question
         answer_query_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "code_general", "ANSWER_QUERY_TEMPLATE"
+            "code_general_prompts", "ANSWER_QUERY_TEMPLATE"
         )
 
         code_contents_string = ""

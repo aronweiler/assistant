@@ -1333,9 +1333,9 @@ def handle_chat(main_window_container, ai_instance, configuration):
                         ai_mode=st.session_state["ai_mode"],
                         kwargs=kwargs,
                     )
-                except Exception as e:
-                    logging.error(f"Error querying AI: {e}")
-                    result = "Error querying AI, please try again (and see the logs)."
+                except Exception as e:                                        
+                    logging.error(f"Error querying AI: {str(e)}")
+                    result = f"An error occurred when attempting to fulfill your request.\n\n```console\n{str(e)}\n```"
 
                 logging.debug(f"Result: {result}")
 

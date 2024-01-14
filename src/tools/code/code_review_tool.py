@@ -18,14 +18,6 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 from src.utilities.parsing_utilities import parse_json
 
-# Importing integration modules for GitLab and GitHub.
-from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
-from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
-
-from src.integrations.github.github_issue_creator import GitHubIssueCreator
-from src.integrations.github.github_retriever import GitHubRetriever
-
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 @tool_class
@@ -48,14 +40,7 @@ class CodeReviewTool:
         :param conversation_manager: The manager that handles interactions with language models.
         """
         self.configuration = configuration
-        self.conversation_manager = conversation_manager
-
-        # Constants for environment variables and source control providers
-        self.source_control_provider = os.getenv(
-            "SOURCE_CONTROL_PROVIDER", "github"
-        ).lower()
-        self.source_control_url = os.getenv("source_control_url")
-        self.source_control_pat = os.getenv("source_control_pat")
+        self.conversation_manager = conversation_manager       
 
     def get_active_code_review_templates(self, tool_name: str) -> List[dict]:
         """
@@ -108,13 +93,13 @@ class CodeReviewTool:
         # Retrieve base code review instructions and format them with diff-specific instructions.
         base_code_review_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_review", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
+                "code_review_prompts", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         diff_code_review_format_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_review", "DIFF_CODE_REVIEW_FORMAT_TEMPLATE"
+                "code_review_prompts", "DIFF_CODE_REVIEW_FORMAT_TEMPLATE"
             )
         )
 
@@ -162,13 +147,13 @@ class CodeReviewTool:
         # Retrieve base code review instructions and format them with file-specific instructions.
         base_code_review_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_review", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
+                "code_review_prompts", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         file_code_review_format_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
-                "code_review", "FILE_CODE_REVIEW_FORMAT_TEMPLATE"
+                "code_review_prompts", "FILE_CODE_REVIEW_FORMAT_TEMPLATE"
             )
         )
 
@@ -220,7 +205,7 @@ class CodeReviewTool:
             # Format final code review instructions with placeholders replaced by actual data.
             final_code_review_instructions = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
+                    "code_review_prompts", "FINAL_CODE_REVIEW_INSTRUCTIONS"
                 ).format(
                     code_summary="",
                     code_dependencies="",
@@ -233,7 +218,7 @@ class CodeReviewTool:
             if not additional_instructions or additional_instructions == "":
                 code_review_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
-                        "code_review", "GENERIC_CODE_REVIEW_TEMPLATE"
+                        "code_review_prompts", "GENERIC_CODE_REVIEW_TEMPLATE"
                     ).format(
                         base_code_review_instructions=base_code_review_instructions,
                         final_code_review_instructions=final_code_review_instructions,
@@ -242,7 +227,7 @@ class CodeReviewTool:
             else:
                 code_review_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
-                        "code_review", "CUSTOM_CODE_REVIEW_TEMPLATE"
+                        "code_review_prompts", "CUSTOM_CODE_REVIEW_TEMPLATE"
                     ).format(
                         base_code_review_instructions=base_code_review_instructions,
                         code_review_instructions=additional_instructions,
@@ -269,7 +254,7 @@ class CodeReviewTool:
 
             final_code_review_instructions = (
                 self.conversation_manager.prompt_manager.get_prompt(
-                    "code_review", "FINAL_CODE_REVIEW_INSTRUCTIONS"
+                    "code_review_prompts", "FINAL_CODE_REVIEW_INSTRUCTIONS"
                 ).format(
                     code_summary="",
                     code_dependencies="",
@@ -284,7 +269,7 @@ class CodeReviewTool:
                 # Get individual prompt for each type of review from the template and format it.
                 code_review_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
-                        "code_review", template["name"]
+                        "code_review_prompts", template["name"]
                     ).format(
                         base_code_review_instructions=base_code_review_instructions,
                         final_code_review_instructions=final_code_review_instructions,

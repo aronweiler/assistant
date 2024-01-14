@@ -90,7 +90,7 @@ class DocumentTool:
 
                 additional_prompt_prompt = (
                     self.conversation_manager.prompt_manager.get_prompt(
-                        "prompt_refactoring", "ADDITIONAL_PROMPTS_TEMPLATE"
+                        "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
 
@@ -186,7 +186,7 @@ class DocumentTool:
                 document_ids.append(document.id)
 
         prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "document", "QUESTION_PROMPT_TEMPLATE"
+            "document_prompts", "QUESTION_PROMPT_TEMPLATE"
         )
 
         # prompt_tokens = num_tokens_from_string(prompt + original_user_input)
@@ -219,7 +219,7 @@ class DocumentTool:
     def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
         summary = llm.predict(
             self.conversation_manager.prompt_manager.get_prompt(
-                "summary",
+                "summary_prompts",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text),
             callbacks=self.conversation_manager.agent_callbacks,
@@ -278,7 +278,7 @@ class DocumentTool:
         reduce_chain = LLMChain(
             llm=llm,
             prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "summary",
+                "summary_prompts",
                 "REDUCE_SUMMARIES_PROMPT",
             ),
         )
@@ -372,11 +372,11 @@ class DocumentTool:
             llm=llm,
             chain_type="refine",
             question_prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "summary",
+                "summary_prompts",
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
             refine_prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "summary", refine_prompt
+                "summary_prompts", refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",
@@ -447,7 +447,7 @@ class DocumentTool:
 
         questions = "- " + "\n-".join(queries)
         prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "document", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
+            "document_prompts", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
         )
 
         document_chunks_length = len(document_chunks)
