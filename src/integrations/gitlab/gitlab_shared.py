@@ -6,11 +6,11 @@ REVIEWER = "Jarvis AI"
 
 
 def retrieve_gitlab_client(
-    source_control_url: str, source_control_pat: str, verify_auth: bool = True
+    source_control_url: str, source_control_pat: str, requires_authentication=False
 ) -> gitlab.Gitlab:
     gl = gitlab.Gitlab(url=source_control_url, private_token=source_control_pat)
 
-    if verify_auth:
+    if requires_authentication:
         gl.auth()
 
     return gl

@@ -25,11 +25,11 @@ def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
 
 
 class GitlabIssueCreator:
-    def __init__(self, source_control_url, source_control_pat):
+    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
         self._gl = gitlab_shared.retrieve_gitlab_client(
             source_control_url=source_control_url,
             source_control_pat=source_control_pat,
-            verify_auth=True,
+            requires_authentication=requires_authentication,
         )
 
     @staticmethod

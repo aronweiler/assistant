@@ -11,14 +11,14 @@ import src.integrations.gitlab.gitlab_shared as gitlab_shared
 
 
 class GitlabIssueRetriever:
-    def __init__(self, source_control_url, source_control_pat):
+    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
         self._logger = logging.getLogger(__name__)
         self._source_control_url = source_control_url
         self._source_control_pat = source_control_pat
         self._gl = gitlab_shared.retrieve_gitlab_client(
             source_control_url=source_control_url,
             source_control_pat=source_control_pat,
-            verify_auth=True,
+            requires_authentication=requires_authentication,
         )
 
 

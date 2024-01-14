@@ -10,11 +10,11 @@ from src.integrations.gitlab import gitlab_shared
 
 
 class GitlabFileIterator:
-    def __init__(self, source_control_url, source_control_pat):
+    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
         self._gl = gitlab_shared.retrieve_gitlab_client(
             source_control_url=source_control_url,
             source_control_pat=source_control_pat,
-            verify_auth=True,
+            requires_authentication=requires_authentication=,
         )
 
     def get_text_based_files_from_project(self, project_id, branch_name):
