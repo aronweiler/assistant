@@ -120,4 +120,5 @@ class IssueTool:
         return issue_retriever_class(
             source_control_pat=source_control_provider.source_control_access_token,
             source_control_url=source_control_provider.source_control_provider_url,
+            requires_authentication=source_control_provider.requires_authentication
         )

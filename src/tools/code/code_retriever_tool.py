@@ -104,11 +104,14 @@ class CodeRetrieverTool:
         :param url: The URL from which to retrieve the source code file.
         :return: The retrieved source code or an error message if retrieval is not supported.
         """
-        # Get the corresponding retriever instance
-        retriever_instance = self.get_retriever_instance(url)
+        try:
+            # Get the corresponding retriever instance
+            retriever_instance = self.get_retriever_instance(url)
 
-        # Use the instantiated retriever to fetch data from the provided URL.
-        return retriever_instance.retrieve_data(url=url)
+            # Use the instantiated retriever to fetch data from the provided URL.
+            return retriever_instance.retrieve_data(url=url)
+        except Exception as e:
+            return f"Error retrieving source code.  Please check your source control settings.  Exception: {e}"
 
     def retrieve_source_code(self, url: str) -> str:
         """
@@ -143,4 +146,5 @@ class CodeRetrieverTool:
         return retriever_class(
             source_control_pat=source_control_provider.source_control_access_token,
             source_control_url=source_control_provider.source_control_provider_url,
+            requires_authentication=source_control_provider.requires_authentication
         )
