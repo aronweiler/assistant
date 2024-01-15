@@ -91,7 +91,7 @@ def setup_streamlit_interface():
         # Get the last exception
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        if "StopException" in str(exc_value.__class__):
+        if "StopException" in str(exc_value.__class__) or "StreamlitAPIException" in str(exc_value.__class__):
             # If so, then just return
             return
         else:
