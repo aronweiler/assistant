@@ -25,7 +25,9 @@ def load_review_from_json_file(file_loc: pathlib.Path | str) -> dict:
 
 
 class GitHubIssueCreator:
-    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
+    def __init__(
+        self, source_control_url, source_control_pat, requires_authentication=False
+    ):
         self._gh = github_shared.retrieve_github_client(
             source_control_pat=source_control_pat,
             source_control_url=source_control_url,
@@ -84,18 +86,22 @@ class GitHubIssueCreator:
             language_mode_syntax_highlighting=language,
         )
 
-        issue = repo.create_issue(
-            title=title, body=description, labels=[github_shared.REVIEWER]
-        )
+        try:
+            issue = repo.create_issue(
+                title=title, body=description, labels=[github_shared.REVIEWER]
+            )
+        except Exception as e:
+            logger.error(f"Failed to create issue for {title}, {e}")
+            return f"Failed to create issue for {title}, got exception: {e}\n\n**Review Data**\n{review_data}"
 
-        return {"url": issue.html_url}
+        return f"Successfully created issue at {issue.html_url}"
 
 
 if __name__ == "__main__":
-    dotenv.load_dotenv()
     issue_creator = GitHubIssueCreator(
-        source_control_url=os.getenv("GITHUB_API_URL", "https://api.github.com"),
-        source_control_pat=os.getenv("SOURCE_CONTROL_PAT"),
+        source_control_url="https://api.github.com",
+        source_control_pat="github_pat_...",
+        requires_authentication=True,
     )
 
     review_data = load_review_from_json_file(
@@ -105,10 +111,4 @@ if __name__ == "__main__":
         / "comment_data_3.json"
     )
 
-    issue_creator.generate_issue(
-        repo_name="aronweiler/assistant",
-        ref="main",
-        file_path="About.py",
-        source_code_file_href="https://github.com/aronweiler/assistant/blob/main/About.py",
-        review_data=review_data,
-    )
+    issue_creator.generate_issue(review_data=review_data)

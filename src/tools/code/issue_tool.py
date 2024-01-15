@@ -44,9 +44,13 @@ class IssueTool:
         self.conversation_manager = conversation_manager
     
     def ingest_issue_from_url(self, url):
-        retriever = self.get_issue_retriever_instance(url=url)
+        try:
+            retriever = self.get_issue_retriever_instance(url=url)
 
-        return retriever.retrieve_issue_data(url=url)
+            return retriever.retrieve_issue_data(url=url)
+        except Exception as e:
+            logging.error(f"Tried to get an issue from {url}.\n{e}")
+            return None
 
     @register_tool(
         display_name="Create Issue from Code Review",
@@ -68,7 +72,7 @@ class IssueTool:
         """       
 
         issue_creator = self.get_issue_creator_instance(
-            url=review_data["source_code_file_data"]["url"]
+            url=review_data['metadata']['url']
         )
 
         result = issue_creator.generate_issue(
