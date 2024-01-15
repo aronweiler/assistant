@@ -20,6 +20,7 @@ from src.utilities.parsing_utilities import parse_json
 
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
+
 @tool_class
 class CodeReviewTool:
     """
@@ -40,7 +41,7 @@ class CodeReviewTool:
         :param conversation_manager: The manager that handles interactions with language models.
         """
         self.configuration = configuration
-        self.conversation_manager = conversation_manager       
+        self.conversation_manager = conversation_manager
 
     def get_active_code_review_templates(self, tool_name: str) -> List[dict]:
         """
@@ -285,8 +286,20 @@ class CodeReviewTool:
                 # Parse JSON data returned by language model prediction into structured data.
                 data = parse_json(json_data, llm)
 
-                # Extend comment results with comments from current template's review.
-                comment_results.extend(data["comments"])
+                if "comments" in data:
+                    # Extend comment results with comments from current template's review.
+                    comment_results.extend(data["comments"])
+                else:
+                    # If no comments were returned, add a message indicating so.
+                    comment_results.append(
+                        {
+                            "comment": f"No comments were returned for {template['description']} template.",
+                            "start": None,
+                            "end": None,
+                            "original_code_snippet": None,
+                            "suggested_code_snippet": None,
+                        }
+                    )
 
         # Sort comments based on their starting line number or addition line start if available.
         def get_start_line(comment):
@@ -321,7 +334,7 @@ class CodeReviewTool:
         }
 
         if self.is_output_json(tool_name):
-            # Return formatted refactor results as a JSON string enclosed in triple backticks for markdown formatting.
+            # Return formatted review results as a JSON string enclosed in triple backticks for markdown formatting.
             return f"```json\n{review_results}\n```"
         else:
             return self.format_review_results(review_results)
@@ -431,7 +444,8 @@ class CodeReviewTool:
         file_data = file_info.pop("file_content", None)
 
         # Retrieve any existing issues related to this file from its URL.
-        previous_issue = IssueTool.ingest_issue_from_url(url=target_url)
+        issue_tool = IssueTool(self.configuration, self.conversation_manager)
+        previous_issue = issue_tool.ingest_issue_from_url(url=target_url)
 
         # Calculate the number of tokens in the code file for size check.
         code_file_token_count = num_tokens_from_string(file_data)
