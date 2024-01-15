@@ -1,4 +1,4 @@
-from langchain.tools import WikipediaQueryRun
+from langchain_community.tools import WikipediaQueryRun
 from langchain.utilities import WikipediaAPIWrapper
 
 
