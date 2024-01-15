@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import uuid
 
 import streamlit as st
@@ -220,9 +221,18 @@ if __name__ == "__main__":
             ui_shared.handle_chat(col1, st.session_state["rag_ai"], st.session_state["app_config"])
 
             ui_shared.show_version()            
-    except Exception as e:
-        # This should only be catching a StopException thrown by streamlit, yet I cannot find it for the fucking life of me.
-        # And after wasting 20 minutes of my life on this, I am done.
+    except:
+        # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
+        # Check to see if the type of exception is a "StopException",
+        # which gets thrown when a user navigates away from a page while the debugger is attached.
+        # But we don't have access to that type, so we have to check the string.  Dumb.
 
-        logging.error(f"Caught a general exception: {e}")
-        st.error(f"Caught a general exception: {e}")
+        # Get the last exception
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        if "StopException" in str(exc_value.__class__):
+            # If so, then just return
+            pass
+        else:
+            # Otherwise, raise the exception
+            raise

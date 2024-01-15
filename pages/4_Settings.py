@@ -1,4 +1,5 @@
 import logging
+import sys
 import threading
 import streamlit as st
 import os
@@ -754,4 +755,20 @@ def edit_provider_form(existing_provider:SourceControlProviderModel, code_helper
 
 # Run the settings page
 if __name__ == "__main__":
-    settings_page()
+    try:
+        settings_page()
+    except:
+        # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
+        # Check to see if the type of exception is a "StopException",
+        # which gets thrown when a user navigates away from a page while the debugger is attached.
+        # But we don't have access to that type, so we have to check the string.  Dumb.
+
+        # Get the last exception
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
+        if "StopException" in str(exc_value.__class__):
+            # If so, then just return
+            pass
+        else:
+            # Otherwise, raise the exception
+            raise
