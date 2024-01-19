@@ -5,6 +5,7 @@ import streamlit as st
 import os
 from google_auth_oauthlib.flow import InstalledAppFlow
 import json
+from src.ai.tools.tool_loader import get_available_tools
 
 from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
@@ -409,42 +410,59 @@ def show_model_settings(configuration, tool_name, tool_details):
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
     tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
+    tools = get_available_tools(configuration=configuration, conversation_manager=None)
+    
+    tool_categories = {tool['category'] for tool in configuration['tool_configurations'].values() if 'category' in tool}
+    
+    # reorder tools_categories alphabetically
+    tool_categories = sorted(tool_categories)
 
-    tools = tool_manager.get_all_tools()
+    # Create tabs for each category
+    category_tabs = list(tool_categories) + ['Uncategorized']
+    selected_category = st.selectbox('Select Category', category_tabs, index=0)
 
-    # Create a toggle to enable/disable each tool
+    # Filter tools by the selected category
     for tool in tools:
-        st.markdown(f"#### {tool.display_name}")
-        st.markdown(tool.help_text)
-        col1, col2, col3 = st.columns([3, 5, 5])
-        col1.toggle(
-            "Enabled",
-            value=tool_manager.is_tool_enabled(tool.name),
-            key=tool.name,
-            on_change=tool_manager.toggle_tool,
-            kwargs={"tool_name": tool.name},
-        )
-        col2.toggle(
-            "Return results directly to UI",
-            value=tool_manager.should_return_direct(tool.name),
-            help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
-            key=f"{tool.name}-return-direct",
-            on_change=tool_manager.toggle_tool,
-            kwargs={"tool_name": tool.name},
-        )
+        tool_config = configuration['tool_configurations'].get(tool.name, {})
+        if tool_config.get('category', 'Uncategorized') == selected_category:
+            st.markdown(f"#### {tool.display_name}")
+            st.markdown(tool.help_text)
+            col1, col2, col3 = st.columns([3, 5, 5])
+            col1.toggle(
+                "Enabled",
+                value=tool_manager.is_tool_enabled(tool.name),
+                key=tool.name,
+                on_change=tool_manager.toggle_tool,
+                kwargs={"tool_name": tool.name},
+            )
+            col2.toggle(
+                "Return results directly to UI",
+                value=tool_manager.should_return_direct(tool.name),
+                help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
+                key=f"{tool.name}-return-direct",
+                on_change=tool_manager.toggle_tool,
+                kwargs={"tool_name": tool.name},
+            )
 
-        show_model_settings(configuration, tool.name, tool)
-        show_additional_settings(configuration, tool.name, tool)
+            show_model_settings(configuration, tool.name, tool)
+            show_additional_settings(configuration, tool.name, tool)
 
-        st.divider()
+            st.divider()
 
-    save_tool_settings(tools, configuration)
+    save_tool_settings(tools, configuration, selected_category)
 
 
-def save_tool_settings(tools, configuration):
+def save_tool_settings(tools, configuration, selected_category):
     # Iterate through all of the tools and save their settings
     for tool in tools:
+        # are we on the tab for this tool?  Might not be displayed.
+        if tool.name not in st.session_state:
+            continue
+        
         existing_tool_configuration = configuration["tool_configurations"][tool.name]
+        
+        if selected_category != existing_tool_configuration.get('category', 'Uncategorized'):
+            continue
 
         # Only save if the settings are different
         needs_saving = False

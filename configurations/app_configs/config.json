@@ -67,6 +67,7 @@
             }
         },
         "analyze_with_llm": {
+            "category": "Analysis",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -84,7 +85,8 @@
             }
         },
         "search_loaded_documents": {
-            "enabled": false,
+            "category": "Documents",
+            "enabled": true,
             "return_direct": false,
             "additional_settings": {
                 "split_prompt": {
@@ -112,6 +114,7 @@
             }
         },
         "search_entire_document": {
+            "category": "Documents",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -129,6 +132,7 @@
             }
         },
         "summarize_entire_document": {
+            "category": "Documents",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -146,26 +150,32 @@
             }
         },
         "get_previous_tool_call_results": {
-            "enabled": false,
+            "category": "Tools",
+            "enabled": true,
             "return_direct": false
         },
         "list_documents": {
+            "category": "Documents",
             "enabled": false,
             "return_direct": false
         },
         "get_code_details": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false
         },
         "get_code_structure": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false
         },
         "get_pretty_dependency_graph": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false
         },
         "create_stubs": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -183,14 +193,17 @@
             }
         },
         "get_all_code_in_file": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false
         },
         "retrieve_source_code_from_url": {
-            "enabled": true,
+            "category": "Code On the Web",
+            "enabled": false,
             "return_direct": false
         },
         "conduct_code_review_from_file_id": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false,
             "additional_settings": {
@@ -261,6 +274,7 @@
             }
         },
         "conduct_code_review_from_url": {
+            "category": "Code On the Web",
             "enabled": false,
             "return_direct": false,
             "additional_settings": {
@@ -331,14 +345,17 @@
             }
         },
         "create_code_review_issue": {
+            "category": "Code On the Web",
             "enabled": false,
             "return_direct": false
         },
         "commit_single_code_file": {
+            "category": "Code On the Web",
             "enabled": false,
             "return_direct": false
         },
         "conduct_code_refactor_from_file_id": {
+            "category": "Code Files",
             "enabled": false,
             "return_direct": false,
             "additional_settings": {
@@ -409,6 +426,7 @@
             }
         },
         "conduct_code_refactor_from_url": {
+            "category": "Code On the Web",
             "enabled": false,
             "return_direct": true,
             "additional_settings": {
@@ -479,38 +497,47 @@
             }
         },
         "repository_structure_overview": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "specific_file_retrieval": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "get_file_summary": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "file_information_discovery": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "codebase_analysis": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "file_name_search": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "get_code_files_by_folder": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "function_presence_check": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false
         },
         "codebase_functionality_search": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false,
             "model_configuration": {
@@ -528,6 +555,7 @@
             }
         },
         "comprehensive_repository_search": {
+            "category": "Code Repositories",
             "enabled": true,
             "return_direct": false,
             "additional_settings": {
@@ -556,6 +584,7 @@
             }
         },
         "create_cvss_evaluation": {
+            "category": "Security",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -573,6 +602,7 @@
             }
         },
         "query_spreadsheet": {
+            "category": "Spreadsheets",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -590,14 +620,17 @@
             }
         },
         "get_weather": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_time": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_text_from_website": {
+            "category": "General",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -626,38 +659,47 @@
             }
         },
         "get_news_for_topic": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_top_news_headlines": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_full_article": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_news_by_location": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "query_image": {
+            "category": "Images",
             "enabled": false,
             "return_direct": false
         },
         "search_for_emails": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_email_by_ids": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "search_businesses": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         },
         "get_all_business_details": {
+            "category": "General",
             "enabled": false,
             "return_direct": false
         }
