@@ -150,7 +150,7 @@
             }
         },
         "get_previous_tool_call_results": {
-            "category": "Tools",
+            "category": "General",
             "enabled": true,
             "return_direct": false
         },
@@ -630,7 +630,7 @@
             "return_direct": false
         },
         "get_text_from_website": {
-            "category": "General",
+            "category": "Web",
             "enabled": false,
             "return_direct": false,
             "model_configuration": {
@@ -659,22 +659,22 @@
             }
         },
         "get_news_for_topic": {
-            "category": "General",
+            "category": "News",
             "enabled": false,
             "return_direct": false
         },
         "get_top_news_headlines": {
-            "category": "General",
+            "category": "News",
             "enabled": false,
             "return_direct": false
         },
         "get_full_article": {
-            "category": "General",
+            "category": "News",
             "enabled": false,
             "return_direct": false
         },
         "get_news_by_location": {
-            "category": "General",
+            "category": "News",
             "enabled": false,
             "return_direct": false
         },
@@ -684,22 +684,22 @@
             "return_direct": false
         },
         "search_for_emails": {
-            "category": "General",
+            "category": "Email",
             "enabled": false,
             "return_direct": false
         },
         "get_email_by_ids": {
-            "category": "General",
+            "category": "Email",
             "enabled": false,
             "return_direct": false
         },
         "search_businesses": {
-            "category": "General",
+            "category": "Web",
             "enabled": false,
             "return_direct": false
         },
         "get_all_business_details": {
-            "category": "General",
+            "category": "Web",
             "enabled": false,
             "return_direct": false
         }
