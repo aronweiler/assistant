@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import json
@@ -102,16 +103,16 @@ class DocumentTool:
                     else:
                         return "No chat history."
 
-                split_prompts = llm.predict(
+                split_prompts = llm.invoke(
                     additional_prompt_prompt.format(
                         additional_prompts=split_prompts,
                         user_query=user_query,
                         chat_history=get_chat_history(),
                     ),
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    #callbacks=self.conversation_manager.agent_callbacks,
                 )
 
-                split_prompts = parse_json(split_prompts, llm)
+                split_prompts = parse_json(split_prompts.content, llm)
 
                 results = []
                 for prompt in split_prompts["prompts"]:
@@ -210,21 +211,22 @@ class DocumentTool:
             streaming=True,
         )
 
-        result = llm.predict(
-            prompt, callbacks=self.conversation_manager.agent_callbacks
+        result = llm.invoke(
+            prompt, 
+            #callbacks=self.conversation_manager.agent_callbacks
         )
 
-        return result
+        return result.content
 
     def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
-        summary = llm.predict(
+        summary = llm.invoke(
             self.conversation_manager.prompt_manager.get_prompt(
                 "summary_prompts",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text),
-            callbacks=self.conversation_manager.agent_callbacks,
+            #callbacks=self.conversation_manager.agent_callbacks,
         )
-        return summary
+        return summary.content
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     @register_tool(
@@ -492,13 +494,15 @@ class DocumentTool:
                 current_context="\n----\n".join(document_texts),
             )
 
-            answer = llm.predict(
+            answer = llm.invoke(
                 formatted_prompt,
-                callbacks=self.conversation_manager.agent_callbacks,
-            )
+                #callbacks=self.conversation_manager.agent_callbacks,
+            ).content
 
             if not answer.lower().startswith("no relevant information"):
                 intermediate_results.append(answer)
+            else:
+                logging.debug("No relevant information found in chunk.")
 
         result = (
             f"Searching the document, '{file.file_name}', yielded the following data:\n"

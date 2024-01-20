@@ -76,13 +76,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 user_email=kwargs["user_email"],
             )
 
-            text = self.llm.predict(
+            text = self.llm.invoke(
                 plan_steps_prompt,
-                callbacks=self.conversation_manager.agent_callbacks,
+                #callbacks=self.conversation_manager.agent_callbacks,
             )
+            
             # Save the step plans for future reference
             self.step_plans = parse_json(
-                text,
+                text.content,
                 llm=self.llm,
             )
             # Make sure we're starting at the beginning
@@ -121,11 +122,12 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 helpful_context=self.get_helpful_context(intermediate_steps),
             )
 
-            answer_response = self.llm.predict(
-                answer_prompt, callbacks=self.conversation_manager.agent_callbacks
+            answer_response = self.llm.invoke(
+                answer_prompt, 
+                #callbacks=self.conversation_manager.agent_callbacks
             )
 
-            answer = parse_json(text=answer_response, llm=self.llm)
+            answer = parse_json(text=answer_response.content, llm=self.llm)
 
             # If answer is a fail, we need to retry the last step with the added context from the tool failure
             if isinstance(answer, dict):
@@ -136,7 +138,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                         return AgentFinish(
                             return_values={
                                 "output": "I ran out of retries attempting to answer.  Here's my last output:\n"
-                                + answer_response
+                                + answer_response.content
                             },
                             log="Agent finished.",
                         )
@@ -212,12 +214,13 @@ class GenericToolsAgent(BaseSingleActionAgent):
             system_information=kwargs["system_information"],
         )
 
-        text = self.llm.predict(
-            tool_use_prompt, callbacks=self.conversation_manager.agent_callbacks
+        text = self.llm.invoke(
+            tool_use_prompt,
+            #callbacks=self.conversation_manager.agent_callbacks
         )
 
         action_json = parse_json(
-            text,
+            text.content,
             llm=self.llm,
         )
 
@@ -259,9 +262,10 @@ class GenericToolsAgent(BaseSingleActionAgent):
         )
 
         action_json = parse_json(
-            text=self.llm.predict(
-                tool_use_prompt, callbacks=self.conversation_manager.agent_callbacks
-            ),
+            text=self.llm.invoke(
+                tool_use_prompt, 
+                #callbacks=self.conversation_manager.agent_callbacks
+            ).content,
             llm=self.llm,
         )
 

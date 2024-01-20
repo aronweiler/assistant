@@ -274,18 +274,20 @@ class CodeRepositoryTool:
                 )
 
                 relevant_snippets = parse_json(
-                    llm.predict(
+                    llm.invoke(
                         get_relevant_snippets_prompt,
-                        callbacks=self.conversation_manager.agent_callbacks,
+                        #callbacks=self.conversation_manager.agent_callbacks,
                     ),
                     llm=llm,
                 )
+                
+                content = relevant_snippets.content
 
-                if isinstance(relevant_snippets, str):
-                    relevant_snippets = [relevant_snippets]
+                if isinstance(content, str):
+                    content = [content]
 
-                if len(relevant_snippets) == 0:
-                    relevant_snippets = [
+                if len(content) == 0:
+                    content = [
                         f"No relevant snippets found in {file_info['file_name']}."
                     ]
 
@@ -293,7 +295,7 @@ class CodeRepositoryTool:
                     {
                         "file_name": file_info["file_name"],
                         "file_id": file_info["file_id"],
-                        "snippets": relevant_snippets,  # Replace with actual snippets extracted from 'file_content'
+                        "snippets": content,  
                     }
                 )
 
@@ -386,16 +388,16 @@ class CodeRepositoryTool:
                     else:
                         return "No chat history."
 
-                split_prompts = llm.predict(
+                split_prompts = llm.invoke(
                     additional_prompt_prompt.format(
                         additional_prompts=split_prompts,
                         user_query=user_query,
                         chat_history=get_chat_history(),
                     ),
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    #callbacks=self.conversation_manager.agent_callbacks,
                 )
 
-                split_prompts = parse_json(split_prompts, llm)
+                split_prompts = parse_json(split_prompts.content, llm)
 
                 results = []
                 for prompt in split_prompts["prompts"]:
@@ -467,13 +469,13 @@ class CodeRepositoryTool:
             streaming=True,
         )
 
-        result = llm.predict(
+        result = llm.invoke(
             identify_likely_files_prompt,
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Now we have the result of which file(s) the AI thinks are most likely to contain the code that we're looking for
-        likely_file_ids = parse_json(result, llm)
+        likely_file_ids = parse_json(result.content, llm)
 
         code_contents = []
         for file_id in likely_file_ids:
@@ -504,8 +506,9 @@ class CodeRepositoryTool:
             user_query=user_query,
         )
 
-        answer = llm.predict(
-            answer_query_prompt, callbacks=self.conversation_manager.agent_callbacks
+        answer = llm.invoke(
+            answer_query_prompt, 
+            #callbacks=self.conversation_manager.agent_callbacks
         )
 
-        return answer
+        return answer.content

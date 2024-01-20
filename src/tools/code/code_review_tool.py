@@ -237,13 +237,13 @@ class CodeReviewTool:
                 )
 
             # Use language model to predict based on the formatted prompt.
-            json_data = llm.predict(
+            json_data = llm.invoke(
                 code_review_prompt,
-                callbacks=self.conversation_manager.agent_callbacks,
+                #callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
-            data = parse_json(json_data, llm)
+            data = parse_json(json_data.content, llm)
 
             # Extend comment results with comments from current template's review.
             comment_results.extend(data["comments"])
@@ -278,13 +278,13 @@ class CodeReviewTool:
                 )
 
                 # Use language model to predict based on the formatted prompt.
-                json_data = llm.predict(
+                json_data = llm.invoke(
                     code_review_prompt,
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    #callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 # Parse JSON data returned by language model prediction into structured data.
-                data = parse_json(json_data, llm)
+                data = parse_json(json_data.content, llm)
 
                 if "comments" in data:
                     # Extend comment results with comments from current template's review.

@@ -124,7 +124,7 @@ class RetrievalAugmentedGenerationAI:
         )
 
         agent_executor.return_intermediate_steps = True
-        
+
         agent_executor.callbacks = self.conversation_manager.agent_callbacks
 
         return agent_executor
@@ -224,15 +224,16 @@ class RetrievalAugmentedGenerationAI:
     def check_summary(self, query):
         if self.conversation_manager.conversation_needs_summary:
             logging.debug("Interaction needs summary, generating one now")
-            conversation_summary = self.llm.predict(
+            conversation_summary = self.llm.invoke(
                 self.prompt_manager.get_prompt(
                     "summary_prompts",
                     "SUMMARIZE_FOR_LABEL_TEMPLATE",
                 ).format(query=query)
             )
-            self.conversation_manager.set_conversation_summary(conversation_summary)
+
+            self.conversation_manager.set_conversation_summary(conversation_summary.content)
             self.conversation_manager.conversation_needs_summary = False
-            logging.debug(f"Generated summary: {conversation_summary}")
+            logging.debug(f"Generated summary: {conversation_summary.content}")
 
     def generate_keywords_and_descriptions_from_code_file(self, code: str) -> dict:
         llm = get_llm(
@@ -243,7 +244,7 @@ class RetrievalAugmentedGenerationAI:
             streaming=False,
         )
 
-        response = llm.predict(
+        response = llm.invoke(
             self.prompt_manager.get_prompt(
                 "code_general_prompts",
                 "CODE_DETAILS_EXTRACTION_TEMPLATE",
@@ -251,7 +252,7 @@ class RetrievalAugmentedGenerationAI:
             timeout=30000,
         )
 
-        keywords = parse_json(text=response, llm=llm)
+        keywords = parse_json(text=response.content, llm=llm)
 
         return keywords
 
@@ -268,13 +269,14 @@ class RetrievalAugmentedGenerationAI:
             streaming=False,
         )
 
-        summary = llm.predict(
+        summary = llm.invoke(
             self.prompt_manager.get_prompt(
                 "summary_prompts",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
-        return summary
+        
+        return summary.content
 
     # Required by the Jarvis UI when generating questions for ingested files
     def generate_chunk_questions(
@@ -288,7 +290,7 @@ class RetrievalAugmentedGenerationAI:
             streaming=False,
         )
 
-        response = llm.predict(
+        response = llm.invoke(
             self.prompt_manager.get_prompt(
                 "questions_prompts",
                 "CHUNK_QUESTIONS_TEMPLATE",
@@ -298,7 +300,7 @@ class RetrievalAugmentedGenerationAI:
             timeout=30000,
         )
 
-        questions = parse_json(text=response, llm=llm)
+        questions = parse_json(text=response.content, llm=llm)
 
         return questions
 
