@@ -19,7 +19,6 @@ from src.ai.llm_helper import get_llm
 from src.db.models.documents import Documents, FileModel, DocumentModel
 from src.db.models.users import Users
 from src.utilities.hash_utilities import calculate_sha256
-from src.documents.document_loader import load_and_split_documents
 
 
 class RagBot(discord.Client):

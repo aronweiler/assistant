@@ -43,19 +43,19 @@ class CvssTool:
             "security_tools_prompts", "CVSS_INSTRUCT_PROMPT"
         )
 
-        vulnerable_component = llm.predict(
+        vulnerable_component = llm.invoke(
             identify_vulnerable_component_prompt.format(
                 vulnerability_data=vulnerability_data
             ),
-            callbacks=self.conversation_manager.agent_callbacks,
-        )
+            #callbacks=self.conversation_manager.agent_callbacks,
+        ).content
 
-        cvss_evaluation = llm.predict(
+        cvss_evaluation = llm.invoke(
             cvss_instruct_prompt.format(
                 vulnerable_component=vulnerable_component,
                 vulnerability_data=vulnerability_data,
             ),
-            callbacks=self.conversation_manager.agent_callbacks,
+            #callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        return cvss_evaluation
+        return cvss_evaluation.content

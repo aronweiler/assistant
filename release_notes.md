@@ -1,3 +1,9 @@
+### January 20, 2024 -- RELEASE NOTES: Jarvis 0.72
+- Implemented a new organization system by sorting tools into specific categories to enhance user navigation and tool discovery.
+- Rolled back recent changes related to garbage parsing to ensure stability and maintain data integrity.
+- Updated category names in config.json for better clarity and consistency across the platform.
+- Improved filtering logic for tool categories, resulting in a more refined and accurate selection process for users.
+
 ### January 14, 2024 -- RELEASE NOTES: Jarvis 0.71
 - Implemented string conversion for tool results and refactored code related to prompt file renaming and tool call headers.
 - Enhanced error handling with detailed messages and added model operations for source control providers.

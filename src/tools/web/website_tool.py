@@ -97,8 +97,9 @@ class WebsiteTool:
                     category="summary_prompts", prompt_name="SIMPLE_REFINE_TEMPLATE"
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
 
-            existing_summary = llm.predict(
-                text=prompt, callbacks=self.conversation_manager.agent_callbacks
+            existing_summary = llm.invoke(
+                text=prompt, 
+                #callbacks=self.conversation_manager.agent_callbacks
             )
 
-        return existing_summary
+        return existing_summary.content

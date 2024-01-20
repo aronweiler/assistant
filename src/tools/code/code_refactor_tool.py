@@ -221,7 +221,7 @@ class CodeRefactorTool:
         additional_instructions,
         metadata,
         code,
-        llm,
+        llm:BaseLanguageModel,
     ):
         final_code_refactor_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
@@ -245,13 +245,13 @@ class CodeRefactorTool:
         )
 
         # Use language model to predict based on the formatted prompt.
-        json_data = llm.predict(
+        json_data = llm.invoke(
             code_refactor_prompt,
-            callbacks=self.conversation_manager.agent_callbacks,
+            #callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Parse JSON data returned by language model prediction into structured data.
-        data = parse_json(json_data, llm)
+        data = parse_json(json_data.content, llm)
 
         if "final_answer" in data:
             # The AI fucked up, and can't actually do its job... surprise surprise
@@ -299,13 +299,13 @@ class CodeRefactorTool:
             )
 
             # Use language model to predict based on the formatted prompt.
-            json_data = llm.predict(
+            json_data = llm.invoke(
                 code_refactor_prompt,
-                callbacks=self.conversation_manager.agent_callbacks,
+                #callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
-            data = parse_json(json_data, llm)
+            data = parse_json(json_data.content, llm)
 
             if "final_answer" in data:
                 # The AI fucked up, and can't actually do its job... surprise surprise

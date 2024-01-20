@@ -5,6 +5,7 @@ from enum import Enum
 
 from langchain.chat_models.openai import ChatOpenAI
 from langchain.llms.llamacpp import LlamaCpp
+from langchain_core.language_models import BaseLanguageModel
 
 from src.utilities.openai_utilities import get_openai_api_key
 from src.configuration.assistant_configuration import ModelConfiguration
@@ -24,7 +25,7 @@ class LLMType(Enum):
     LUNA = 'luna'
 
 
-def get_llm(model_configuration: ModelConfiguration, **kwargs):
+def get_llm(model_configuration: ModelConfiguration, **kwargs) -> BaseLanguageModel:
     """Returns the LLM for the specified model configuration."""
     if isinstance(model_configuration, dict):
         model_configuration = ModelConfiguration(**model_configuration)
@@ -38,7 +39,7 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs):
         raise ValueError(f'Unsupported LLM type: {llm_type}')
 
 
-def get_tool_llm(configuration: dict, func_name: str, **kwargs):
+def get_tool_llm(configuration: dict, func_name: str, **kwargs) -> BaseLanguageModel:
     """Retrieves the LLM based on the tool configuration."""
     tool_config = configuration_utilities.get_tool_configuration(
         configuration=configuration, func_name=func_name

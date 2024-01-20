@@ -5,12 +5,15 @@ import streamlit as st
 import os
 from google_auth_oauthlib.flow import InstalledAppFlow
 import json
+from src.ai.tools.tool_loader import get_available_tools
 
 from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
 )
 from src.db.models.code import Code
-from src.db.models.domain.source_control_provider_model import SourceControlProviderModel
+from src.db.models.domain.source_control_provider_model import (
+    SourceControlProviderModel,
+)
 
 from src.utilities.configuration_utilities import (
     get_app_config_path,
@@ -35,18 +38,29 @@ def settings_page():
     st.title("Settings")
 
     # Initialize or get current tab index from session state
-    if 'current_tab' not in st.session_state:
-        st.session_state['current_tab'] = 0
+    if "current_tab" not in st.session_state:
+        st.session_state["current_tab"] = 0
 
     # Define your tabs and store them in a list
     tabs = ["General Settings", "Jarvis AI", "Source Control", "Tools"]
 
     # Set callback function for on_change event of tabs
     def on_tab_change():
-        st.session_state['current_tab'] = tabs.index(st.session_state['selected_tab'])
+        st.session_state["current_tab"] = tabs.index(st.session_state["selected_tab"])
 
     # Add a selectbox for changing tabs that uses session state
-    selected_tab = st.selectbox("Setting selection", options=tabs, index=st.session_state['current_tab'], key='selected_tab', on_change=on_tab_change)
+    selected_tab = st.selectbox(
+        "Setting selection",
+        options=tabs,
+        index=st.session_state["current_tab"],
+        key="selected_tab",
+        on_change=on_tab_change,
+    )
+
+    st.caption(
+        "Use the setting selection to choose which settings you would like to view or change."
+    )
+    st.divider()
 
     # Now use an if-else block or match-case to render content based on selected tab
     if selected_tab == "General Settings":
@@ -409,42 +423,70 @@ def show_model_settings(configuration, tool_name, tool_details):
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
     tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
+    tools = get_available_tools(configuration=configuration, conversation_manager=None)
 
-    tools = tool_manager.get_all_tools()
+    # tool_categories = {tool['category'] for tool in configuration['tool_configurations'].values() if 'category' in tool}
+    tool_categories = {
+        configuration["tool_configurations"][tool]["category"]
+        for tool in configuration["tool_configurations"]
+        if "category" in configuration["tool_configurations"][tool]
+        and tool in [t.name for t in tools]
+    }
+    # reorder tools_categories alphabetically
+    tool_categories = sorted(tool_categories)
 
-    # Create a toggle to enable/disable each tool
+    st.caption(
+        "Tool settings are broken into categories.  Select a category to view the tools in that category.  You can then enable/disable tools and configure their settings.  Settings are saved automatically when you navigate away from the page."
+    )
+
+    # Create tabs for each category
+    category_tabs = list(tool_categories) + ["Uncategorized"]
+    selected_category = st.selectbox("Select Category", category_tabs, index=0)
+
+    # Filter tools by the selected category
     for tool in tools:
-        st.markdown(f"#### {tool.display_name}")
-        st.markdown(tool.help_text)
-        col1, col2, col3 = st.columns([3, 5, 5])
-        col1.toggle(
-            "Enabled",
-            value=tool_manager.is_tool_enabled(tool.name),
-            key=tool.name,
-            on_change=tool_manager.toggle_tool,
-            kwargs={"tool_name": tool.name},
-        )
-        col2.toggle(
-            "Return results directly to UI",
-            value=tool_manager.should_return_direct(tool.name),
-            help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
-            key=f"{tool.name}-return-direct",
-            on_change=tool_manager.toggle_tool,
-            kwargs={"tool_name": tool.name},
-        )
+        tool_config = configuration["tool_configurations"].get(tool.name, {})
+        if tool_config.get("category", "Uncategorized") == selected_category:
+            st.markdown(f"#### {tool.display_name}")
+            st.markdown(tool.help_text)
+            col1, col2, col3 = st.columns([3, 5, 5])
+            col1.toggle(
+                "Enabled",
+                value=tool_manager.is_tool_enabled(tool.name),
+                key=tool.name,
+                on_change=tool_manager.toggle_tool,
+                kwargs={"tool_name": tool.name},
+            )
+            col2.toggle(
+                "Return results directly to UI",
+                value=tool_manager.should_return_direct(tool.name),
+                help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
+                key=f"{tool.name}-return-direct",
+                on_change=tool_manager.toggle_tool,
+                kwargs={"tool_name": tool.name},
+            )
 
-        show_model_settings(configuration, tool.name, tool)
-        show_additional_settings(configuration, tool.name, tool)
+            show_model_settings(configuration, tool.name, tool)
+            show_additional_settings(configuration, tool.name, tool)
 
-        st.divider()
+            st.divider()
 
-    save_tool_settings(tools, configuration)
+    save_tool_settings(tools, configuration, selected_category)
 
 
-def save_tool_settings(tools, configuration):
+def save_tool_settings(tools, configuration, selected_category):
     # Iterate through all of the tools and save their settings
     for tool in tools:
+        # are we on the tab for this tool?  Might not be displayed.
+        if tool.name not in st.session_state:
+            continue
+
         existing_tool_configuration = configuration["tool_configurations"][tool.name]
+
+        if selected_category != existing_tool_configuration.get(
+            "category", "Uncategorized"
+        ):
+            continue
 
         # Only save if the settings are different
         needs_saving = False
@@ -620,8 +662,7 @@ def save_additional_setting(tool_name, setting_name, session_state_key):
     st.session_state["app_config"] = configuration
 
 
-def general_settings():   
-
+def general_settings():
     # Debug Logging
     logging_options = ["DEBUG", "INFO", "WARN"]
     debug_logging = st.selectbox(
@@ -630,128 +671,213 @@ def general_settings():
         index=logging_options.index(os.getenv("LOGGING_LEVEL", "INFO")),
     )
 
+    st.caption(
+        "Set the logging level for the application.  Debug is the most detailed, and should be used for troubleshooting."
+    )
+
     # Save button
-    if st.button("Save Settings"): 
+    if st.button("Save Settings"):
         os.environ["LOGGING_LEVEL"] = str(debug_logging)
         logging.basicConfig(level=debug_logging)
-       
+
 
 def source_control_provider_form():
-    st.subheader('Manage Source Control Providers')
+    st.subheader("Manage Source Control Providers")
     code_helper = Code()
 
     # Initialize current_operation if it doesn't exist
-    if 'current_operation' not in st.session_state:
-        st.session_state['current_operation'] = None
+    if "current_operation" not in st.session_state:
+        st.session_state["current_operation"] = None
 
     existing_providers = code_helper.get_all_source_control_providers()
 
     # Only show these buttons if no operation has been selected yet
-    if st.session_state['current_operation'] is None:
-        if st.button('New Source Control Provider'):
-            st.session_state['current_operation'] = 'add'            
-        
+    if st.session_state["current_operation"] is None:
+        if st.button("New Source Control Provider"):
+            st.session_state["current_operation"] = "add"
+
         elif existing_providers:  # Only show edit/delete if there are providers
-            provider_names = [p.source_control_provider_name for p in existing_providers]
-            st.selectbox('Select an existing provider', provider_names, key='existing_provider')
+            provider_names = [
+                p.source_control_provider_name for p in existing_providers
+            ]
+            st.selectbox(
+                "Select an existing provider", provider_names, key="existing_provider"
+            )
 
             col1, col2 = st.columns(2)
 
-            col1.button('Edit Source Control Provider', on_click=set_source_control_operation, kwargs={'operation_type': 'edit'})
-            col2.button('Delete Source Control Provider', on_click=set_source_control_operation, kwargs={'operation_type': 'delete'})
-    
+            col1.button(
+                "Edit Source Control Provider",
+                on_click=set_source_control_operation,
+                kwargs={"operation_type": "edit"},
+            )
+            col2.button(
+                "Delete Source Control Provider",
+                on_click=set_source_control_operation,
+                kwargs={"operation_type": "delete"},
+            )
+
     # Now handle each operation separately
-    if st.session_state['current_operation'] == 'add':
+    if st.session_state["current_operation"] == "add":
         add_provider_form(code_helper)
 
-    elif st.session_state['current_operation'] == 'edit':
+    elif st.session_state["current_operation"] == "edit":
         selected_provider = get_selected_provider(existing_providers)
         if selected_provider:
             edit_provider_form(selected_provider, code_helper)
 
-    elif st.session_state['current_operation'] == 'delete':
+    elif st.session_state["current_operation"] == "delete":
         # Confirm before deleting
         selected_provider = get_selected_provider(existing_providers)
         if selected_provider:
-            st.button(f"Confirm Deletion of '{selected_provider.source_control_provider_name}'", on_click=delete_provider, kwargs={'code_helper': code_helper, 'selected_provider': selected_provider})
+            st.button(
+                f"Confirm Deletion of '{selected_provider.source_control_provider_name}'",
+                on_click=delete_provider,
+                kwargs={
+                    "code_helper": code_helper,
+                    "selected_provider": selected_provider,
+                },
+            )
 
-def set_source_control_operation(operation_type:str):
-    st.session_state['current_operation'] = operation_type
-                    
-def delete_provider(code_helper:Code, selected_provider:SourceControlProviderModel):
+
+def set_source_control_operation(operation_type: str):
+    st.session_state["current_operation"] = operation_type
+
+
+def delete_provider(code_helper: Code, selected_provider: SourceControlProviderModel):
     code_helper.delete_source_control_provider(selected_provider.id)
-    st.success('Provider deleted successfully!')
+    st.success("Provider deleted successfully!")
     # Reset current operation after deletion
-    st.session_state['current_operation'] = None                    
+    st.session_state["current_operation"] = None
 
-def get_selected_provider(existing_providers):    
-    return next((p for p in existing_providers if p.source_control_provider_name == st.session_state['existing_provider']), None)
+
+def get_selected_provider(existing_providers):
+    return next(
+        (
+            p
+            for p in existing_providers
+            if p.source_control_provider_name == st.session_state["existing_provider"]
+        ),
+        None,
+    )
+
 
 def add_or_edit_cancel_button():
     # Shared cancel button for add/edit forms
-    st.form_submit_button('Cancel', on_click=lambda: st.session_state.pop('current_operation'))
-        
-def add_provider_form(code_helper:Code):
+    st.form_submit_button(
+        "Cancel", on_click=lambda: st.session_state.pop("current_operation")
+    )
+
+
+def add_provider_form(code_helper: Code):
     # Form for adding a new provider
-    with st.form('add_provider_form'):
-        st.selectbox('Provider', [s.name for s in code_helper.get_supported_source_control_providers()], key='supported_provider_name')
-        st.text_input('Name', key='name')
-        st.text_input('URL', key='url')
-        st.checkbox('Requires Authentication', key='requires_auth')
-        st.text_input('Access Token', key='access_token')
-              
+    with st.form("add_provider_form"):
+        st.selectbox(
+            "Provider",
+            [s.name for s in code_helper.get_supported_source_control_providers()],
+            key="supported_provider_name",
+        )
+        st.text_input("Name", key="name")
+        st.text_input("URL", key="url")
+        st.checkbox("Requires Authentication", key="requires_auth")
+        st.text_input("Access Token", key="access_token")
+
         col1, col2 = st.columns(2)
         with col1:
             add_or_edit_cancel_button()
         with col2:
-            st.form_submit_button('Add Provider', on_click=add_update_provider, kwargs={'code_helper': code_helper})
+            st.form_submit_button(
+                "Add Provider",
+                on_click=add_update_provider,
+                kwargs={"code_helper": code_helper},
+            )
 
-def add_update_provider(code_helper:Code, existing_provider:SourceControlProviderModel=None):
+
+def add_update_provider(
+    code_helper: Code, existing_provider: SourceControlProviderModel = None
+):
     # Get the provider ID from the name
-    supported_provider = code_helper.get_supported_source_control_provider_by_name(st.session_state['supported_provider_name'])
-    
+    supported_provider = code_helper.get_supported_source_control_provider_by_name(
+        st.session_state["supported_provider_name"]
+    )
+
     # Is this an update or a new provider?
     if existing_provider:
         code_helper.update_source_control_provider(
             id=existing_provider.id,
-            supported_source_control_provider=supported_provider, 
-            name=st.session_state['name'], 
-            url=st.session_state['url'], 
-            requires_auth=st.session_state['requires_auth'], 
-            access_token=st.session_state['access_token']
-            )
-        st.success('Provider updated successfully!')
-        
+            supported_source_control_provider=supported_provider,
+            name=st.session_state["name"],
+            url=st.session_state["url"],
+            requires_auth=st.session_state["requires_auth"],
+            access_token=st.session_state["access_token"],
+        )
+        st.success("Provider updated successfully!")
+
     else:
-        code_helper.add_source_control_provider(supported_provider, name=st.session_state['name'], url=st.session_state['url'], requires_auth=st.session_state['requires_auth'], access_token=st.session_state['access_token'])
-        st.success('Provider added successfully!')
-        
-    st.session_state['current_operation'] = None
+        code_helper.add_source_control_provider(
+            supported_provider,
+            name=st.session_state["name"],
+            url=st.session_state["url"],
+            requires_auth=st.session_state["requires_auth"],
+            access_token=st.session_state["access_token"],
+        )
+        st.success("Provider added successfully!")
+
+    st.session_state["current_operation"] = None
 
 
-def edit_provider_form(existing_provider:SourceControlProviderModel, code_helper:Code):
+def edit_provider_form(
+    existing_provider: SourceControlProviderModel, code_helper: Code
+):
     # Form for editing an existing provider
-    with st.form('edit_provider_form'):        
+    with st.form("edit_provider_form"):
         supported_providers = code_helper.get_supported_source_control_providers()
         index = 0
-        
+
         for i, supported_provider in enumerate(supported_providers):
-            if supported_provider.id == existing_provider.supported_source_control_provider_id:
-                index = i  
+            if (
+                supported_provider.id
+                == existing_provider.supported_source_control_provider_id
+            ):
+                index = i
                 break
-            
-        st.selectbox('Provider', [s.name for s in supported_providers], index=index, key='supported_provider_name')
-        st.text_input('Name', value=existing_provider.source_control_provider_name, key='name')
-        st.text_input('URL', value=existing_provider.source_control_provider_url, key='url')
-        st.checkbox('Requires Authentication', value=existing_provider.requires_authentication, key='requires_auth')
-        st.text_input('Access Token', value=existing_provider.source_control_access_token, key='access_token')
-        
+
+        st.selectbox(
+            "Provider",
+            [s.name for s in supported_providers],
+            index=index,
+            key="supported_provider_name",
+        )
+        st.text_input(
+            "Name", value=existing_provider.source_control_provider_name, key="name"
+        )
+        st.text_input(
+            "URL", value=existing_provider.source_control_provider_url, key="url"
+        )
+        st.checkbox(
+            "Requires Authentication",
+            value=existing_provider.requires_authentication,
+            key="requires_auth",
+        )
+        st.text_input(
+            "Access Token",
+            value=existing_provider.source_control_access_token,
+            key="access_token",
+        )
+
         col1, col2 = st.columns(2)
         with col1:
             add_or_edit_cancel_button()
         with col2:
-            st.form_submit_button('Update Provider', on_click=add_update_provider, kwargs={'code_helper': code_helper, 'existing_provider': existing_provider})
-        
+            st.form_submit_button(
+                "Update Provider",
+                on_click=add_update_provider,
+                kwargs={
+                    "code_helper": code_helper,
+                    "existing_provider": existing_provider,
+                },
+            )
+
 
 # Run the settings page
 if __name__ == "__main__":
@@ -766,7 +892,9 @@ if __name__ == "__main__":
         # Get the last exception
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        if "StopException" in str(exc_value.__class__) or "StreamlitAPIException" in str(exc_value.__class__):
+        if "StopException" in str(
+            exc_value.__class__
+        ) or "StreamlitAPIException" in str(exc_value.__class__):
             # If so, then just return
             pass
         else:

@@ -412,14 +412,15 @@ class CodeTool:
                     code=doc.document_text,
                     stub_dependencies_template=stub_dependencies,
                 )
-                stubbed_code = llm.predict(
-                    prompt, callbacks=self.conversation_manager.agent_callbacks
+                stubbed_code = llm.invoke(
+                    prompt, 
+                    #callbacks=self.conversation_manager.agent_callbacks
                 )
                 break
 
         return {
             "file": doc.document_name,
-            "code": f"Stubbed code for {doc.document_name}:\n```\n{stubbed_code}\n```",
+            "code": f"Stubbed code for {doc.document_name}:\n```\n{stubbed_code.content}\n```",
         }
 
 

@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 from src.documents.code_loader import CodeLoader
 
 # TODO: Add loaders for PPT, and other document types
-from langchain.document_loaders import (
+from langchain_community.document_loaders import (
     CSVLoader,
     TextLoader,
     Docx2txtLoader,
