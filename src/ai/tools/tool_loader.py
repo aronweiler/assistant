@@ -21,15 +21,17 @@ def load_tool_modules():
 
     def load_recursive(package_name, path):
         for loader, module_name, is_pkg in pkgutil.walk_packages([path]):
-            full_module_name = f"{package_name}.{module_name}"
-            if is_pkg:
-                next_path = path + "/" + module_name
-                load_recursive(full_module_name, next_path)
-            else:
-                try:
-                    importlib.import_module(full_module_name)
-                except Exception as e:
-                    logging.error(f"Could not load module {full_module_name}, {e}")
+            # For some reason we get wrong file paths in the returns from walk_packages
+            if loader.path.replace('\\', '/').endswith(path):
+                full_module_name = f"{package_name}.{module_name}"
+                if is_pkg:
+                    next_path = path + "/" + module_name
+                    load_recursive(full_module_name, next_path)
+                else:
+                    try:
+                        importlib.import_module(full_module_name)
+                    except Exception as e:
+                        logging.error(f"Could not load module {full_module_name}, {e}")
 
     load_recursive(package, package_path)
 
