@@ -343,13 +343,14 @@ class CodeRepositoryTool:
         display_name="Comprehensive Repository Search",
         requires_repository=True,
         description="Conduct an extensive search of the repository to return complete file contents related to a query.",
-        additional_instructions="Perform a detailed search using a semantic query and keywords. This tool returns the full content of matching files but is limited by size constraints and should not be used for exhaustive file listings.",
+        additional_instructions="Perform a detailed search using a semantic query and keywords. This tool returns the full content of matching files but is limited by size constraints and should not be used for exhaustive file listings.  Use the exclude_file_names parameter to exclude unwanted files from the search results.",
     )
     def comprehensive_repository_search(
         self,
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
+        exclude_file_names: List[str] = [],
     ):
         """Searches the loaded repository for the given query."""
 
@@ -420,6 +421,7 @@ class CodeRepositoryTool:
             semantic_similarity_query=semantic_similarity_query,
             keywords_list=keywords_list,
             user_query=user_query,
+            exclude_file_names=exclude_file_names
         )
 
     def _search_repository_documents(
@@ -428,6 +430,7 @@ class CodeRepositoryTool:
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
+        exclude_file_names:List[str] = [],
     ):
         code_file_model_search_results: List[
             CodeFileModel
@@ -436,6 +439,7 @@ class CodeRepositoryTool:
             similarity_query=semantic_similarity_query,
             keywords=keywords_list,
             top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
+            exclude_file_names=exclude_file_names,
         )
 
         identify_likely_files_prompt = (
