@@ -98,8 +98,7 @@ class WebsiteTool:
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
 
             existing_summary = llm.invoke(
-                text=prompt, 
-                #callbacks=self.conversation_manager.agent_callbacks
+                prompt
             )
 
         return existing_summary.content

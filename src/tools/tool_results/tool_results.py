@@ -27,7 +27,11 @@ def get_previous_tool_call_results(tool_call_result_ids: List[int]):
         tool_call = conversations_helper.get_tool_call_results_by_id(
             tool_call_result_id
         )
-
+        
+        if not tool_call:
+            results.append(f"Could not find tool call result with ID {tool_call_result_id}.  Make sure you're not just making up IDs.")
+            continue
+        
         results.append(
             f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}, tool output: {tool_call.tool_results}"
         )
