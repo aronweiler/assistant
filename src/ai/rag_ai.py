@@ -110,10 +110,12 @@ class RetrievalAugmentedGenerationAI:
         model_configuration = ModelConfiguration(
             **self.configuration["jarvis_ai"]["model_configuration"]
         )
+
         agent = GenericToolsAgent(
-            tools=tools,
             model_configuration=model_configuration,
             conversation_manager=self.conversation_manager,
+            tools=tools,
+            streaming=self.streaming,
         )
 
         agent_executor = AgentExecutor.from_agent_and_tools(
@@ -233,7 +235,9 @@ class RetrievalAugmentedGenerationAI:
                 ).format(query=query)
             )
 
-            self.conversation_manager.set_conversation_summary(conversation_summary.content)
+            self.conversation_manager.set_conversation_summary(
+                conversation_summary.content
+            )
             self.conversation_manager.conversation_needs_summary = False
             logging.debug(f"Generated summary: {conversation_summary.content}")
 
@@ -277,7 +281,7 @@ class RetrievalAugmentedGenerationAI:
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
-        
+
         return summary.content
 
     # Required by the Jarvis UI when generating questions for ingested files
