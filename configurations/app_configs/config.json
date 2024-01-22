@@ -151,7 +151,7 @@
         },
         "get_previous_tool_call_results": {
             "category": "General",
-            "enabled": true,
+            "enabled": false,
             "return_direct": false
         },
         "list_documents": {
@@ -563,7 +563,7 @@
                     "label": "Split Prompt",
                     "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
                     "type": "int",
-                    "value": 1,
+                    "value": 3,
                     "min": 1,
                     "max": 5,
                     "step": 1
@@ -631,7 +631,7 @@
         },
         "get_text_from_website": {
             "category": "Web",
-            "enabled": false,
+            "enabled": true,
             "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
@@ -651,7 +651,7 @@
                     "label": "Max Webpage Chunk Size",
                     "description": "The maximum number of tokens to return before starting to split the webpage into chunks.",
                     "type": "int",
-                    "value": 4000,
+                    "value": 75000,
                     "min": 1,
                     "max": 20000000,
                     "step": 100

@@ -20,6 +20,7 @@ An intelligent assistant.  This is a work in progress.  Don't hate over the name
 - *AI Framework Using [LangChain](https://www.langchain.com/)*
 - *UI Framework Using [Streamlit](https://streamlit.io/)*
 - *Local models running using [llama.cpp](https://github.com/ggerganov/llama.cpp) via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python)*
+  - *Note: This functionality has been removed for now, as I was not maintaining it.*
 
 # Running Jarvis in Docker
 In order to install the assistant using Docker, you'll need the following:

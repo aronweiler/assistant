@@ -413,7 +413,7 @@ class Code(VectorDatabase):
             return [CodeFileModel.from_database_model(c) for c in code_files]
 
     def search_code_files(
-        self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10
+        self, repository_id: int, similarity_query: str, keywords: List[str], top_k=10, exclude_file_names: List[str] = []
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
             if similarity_query.strip() != "":
@@ -424,6 +424,7 @@ class Code(VectorDatabase):
                     CodeFile.code_file_summary_embedding,
                     similarity_query,
                     top_k,
+                    exclude_file_names
                 )
 
                 # Perform similarity search on CodeDescription.description_text_embedding
@@ -433,6 +434,7 @@ class Code(VectorDatabase):
                     CodeDescription.description_text_embedding,
                     similarity_query,
                     top_k,
+                    exclude_file_names
                 )
             else:
                 code_file_similarity_results = []
@@ -441,7 +443,7 @@ class Code(VectorDatabase):
             if keywords != []:
                 # Perform keyword search on CodeKeywords.keyword
                 keyword_search_results = self._get_keyword_search_results(
-                    session, repository_id, keywords, top_k
+                    session, repository_id, keywords, top_k, exclude_file_names
                 )
             else:
                 keyword_search_results = []
@@ -488,6 +490,7 @@ class Code(VectorDatabase):
         embedding_column,
         similarity_query,
         top_k: int,
+        exclude_file_names :List[str] = []
     ):
         query_embedding = get_embedding(
             text=similarity_query,
@@ -507,7 +510,8 @@ class Code(VectorDatabase):
             .filter(
                 code_repository_files_association.c.code_repository_id == repository_id
             )
-            .order_by(cosine_distance)
+            .filter(~CodeFile.code_file_name.in_(exclude_file_names))
+            .order_by(cosine_distance)            
             .limit(top_k)
             .add_columns(cosine_distance)
         )
@@ -516,7 +520,7 @@ class Code(VectorDatabase):
         return [(code_file, distance) for code_file, distance in result]
 
     def _get_keyword_search_results(
-        self, session: Session, repository_id: int, keywords: List[str], top_k: int
+        self, session: Session, repository_id: int, keywords: List[str], top_k: int, exclude_file_names: List[str] = []
     ) -> List[CodeFileModel]:
         # Query the code_files table for matches in the code_content field
         code_content_matches = (
@@ -528,8 +532,9 @@ class Code(VectorDatabase):
                         CodeFile.code_file_content.like(f"%{keyword}%")
                         for keyword in keywords
                     ]
-                ),
+                ),                
             )
+            .filter(~CodeFile.code_file_name.in_(exclude_file_names))
             .limit(top_k)
             .all()
         )

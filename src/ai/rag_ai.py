@@ -104,16 +104,18 @@ class RetrievalAugmentedGenerationAI:
             conversation_manager=self.conversation_manager,
         )
 
-    def create_agent(self, agent_timeout: int = 300):
+    def create_agent(self, agent_timeout: int = 300, max_iterations: int = 25):
         tools = self.tool_manager.get_enabled_tools()
 
         model_configuration = ModelConfiguration(
             **self.configuration["jarvis_ai"]["model_configuration"]
         )
+
         agent = GenericToolsAgent(
-            tools=tools,
             model_configuration=model_configuration,
             conversation_manager=self.conversation_manager,
+            tools=tools,
+            streaming=self.streaming,
         )
 
         agent_executor = AgentExecutor.from_agent_and_tools(
@@ -121,6 +123,7 @@ class RetrievalAugmentedGenerationAI:
             tools=[tool.structured_tool for tool in tools],
             verbose=True,
             max_execution_time=agent_timeout,  # early_stopping_method="generate" <- this is not supported, but somehow in their docs
+            max_iterations=max_iterations,
         )
 
         agent_executor.return_intermediate_steps = True
@@ -202,8 +205,9 @@ class RetrievalAugmentedGenerationAI:
 
     def run_agent(self, query: str, kwargs: dict = {}):
         timeout = kwargs.get("agent_timeout", 300)
+        max_iterations = kwargs.get("max_iterations", 25)
         logging.debug(f"Creating agent with {timeout} second timeout")
-        agent = self.create_agent(agent_timeout=timeout)
+        agent = self.create_agent(agent_timeout=timeout, max_iterations=max_iterations)
 
         # Run the agent
         logging.debug("Running agent")
@@ -231,7 +235,9 @@ class RetrievalAugmentedGenerationAI:
                 ).format(query=query)
             )
 
-            self.conversation_manager.set_conversation_summary(conversation_summary.content)
+            self.conversation_manager.set_conversation_summary(
+                conversation_summary.content
+            )
             self.conversation_manager.conversation_needs_summary = False
             logging.debug(f"Generated summary: {conversation_summary.content}")
 
@@ -275,7 +281,7 @@ class RetrievalAugmentedGenerationAI:
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text)
         )
-        
+
         return summary.content
 
     # Required by the Jarvis UI when generating questions for ingested files

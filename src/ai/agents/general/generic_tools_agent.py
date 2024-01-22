@@ -10,6 +10,7 @@ from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
 from src.ai.agents.general.generic_tool import GenericTool
+from src.ai.agents.general.generic_tool_agent_helpers import GenericToolAgentHelpers
 
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
@@ -22,12 +23,13 @@ from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
 
 
 class GenericToolsAgent(BaseSingleActionAgent):
-    model_configuration: ModelConfiguration = None
-    conversation_manager: ConversationManager = None
-    tools: list = None
-    previous_work: str = None
-    llm: BaseLanguageModel = None
+    model_configuration: ModelConfiguration 
+    conversation_manager: ConversationManager
+    tools: List[GenericTool]
     streaming: bool = True
+    previous_work: str = ""
+    llm: BaseLanguageModel = None
+    generic_tools_agent_helpers:GenericToolAgentHelpers = None
     step_plans: dict = None
     step_index: int = -1
     current_retries: int = 0
@@ -35,6 +37,52 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     class Config:
         arbitrary_types_allowed = True  # Enable the use of arbitrary types
+
+    def __init__(
+        self,
+        model_configuration: ModelConfiguration,
+        conversation_manager: ConversationManager,
+        tools: List[GenericTool],
+        streaming: bool = True,
+    ):
+        """Initialize the agent.
+
+        Args:
+            model_configuration: Configuration for the agent.
+            conversation_manager: Conversation manager.
+            tools: List of tools to use.
+            previous_work: Previous work to use.
+            streaming: Whether or not to stream the output.
+        """        
+        super().__init__(
+            model_configuration=model_configuration,
+            conversation_manager=conversation_manager,
+            tools=tools,
+            streaming=streaming,
+            
+        )
+        
+        self.model_configuration = model_configuration
+        self.conversation_manager = conversation_manager
+        self.tools = tools
+        self.streaming = streaming
+
+        self.generic_tools_agent_helpers = GenericToolAgentHelpers(
+            conversation_manager=self.conversation_manager
+        )
+
+        self.llm = get_llm(
+            model_configuration=self.model_configuration,
+            tags=["generic_tools"],
+            callbacks=self.conversation_manager.agent_callbacks,
+            streaming=self.streaming,
+        )
+
+        self.previous_work = ""
+        self.step_plans = None
+        self.step_index = -1
+        self.current_retries = 0
+        self.wrong_tool_calls = []
 
     @property
     def input_keys(self):
@@ -62,13 +110,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
         # First time into the agent (agent.run)
         # Create the prompt with which to start the conversation (planning)
         if not intermediate_steps:
-            self.llm = get_llm(
-                model_configuration=self.model_configuration,
-                tags=["generic_tools"],
-                callbacks=self.conversation_manager.agent_callbacks,
-                streaming=self.streaming,
-            )
-
             plan_steps_prompt = self.get_plan_steps_prompt(
                 user_query=kwargs["input"],
                 system_information=kwargs["system_information"],
@@ -76,14 +117,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 user_email=kwargs["user_email"],
             )
 
-            text = self.llm.invoke(
+            plan = self.llm.invoke(
                 plan_steps_prompt,
-                #callbacks=self.conversation_manager.agent_callbacks,
+                # callbacks=self.conversation_manager.agent_callbacks,
             )
-            
+
             # Save the step plans for future reference
             self.step_plans = parse_json(
-                text.content,
+                plan.content,
                 llm=self.llm,
             )
             # Make sure we're starting at the beginning
@@ -94,6 +135,15 @@ class GenericToolsAgent(BaseSingleActionAgent):
                     return_values={"output": self.step_plans["final_answer"]},
                     log="Agent finished, answering directly.",
                 )
+
+        if "steps" not in self.step_plans:
+            return AgentFinish(
+                return_values={
+                    "output": "The previous AI could not properly generate any steps- here the raw value it returned:\n"
+                    + self.step_plans
+                },
+                log="Agent finished, no steps found.",
+            )
 
         # Filter out any of the steps that use tools we don't have.
         self.step_plans["steps"] = self.remove_steps_without_tool(
@@ -117,14 +167,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
         # If we're done with the steps, return the final answer
         else:
             # Construct a prompt that will return the final answer based on all of the previously returned steps/context
-            answer_prompt = self.get_answer_prompt(
+            answer_prompt = self.generic_tools_agent_helpers.get_answer_prompt(
                 user_query=kwargs["input"],
                 helpful_context=self.get_helpful_context(intermediate_steps),
             )
 
             answer_response = self.llm.invoke(
-                answer_prompt, 
-                #callbacks=self.conversation_manager.agent_callbacks
+                answer_prompt,
+                # callbacks=self.conversation_manager.agent_callbacks
             )
 
             answer = parse_json(text=answer_response.content, llm=self.llm)
@@ -163,22 +213,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 log="Agent finished.",
             )
 
-    async def aplan(
-        self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any
-    ) -> Union[List[AgentAction], AgentFinish]:
-        """Given input, decided what to do.
-
-        Args:
-            intermediate_steps: Steps the LLM has taken to date,
-                along with observations
-            **kwargs: User inputs.
-
-        Returns:
-            Action specifying what tool to use.
-        """
-
-        raise NotImplementedError("Async plan not implemented.")
-
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
         tool_names = [tool.name for tool in tools]
@@ -216,7 +250,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         text = self.llm.invoke(
             tool_use_prompt,
-            #callbacks=self.conversation_manager.agent_callbacks
+            # callbacks=self.conversation_manager.agent_callbacks
         )
 
         action_json = parse_json(
@@ -263,8 +297,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         action_json = parse_json(
             text=self.llm.invoke(
-                tool_use_prompt, 
-                #callbacks=self.conversation_manager.agent_callbacks
+                tool_use_prompt,
+                # callbacks=self.conversation_manager.agent_callbacks
             ).content,
             llm=self.llm,
         )
@@ -313,75 +347,21 @@ class GenericToolsAgent(BaseSingleActionAgent):
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email
     ):
-        system_prompt = self.get_system_prompt(system_information)
-        available_tools = self.get_available_tool_descriptions(self.tools)
-        loaded_documents = self.get_loaded_documents()
-        chat_history = self.get_chat_history()            
-        previous_tool_calls = self.get_previous_tool_call_headers()
-        
-        selected_repo = self.conversation_manager.get_selected_repository()
-
-        if selected_repo:
-            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent_prompts",
-                "SELECTED_REPO_TEMPLATE",
-            ).format(
-                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
-            )
-        else:
-            selected_repo_prompt = ""
-
-        if loaded_documents:
-            loaded_documents_prompt = (
-                self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent_prompts",
-                    "LOADED_DOCUMENTS_TEMPLATE",
-                ).format(loaded_documents=loaded_documents)
-            )
-        else:
-            loaded_documents_prompt = ""
-
-        if chat_history and len(chat_history) > 0:
-            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent_prompts",
-                "CHAT_HISTORY_TEMPLATE",
-            ).format(chat_history=chat_history)
-        else:
-            chat_history_prompt = ""
-
-        if previous_tool_calls and len(previous_tool_calls) > 0:
-            previous_tool_calls_prompt = (
-                self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent_prompts",
-                    "PREVIOUS_TOOL_CALLS_TEMPLATE",
-                ).format(previous_tool_calls=previous_tool_calls)
-            )
-        else:
-            previous_tool_calls_prompt = ""
-
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent_prompts",
             "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
         ).format(
-            system_prompt=system_prompt,
-            available_tool_descriptions=available_tools,
-            loaded_documents_prompt=loaded_documents_prompt,
-            selected_repository_prompt=selected_repo_prompt,
-            chat_history_prompt=chat_history_prompt,
-            previous_tool_calls_prompt=previous_tool_calls_prompt,
+            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
+                system_information
+            ),
+            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+                self.tools
+            ),
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
             user_query=f"{user_name} ({user_email}): {user_query}",
-        )
-
-        return agent_prompt
-
-    def get_answer_prompt(self, user_query, helpful_context):
-        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "ANSWER_PROMPT_TEMPLATE",
-        ).format(
-            user_query=user_query,
-            helpful_context=helpful_context,
-            chat_history=self.get_chat_history(),
         )
 
         return agent_prompt
@@ -393,7 +373,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         tool_details = ""
         for tool in self.tools:
             if tool.name == tool_name:
-                tool_details = self.get_tool_string(tool=tool)
+                tool_details = self._get_formatted_tool_string(tool=tool)
 
         if len(self.wrong_tool_calls) > 0:
             formatted_wrong_tool_calls = "\n".join(
@@ -404,63 +384,20 @@ class GenericToolsAgent(BaseSingleActionAgent):
             # Reset the wrong tool calls
             self.wrong_tool_calls = []
 
-        selected_repo = self.conversation_manager.get_selected_repository()
-        loaded_documents = self.get_loaded_documents()
-        previous_tool_calls = self.get_previous_tool_call_headers()
-
-        if selected_repo:
-            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent_prompts",
-                "SELECTED_REPO_TEMPLATE",
-            ).format(
-                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
-            )
-        else:
-            selected_repo_prompt = ""
-
-        if loaded_documents:
-            loaded_documents_prompt = (
-                self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent_prompts",
-                    "LOADED_DOCUMENTS_TEMPLATE",
-                ).format(loaded_documents=loaded_documents)
-            )
-        else:
-            loaded_documents_prompt = ""
-
-        if previous_tool_calls and len(previous_tool_calls) > 0:
-            previous_tool_calls_prompt = (
-                self.conversation_manager.prompt_manager.get_prompt(
-                    "generic_tools_agent_prompts",
-                    "PREVIOUS_TOOL_CALLS_TEMPLATE",
-                ).format(previous_tool_calls=previous_tool_calls)
-            )
-        else:
-            previous_tool_calls_prompt = ""
-
-        chat_history = self.get_chat_history()
-        if chat_history and len(chat_history) > 0:
-            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "generic_tools_agent_prompts",
-                "CHAT_HISTORY_TEMPLATE",
-            ).format(chat_history=chat_history)
-        else:
-            chat_history_prompt = ""
-
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent_prompts",
             "TOOL_USE_TEMPLATE",
         ).format(
-            selected_repository_prompt=selected_repo_prompt,
-            loaded_documents_prompt=loaded_documents_prompt,
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
             helpful_context=helpful_context,
             tool_name=tool_name,
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
-            chat_history_prompt=chat_history_prompt,
-            previous_tool_calls_prompt=previous_tool_calls_prompt,
-            system_prompt=self.get_system_prompt(
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
+            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
                 system_information,
             ),
         )
@@ -470,56 +407,28 @@ class GenericToolsAgent(BaseSingleActionAgent):
     def get_tool_use_retry_prompt(
         self, step, previous_tool_attempts, user_query, system_information
     ):
-        available_tools = self.get_available_tool_descriptions(self.tools)
+        available_tools = (
+            self.generic_tools_agent_helpers.get_available_tool_descriptions(self.tools)
+        )
 
         agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
             "generic_tools_agent_prompts",
             "TOOL_USE_RETRY_TEMPLATE",
         ).format(
-            loaded_documents=self.get_loaded_documents(),
+            loaded_documents=self.generic_tools_agent_helpers.get_loaded_documents(),
             previous_tool_attempts=previous_tool_attempts,
             available_tool_descriptions=available_tools,
             tool_use_description=step["step_description"],
             user_query=user_query,
-            chat_history=self.get_chat_history(),
-            system_prompt=self.get_system_prompt(system_information),
+            chat_history=self.generic_tools_agent_helpers.get_chat_history(),
+            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
+                system_information
+            ),
         )
 
         return agent_prompt
 
-    def get_system_prompt(self, system_information):
-        system_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "SYSTEM_TEMPLATE",
-        ).format(
-            system_information=system_information,
-        )
-
-        return system_prompt
-
-    def get_previous_tool_call_headers(self):
-        
-         # Check the configuration to see if the get_previous_tool_call_results tool is enabled
-        if not get_app_configuration()["tool_configurations"]["get_previous_tool_call_results"].get("enabled", False):               
-            return None
-        
-        previous_tool_calls: List[
-            ToolCallResultsModel
-        ] = self.conversation_manager.conversations_helper.get_tool_call_results(
-            self.conversation_manager.conversation_id
-        )
-
-        if not previous_tool_calls or len(previous_tool_calls) == 0:
-            return None
-
-        return "\n".join(
-            [
-                f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}"
-                for tool_call in previous_tool_calls
-            ]
-        )
-
-    def get_tool_string(self, tool):
+    def _get_formatted_tool_string(self, tool: GenericTool):
         args_schema = "\n\t".join(
             [
                 f"{t['argument_name']}, {t['argument_type']}, {t['required']}"
@@ -535,42 +444,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         return f"Name: {tool.name}\nDescription: {tool.description}{additional_instructions}\nArgs (name, type, optional/required):\n\t{args_schema}"
 
-    def get_available_tool_descriptions(self, tools: list[GenericTool]):
-        tool_strings = []
-        for tool in tools:
-            if tool.additional_instructions:
-                additional_instructions = (
-                    "\nAdditional Instructions: " + tool.additional_instructions
-                )
-            else:
-                additional_instructions = ""
-
-            if tool.document_classes:
-                classes = ", ".join(tool.document_classes)
-                document_class = f"\nIMPORTANT: Only use this tool with documents with classifications of: '{classes}'. For other types of files, refer to specialized tools."
-            else:
-                document_class = ""
-
-            tool_strings.append(
-                f"Name: {tool.name}\nDescription: {tool.description}{additional_instructions}{document_class}"
-            )
-
-        formatted_tools = "\n----\n".join(tool_strings)
-
-        return formatted_tools
-
-    def get_loaded_documents(self):
-        if self.conversation_manager:
-            return "\n".join(
-                self.conversation_manager.get_loaded_documents_for_reference()
-            )
-        else:
-            return None
-
-    def get_chat_history(self):
-        if self.conversation_manager:
-            return (
-                self.conversation_manager.conversation_token_buffer_memory.buffer_as_str
-            )
-        else:
-            return "No chat history."
+    async def aplan(
+        self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any
+    ) -> Union[List[AgentAction], AgentFinish]:
+        raise NotImplementedError("Async plan not implemented.")

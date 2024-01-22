@@ -160,6 +160,10 @@ class RagUI:
                                     "Timeout (seconds)", help="The amount of time to wait for a response from the AI", key="agent_timeout", value=600
                                 )
                                 
+                                st.number_input(
+                                    "Maximum AI iterations", help="The number of recursive (or other) iterations the AI will perform (usually tool calls).", key="max_iterations", value=25
+                                )
+                                
                                 st.toggle(
                                     "Use Pandas for Spreadsheets",
                                     key="use_pandas",
