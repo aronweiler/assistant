@@ -181,8 +181,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
             # If answer is a fail, we need to retry the last step with the added context from the tool failure
             if isinstance(answer, dict):
-                if "answer" in answer:
-                    answer_response = answer["answer"]
+                if "answer" in answer or "final_answer" in answer:
+                    answer_response = answer["answer"] if "answer" in answer else answer["final_answer"]
                 else:
                     if self.current_retries >= self.model_configuration.max_retries:
                         return AgentFinish(
@@ -415,7 +415,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             "generic_tools_agent_prompts",
             "TOOL_USE_RETRY_TEMPLATE",
         ).format(
-            loaded_documents=self.generic_tools_agent_helpers.get_loaded_documents(),
+            loaded_documents=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
             previous_tool_attempts=previous_tool_attempts,
             available_tool_descriptions=available_tools,
             tool_use_description=step["step_description"],

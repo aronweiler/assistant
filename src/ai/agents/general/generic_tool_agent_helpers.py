@@ -34,7 +34,7 @@ class GenericToolAgentHelpers:
                 ).format(loaded_documents=loaded_documents)
             )
         else:
-            loaded_documents_prompt = ""
+            loaded_documents_prompt = "There are no documents loaded."
         return loaded_documents_prompt
 
     def get_previous_tool_calls_prompt(self):
