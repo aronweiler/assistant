@@ -14,22 +14,22 @@ from src.ai.agents.general.generic_tool_agent_helpers import GenericToolAgentHel
 
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
+from src.ai.tools.tool_manager import ToolManager
 from src.configuration.assistant_configuration import ModelConfiguration
 from src.utilities.configuration_utilities import get_app_configuration
 
 from src.utilities.parsing_utilities import parse_json
 
-from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
-
 
 class GenericToolsAgent(BaseSingleActionAgent):
-    model_configuration: ModelConfiguration 
+    model_configuration: ModelConfiguration
     conversation_manager: ConversationManager
+    tool_manager: ToolManager
     tools: List[GenericTool]
     streaming: bool = True
     previous_work: str = ""
     llm: BaseLanguageModel = None
-    generic_tools_agent_helpers:GenericToolAgentHelpers = None
+    generic_tools_agent_helpers: GenericToolAgentHelpers = None
     step_plans: dict = None
     step_index: int = -1
     current_retries: int = 0
@@ -42,6 +42,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         self,
         model_configuration: ModelConfiguration,
         conversation_manager: ConversationManager,
+        tool_manager: ToolManager,
         tools: List[GenericTool],
         streaming: bool = True,
     ):
@@ -53,17 +54,18 @@ class GenericToolsAgent(BaseSingleActionAgent):
             tools: List of tools to use.
             previous_work: Previous work to use.
             streaming: Whether or not to stream the output.
-        """        
+        """
         super().__init__(
             model_configuration=model_configuration,
             conversation_manager=conversation_manager,
+            tool_manager=tool_manager,
             tools=tools,
             streaming=streaming,
-            
         )
-        
+
         self.model_configuration = model_configuration
         self.conversation_manager = conversation_manager
+        self.tool_manager = tool_manager
         self.tools = tools
         self.streaming = streaming
 
@@ -136,6 +138,18 @@ class GenericToolsAgent(BaseSingleActionAgent):
                     log="Agent finished, answering directly.",
                 )
 
+        if len(intermediate_steps) > 0 and intermediate_steps[-1][0].tool is not None:
+            # Add the intermediate step to the database
+            self.conversation_manager.conversations_helper.add_tool_call_results(
+                conversation_id=self.conversation_manager.conversation_id,
+                tool_name=intermediate_steps[-1][0].tool,
+                tool_arguments=json.dumps(intermediate_steps[-1][0].tool_input),
+                tool_results=intermediate_steps[-1][1],
+                include_in_conversation=self.tool_manager.should_include_in_conversation(
+                    intermediate_steps[-1][0].tool
+                ),
+            )
+
         if "steps" not in self.step_plans:
             return AgentFinish(
                 return_values={
@@ -182,7 +196,11 @@ class GenericToolsAgent(BaseSingleActionAgent):
             # If answer is a fail, we need to retry the last step with the added context from the tool failure
             if isinstance(answer, dict):
                 if "answer" in answer or "final_answer" in answer:
-                    answer_response = answer["answer"] if "answer" in answer else answer["final_answer"]
+                    answer_response = (
+                        answer["answer"]
+                        if "answer" in answer
+                        else answer["final_answer"]
+                    )
                 else:
                     if self.current_retries >= self.model_configuration.max_retries:
                         return AgentFinish(
@@ -390,13 +408,13 @@ class GenericToolsAgent(BaseSingleActionAgent):
         ).format(
             selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
             loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
             helpful_context=helpful_context,
             tool_name=tool_name,
             tool_details=tool_details,
             tool_use_description=step["step_description"],
             user_query=user_query,
             chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
-            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
             system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
                 system_information,
             ),

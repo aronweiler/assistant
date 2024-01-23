@@ -129,10 +129,9 @@ class GenericToolAgentHelpers:
 
     def _get_previous_tool_call_headers(self):
         # Check the configuration to see if the get_previous_tool_call_results tool is enabled
-        if not get_app_configuration()["tool_configurations"][
-            "get_previous_tool_call_results"
-        ].get("enabled", False):
-            return None
+        get_previous_tool_call_results_tool_enabled = get_app_configuration()[
+            "tool_configurations"
+        ]["get_previous_tool_call_results"].get("enabled", False)
 
         previous_tool_calls: List[
             ToolCallResultsModel
@@ -143,9 +142,16 @@ class GenericToolAgentHelpers:
         if not previous_tool_calls or len(previous_tool_calls) == 0:
             return None
 
-        return "\n".join(
-            [
-                f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}"
-                for tool_call in previous_tool_calls
-            ]
-        )
+        tool_call_list = []
+
+        for tool_call in previous_tool_calls:
+            if tool_call.include_in_conversation:
+                tool_call_list.append(
+                    f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}, tool results: {tool_call.tool_results}"
+                )
+            elif get_previous_tool_call_results_tool_enabled:
+                tool_call_list.append(
+                    f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}, tool results:\nUse the `get_previous_tool_call_results` tool with this ID to view the results."
+                )
+
+        return "\n----\n".join(tool_call_list)

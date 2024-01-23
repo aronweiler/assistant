@@ -114,6 +114,7 @@ class RetrievalAugmentedGenerationAI:
         agent = GenericToolsAgent(
             model_configuration=model_configuration,
             conversation_manager=self.conversation_manager,
+            tool_manager=self.tool_manager,
             tools=tools,
             streaming=self.streaming,
         )
@@ -162,13 +163,13 @@ class RetrievalAugmentedGenerationAI:
 
             output = results["output"]
 
-            for step in results["intermediate_steps"]:
-                self.conversation_manager.conversations_helper.add_tool_call_results(
-                    conversation_id=self.conversation_manager.conversation_id,
-                    tool_name=step[0].tool,
-                    tool_arguments=json.dumps(step[0].tool_input),
-                    tool_results=step[1],
-                )
+            # for step in results["intermediate_steps"]:
+            #     self.conversation_manager.conversations_helper.add_tool_call_results(
+            #         conversation_id=self.conversation_manager.conversation_id,
+            #         tool_name=step[0].tool,
+            #         tool_arguments=json.dumps(step[0].tool_input),
+            #         tool_results=step[1],
+            #     )
         elif ai_mode.lower().startswith("code"):
             logging.debug("Running agent in 'Code' mode")
             raise NotImplementedError("Code mode is not yet implemented")

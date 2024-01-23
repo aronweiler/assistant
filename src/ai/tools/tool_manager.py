@@ -55,15 +55,23 @@ class ToolManager:
     def get_all_tools(self):
         return self.tools
 
-    def toggle_tool(self, tool_name: str):
-        for tool in self.tools:
-            if tool == tool_name:
-                if self.is_tool_enabled(tool_name):
-                    os.environ[tool_name] = "False"
-                else:
-                    os.environ[tool_name] = "True"
-                break
+    # def toggle_tool(self, tool_name: str):
+    #     for tool in self.tools:
+    #         if tool == tool_name:
+    #             if self.is_tool_enabled(tool_name):
+    #                 os.environ[tool_name] = "False"
+    #             else:
+    #                 os.environ[tool_name] = "True"
+    #             break
 
+    def should_include_in_conversation(self, tool_name):
+        if tool_name in self.configuration["tool_configurations"]:
+            return self.configuration["tool_configurations"][tool_name].get(
+                "include_in_conversation", False
+            )
+        else:
+            return False
+    
     def should_return_direct(self, tool_name):
         if tool_name in self.configuration["tool_configurations"]:
             return self.configuration["tool_configurations"][tool_name].get(

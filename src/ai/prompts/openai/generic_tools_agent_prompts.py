@@ -76,7 +76,7 @@ Consider the chat history for additional context.
 """
 
 PREVIOUS_TOOL_CALLS_TEMPLATE = """
-The following are previous tool calls that were made in this conversation.  If required, you can request the full results of these tool calls using the ID.
+The following are previous tool calls that were made in this conversation.  If you are considering constructing a new tool call, you should consider the previous tool calls to ensure you are not repeating a tool call that has already been made.
 --- PREVIOUS TOOL CALLS ---
 {previous_tool_calls}
 --- PREVIOUS TOOL CALLS ---
@@ -122,8 +122,8 @@ TOOL_USE_TEMPLATE = """{system_prompt}
 
 Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:{loaded_documents_prompt}
 {selected_repository_prompt}
-{chat_history_prompt}
 {previous_tool_calls_prompt}
+{chat_history_prompt}
 Additional context for the tool's use:
 --- HELPFUL CONTEXT ---
 {helpful_context}

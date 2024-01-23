@@ -454,16 +454,24 @@ def tools_settings():
                 "Enabled",
                 value=tool_manager.is_tool_enabled(tool.name),
                 key=tool.name,
-                on_change=tool_manager.toggle_tool,
-                kwargs={"tool_name": tool.name},
+                # on_change=tool_manager.toggle_tool,
+                # kwargs={"tool_name": tool.name},
             )
             col2.toggle(
                 "Return results directly to UI",
                 value=tool_manager.should_return_direct(tool.name),
                 help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
                 key=f"{tool.name}-return-direct",
-                on_change=tool_manager.toggle_tool,
-                kwargs={"tool_name": tool.name},
+                # on_change=tool_manager.toggle_tool,
+                # kwargs={"tool_name": tool.name},
+            )
+            col3.toggle(
+                "Include Results in Conversation",
+                value=tool_manager.should_include_in_conversation(tool.name),
+                help="When enabled, the results of this tool will be included in the conversation history.\n\n*Turn this on when you want the LLM to always remember results returned for this tool.*",
+                key=f"{tool.name}-include-in-conversation",
+                # on_change=tool_manager.toggle_tool,
+                # kwargs={"tool_name": tool.name},
             )
 
             show_model_settings(configuration, tool.name, tool)
@@ -494,6 +502,15 @@ def save_tool_settings(tools, configuration, selected_category):
         enabled = st.session_state[tool.name]
         if enabled != existing_tool_configuration["enabled"]:
             needs_saving = True
+            
+        include_results_in_conversation_history = st.session_state[
+            f"{tool.name}-include-in-conversation"
+        ]
+        if (
+            include_results_in_conversation_history
+            != existing_tool_configuration["include_in_conversation"]
+        ):
+            needs_saving = True
 
         return_direct = st.session_state[f"{tool.name}-return-direct"]
         if return_direct != existing_tool_configuration["return_direct"]:
@@ -508,6 +525,7 @@ def save_tool_settings(tools, configuration, selected_category):
             save_tool_settings_to_file(
                 tool_name=tool.name,
                 enabled=enabled,
+                include_results_in_conversation_history=include_results_in_conversation_history,
                 return_direct=return_direct,
                 model_configuration=model_configuration,
             )
@@ -627,9 +645,10 @@ def save_jarvis_settings_to_file(
     st.session_state["app_config"] = configuration
 
 
-def save_tool_settings_to_file(tool_name, enabled, return_direct, model_configuration):
+def save_tool_settings_to_file(tool_name, enabled, include_results_in_conversation_history, return_direct, model_configuration):
     configuration = ui_shared.get_app_configuration()
     configuration["tool_configurations"][tool_name]["enabled"] = enabled
+    configuration["tool_configurations"][tool_name]["include_in_conversation"] = include_results_in_conversation_history
     configuration["tool_configurations"][tool_name]["return_direct"] = return_direct
     if model_configuration:
         configuration["tool_configurations"][tool_name][

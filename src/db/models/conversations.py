@@ -112,7 +112,7 @@ class Conversations(VectorDatabase):
             ).update({Conversation.is_deleted: True})
             session.commit()
 
-    def add_tool_call_results(self, conversation_id, tool_name, tool_arguments, tool_results):
+    def add_tool_call_results(self, conversation_id, tool_name, tool_arguments, tool_results, include_in_conversation = False):
         
         # If the tool_results is a list or dict, convert it to a string
         if isinstance(tool_results, (list, dict)):
@@ -125,6 +125,7 @@ class Conversations(VectorDatabase):
                     tool_name=tool_name,
                     tool_arguments=tool_arguments,
                     tool_results=tool_results,
+                    include_in_conversation=include_in_conversation
                 )
             )
             session.commit()
@@ -138,6 +139,7 @@ class Conversations(VectorDatabase):
                     ToolCallResults.tool_arguments,
                     ToolCallResults.tool_results,
                     ToolCallResults.id,
+                    ToolCallResults.include_in_conversation,
                     ToolCallResults.record_created,
                 )
                 .filter(ToolCallResults.conversation_id == conversation_id)

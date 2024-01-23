@@ -423,7 +423,8 @@ class ToolCallResults(ModelBase):
     tool_name = Column(String, nullable=False)
     tool_arguments = Column(String, nullable=True)
     tool_results = Column(String, nullable=True)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)
+    include_in_conversation = Column(Boolean, nullable=False, default=False)
+    record_created = Column(DateTime, nullable=False, default=datetime.now)    
 
     # Define the relationship with Conversation
     conversation = relationship("Conversation", back_populates="tool_call_results")
