@@ -1,6 +1,6 @@
 import re
 import json
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 import logging
 
 from langchain.schema import AgentAction
@@ -9,6 +9,9 @@ from langchain.agents import AgentExecutor, BaseMultiActionAgent, BaseSingleActi
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
 from langchain.base_language import BaseLanguageModel
+
+from langchain_core.callbacks.base import BaseCallbackHandler, BaseCallbackManager
+
 from src.ai.agents.general.generic_tool import GenericTool
 from src.ai.agents.general.generic_tool_agent_helpers import GenericToolAgentHelpers
 
@@ -96,7 +99,12 @@ class GenericToolsAgent(BaseSingleActionAgent):
         ]
 
     def plan(
-        self, intermediate_steps: Tuple[AgentAction, str], **kwargs: Any
+        self,
+        intermediate_steps: Tuple[AgentAction, str],
+        callbacks: Optional[
+            Union[List[BaseCallbackHandler], BaseCallbackManager]
+        ] = None,
+        **kwargs: Any,
     ) -> Union[AgentAction, AgentFinish]:
         """Given input, decided what to do.
 
@@ -110,36 +118,27 @@ class GenericToolsAgent(BaseSingleActionAgent):
         """
 
         # First time into the agent (agent.run)
-        # Create the prompt with which to start the conversation (planning)
+        # Create the prompt with which to start the conversation (planning), which should generate steps (or a direct answer)
         if not intermediate_steps:
-            plan_steps_prompt = self.get_plan_steps_prompt(
-                user_query=kwargs["input"],
-                system_information=kwargs["system_information"],
-                user_name=kwargs["user_name"],
-                user_email=kwargs["user_email"],
-            )
+            self.get_step_plans_or_direct_answer(kwargs)
 
-            plan = self.llm.invoke(
-                plan_steps_prompt,
-                # callbacks=self.conversation_manager.agent_callbacks,
-            )
-
-            # Save the step plans for future reference
-            self.step_plans = parse_json(
-                plan.content,
-                llm=self.llm,
-            )
-            # Make sure we're starting at the beginning
-            self.step_index = 0
-
-            if "final_answer" in self.step_plans:
+            if "answer" in self.step_plans or "final_answer" in self.step_plans:
                 return AgentFinish(
-                    return_values={"output": self.step_plans["final_answer"]},
+                    return_values={
+                        "output": self.step_plans["answer"]
+                        if "answer" in self.step_plans
+                        else self.step_plans["final_answer"]
+                    },
                     log="Agent finished, answering directly.",
                 )
+                
+        else:
+            # This is where I should put the code to have the LLM evaluate the last intermediate step, and either re-plan or continue
+            if 
+            pass
 
+        # If there are intermediate steps and we've called a tool, save the tool call results for the last step
         if len(intermediate_steps) > 0 and intermediate_steps[-1][0].tool is not None:
-            # Add the intermediate step to the database
             self.conversation_manager.conversations_helper.add_tool_call_results(
                 conversation_id=self.conversation_manager.conversation_id,
                 tool_name=intermediate_steps[-1][0].tool,
@@ -150,6 +149,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 ),
             )
 
+        # If we don't have any steps, we're done
         if "steps" not in self.step_plans:
             return AgentFinish(
                 return_values={
@@ -159,17 +159,17 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 log="Agent finished, no steps found.",
             )
 
-        # Filter out any of the steps that use tools we don't have.
+        # If we're here, we have steps to perform
+        # Filter out any of the steps that use tools we don't have (because the AI hallucinates).
         self.step_plans["steps"] = self.remove_steps_without_tool(
             self.step_plans["steps"], self.tools
         )
 
-        # If we still have steps to perform
+        # If we still have steps to perform, after removing the ones we don't have tools for, perform them
         if (
             self.step_index < len(self.step_plans["steps"])
             and len(self.step_plans["steps"]) > 0
         ):
-            # This is a multi-action agent, but we're going to use it sequentially for now
             # TODO: Refactor this so we can execute multiple actions at once (and handle dependencies)
 
             action = self.prompt_and_predict_tool_use(intermediate_steps, **kwargs)
@@ -230,6 +230,27 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 return_values={"output": answer_response},
                 log="Agent finished.",
             )
+
+    def get_step_plans_or_direct_answer(self, kwargs):
+        plan_steps_prompt = self.get_plan_steps_prompt(
+            user_query=kwargs["input"],
+            system_information=kwargs["system_information"],
+            user_name=kwargs["user_name"],
+            user_email=kwargs["user_email"],
+        )
+
+        plan = self.llm.invoke(
+            plan_steps_prompt,
+            # callbacks=self.conversation_manager.agent_callbacks,
+        )
+
+        # Save the step plans for future reference
+        self.step_plans = parse_json(
+            plan.content,
+            llm=self.llm,
+        )
+        # Make sure we're starting at the beginning
+        self.step_index = 0
 
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
