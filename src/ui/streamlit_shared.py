@@ -1218,7 +1218,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
         )
 
         ai_modes = ["Auto", "Code", "Conversation Only"]
-
+        
         col2.selectbox(
             label="Mode",
             label_visibility="collapsed",
@@ -1230,46 +1230,83 @@ def handle_chat(main_window_container, ai_instance, configuration):
             help="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.",
             on_change=set_ai_mode,
         )
+        
+        if st.session_state["ai_mode"] == "Auto":
+            col3.markdown(
+                f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Answer:</b></div>',
+                unsafe_allow_html=True,
+            )
+            
+            col4.toggle(
+                label="Evaluate Response",
+                label_visibility="collapsed",
+                value=bool(
+                    get_app_configuration()["jarvis_ai"].get("evaluate_response", False)
+                ),
+                key="evaluate_response",
+                help="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.",
+                on_change=set_evaluate_response,
+            )
+            
+            col5.markdown(
+                f'<div align="right" title="Threshold at which the AI will re-enter a planning stage.">{help_icon} <b>Re-Planning Threshold:</b></div>',
+                unsafe_allow_html=True,
+            )
 
-        col3.markdown(
-            f'<div align="right" title="Positive values will decrease the likelihood of the model repeating the same line verbatim by penalizing new tokens that have already been used frequently.">{help_icon} <b>Frequency Penalty:</b></div>',
-            unsafe_allow_html=True,
-        )
+            col6.slider(
+                label="Re-Planning Threshold",
+                label_visibility="collapsed",
+                key="re_planning_threshold",
+                min_value=0.0,
+                max_value=1.0,
+                value=float(
+                    get_app_configuration()["jarvis_ai"].get("re_planning_threshold", 0.6)
+                ),
+                step=0.1,
+                help="Threshold at which the AI will re-enter a planning stage.",
+                on_change=set_re_planning_threshold,
+            )
 
-        col4.slider(
-            label="Frequency Penalty",
-            label_visibility="collapsed",
-            key="frequency_penalty",
-            min_value=-2.0,
-            max_value=2.0,
-            value=float(
-                get_app_configuration()["jarvis_ai"].get("frequency_penalty", 0)
-            ),
-            step=0.1,
-            help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
-            on_change=set_frequency_penalty,
-            disabled=st.session_state["ai_mode"] != "Conversation Only",
-        )
+        else:
+            col3.markdown(
+                f'<div align="right" title="Positive values will decrease the likelihood of the model repeating the same line verbatim by penalizing new tokens that have already been used frequently.">{help_icon} <b>Frequency Penalty:</b></div>',
+                unsafe_allow_html=True,
+            )
 
-        col5.markdown(
-            f'<div align="right" title="Positive values will increase the likelihood of the model talking about new topics by penalizing new tokens that have already been used.">{help_icon} <b>Presence Penalty:</b></div>',
-            unsafe_allow_html=True,
-        )
+            col4.slider(
+                label="Frequency Penalty",
+                label_visibility="collapsed",
+                key="frequency_penalty",
+                min_value=-2.0,
+                max_value=2.0,
+                value=float(
+                    get_app_configuration()["jarvis_ai"].get("frequency_penalty", 0)
+                ),
+                step=0.1,
+                help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
+                on_change=set_frequency_penalty,
+                disabled=st.session_state["ai_mode"] != "Conversation Only",
+            )
 
-        col6.slider(
-            label="Presence Penalty",
-            label_visibility="collapsed",
-            key="presence_penalty",
-            min_value=-2.0,
-            max_value=2.0,
-            value=float(
-                get_app_configuration()["jarvis_ai"].get("presence_penalty", 0.6)
-            ),
-            step=0.1,
-            help="The higher the penalty, the more variety of words will be introduced in the completion.",
-            on_change=set_presence_penalty,
-            disabled=st.session_state["ai_mode"] != "Conversation Only",
-        )
+            col5.markdown(
+                f'<div align="right" title="Positive values will increase the likelihood of the model talking about new topics by penalizing new tokens that have already been used.">{help_icon} <b>Presence Penalty:</b></div>',
+                unsafe_allow_html=True,
+            )
+
+            col6.slider(
+                label="Presence Penalty",
+                label_visibility="collapsed",
+                key="presence_penalty",
+                min_value=-2.0,
+                max_value=2.0,
+                value=float(
+                    get_app_configuration()["jarvis_ai"].get("presence_penalty", 0.6)
+                ),
+                step=0.1,
+                help="The higher the penalty, the more variety of words will be introduced in the completion.",
+                on_change=set_presence_penalty,
+                disabled=st.session_state["ai_mode"] != "Conversation Only",
+            )
 
     if prompt:
         logging.debug(f"User input: {prompt}")
@@ -1323,6 +1360,12 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     "max_iterations": int(st.session_state["max_iterations"])
                     if "max_iterations" in st.session_state
                     else 25,
+                    "evaluate_response": st.session_state["evaluate_response"]
+                    if "evaluate_response" in st.session_state
+                    else False,
+                    "re_planning_threshold": float(st.session_state["re_planning_threshold"])
+                    if "re_planning_threshold" in st.session_state
+                    else 0.5,
                 }
                 logging.debug(f"kwargs: {kwargs}")
 
@@ -1369,6 +1412,15 @@ def set_frequency_penalty():
         "frequency_penalty", st.session_state["frequency_penalty"]
     )
 
+def set_re_planning_threshold():
+    set_jarvis_ai_config_element(
+        "re_planning_threshold", st.session_state["re_planning_threshold"]
+    )
+
+def set_evaluate_response():
+    set_jarvis_ai_config_element(
+        "evaluate_response", st.session_state["evaluate_response"]
+    )
 
 def set_presence_penalty():
     set_jarvis_ai_config_element(

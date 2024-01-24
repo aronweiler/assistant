@@ -47,7 +47,9 @@
         "search_top_k": 10,
         "frequency_penalty": 0.3,
         "presence_penalty": 0.7,
-        "ai_mode": "Auto"
+        "ai_mode": "Conversation Only",
+        "evaluate_response": true,
+        "re_planning_threshold": 0.5
     },
     "tool_configurations": {
         "default": {

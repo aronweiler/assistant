@@ -96,6 +96,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
             "system_information",
             "user_name",
             "user_email",
+            "evaluate_response",
+            "re_planning_threshold"
         ]
 
     def plan(
@@ -133,8 +135,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 )
                 
         else:
-            # This is where I should put the code to have the LLM evaluate the last intermediate step, and either re-plan or continue
-            
+            # This is where I should put the code to have the LLM evaluate the last intermediate step, and either re-plan or continue            
             pass
 
         # If there are intermediate steps and we've called a tool, save the tool call results for the last step
@@ -149,7 +150,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 ),
             )
 
-        # If we don't have any steps, we're done
+        # If we don't have any steps, bail out
         if "steps" not in self.step_plans:
             return AgentFinish(
                 return_values={
@@ -226,10 +227,38 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
                     return action
 
+            if kwargs["evaluate_response"]:
+                # TODO: Finish this implementation
+                evaluation = self.evaluate_response(answer_response, intermediate_steps, **kwargs)
+                
+                if kwargs.get("re_planning_threshold", 0.5) >= evaluation["score"]:
+                    # Re-enter the planning stage
+                    logging.error(f"TODO- IMPLEMENT THIS:: Re-entering planning stage, because the evaluation score was too low: {evaluation['score']}")
+            
             return AgentFinish(
                 return_values={"output": answer_response},
                 log="Agent finished.",
             )
+
+    def evaluate_response(self, response, intermediate_steps, **kwargs):
+        evaluation_prompt = self.get_evaluation_prompt(
+            answer=response,
+            user_query=kwargs["input"],
+            intermediate_steps=intermediate_steps,
+            user_name=kwargs["user_name"],
+            user_email=kwargs["user_email"],
+        )
+        
+        evaluation = self.llm.invoke(
+            evaluation_prompt
+        )
+
+        # Save the step plans for future reference
+        return parse_json(
+            evaluation.content,
+            llm=self.llm,
+        )
+        
 
     def get_step_plans_or_direct_answer(self, kwargs):
         plan_steps_prompt = self.get_plan_steps_prompt(
@@ -382,6 +411,24 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 if s[1] is not None
             ]
         )
+        
+    def get_evaluation_prompt(self, answer, user_query, intermediate_steps, user_name, user_email):
+        prompt = self.conversation_manager.prompt_manager.get_prompt(
+            "generic_tools_agent_prompts",
+            "EVALUATION_TEMPLATE",
+        ).format(            
+            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+                self.tools
+            ),
+            previous_ai_response=answer,
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            tool_history="\n\n".join([f"{i[0]}\n**Result:** {i[1]}" for i in intermediate_steps]),
+            user_query=f"{user_name} ({user_email}): {user_query}",
+        )
+        
+        return prompt
 
     def get_plan_steps_prompt(
         self, user_query, system_information, user_name, user_email

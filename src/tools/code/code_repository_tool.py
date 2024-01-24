@@ -68,8 +68,8 @@ class CodeRepositoryTool:
 
         results = ""
         for code_file in code_files:
-            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"       
-                 
+            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"
+
         return results
 
     @register_tool(
@@ -271,16 +271,17 @@ class CodeRepositoryTool:
                     configuration=self.configuration,
                     func_name=self.codebase_functionality_search.__name__,
                     streaming=True,
+                    callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 relevant_snippets = parse_json(
                     llm.invoke(
                         get_relevant_snippets_prompt,
-                        #callbacks=self.conversation_manager.agent_callbacks,
+                        # callbacks=self.conversation_manager.agent_callbacks,
                     ),
                     llm=llm,
                 )
-                
+
                 content = relevant_snippets.content
 
                 if isinstance(content, str):
@@ -295,7 +296,7 @@ class CodeRepositoryTool:
                     {
                         "file_name": file_info["file_name"],
                         "file_id": file_info["file_id"],
-                        "snippets": content,  
+                        "snippets": content,
                     }
                 )
 
@@ -373,6 +374,7 @@ class CodeRepositoryTool:
                         "frequency_penalty": 0.7,
                         "presence_penalty": 0.9,
                     },
+                    callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 additional_prompt_prompt = (
@@ -395,7 +397,6 @@ class CodeRepositoryTool:
                         user_query=user_query,
                         chat_history=get_chat_history(),
                     ),
-                    #callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 split_prompts = parse_json(split_prompts.content, llm)
@@ -404,6 +405,7 @@ class CodeRepositoryTool:
                 for prompt in split_prompts["prompts"]:
                     results.append(
                         self._search_repository_documents(
+                            repository_id=self.conversation_manager.get_selected_repository().id,
                             semantic_similarity_query=prompt[
                                 "semantic_similarity_query"
                             ],
@@ -421,7 +423,7 @@ class CodeRepositoryTool:
             semantic_similarity_query=semantic_similarity_query,
             keywords_list=keywords_list,
             user_query=user_query,
-            exclude_file_names=exclude_file_names
+            exclude_file_names=exclude_file_names,
         )
 
     def _search_repository_documents(
@@ -430,7 +432,7 @@ class CodeRepositoryTool:
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
-        exclude_file_names:List[str] = [],
+        exclude_file_names: List[str] = [],
     ):
         code_file_model_search_results: List[
             CodeFileModel
@@ -471,12 +473,10 @@ class CodeRepositoryTool:
             configuration=self.configuration,
             func_name=self.comprehensive_repository_search.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        result = llm.invoke(
-            identify_likely_files_prompt,
-            # callbacks=self.conversation_manager.agent_callbacks,
-        )
+        result = llm.invoke(identify_likely_files_prompt)
 
         # Now we have the result of which file(s) the AI thinks are most likely to contain the code that we're looking for
         likely_file_ids = parse_json(result.content, llm)
@@ -486,7 +486,7 @@ class CodeRepositoryTool:
             code_file: CodeFileModel = (
                 self.conversation_manager.code_helper.get_code_file_by_id(file_id)
             )
-            
+
             code_contents.append(
                 {
                     "file": code_file.code_file_name,
@@ -511,8 +511,8 @@ class CodeRepositoryTool:
         )
 
         answer = llm.invoke(
-            answer_query_prompt, 
-            #callbacks=self.conversation_manager.agent_callbacks
+            answer_query_prompt,
+            # callbacks=self.conversation_manager.agent_callbacks
         )
 
         return answer.content

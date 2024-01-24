@@ -240,3 +240,45 @@ SYSTEM_TEMPLATE = """You are my personal assistant.  It is your job to help me w
 
 Here is some helpful system information:
 {system_information}"""
+
+EVALUATION_TEMPLATE = """{chat_history_prompt}
+
+Please evaluate the following information and provide an evaluation and score for the previous AI's response to the user's query.  
+
+User's Original Query:
+{user_query}
+
+Previous AI's Response:
+{previous_ai_response}
+
+Tools Used by Previous AI (including results from tool calls):
+{tool_history}
+
+Tools that were available to the previous AI:
+{available_tool_descriptions}
+
+{loaded_documents_prompt}
+{selected_repository_prompt}
+
+Based on this information, please provide an evaluation of the previous AI's response in terms of completeness and correctness, and score the previous AI's response, including which tools it chose to use on a scale from 0.0 to 1.0. 
+
+Please output your evaluation as a JSON blob enclosed in triple backticks, like so:
+
+```json
+{{
+  "evaluation": "Your descriptive evaluation here.",
+  "score": 0.0,  // A floating point value between 0.0 and 1.0
+}}
+```
+
+For example, if the previous AI's response was comprehensive and valid, your output might look like this:
+
+```json
+{{
+  "evaluation": "The previous AI's response accurately describes photosynthesis with sufficient detail and clarity.",
+  "score": 0.9,
+}}
+```
+
+AI: Sure, here is the evaluation and score of the previous AI's response in JSON (inside a markdown ```json ``` code block):
+"""

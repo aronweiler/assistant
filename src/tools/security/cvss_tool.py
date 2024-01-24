@@ -31,6 +31,7 @@ class CvssTool:
             configuration=self.configuration,
             func_name=self.create_cvss_evaluation.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         identify_vulnerable_component_prompt = (
@@ -47,7 +48,7 @@ class CvssTool:
             identify_vulnerable_component_prompt.format(
                 vulnerability_data=vulnerability_data
             ),
-            #callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         ).content
 
         cvss_evaluation = llm.invoke(
@@ -55,7 +56,7 @@ class CvssTool:
                 vulnerable_component=vulnerable_component,
                 vulnerability_data=vulnerability_data,
             ),
-            #callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         return cvss_evaluation.content

@@ -82,6 +82,7 @@ class WebsiteTool:
             configuration=self.configuration,
             func_name=self.get_text_from_website.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         existing_summary = None
@@ -97,8 +98,6 @@ class WebsiteTool:
                     category="summary_prompts", prompt_name="SIMPLE_REFINE_TEMPLATE"
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
 
-            existing_summary = llm.invoke(
-                prompt
-            )
+            existing_summary = llm.invoke(prompt)
 
         return existing_summary.content

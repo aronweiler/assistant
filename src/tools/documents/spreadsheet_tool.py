@@ -59,6 +59,7 @@ class SpreadsheetsTool:
             configuration=self.configuration,
             func_name=self.query_spreadsheet_pandas.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         agent = self.create_pandas_agent(llm=llm, files=[file])

@@ -207,6 +207,9 @@ class RetrievalAugmentedGenerationAI:
     def run_agent(self, query: str, kwargs: dict = {}):
         timeout = kwargs.get("agent_timeout", 300)
         max_iterations = kwargs.get("max_iterations", 25)
+        evaluate_response = kwargs.get("evaluate_response", False)
+        re_planning_threshold = kwargs.get("re_planning_threshold", 0.5)
+
         logging.debug(f"Creating agent with {timeout} second timeout")
         agent = self.create_agent(agent_timeout=timeout, max_iterations=max_iterations)
 
@@ -220,7 +223,8 @@ class RetrievalAugmentedGenerationAI:
                 ),
                 "user_name": self.conversation_manager.user_name,
                 "user_email": self.conversation_manager.user_email,
-                # "callbacks": self.conversation_manager.agent_callbacks,
+                "evaluate_response": evaluate_response,
+                "re_planning_threshold": re_planning_threshold,
             }
         )
 

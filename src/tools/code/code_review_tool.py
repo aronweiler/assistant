@@ -239,7 +239,7 @@ class CodeReviewTool:
             # Use language model to predict based on the formatted prompt.
             json_data = llm.invoke(
                 code_review_prompt,
-                #callbacks=self.conversation_manager.agent_callbacks,
+                # callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
@@ -280,7 +280,7 @@ class CodeReviewTool:
                 # Use language model to predict based on the formatted prompt.
                 json_data = llm.invoke(
                     code_review_prompt,
-                    #callbacks=self.conversation_manager.agent_callbacks,
+                    # callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 # Parse JSON data returned by language model prediction into structured data.
@@ -400,6 +400,7 @@ class CodeReviewTool:
             configuration=self.configuration,
             func_name=self.conduct_code_review_from_url.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Initialize an empty list to hold individual change reviews.
@@ -464,6 +465,7 @@ class CodeReviewTool:
             configuration=self.configuration,
             func_name=self.conduct_code_review_from_url.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a review on the entire file content and return the results.
@@ -523,6 +525,7 @@ class CodeReviewTool:
             configuration=self.configuration,
             func_name=self.conduct_code_review_from_file_id.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a review on the entire file content and return the results.

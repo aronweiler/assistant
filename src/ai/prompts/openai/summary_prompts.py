@@ -20,6 +20,11 @@ Do not include any kind of preamble, such as "the summary is..." or anything of 
 
 ONLY return the very short summary, nothing else.
 
+Your response should be in JSON, with the following format:
+{{
+    "answer": "The text of your response goes here."
+}}
+
 AI: Sure, here you go:
 """
 

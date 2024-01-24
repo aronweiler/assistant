@@ -221,7 +221,7 @@ class CodeRefactorTool:
         additional_instructions,
         metadata,
         code,
-        llm:BaseLanguageModel,
+        llm: BaseLanguageModel,
     ):
         final_code_refactor_instructions = (
             self.conversation_manager.prompt_manager.get_prompt(
@@ -247,7 +247,7 @@ class CodeRefactorTool:
         # Use language model to predict based on the formatted prompt.
         json_data = llm.invoke(
             code_refactor_prompt,
-            #callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Parse JSON data returned by language model prediction into structured data.
@@ -301,7 +301,7 @@ class CodeRefactorTool:
             # Use language model to predict based on the formatted prompt.
             json_data = llm.invoke(
                 code_refactor_prompt,
-                #callbacks=self.conversation_manager.agent_callbacks,
+                # callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
@@ -382,6 +382,7 @@ class CodeRefactorTool:
             configuration=self.configuration,
             func_name=self.conduct_code_refactor_from_url.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a refactor on the entire file content and return the results.
@@ -454,6 +455,7 @@ class CodeRefactorTool:
             configuration=self.configuration,
             func_name=self.conduct_code_refactor_from_file_id.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a refactor on the entire file content and return the results.

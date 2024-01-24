@@ -35,6 +35,7 @@ class LLMTool:
                 "frequency_penalty": 0.7,
                 "presence_penalty": 0.6,
             },
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         uses_conversation_history = self.configuration["tool_configurations"][

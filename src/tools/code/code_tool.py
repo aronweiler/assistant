@@ -17,6 +17,7 @@ from src.utilities.token_helper import num_tokens_from_string
 from src.tools.code.code_dependency import CodeDependency
 from src.ai.llm_helper import get_tool_llm
 
+
 @tool_class
 class CodeTool:
     def __init__(self, configuration, conversation_manager: ConversationManager):
@@ -404,6 +405,7 @@ class CodeTool:
             configuration=self.configuration,
             func_name=self.create_stub_code.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         for doc in documents:
@@ -413,8 +415,8 @@ class CodeTool:
                     stub_dependencies_template=stub_dependencies,
                 )
                 stubbed_code = llm.invoke(
-                    prompt, 
-                    #callbacks=self.conversation_manager.agent_callbacks
+                    prompt,
+                    # callbacks=self.conversation_manager.agent_callbacks
                 )
                 break
 
