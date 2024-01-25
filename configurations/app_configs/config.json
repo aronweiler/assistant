@@ -26,7 +26,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "json_object"}
                 }
             }
         },
@@ -40,14 +41,15 @@
             "max_conversation_history_tokens": 26000,
             "max_completion_tokens": 4096,
             "model_kwargs": {
-                "seed": 500
+                "seed": 500,
+                "response_format": {"type": "json_object"}
             }
         },
         "search_type": "Hybrid",
         "search_top_k": 10,
         "frequency_penalty": 0.3,
         "presence_penalty": 0.7,
-        "ai_mode": "Conversation Only",
+        "ai_mode": "Auto",
         "evaluate_response": true,
         "re_planning_threshold": 0.5
     },
@@ -64,7 +66,8 @@
                 "max_conversation_history_tokens": 4096,
                 "max_completion_tokens": 6096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -83,7 +86,8 @@
                 "max_conversation_history_tokens": 342,
                 "max_completion_tokens": 1418,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -113,7 +117,8 @@
                 "max_conversation_history_tokens": 512,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -132,7 +137,8 @@
                 "max_conversation_history_tokens": -1,
                 "max_completion_tokens": 0,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -151,7 +157,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 8192,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -200,7 +207,8 @@
                 "max_conversation_history_tokens": 4096,
                 "max_completion_tokens": 6096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -284,7 +292,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -356,7 +365,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "json_object"}
                 }
             }
         },
@@ -440,7 +450,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -512,7 +523,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "json_object"}
                 }
             }
         },
@@ -579,7 +591,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "json_object"}
                 }
             }
         },
@@ -609,7 +622,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "json_object"}
                 }
             }
         },
@@ -628,7 +642,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -648,6 +663,8 @@
                 "max_completion_tokens": 6096,
                 "model_kwargs": {
                     "seed": 500
+                    ,
+                    "response_format": {"type": "text"}
                 }
             }
         },
@@ -678,7 +695,8 @@
                 "max_conversation_history_tokens": 0,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
-                    "seed": 500
+                    "seed": 500,
+                    "response_format": {"type": "json_object"}
                 }
             },
             "additional_settings": {

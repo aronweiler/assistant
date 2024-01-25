@@ -4,35 +4,55 @@
       "llm_type": "openai",
       "model": "gpt-4-1106-preview",
       "max_model_supported_tokens": 128000,
-      "max_model_completion_tokens": 4096
+      "max_model_completion_tokens": 4096,
+      "model_kwargs": {
+        "seed": 500,
+        "response_format": { "type": "json_object" }
+      }
     }
   },
   "GPT 4": {
     "model_configuration": {
       "llm_type": "openai",
       "model": "gpt-4",
-      "max_model_supported_tokens": 8192 
+      "max_model_supported_tokens": 8192,
+      "model_kwargs": {
+        "seed": 500,
+        "response_format": { "type": "text" }
+      }
     }
   },
   "GPT 4 (32K)": {
     "model_configuration": {
       "llm_type": "openai",
       "model": "gpt-4-32k",
-      "max_model_supported_tokens": 32768  
+      "max_model_supported_tokens": 32768,
+      "model_kwargs": {
+        "seed": 500,
+        "response_format": { "type": "text" }
+      }
     }
   },
   "GPT 3.5 Turbo (16K)": {
     "model_configuration": {
       "llm_type": "openai",
       "model": "gpt-3.5-turbo-16k",
-      "max_model_supported_tokens": 16384
+      "max_model_supported_tokens": 16384,
+      "model_kwargs": {
+        "seed": 500,
+        "response_format": { "type": "text" }
+      }
     }
   },
   "GPT 3.5 Turbo": {
     "model_configuration": {
       "llm_type": "openai",
       "model": "gpt-3.5-turbo",
-      "max_model_supported_tokens": 4097 
+      "max_model_supported_tokens": 4097,
+      "model_kwargs": {
+        "seed": 500,
+        "response_format": { "type": "text" }
+      }
     }
   }
 }

@@ -18,7 +18,9 @@ sqlalchemy
 llama-cpp-python
 openai
 langchain
+langchain-openai
 langchain-experimental
+transformers
 
 # REST
 requests==2.26.0
