@@ -12,8 +12,8 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 class PromptManager:
     LLM_TYPE_TO_DIR_MAP = {
-        "llama2": "llama2",
-        "openai": "openai",
+        "llama2": "llama2_prompts",
+        "openai": "openai_prompts",
     }
 
     def __init__(self, llm_type: str):
@@ -25,10 +25,16 @@ class PromptManager:
     def get_module_name_from_category(category: str) -> str:
         return category
 
-    def get_prompt(self, category: str, prompt_name: str) -> str:
+    def get_prompt_by_category_and_name(self, category: str, prompt_name: str) -> str:
         module_name = self.get_module_name_from_category(category=category)
         prompt = getattr(self.prompt_category[module_name], prompt_name)
         return prompt
+
+    def get_prompt_by_template_name(self, prompt_name: str) -> str:
+        # Find the prompt_name in the prompt category dictionary
+        for category, prompt in self.prompt_category.items():
+            if hasattr(prompt, prompt_name):
+                return getattr(prompt, prompt_name)
 
     def load_prompts(self) -> None:
         path_to_current_file_directory = pathlib.Path(__file__).parent.absolute()
@@ -51,4 +57,8 @@ class PromptManager:
 if __name__ == "__main__":
     pm = PromptManager(llm_type="openai")
 
-    print(pm.get_prompt(category="conversational_prompts", prompt_name="CONVERSATIONAL_PROMPT"))
+    print(
+        pm.get_prompt_by_category_and_name(
+            category="conversational_prompts", prompt_name="CONVERSATIONAL_PROMPT"
+        )
+    )
