@@ -270,6 +270,22 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         "Same seed values in the same requests will produce more deterministic results."
     )
 
+    st_sucks_col1.selectbox(
+        "Model Output Type",
+        options=["text", "json_object"],
+        value=tool_configuration["model_configuration"]["model_kwargs"][
+            "response_format"
+        ].get("type", "text")
+        if "model_kwargs" in tool_configuration["model_configuration"]
+        and "response_format"
+        in tool_configuration["model_configuration"]["model_kwargs"]
+        else "text",
+        key=f"{tool_name}-response_format",
+    )
+    st_sucks_col2.markdown(
+        "Using the `json_object` response format will return the model output as a JSON object, making tool use and other features more reliable."
+    )
+
     def update_sliders(
         max_supported_tokens,
         max_model_completion_tokens,
@@ -502,7 +518,7 @@ def save_tool_settings(tools, configuration, selected_category):
         enabled = st.session_state[tool.name]
         if enabled != existing_tool_configuration["enabled"]:
             needs_saving = True
-            
+
         include_results_in_conversation_history = st.session_state[
             f"{tool.name}-include-in-conversation"
         ]
@@ -605,6 +621,18 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
         ):
             needs_saving = True
 
+        response_format_type = st.session_state[f"{tool_name}-response_format"]
+        if (
+            "model_kwargs" not in existing_tool_configuration["model_configuration"]
+            or "response_format"
+            not in existing_tool_configuration["model_configuration"]["model_kwargs"]
+            or response_format_type
+            != existing_tool_configuration["model_configuration"]["model_kwargs"][
+                "response_format"
+            ].get("type", "text")
+        ):
+            needs_saving = True
+
         model_configuration = {
             "llm_type": llm_type,
             "model": model,
@@ -614,7 +642,10 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
             "uses_conversation_history": uses_conversation_history,
             "max_conversation_history_tokens": max_conversation_history_tokens,
             "max_completion_tokens": max_completion_tokens,
-            "model_kwargs": {"seed": seed},
+            "model_kwargs": {
+                "seed": seed,
+                "response_format": {"type": response_format_type},
+            },
         }
 
     return model_configuration, needs_saving
@@ -645,10 +676,18 @@ def save_jarvis_settings_to_file(
     st.session_state["app_config"] = configuration
 
 
-def save_tool_settings_to_file(tool_name, enabled, include_results_in_conversation_history, return_direct, model_configuration):
+def save_tool_settings_to_file(
+    tool_name,
+    enabled,
+    include_results_in_conversation_history,
+    return_direct,
+    model_configuration,
+):
     configuration = ui_shared.get_app_configuration()
     configuration["tool_configurations"][tool_name]["enabled"] = enabled
-    configuration["tool_configurations"][tool_name]["include_in_conversation"] = include_results_in_conversation_history
+    configuration["tool_configurations"][tool_name][
+        "include_in_conversation"
+    ] = include_results_in_conversation_history
     configuration["tool_configurations"][tool_name]["return_direct"] = return_direct
     if model_configuration:
         configuration["tool_configurations"][tool_name][
