@@ -87,11 +87,11 @@ class DocumentTool:
                         "frequency_penalty": 0.7,
                         "presence_penalty": 0.9,
                     },
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    # callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 additional_prompt_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                         "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
@@ -110,7 +110,7 @@ class DocumentTool:
                         user_query=user_query,
                         chat_history=get_chat_history(),
                     ),
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    # callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 split_prompts = parse_json(split_prompts.content, llm)
@@ -187,7 +187,7 @@ class DocumentTool:
                 combined_documents.append(document)
                 document_ids.append(document.id)
 
-        prompt = self.conversation_manager.prompt_manager.get_prompt(
+        prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
             "document_prompts", "QUESTION_PROMPT_TEMPLATE"
         )
 
@@ -210,7 +210,7 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.search_loaded_documents.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         result = llm.invoke(prompt)
@@ -219,11 +219,11 @@ class DocumentTool:
 
     def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
         summary = llm.invoke(
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "summary_prompts",
                 "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             ).format(text=document_text),
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
         return summary.content
 
@@ -247,7 +247,7 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.summarize_entire_document.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         return self.summarize_entire_document_with_llm(llm, target_file_id)
@@ -279,7 +279,7 @@ class DocumentTool:
 
         reduce_chain = LLMChain(
             llm=llm,
-            prompt=self.conversation_manager.prompt_manager.get_prompt(
+            prompt=self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "summary_prompts",
                 "REDUCE_SUMMARIES_PROMPT",
             ),
@@ -358,7 +358,7 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.summarize_search_topic.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         summary = self.refine_summarize(llm=llm, query=query, docs=docs)
@@ -374,11 +374,11 @@ class DocumentTool:
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=self.conversation_manager.prompt_manager.get_prompt(
+            question_prompt=self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "summary_prompts",
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
-            refine_prompt=self.conversation_manager.prompt_manager.get_prompt(
+            refine_prompt=self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "summary_prompts", refine_prompt
             ),
             return_intermediate_steps=True,
@@ -446,11 +446,11 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.search_entire_document.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         questions = "- " + "\n-".join(queries)
-        prompt = self.conversation_manager.prompt_manager.get_prompt(
+        prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
             "document_prompts", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
         )
 
@@ -498,7 +498,7 @@ class DocumentTool:
 
             answer = llm.invoke(
                 formatted_prompt,
-                callbacks=self.conversation_manager.agent_callbacks,
+                # callbacks=self.conversation_manager.agent_callbacks,
             ).content
 
             if not answer.lower().startswith("no relevant information"):

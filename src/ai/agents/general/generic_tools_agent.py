@@ -17,6 +17,18 @@ from src.ai.agents.general.generic_tool_agent_helpers import GenericToolAgentHel
 
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
+from src.ai.prompts.prompt_models.answer import AnswerInput, AnswerOutput
+from src.ai.prompts.prompt_models.evaluation import EvaluationInput, EvaluationOutput
+from src.ai.prompts.prompt_models.planning_stage import (
+    PlanningStageInput,
+    PlanningStageOutput,
+)
+from src.ai.prompts.prompt_models.tool_use import (
+    ToolUseInput,
+    ToolUseOutput,
+    ToolUseRetryInput,
+)
+from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_manager import ToolManager
 from src.configuration.assistant_configuration import ModelConfiguration
 from src.utilities.configuration_utilities import get_app_configuration
@@ -29,11 +41,12 @@ class GenericToolsAgent(BaseSingleActionAgent):
     conversation_manager: ConversationManager
     tool_manager: ToolManager
     tools: List[GenericTool]
+    query_helper: QueryHelper = None
     streaming: bool = True
     previous_work: str = ""
     llm: BaseLanguageModel = None
     generic_tools_agent_helpers: GenericToolAgentHelpers = None
-    step_plans: dict = None
+    planning_results: PlanningStageOutput = None
     step_index: int = -1
     current_retries: int = 0
     wrong_tool_calls: list = []
@@ -79,12 +92,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
         self.llm = get_llm(
             model_configuration=self.model_configuration,
             tags=["generic_tools"],
-            callbacks=self.conversation_manager.agent_callbacks,
             streaming=self.streaming,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
+        self.query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+
         self.previous_work = ""
-        self.step_plans = None
+        self.planning_results = None
         self.step_index = -1
         self.current_retries = 0
         self.wrong_tool_calls = []
@@ -97,7 +112,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             "user_name",
             "user_email",
             "evaluate_response",
-            "re_planning_threshold"
+            "re_planning_threshold",
         ]
 
     def plan(
@@ -122,20 +137,19 @@ class GenericToolsAgent(BaseSingleActionAgent):
         # First time into the agent (agent.run)
         # Create the prompt with which to start the conversation (planning), which should generate steps (or a direct answer)
         if not intermediate_steps:
-            self.get_step_plans_or_direct_answer(kwargs)
+            # Reset the step_index to make sure we're starting at the beginning
+            self.step_index = 0
 
-            if "answer" in self.step_plans or "final_answer" in self.step_plans:
+            self.planning_results = self.get_step_plans_or_direct_answer(kwargs)
+
+            if self.planning_results.action == "answer":
                 return AgentFinish(
-                    return_values={
-                        "output": self.step_plans["answer"]
-                        if "answer" in self.step_plans
-                        else self.step_plans["final_answer"]
-                    },
+                    return_values={"output": self.planning_results.answer},
                     log="Agent finished, answering directly.",
                 )
-                
+
         else:
-            # This is where I should put the code to have the LLM evaluate the last intermediate step, and either re-plan or continue            
+            # This is where I should put the code to have the LLM evaluate the last intermediate step, and either re-plan or continue
             pass
 
         # If there are intermediate steps and we've called a tool, save the tool call results for the last step
@@ -150,26 +164,26 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 ),
             )
 
-        # If we don't have any steps, bail out
-        if "steps" not in self.step_plans:
+        # If the AI didn't give us steps, return whatever it was that it gave us
+        if self.planning_results.action != "execute_steps":
             return AgentFinish(
                 return_values={
                     "output": "The previous AI could not properly generate any steps- here the raw value it returned:\n"
-                    + self.step_plans
+                    + self.planning_results
                 },
                 log="Agent finished, no steps found.",
             )
 
         # If we're here, we have steps to perform
         # Filter out any of the steps that use tools we don't have (because the AI hallucinates).
-        self.step_plans["steps"] = self.remove_steps_without_tool(
-            self.step_plans["steps"], self.tools
+        self.planning_results.steps = self.remove_steps_without_tool(
+            self.planning_results.steps, self.tools
         )
 
         # If we still have steps to perform, after removing the ones we don't have tools for, perform them
         if (
-            self.step_index < len(self.step_plans["steps"])
-            and len(self.step_plans["steps"]) > 0
+            self.step_index < len(self.planning_results.steps)
+            and len(self.planning_results.steps) > 0
         ):
             # TODO: Refactor this so we can execute multiple actions at once (and handle dependencies)
 
@@ -181,105 +195,111 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         # If we're done with the steps, return the final answer
         else:
-            # Construct a prompt that will return the final answer based on all of the previously returned steps/context
-            answer_prompt = self.generic_tools_agent_helpers.get_answer_prompt(
+            input_object = AnswerInput(
                 user_query=kwargs["input"],
                 helpful_context=self.get_helpful_context(intermediate_steps),
+                chat_history=self.generic_tools_agent_helpers.get_chat_history_prompt(),
             )
 
-            answer_response = self.llm.invoke(
-                answer_prompt,
-                # callbacks=self.conversation_manager.agent_callbacks
+            result: AnswerOutput = self.query_helper.query_llm(
+                llm=self.llm,
+                input_class_instance=input_object,
+                prompt_template_name="ANSWER_PROMPT_TEMPLATE",
+                output_class_type=AnswerOutput,
             )
 
-            answer = parse_json(text=answer_response.content, llm=self.llm)
-
-            # If answer is a fail, we need to retry the last step with the added context from the tool failure
-            if isinstance(answer, dict):
-                if "answer" in answer or "final_answer" in answer:
-                    answer_response = (
-                        answer["answer"]
-                        if "answer" in answer
-                        else answer["final_answer"]
-                    )
-                else:
-                    if self.current_retries >= self.model_configuration.max_retries:
-                        return AgentFinish(
-                            return_values={
-                                "output": "I ran out of retries attempting to answer.  Here's my last output:\n"
-                                + answer_response.content
-                            },
-                            log="Agent finished.",
-                        )
-
-                    self.current_retries += 1
-                    self.step_index -= 1
-
-                    # Reconstruct the tool use prompt with the new context to try to get around the failure
-                    action = self.prompt_and_predict_tool_use_retry(
-                        intermediate_steps, **kwargs
-                    )
-                    # action.log = f"Failed... retrying ({self.current_retries})"
-
-                    logging.info(
-                        f"Failed... retrying ({self.current_retries}): {answer_response}"
+            # Check to see if the result is a failure or not
+            if result.status != "failure":
+                answer_response = result.answer
+            else:
+                # If the answer was a failure, check the retries before we continue
+                if self.current_retries >= self.model_configuration.max_retries:
+                    return AgentFinish(
+                        return_values={
+                            "output": "I ran out of retries attempting to answer.  Here's my last output:\n"
+                            + result
+                        },
+                        log="Agent finished.",
                     )
 
-                    return action
+                # If we still have retries, try again- increment the retries and decrement the step index to go back one step
+                self.current_retries += 1
+                self.step_index -= 1
+
+                # Reconstruct the tool use prompt with the new context to try to get around the failure
+                action = self.prompt_and_predict_tool_use_retry(
+                    intermediate_steps, **kwargs
+                )
+                # action.log = f"Failed... retrying ({self.current_retries})"
+
+                logging.info(f"Failed... retrying ({self.current_retries}): {result}")
+
+                return action
 
             if kwargs["evaluate_response"]:
                 # TODO: Finish this implementation
-                evaluation = self.evaluate_response(answer_response, intermediate_steps, **kwargs)
-                
+                evaluation = self.evaluate_response(
+                    answer_response, intermediate_steps, **kwargs
+                )
+
                 if kwargs.get("re_planning_threshold", 0.5) >= evaluation["score"]:
                     # Re-enter the planning stage
-                    logging.error(f"TODO- IMPLEMENT THIS:: Re-entering planning stage, because the evaluation score was too low: {evaluation['score']}")
-            
+                    logging.error(
+                        f"TODO- IMPLEMENT THIS:: Re-entering planning stage, because the evaluation score was too low: {evaluation['score']}"
+                    )
+
             return AgentFinish(
                 return_values={"output": answer_response},
                 log="Agent finished.",
             )
 
     def evaluate_response(self, response, intermediate_steps, **kwargs):
-        evaluation_prompt = self.get_evaluation_prompt(
-            answer=response,
-            user_query=kwargs["input"],
-            intermediate_steps=intermediate_steps,
-            user_name=kwargs["user_name"],
-            user_email=kwargs["user_email"],
-        )
-        
-        evaluation = self.llm.invoke(
-            evaluation_prompt
+        input_object = EvaluationInput(
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
+            previous_ai_response=response,
+            tool_history="\n\n".join(
+                [f"{i[0]}\n**Result:** {i[1]}" for i in intermediate_steps]
+            ),
+            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+                self.tools
+            ),
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
         )
 
-        # Save the step plans for future reference
-        return parse_json(
-            evaluation.content,
+        result = self.query_helper.query_llm(
             llm=self.llm,
-        )
-        
-
-    def get_step_plans_or_direct_answer(self, kwargs):
-        plan_steps_prompt = self.get_plan_steps_prompt(
-            user_query=kwargs["input"],
-            system_information=kwargs["system_information"],
-            user_name=kwargs["user_name"],
-            user_email=kwargs["user_email"],
+            input_class_instance=input_object,
+            prompt_template_name="EVALUATION_PROMPT_TEMPLATE",
+            output_class_type=EvaluationOutput,
         )
 
-        plan = self.llm.invoke(
-            plan_steps_prompt,
-            # callbacks=self.conversation_manager.agent_callbacks,
+        return result
+
+    def get_step_plans_or_direct_answer(self, kwargs) -> PlanningStageOutput:
+        input_object = PlanningStageInput(
+            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
+                kwargs["system_information"]
+            ),
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
+            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+                self.tools
+            ),
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
         )
 
-        # Save the step plans for future reference
-        self.step_plans = parse_json(
-            plan.content,
+        result = self.query_helper.query_llm(
             llm=self.llm,
+            input_class_instance=input_object,
+            prompt_template_name="PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
+            output_class_type=PlanningStageOutput,
         )
-        # Make sure we're starting at the beginning
-        self.step_index = 0
+
+        return result
 
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
@@ -290,7 +310,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         # Iterate over each step and check if its tool is in the set of tool names
         for step in steps:
-            if "tool" not in step or step["tool"].strip() == "":
+            if step.tool.strip() == "":
                 logging.error(
                     f"Step does not have a tool: {step}.  Skipping this step."
                 )
@@ -298,7 +318,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
                 continue
 
-            if step["tool"] in tool_names:
+            if step.tool in tool_names:
                 filtered_steps.append(step)
             else:
                 self.wrong_tool_calls.append(step)
@@ -309,35 +329,56 @@ class GenericToolsAgent(BaseSingleActionAgent):
         self, intermediate_steps, **kwargs: Any
     ) -> AgentAction:
         # Create the first tool use prompt
-        tool_use_prompt = self.get_tool_use_prompt(
-            step=self.step_plans["steps"][self.step_index],
-            helpful_context=self.get_helpful_context(intermediate_steps),
-            user_query=kwargs["input"],
-            system_information=kwargs["system_information"],
-        )
+        current_step = self.planning_results.steps[self.step_index]
+        tool_name = current_step.tool
+        tool_details = ""
+        for tool in self.tools:
+            if tool.name == tool_name:
+                tool_details = self._get_formatted_tool_string(tool=tool)
 
-        text = self.llm.invoke(
-            tool_use_prompt,
-            # callbacks=self.conversation_manager.agent_callbacks
-        )
+        helpful_context = self.get_helpful_context(intermediate_steps)
 
-        action_json = parse_json(
-            text.content,
-            llm=self.llm,
-        )
-
-        if "final_answer" in action_json:
-            return AgentFinish(
-                return_values={"output": action_json["final_answer"]},
-                log="Agent finished, answering directly.",
+        if len(self.wrong_tool_calls) > 0:
+            formatted_wrong_tool_calls = "\n".join(
+                [f"{p}" for p in self.wrong_tool_calls]
             )
+            helpful_context += f"\n\nThe planning AI (which is supposed to plan out steps to accomplish the user's goal) came up with these invalid tool calls: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (or incorrect) tool calls, and let them inform your tool use and eventual answer here."
+
+            # Reset the wrong tool calls
+            self.wrong_tool_calls = []
+
+        input_object = ToolUseInput(
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
+            helpful_context=helpful_context,
+            tool_name=tool_name,
+            tool_details=tool_details,
+            tool_use_description=current_step.step_description,
+            user_query=kwargs["input"],
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
+                kwargs["system_information"],
+            ),
+        )
+
+        result: ToolUseOutput = self.query_helper.query_llm(
+            llm=self.llm,
+            input_class_instance=input_object,
+            prompt_template_name="TOOL_USE_TEMPLATE",
+            output_class_type=ToolUseOutput,
+        )
+
+        # if "final_answer" in action_json:
+        #     return AgentFinish(
+        #         return_values={"output": action_json["final_answer"]},
+        #         log="Agent finished, answering directly.",
+        #     )
 
         action = AgentAction(
-            tool=action_json["tool"],
-            tool_input=action_json["tool_args"] if "tool_args" in action_json else {},
-            log=action_json["tool_use_description"]
-            if "tool_use_description" in action_json
-            else "Could not find tool_use_description in response.",
+            tool=result.tool,
+            tool_input=result.tool_args,
+            log=result.tool_use_description,
         )
 
         return action
@@ -345,36 +386,43 @@ class GenericToolsAgent(BaseSingleActionAgent):
     def prompt_and_predict_tool_use_retry(
         self, intermediate_steps, **kwargs: Any
     ) -> AgentAction:
-        # Create the first tool use prompt
-        if self.step_index == -1:
-            # Handle the case where no steps could be found
-            step = {
-                "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.wrong_tool_calls, indent=4)}"
-            }
-        else:
-            step = self.step_plans["steps"][self.step_index]
+        # # Create the first tool use prompt
+        # if self.step_index == -1:
+        #     # Handle the case where no steps could be found
+        #     step = {
+        #         "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.wrong_tool_calls, indent=4)}"
+        #     }
+        # else:
+        #     step = self.planning_results["steps"][self.step_index]
 
-        tool_use_prompt = self.get_tool_use_retry_prompt(
-            step=step,
-            previous_tool_attempts=self.get_tool_calls_from_failed_steps(
+        input_object = ToolUseRetryInput(
+            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
+                kwargs["system_information"]
+            ),
+            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
+            failed_tool_attempts=self.get_tool_calls_from_failed_steps(
                 intermediate_steps
             ),
+            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+                self.tools
+            ),
             user_query=kwargs["input"],
-            system_information=kwargs["system_information"],
+            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history(),
         )
 
-        action_json = parse_json(
-            text=self.llm.invoke(
-                tool_use_prompt,
-                # callbacks=self.conversation_manager.agent_callbacks
-            ).content,
+        result: ToolUseOutput = self.query_helper.query_llm(
             llm=self.llm,
+            input_class_instance=input_object,
+            prompt_template_name="TOOL_USE_RETRY_TEMPLATE",
+            output_class_type=ToolUseOutput,
         )
 
         action = AgentAction(
-            tool=action_json["tool"],
-            tool_input=action_json["tool_args"] if "tool_args" in action_json else {},
-            log=action_json["tool_use_description"],
+            tool=result.tool,
+            tool_input=result.tool_args,
+            log=result.tool_use_description,
         )
 
         return action
@@ -411,108 +459,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 if s[1] is not None
             ]
         )
-        
-    def get_evaluation_prompt(self, answer, user_query, intermediate_steps, user_name, user_email):
-        prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "EVALUATION_TEMPLATE",
-        ).format(            
-            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
-                self.tools
-            ),
-            previous_ai_response=answer,
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
-            tool_history="\n\n".join([f"{i[0]}\n**Result:** {i[1]}" for i in intermediate_steps]),
-            user_query=f"{user_name} ({user_email}): {user_query}",
-        )
-        
-        return prompt
-
-    def get_plan_steps_prompt(
-        self, user_query, system_information, user_name, user_email
-    ):
-        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
-        ).format(
-            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
-                system_information
-            ),
-            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
-                self.tools
-            ),
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
-            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
-            user_query=f"{user_name} ({user_email}): {user_query}",
-        )
-
-        return agent_prompt
-
-    def get_tool_use_prompt(
-        self, step, helpful_context, user_query, system_information
-    ):
-        tool_name = step["tool"]
-        tool_details = ""
-        for tool in self.tools:
-            if tool.name == tool_name:
-                tool_details = self._get_formatted_tool_string(tool=tool)
-
-        if len(self.wrong_tool_calls) > 0:
-            formatted_wrong_tool_calls = "\n".join(
-                [f"{p}" for p in self.wrong_tool_calls]
-            )
-            helpful_context = f"The planning AI (which is supposed to plan out steps to accomplish the user's goal) came up with these invalid tool calls: {formatted_wrong_tool_calls}.\n\nPlease examine these imaginary (or incorrect) tool calls, and let them inform your tool use and eventual answer here."
-
-            # Reset the wrong tool calls
-            self.wrong_tool_calls = []
-
-        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "TOOL_USE_TEMPLATE",
-        ).format(
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
-            helpful_context=helpful_context,
-            tool_name=tool_name,
-            tool_details=tool_details,
-            tool_use_description=step["step_description"],
-            user_query=user_query,
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
-            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
-                system_information,
-            ),
-        )
-
-        return agent_prompt
-
-    def get_tool_use_retry_prompt(
-        self, step, previous_tool_attempts, user_query, system_information
-    ):
-        available_tools = (
-            self.generic_tools_agent_helpers.get_available_tool_descriptions(self.tools)
-        )
-
-        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "TOOL_USE_RETRY_TEMPLATE",
-        ).format(
-            loaded_documents=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            previous_tool_attempts=previous_tool_attempts,
-            available_tool_descriptions=available_tools,
-            tool_use_description=step["step_description"],
-            user_query=user_query,
-            chat_history=self.generic_tools_agent_helpers.get_chat_history(),
-            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
-                system_information
-            ),
-        )
-
-        return agent_prompt
 
     def _get_formatted_tool_string(self, tool: GenericTool):
         args_schema = "\n\t".join(

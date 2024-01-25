@@ -13,7 +13,7 @@ class GenericToolAgentHelpers:
         selected_repo = self.conversation_manager.get_selected_repository()
 
         if selected_repo:
-            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt(
+            selected_repo_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "generic_tools_agent_prompts",
                 "SELECTED_REPO_TEMPLATE",
             ).format(
@@ -28,7 +28,7 @@ class GenericToolAgentHelpers:
 
         if loaded_documents:
             loaded_documents_prompt = (
-                self.conversation_manager.prompt_manager.get_prompt(
+                self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     "generic_tools_agent_prompts",
                     "LOADED_DOCUMENTS_TEMPLATE",
                 ).format(loaded_documents=loaded_documents)
@@ -42,7 +42,7 @@ class GenericToolAgentHelpers:
 
         if previous_tool_calls and len(previous_tool_calls) > 0:
             previous_tool_calls_prompt = (
-                self.conversation_manager.prompt_manager.get_prompt(
+                self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     "generic_tools_agent_prompts",
                     "PREVIOUS_TOOL_CALLS_TEMPLATE",
                 ).format(previous_tool_calls=previous_tool_calls)
@@ -64,7 +64,7 @@ class GenericToolAgentHelpers:
         chat_history = self.get_chat_history()
 
         if chat_history and len(chat_history) > 0:
-            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt(
+            chat_history_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "generic_tools_agent_prompts",
                 "CHAT_HISTORY_TEMPLATE",
             ).format(chat_history=chat_history)
@@ -73,17 +73,7 @@ class GenericToolAgentHelpers:
 
         return chat_history_prompt
 
-    def get_answer_prompt(self, user_query, helpful_context):
-        agent_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
-            "ANSWER_PROMPT_TEMPLATE",
-        ).format(
-            user_query=user_query,
-            helpful_context=helpful_context,
-            chat_history=self.get_chat_history(),
-        )
-
-        return agent_prompt
+    
 
     def get_chat_history(self):
         if self.conversation_manager:
@@ -118,8 +108,7 @@ class GenericToolAgentHelpers:
         return formatted_tools
 
     def get_system_prompt(self, system_information):
-        system_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "generic_tools_agent_prompts",
+        system_prompt = self.conversation_manager.prompt_manager.get_prompt_by_template_name(
             "SYSTEM_TEMPLATE",
         ).format(
             system_information=system_information,

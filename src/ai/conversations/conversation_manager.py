@@ -26,7 +26,6 @@ class ConversationManager:
         self,
         conversation_id: int,
         user_email: str,
-        llm: BaseLanguageModel,
         prompt_manager: PromptManager,
         max_conversation_history_tokens: int = 1000,
         uses_conversation_history: bool = True,
@@ -48,10 +47,10 @@ class ConversationManager:
         self.prompt_manager = prompt_manager
         self.tool_kwargs = tool_kwargs
         self.collection_id = collection_id
-        
+
         if selected_repository is not None:
             self.set_selected_repository(selected_repository)
-        
+
         self.user_id = user_id
         self.user_name = user_name
         self.user_location = user_location
@@ -62,9 +61,6 @@ class ConversationManager:
 
         if user_email is None:
             raise Exception("user_email cannot be None")
-
-        if llm is None:
-            raise Exception("llm cannot be None")
 
         # Set our internal conversation id
         self.conversation_id = conversation_id
@@ -96,7 +92,7 @@ class ConversationManager:
             # Create the conversation memory
             if uses_conversation_history:
                 self._create_default_conversation_memory(
-                    llm, max_conversation_history_tokens
+                    max_conversation_history_tokens
                 )
         else:
             self.conversation_token_buffer_memory = override_memory
@@ -117,10 +113,8 @@ class ConversationManager:
             self.conversation_id, repository.id if repository is not None else -1
         )
 
-
     def get_selected_repository(self) -> CodeRepositoryModel:
         """Gets the selected repository, if any, for the current conversation."""
-
 
         conversation = self.get_conversation()
 
@@ -199,6 +193,11 @@ class ConversationManager:
 
         return self.conversations_helper.get_conversation(self.conversation_id)
 
+    def get_chat_history(self):
+        """Gets the chat history for the current conversation"""
+
+        return self.conversation_token_buffer_memory.buffer_as_str
+
     def _ensure_conversation_exists(self, user_id: int):
         """Ensures the conversation exists, and creates it if it doesn't."""
         # Get the conversation from the db
@@ -224,7 +223,7 @@ class ConversationManager:
                 f"Interaction ID: {self.conversation_id} already exists for user {user_id}, needs summary: {self.conversation_needs_summary}"
             )
 
-    def _create_default_conversation_memory(self, llm, max_conversation_history_tokens):
+    def _create_default_conversation_memory(self, max_conversation_history_tokens):
         """Creates the conversation memory for the conversation."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
@@ -235,7 +234,6 @@ class ConversationManager:
         self.postgres_chat_message_history.user_id = self.user_id
 
         self.conversation_token_buffer_memory = ConversationTokenBufferMemory(
-            llm=llm,
             memory_key="chat_history",
             input_key="input",
             chat_memory=self.postgres_chat_message_history,

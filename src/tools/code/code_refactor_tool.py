@@ -104,13 +104,13 @@ class CodeRefactorTool:
 
         # Retrieve base code refactor instructions and format them with file-specific instructions.
         base_code_refactor_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_refactor_prompts", "BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         code_refactor_format_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_refactor_prompts", "CODE_REFACTOR_FORMAT_TEMPLATE"
             )
         )
@@ -224,7 +224,7 @@ class CodeRefactorTool:
         llm: BaseLanguageModel,
     ):
         final_code_refactor_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_refactor_prompts", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
             ).format(
                 code_summary="",
@@ -236,7 +236,7 @@ class CodeRefactorTool:
         )
 
         # Get individual prompt for each type of refactor from the template and format it.
-        code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
+        code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
             "code_refactor_prompts", "CUSTOM_CODE_REFACTOR_TEMPLATE"
         ).format(
             base_code_refactor_instructions=base_code_refactor_instructions,
@@ -247,7 +247,7 @@ class CodeRefactorTool:
         # Use language model to predict based on the formatted prompt.
         json_data = llm.invoke(
             code_refactor_prompt,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            # # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Parse JSON data returned by language model prediction into structured data.
@@ -279,7 +279,7 @@ class CodeRefactorTool:
             # Note: This needs to be in the loop, because we're going to keep feeding the output of the previous refactor
             # into the next refactor.
             final_code_refactor_instructions = (
-                self.conversation_manager.prompt_manager.get_prompt(
+                self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     "code_refactor_prompts", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
                 ).format(
                     code_summary="",
@@ -291,7 +291,7 @@ class CodeRefactorTool:
             )
 
             # Get individual prompt for each type of refactor from the template and format it.
-            code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
+            code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_refactor_prompts", template["name"]
             ).format(
                 base_code_refactor_instructions=base_code_refactor_instructions,
@@ -301,7 +301,7 @@ class CodeRefactorTool:
             # Use language model to predict based on the formatted prompt.
             json_data = llm.invoke(
                 code_refactor_prompt,
-                # callbacks=self.conversation_manager.agent_callbacks,
+                # # callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
@@ -382,7 +382,7 @@ class CodeRefactorTool:
             configuration=self.configuration,
             func_name=self.conduct_code_refactor_from_url.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a refactor on the entire file content and return the results.
@@ -455,7 +455,7 @@ class CodeRefactorTool:
             configuration=self.configuration,
             func_name=self.conduct_code_refactor_from_file_id.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a refactor on the entire file content and return the results.

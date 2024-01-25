@@ -257,7 +257,7 @@ class CodeRepositoryTool:
                 )
 
                 get_relevant_snippets_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                         "code_general_prompts", "GET_RELEVANT_SNIPPETS_TEMPLATE"
                     )
                 ).format(
@@ -271,13 +271,13 @@ class CodeRepositoryTool:
                     configuration=self.configuration,
                     func_name=self.codebase_functionality_search.__name__,
                     streaming=True,
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    ## callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 relevant_snippets = parse_json(
                     llm.invoke(
                         get_relevant_snippets_prompt,
-                        # callbacks=self.conversation_manager.agent_callbacks,
+                        # # callbacks=self.conversation_manager.agent_callbacks,
                     ),
                     llm=llm,
                 )
@@ -374,11 +374,11 @@ class CodeRepositoryTool:
                         "frequency_penalty": 0.7,
                         "presence_penalty": 0.9,
                     },
-                    callbacks=self.conversation_manager.agent_callbacks,
+                    ## callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 additional_prompt_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                         "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
                     )
                 )
@@ -445,7 +445,7 @@ class CodeRepositoryTool:
         )
 
         identify_likely_files_prompt = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_general_prompts", "IDENTIFY_LIKELY_FILES_TEMPLATE"
             )
         )
@@ -473,7 +473,7 @@ class CodeRepositoryTool:
             configuration=self.configuration,
             func_name=self.comprehensive_repository_search.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         result = llm.invoke(identify_likely_files_prompt)
@@ -495,7 +495,7 @@ class CodeRepositoryTool:
             )
 
         # Now we have the code contents, we can run it through the LLM to try to answer the question
-        answer_query_prompt = self.conversation_manager.prompt_manager.get_prompt(
+        answer_query_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
             "code_general_prompts", "ANSWER_QUERY_TEMPLATE"
         )
 
@@ -512,7 +512,7 @@ class CodeRepositoryTool:
 
         answer = llm.invoke(
             answer_query_prompt,
-            # callbacks=self.conversation_manager.agent_callbacks
+            # # callbacks=self.conversation_manager.agent_callbacks
         )
 
         return answer.content

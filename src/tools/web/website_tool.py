@@ -82,19 +82,19 @@ class WebsiteTool:
             configuration=self.configuration,
             func_name=self.get_text_from_website.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         existing_summary = None
 
         for chunk in split_text:
             if not existing_summary:
-                prompt = self.conversation_manager.prompt_manager.get_prompt(
+                prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     category="summary_prompts",
                     prompt_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
             else:
-                prompt = self.conversation_manager.prompt_manager.get_prompt(
+                prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     category="summary_prompts", prompt_name="SIMPLE_REFINE_TEMPLATE"
                 ).format(existing_answer=existing_summary, text=chunk, query=user_query)
 

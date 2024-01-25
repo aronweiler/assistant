@@ -369,12 +369,12 @@ class CodeTool:
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
-        C_STUBBING_TEMPLATE = self.conversation_manager.prompt_manager.get_prompt(
+        C_STUBBING_TEMPLATE = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
             "code_stubbing_prompts", "C_STUBBING_TEMPLATE"
         )
 
         stub_dependencies_template = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_stubbing_prompts",
                 "STUB_DEPENDENCIES_TEMPLATE",
             )
@@ -405,7 +405,7 @@ class CodeTool:
             configuration=self.configuration,
             func_name=self.create_stub_code.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         for doc in documents:
@@ -416,7 +416,7 @@ class CodeTool:
                 )
                 stubbed_code = llm.invoke(
                     prompt,
-                    # callbacks=self.conversation_manager.agent_callbacks
+                    # # callbacks=self.conversation_manager.agent_callbacks
                 )
                 break
 

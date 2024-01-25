@@ -1217,7 +1217,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
             unsafe_allow_html=True,
         )
 
-        ai_modes = ["Auto", "Code", "Conversation Only"]
+        ai_modes = ["Auto", "Conversation Only"]
         
         col2.selectbox(
             label="Mode",

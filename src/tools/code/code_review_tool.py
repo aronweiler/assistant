@@ -93,13 +93,13 @@ class CodeReviewTool:
 
         # Retrieve base code review instructions and format them with diff-specific instructions.
         base_code_review_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_review_prompts", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         diff_code_review_format_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_review_prompts", "DIFF_CODE_REVIEW_FORMAT_TEMPLATE"
             )
         )
@@ -147,13 +147,13 @@ class CodeReviewTool:
 
         # Retrieve base code review instructions and format them with file-specific instructions.
         base_code_review_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_review_prompts", "BASE_CODE_REVIEW_INSTRUCTIONS_TEMPLATE"
             )
         )
 
         file_code_review_format_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                 "code_review_prompts", "FILE_CODE_REVIEW_FORMAT_TEMPLATE"
             )
         )
@@ -205,7 +205,7 @@ class CodeReviewTool:
             # If the templates are all turned off, just use the additional instructions
             # Format final code review instructions with placeholders replaced by actual data.
             final_code_review_instructions = (
-                self.conversation_manager.prompt_manager.get_prompt(
+                self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     "code_review_prompts", "FINAL_CODE_REVIEW_INSTRUCTIONS"
                 ).format(
                     code_summary="",
@@ -218,7 +218,7 @@ class CodeReviewTool:
 
             if not additional_instructions or additional_instructions == "":
                 code_review_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                         "code_review_prompts", "GENERIC_CODE_REVIEW_TEMPLATE"
                     ).format(
                         base_code_review_instructions=base_code_review_instructions,
@@ -227,7 +227,7 @@ class CodeReviewTool:
                 )
             else:
                 code_review_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                         "code_review_prompts", "CUSTOM_CODE_REVIEW_TEMPLATE"
                     ).format(
                         base_code_review_instructions=base_code_review_instructions,
@@ -239,7 +239,7 @@ class CodeReviewTool:
             # Use language model to predict based on the formatted prompt.
             json_data = llm.invoke(
                 code_review_prompt,
-                # callbacks=self.conversation_manager.agent_callbacks,
+                # # callbacks=self.conversation_manager.agent_callbacks,
             )
 
             # Parse JSON data returned by language model prediction into structured data.
@@ -254,7 +254,7 @@ class CodeReviewTool:
                 additional_instructions = f"\nIn addition to the base code review instructions, consider these user-provided instructions:\n{additional_instructions}\n"
 
             final_code_review_instructions = (
-                self.conversation_manager.prompt_manager.get_prompt(
+                self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                     "code_review_prompts", "FINAL_CODE_REVIEW_INSTRUCTIONS"
                 ).format(
                     code_summary="",
@@ -269,7 +269,7 @@ class CodeReviewTool:
             for template in templates:
                 # Get individual prompt for each type of review from the template and format it.
                 code_review_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
+                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
                         "code_review_prompts", template["name"]
                     ).format(
                         base_code_review_instructions=base_code_review_instructions,
@@ -280,7 +280,7 @@ class CodeReviewTool:
                 # Use language model to predict based on the formatted prompt.
                 json_data = llm.invoke(
                     code_review_prompt,
-                    # callbacks=self.conversation_manager.agent_callbacks,
+                    # # callbacks=self.conversation_manager.agent_callbacks,
                 )
 
                 # Parse JSON data returned by language model prediction into structured data.
@@ -400,7 +400,7 @@ class CodeReviewTool:
             configuration=self.configuration,
             func_name=self.conduct_code_review_from_url.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Initialize an empty list to hold individual change reviews.
@@ -465,7 +465,7 @@ class CodeReviewTool:
             configuration=self.configuration,
             func_name=self.conduct_code_review_from_url.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a review on the entire file content and return the results.
@@ -525,7 +525,7 @@ class CodeReviewTool:
             configuration=self.configuration,
             func_name=self.conduct_code_review_from_file_id.__name__,
             streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a review on the entire file content and return the results.
