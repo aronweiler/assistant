@@ -14,19 +14,11 @@ Do not include punctuation in your summary, such as question marks, periods, or 
 Do not include any words that are not necessary to understand the statement.
 Do not include any kind of preamble, such as "the summary is..." or anything of the sort.
 
---- BEGIN Statement to Summarize ---
-{query}
---- END Statement to Summarize ---
+--- BEGIN query to Summarize ---
+{user_query}
+--- END query to Summarize ---
 
-ONLY return the very short summary, nothing else.
-
-Your response should be in JSON, with the following format:
-{{
-    "answer": "The text of your response goes here."
-}}
-
-AI: Sure, here you go:
-"""
+ONLY return the very short summary, nothing else."""
 
 DETAILED_SUMMARIZE_TEMPLATE = """Write a detailed summary of the following:
 
@@ -87,10 +79,10 @@ Please adhere to these guidelines when creating the summary:
 - Use bullet points or numbered lists where appropriate to organize information clearly.
 
 ----- BEGIN DOCUMENT CHUNK -----
-{text}
+{chunk_text}
 ----- END DOCUMENT CHUNK -----
 
-DETAILED SUMMARY:
+# Detailed Summary Instructions:
 
 After reviewing the text:
 - Provide a concise yet comprehensive overview that encapsulates all significant aspects of the document chunk.
@@ -99,10 +91,7 @@ After reviewing the text:
 
 Remember not to fabricate any information. If you do not know something or if certain information is missing from the chunk provided, simply state that specific details are not available within this section.
 
-By adhering to these guidelines, you will help ensure that the initial summary is informative, accurate, and useful for anyone who needs to understand this part of the document without reading it in full.
-
-AI:
-"""
+By adhering to these guidelines, you will help ensure that the initial summary is informative, accurate, and useful for anyone who needs to understand this part of the document without reading it in full."""
 
 SIMPLE_DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document that has been split into chunks. You will be provided a summary of all prior chunks, and one additional chunk.
 Use the additional chunk to add to the summary. Do not remove information from the summary unless it is contradicted by information in the current chunk.
