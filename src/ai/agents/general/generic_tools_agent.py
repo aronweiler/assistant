@@ -45,7 +45,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
     streaming: bool = True
     previous_work: str = ""
     llm: BaseLanguageModel = None
-    generic_tools_agent_helpers: GenericToolAgentHelpers = None
     planning_results: PlanningStageOutput = None
     step_index: int = -1
     current_retries: int = 0
@@ -84,10 +83,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
         self.tool_manager = tool_manager
         self.tools = tools
         self.streaming = streaming
-
-        self.generic_tools_agent_helpers = GenericToolAgentHelpers(
-            conversation_manager=self.conversation_manager
-        )
 
         self.llm = get_llm(
             model_configuration=self.model_configuration,
@@ -198,7 +193,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_object = AnswerInput(
                 user_query=kwargs["input"],
                 helpful_context=self.get_helpful_context(intermediate_steps),
-                chat_history=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+                chat_history=self.conversation_manager.get_chat_history_prompt(),
             )
 
             result: AnswerOutput = self.query_helper.query_llm(
@@ -255,17 +250,17 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     def evaluate_response(self, response, intermediate_steps, **kwargs):
         input_object = EvaluationInput(
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
             user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
             previous_ai_response=response,
             tool_history="\n\n".join(
                 [f"{i[0]}\n**Result:** {i[1]}" for i in intermediate_steps]
             ),
-            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+            available_tool_descriptions=self.conversation_manager.get_available_tool_descriptions(
                 self.tools
             ),
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
+            loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
         )
 
         result = self.query_helper.query_llm(
@@ -279,16 +274,14 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
     def get_step_plans_or_direct_answer(self, kwargs) -> PlanningStageOutput:
         input_object = PlanningStageInput(
-            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
-                kwargs["system_information"]
-            ),
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
-            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
-            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+            system_prompt=self.conversation_manager.get_system_prompt(),
+            loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+            previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
+            available_tool_descriptions=self.conversation_manager.get_available_tool_descriptions(
                 self.tools
             ),
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
+            chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
             user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
         )
 
@@ -348,18 +341,16 @@ class GenericToolsAgent(BaseSingleActionAgent):
             self.wrong_tool_calls = []
 
         input_object = ToolUseInput(
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
+            selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+            loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+            previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
             helpful_context=helpful_context,
             tool_name=tool_name,
             tool_details=tool_details,
             tool_use_description=current_step.step_description,
             user_query=kwargs["input"],
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history_prompt(),
-            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
-                kwargs["system_information"],
-            ),
+            chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
+            system_prompt=self.conversation_manager.get_system_prompt(),
         )
 
         result: ToolUseOutput = self.query_helper.query_llm(
@@ -396,20 +387,18 @@ class GenericToolsAgent(BaseSingleActionAgent):
         #     step = self.planning_results["steps"][self.step_index]
 
         input_object = ToolUseRetryInput(
-            system_prompt=self.generic_tools_agent_helpers.get_system_prompt(
-                kwargs["system_information"]
-            ),
-            loaded_documents_prompt=self.generic_tools_agent_helpers.get_loaded_documents_prompt(),
-            selected_repository_prompt=self.generic_tools_agent_helpers.get_selected_repo_prompt(),
-            previous_tool_calls_prompt=self.generic_tools_agent_helpers.get_previous_tool_calls_prompt(),
+            system_prompt=self.conversation_manager.get_system_prompt(),
+            loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+            selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+            previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
             failed_tool_attempts=self.get_tool_calls_from_failed_steps(
                 intermediate_steps
             ),
-            available_tool_descriptions=self.generic_tools_agent_helpers.get_available_tool_descriptions(
+            available_tool_descriptions=self.conversation_manager.get_available_tool_descriptions(
                 self.tools
             ),
             user_query=kwargs["input"],
-            chat_history_prompt=self.generic_tools_agent_helpers.get_chat_history(),
+            chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
         )
 
         result: ToolUseOutput = self.query_helper.query_llm(
