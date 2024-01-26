@@ -12,6 +12,13 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.prompts.prompt_models.tool_use import (
+    AdditionalToolUseInput,
+    AdditionalToolUseOutput,
+)
+from src.ai.prompts.query_helper import QueryHelper
+from src.ai.tools.tool_loader import get_available_tools
+from src.ai.tools.tool_manager import ToolManager
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.utilities.parsing_utilities import parse_json
 
@@ -87,48 +94,80 @@ class DocumentTool:
                         "frequency_penalty": 0.7,
                         "presence_penalty": 0.9,
                     },
-                    # callbacks=self.conversation_manager.agent_callbacks,
+                    callbacks=self.conversation_manager.agent_callbacks,
                 )
 
-                additional_prompt_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                        "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
-                    )
+                available_tools = get_available_tools(
+                    self.configuration, self.conversation_manager
                 )
 
-                def get_chat_history():
-                    if self.conversation_manager:
-                        return (
-                            self.conversation_manager.conversation_token_buffer_memory.buffer_as_str
-                        )
-                    else:
-                        return "No chat history."
-
-                split_prompts = llm.invoke(
-                    additional_prompt_prompt.format(
-                        additional_prompts=split_prompts,
-                        user_query=user_query,
-                        chat_history=get_chat_history(),
+                input_object = AdditionalToolUseInput(
+                    tool_name=self.search_loaded_documents.__name__,
+                    user_query=user_query,
+                    additional_tool_uses=split_prompts
+                    - 1,  # -1 to account for the original tool use
+                    system_prompt=self.conversation_manager.get_system_prompt(),
+                    loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+                    selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+                    chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
+                    previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
+                    tool_use_description=ToolManager.get_tool_details(
+                        self.search_loaded_documents.__name__, available_tools
                     ),
-                    # callbacks=self.conversation_manager.agent_callbacks,
+                    initial_tool_use=json.dumps(
+                        {
+                            "tool_name": self.search_loaded_documents.__name__,
+                            "tool_args": {
+                                "semantic_similarity_query": semantic_similarity_query,
+                                "keywords_list": keywords_list,
+                                "user_query": user_query,
+                                "target_file_id": target_file_id,
+                            },
+                        }
+                    ),
                 )
 
-                split_prompts = parse_json(split_prompts.content, llm)
+                query_helper = QueryHelper(self.conversation_manager.prompt_manager)
 
-                results = []
-                for prompt in split_prompts["prompts"]:
-                    results.append(
-                        self._search_loaded_documents(
-                            semantic_similarity_query=prompt[
-                                "semantic_similarity_query"
-                            ],
-                            keywords_list=prompt["keywords_list"],
-                            user_query=prompt["query"],
-                            target_file_id=target_file_id,
-                        )
+                result: AdditionalToolUseOutput = query_helper.query_llm(
+                    llm=llm,
+                    prompt_template_name="ADDITIONAL_TOOL_USE_TEMPLATE",
+                    input_class_instance=input_object,
+                    output_class_type=AdditionalToolUseOutput,
+                )
+
+                # Create a list of search results to add to
+                search_results = []
+
+                # Get the original tool use results
+                search_results.append(
+                    self._search_loaded_documents(
+                        semantic_similarity_query=semantic_similarity_query,
+                        keywords_list=keywords_list,
+                        user_query=user_query,
+                        target_file_id=target_file_id,
                     )
+                )
 
-                return "\n".join(results)
+                # If there are any additional tool uses, add them to the search results
+                for additional_tool_uses in result.additional_tool_use_objects:
+                    try:
+                        search_results.append(
+                            self._search_loaded_documents(
+                                semantic_similarity_query=additional_tool_uses.tool_args[
+                                    "semantic_similarity_query"
+                                ],
+                                keywords_list=additional_tool_uses.tool_args[
+                                    "keywords_list"
+                                ],
+                                user_query=additional_tool_uses.tool_args["user_query"],
+                                target_file_id=target_file_id,
+                            )
+                        )
+                    except:
+                        pass
+
+                return "\n".join(search_results)
         except:
             pass
 
@@ -163,7 +202,7 @@ class DocumentTool:
             )
 
         similarity_documents = []
-        if search_type == "Hybrid" or search_type == "Similarity":
+        if search_type == "Hybrid" or search_type == "Similarity" and semantic_similarity_query.strip() != "":
             similarity_documents = (
                 self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=semantic_similarity_query,
@@ -187,8 +226,10 @@ class DocumentTool:
                 combined_documents.append(document)
                 document_ids.append(document.id)
 
-        prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-            "document_prompts", "QUESTION_PROMPT_TEMPLATE"
+        prompt = (
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
+                "document_prompts", "QUESTION_PROMPT_TEMPLATE"
+            )
         )
 
         # prompt_tokens = num_tokens_from_string(prompt + original_user_input)
@@ -450,8 +491,10 @@ class DocumentTool:
         )
 
         questions = "- " + "\n-".join(queries)
-        prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-            "document_prompts", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
+        prompt = (
+            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
+                "document_prompts", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
+            )
         )
 
         document_chunks_length = len(document_chunks)

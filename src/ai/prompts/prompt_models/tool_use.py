@@ -43,3 +43,30 @@ class ToolUseOutput(BaseModel):
         description="The arguments to be used with the tool (from the tool use description)",
         default={},
     )
+
+
+class AdditionalToolUseInput(BaseModel):
+    system_prompt: str = Field(description="The system prompt")
+    loaded_documents_prompt: str = Field(description="The loaded documents prompt")
+    selected_repository_prompt: str = Field(
+        description="The selected repository prompt"
+    )
+    previous_tool_calls_prompt: str = Field(
+        description="The previous tool calls prompt"
+    )
+    chat_history_prompt: str = Field(description="The chat history prompt")
+    user_query: str = Field(description="The user query to be analyzed")
+    tool_name: str = Field(description="The name of the tool to be used")
+    tool_use_description: str = Field(description="Description of the tool's use")
+    additional_tool_uses: int = Field(
+        description="The number of additional tool uses to be generated"
+    )
+    initial_tool_use: str = Field(
+        description="The initial tool use JSON object to be used as a starting point"
+    )
+
+
+class AdditionalToolUseOutput(BaseModel):
+    additional_tool_use_objects: List[ToolUseOutput] = Field(
+        description="A list of the additional tool use JSON objects.  Ensure that the tool use JSON objects are unique, and that they are complete (include all required arguments)."
+    )
