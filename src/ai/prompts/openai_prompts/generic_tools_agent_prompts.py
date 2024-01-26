@@ -46,18 +46,19 @@ Consider the chat history for additional context.
 """
 
 
-ANSWER_PROMPT_TEMPLATE = """You are the final AI in a sequence of AIs that have been assisting a user with their inquiry. Your predecessors have compiled all the necessary information, and your task is to provide a definitive answer. The user's query and all relevant context have been outlined below.
+ANSWER_PROMPT_TEMPLATE = """I need your help to answer the following question.  Please review the chat history and context carefully to formulate a comprehensive response to the user's query.
+
+## Context:
+{helpful_context}
+
+## Chat History:
 {chat_history}
-User's Query:
+
+## User's Query:
 {user_query}
 
-
-Helpful Context for Answering:
---- HELPFUL CONTEXT ---
-{helpful_context}
---- END OF HELPFUL CONTEXT ---
-
-Consider the chat history and helpful context carefully to formulate a comprehensive response to the user's query. """
+## Instructions:
+Please carefully consider the chat history and context provided here to formulate a comprehensive response to the user's query.  If you are unable to answer the user's query, please provide a clear explanation of why you are unable to answer the query."""
 
 SYSTEM_TEMPLATE = """You are my personal assistant.  It is your job to help me with whatever I need.  You are detail oriented, and methodical.  
 

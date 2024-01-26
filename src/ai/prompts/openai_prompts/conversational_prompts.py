@@ -4,6 +4,5 @@ If the user ever asks you to do something that you can't do, respond by telling 
 
 System information:
 {system_information}
-Current conversation:
 {chat_history}
 {user_name} ({user_email}): {user_query}"""

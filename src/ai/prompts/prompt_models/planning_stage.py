@@ -1,6 +1,8 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from src.ai.prompts.query_helper import output_type_example
+
 
 class PlanningStageInput(BaseModel):
     system_prompt: str = Field(description="The system prompt")
@@ -21,3 +23,18 @@ class PlanningStageOutput(BaseModel):
     action: str = Field(description="The action to be taken. One of 'execute_steps', or 'answer'.")
     answer: Optional[str] = Field(description="The direct answer to the user query, if applicable.", default=None)
     steps: Optional[List[Step]] = Field(description="List of steps to be taken, if applicable.", default=None)
+
+PlanningStageOutput = output_type_example(
+    PlanningStageOutput(
+        preliminary_thoughts="Comprehensive outline of the initial reasoning and decision-making process.",
+        action="execute_steps or answer",
+        answer="The direct answer to the user query, if applicable.",
+        steps=[
+            Step(
+                step_num=1,
+                step_description="The step description",
+                tool="The name of the tool to be used",
+            )
+        ]
+    )
+)(PlanningStageOutput)

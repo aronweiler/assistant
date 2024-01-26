@@ -191,7 +191,7 @@ class RetrievalAugmentedGenerationAI:
             user_query=query,
             user_name=self.conversation_manager.user_name,
             user_email=self.conversation_manager.user_email,
-            chat_history=self.conversation_manager.get_chat_history(),
+            chat_history=self.conversation_manager.get_chat_history_prompt(),
             system_information=get_system_information(
                 self.conversation_manager.user_location
             ),

@@ -7,23 +7,24 @@ from langchain_core.language_models import BaseLanguageModel
 from pydantic import BaseModel
 from typing import Type, Dict
 
-from src.ai.prompts.prompt_models.conversational import (
-    ConversationalInput,
-    ConversationalOutput,
-)
-from src.utilities.json_repair import JsonRepair
 from src.utilities.parsing_utilities import parse_json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.ai.prompts.prompt_manager import PromptManager
-from src.ai.llm_helper import get_llm
-from src.ai.system_info import get_system_information
-from src.utilities.configuration_utilities import get_app_configuration
 
 from src.ai.prompts.openai_prompts.formatting_instructions import (
+    EXAMPLE_PROMPT,
     FORMATTING_INSTRUCTIONS,
 )
+
+
+def output_type_example(instance):
+    def decorator(cls):
+        cls.example_instance = instance
+        return cls
+
+    return decorator
 
 
 class QueryHelper:
@@ -57,13 +58,25 @@ class QueryHelper:
         # Convert the schema to a JSON string
         schema_json = json.dumps(schema, indent=2)
 
+        example = ""
+        if getattr(output_class_type, "example_instance", None) is not None:
+            example = output_class_type.example_instance.json()
+            example = EXAMPLE_PROMPT.format(example=example)
+
         # Constructing a formatting prompt for the LLM using the schema information, and append it to the prompt
-        prompt += "\n\n" + FORMATTING_INSTRUCTIONS.format(response_format=schema_json)
+        prompt += "\n\n" + FORMATTING_INSTRUCTIONS.format(
+            response_format=schema_json, example_prompt=example
+        )
 
         # Invoke the language model with the converted dictionary and any additional kwargs
         result = llm.invoke(prompt, **kwargs)
 
-        json_result = parse_json(text=result.content, llm=llm)        
+        try:
+            # Attempt to parse the JSON
+            json_result = json.loads(result.content, strict=False)
+        except json.JSONDecodeError as e:
+            # Fallback to old parsing method
+            json_result = parse_json(text=result.content, llm=llm)
 
         # Verify that result is a dictionary
         if not isinstance(json_result, Dict):

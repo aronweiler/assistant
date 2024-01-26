@@ -1,6 +1,8 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
+from src.ai.prompts.query_helper import output_type_example
+
 
 class ToolUseInput(BaseModel):
     system_prompt: str = Field(description="The system prompt")
@@ -43,6 +45,14 @@ class ToolUseOutput(BaseModel):
         description="The arguments to be used with the tool (from the tool use description)",
         default={},
     )
+    
+ToolUseOutput = output_type_example(
+    ToolUseOutput(
+        tool_use_description="Description of the tool's use",
+        tool="The name of the tool to be used",
+        tool_args={"arg1": "value1", "arg2": "value2"},
+    )
+)(ToolUseOutput)    
 
 
 class AdditionalToolUseInput(BaseModel):
@@ -70,3 +80,15 @@ class AdditionalToolUseOutput(BaseModel):
     additional_tool_use_objects: List[ToolUseOutput] = Field(
         description="A list of the additional tool use JSON objects.  Ensure that the tool use JSON objects are unique, and that they are complete (include all required arguments)."
     )
+
+AdditionalToolUseOutput = output_type_example(
+    AdditionalToolUseOutput(
+        additional_tool_use_objects=[
+            ToolUseOutput(
+                tool_use_description="Description of the tool's use",
+                tool="The name of the tool to be used",
+                tool_args={"arg1": "value1", "arg2": "value2"},
+            )
+        ]
+    )
+)(AdditionalToolUseOutput)    

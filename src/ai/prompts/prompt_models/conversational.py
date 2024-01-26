@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from src.ai.prompts.query_helper import output_type_example
+
 
 class ConversationalInput(BaseModel):
     system_prompt: str = Field(description="system prompt")
@@ -11,4 +13,13 @@ class ConversationalInput(BaseModel):
 
 
 class ConversationalOutput(BaseModel):
-    answer: str = Field(description="Complete and comprehensive answer to the user's query")
+    answer: str = Field(
+        description="Complete and comprehensive answer to the user's query"
+    )
+
+
+ConversationalOutput = output_type_example(
+    ConversationalOutput(
+        answer="Example answer to the user's query",
+    )
+)(ConversationalOutput)

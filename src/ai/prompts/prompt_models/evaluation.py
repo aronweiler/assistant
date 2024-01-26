@@ -2,6 +2,8 @@
 from typing import List
 from pydantic import BaseModel, Field
 
+from src.ai.prompts.query_helper import output_type_example
+
 
 class EvaluationInput(BaseModel):
     chat_history_prompt: str = Field(description="The chat history prompt")
@@ -16,3 +18,10 @@ class EvaluationInput(BaseModel):
 class EvaluationOutput(BaseModel):
     evaluation: str = Field(description="The descriptive evaluation of the AI's response")
     score: float = Field(description="The score for the evaluation")
+
+EvaluationOutput = output_type_example(
+    EvaluationOutput(
+        evaluation="The descriptive evaluation of the AI's response",
+        score=0.5,
+    )
+)(EvaluationOutput)
