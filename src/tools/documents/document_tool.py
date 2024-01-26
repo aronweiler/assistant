@@ -12,6 +12,10 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.prompts.prompt_models.document_chunk_summary import (
+    DocumentChunkSummaryInput,
+    DocumentChunkSummaryOutput,
+)
 from src.ai.prompts.prompt_models.document_search import (
     DocumentSearchInput,
     DocumentSearchOutput,
@@ -261,19 +265,22 @@ class DocumentTool:
             prompt_template_name="QUESTION_PROMPT_TEMPLATE",
             input_class_instance=input_object,
             output_class_type=DocumentSearchOutput,
-        )        
+        )
 
         return result
 
     def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
-        summary = llm.invoke(
-            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "summary_prompts",
-                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text),
-            # callbacks=self.conversation_manager.agent_callbacks,
+        input_object = DocumentChunkSummaryInput(chunk_text=document_text)
+
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+        result = query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=DocumentChunkSummaryOutput,
         )
-        return summary.content
+
+        return result.summary
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     @register_tool(
@@ -458,110 +465,6 @@ class DocumentTool:
         return "The loaded documents I have access to are:\n\n-" + "\n-".join(
             self.conversation_manager.get_loaded_documents_for_display()
         )
-
-    @register_tool(
-        display_name="Search Entire Document",
-        description="Exhaustively searches a single document for one or more queries.",
-        additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",
-        help_text="Exhaustively searches a single document for one or more queries. ⚠️ This can be slow and expensive, as it will process the entire target document.",
-        requires_documents=True,
-        document_classes=["Document", "Code", "Spreadsheet"],
-    )
-    def search_entire_document(self, target_file_id: int, queries: List[str]):
-        """Search the entire document."""
-
-        documents = Documents()
-
-        file = documents.get_file(target_file_id)
-
-        # Get the document chunks
-        document_chunks = documents.get_document_chunks_by_file_id(
-            target_file_id=target_file_id
-        )
-
-        tool_config = configuration_utilities.get_tool_configuration(
-            configuration=self.configuration,
-            func_name=self.search_entire_document.__name__,
-        )
-
-        # TODO: Figure out the right amount of prompt tokens- currently too many causes the LLM to miss things.
-        # max_prompt_tokens = (
-        #     tool_config["model_configuration"]["max_model_supported_tokens"] * 0.75
-        # )
-        max_prompt_tokens = 1000
-
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.search_entire_document.__name__,
-            streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
-        )
-
-        questions = "- " + "\n-".join(queries)
-        prompt = (
-            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "document_prompts", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
-            )
-        )
-
-        document_chunks_length = len(document_chunks)
-
-        intermediate_results = []
-        index = 0
-        while index < document_chunks_length:
-            previous_context = (
-                f"CHUNK {index - 1}:\n{document_chunks[index - 1].document_text}\nSOURCE: file_id='{document_chunks[index - 1].file_id}', file_name='{document_chunks[index - 1].document_name}' {self.get_page_or_line(document_chunks[index - 1])}\n----"
-                if index > 0
-                else ""
-            )
-
-            document_texts = []
-
-            while True:
-                document_texts.append(
-                    f"CHUNK {index}:\n{document_chunks[index].document_text}\nSOURCE: file_id='{document_chunks[index].file_id}', file_name='{document_chunks[index].document_name}' {self.get_page_or_line(document_chunks[index])}"
-                )
-
-                # Get the approximate number of tokens in the prompt
-                current_prompt_text = (
-                    prompt
-                    + "\n"
-                    + questions
-                    + "\n"
-                    + previous_context
-                    + "\n"
-                    + "\n----\n".join(document_texts)
-                )
-
-                total_tokens = num_tokens_from_string(current_prompt_text)
-
-                index += 1
-
-                if total_tokens >= max_prompt_tokens or index >= document_chunks_length:
-                    break
-
-            formatted_prompt = prompt.format(
-                questions=questions,
-                previous_context=previous_context,
-                current_context="\n----\n".join(document_texts),
-            )
-
-            answer = llm.invoke(
-                formatted_prompt,
-                # callbacks=self.conversation_manager.agent_callbacks,
-            ).content
-
-            if not answer.lower().startswith("no relevant information"):
-                intermediate_results.append(answer)
-            else:
-                logging.debug("No relevant information found in chunk.")
-
-        result = (
-            f"Searching the document, '{file.file_name}', yielded the following data:\n"
-            + "\n".join(intermediate_results)
-        )
-
-        return result
 
     def get_page_or_line(self, document):
         if "page" in document.additional_metadata:
