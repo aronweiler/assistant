@@ -25,29 +25,19 @@ User Query: {user_query}
 
 {summaries}
 
-Please read the details of the files above, and respond with a list of the file IDs most likely to match the user's query in the following JSON format. For example, if you think that the files with IDs 23, and 44 are likely to contain the relevant code, you would respond with the following:
+Please read the details of the files above, and respond with a list of the file IDs most likely to match the user's query in the following JSON format. 
 
-```json
-[23, 44, ...]
-```
-
-As a reminder, you're looking for code that answers the user's query of: {user_query}
-
-AI: Sure, here are the file IDs (in JSON list form) that are most likely to contain the relevant code:
-"""
+As a reminder, you're looking for code that answers the user's query of: {user_query}"""
 
 ANSWER_QUERY_TEMPLATE = """I would like you to examine the following code very carefully, and answer the user's query of: {user_query}
 
-{code_contents}
+{code}
 
 Remember, the user's query is: {user_query}
 
 Please provide an answer if possible.  If the code does not contain an answer to the user's query, please respond with an explanation of why the code does not contain an answer.
 
-If the code above can be used to answer the query, be sure to include the file names of the code that contained the answer.
-
-AI: Sure, I have examined the code, and here is my response:
-"""
+If the code above can be used to answer the query, be sure to include the file names of the code that contained the answer."""
 
 GET_RELEVANT_SNIPPETS_TEMPLATE = """Please examine the following code carefully:
 
@@ -59,29 +49,6 @@ file_name: {file_name}
 
 I would like you to extract a list of relevant code snippets from the code above that relates to the description below.
 
-Description: {description}
+Description: {code_description}
 
-Please provide a list of code snippets in a JSON blob with the following format:
-
-```json
-[
-    {{
-        "file_id": 123,
-        "start_line": 12,
-        "end_line": 15,
-        "code": "code snippet"
-    }},
-    {{
-        "file_id": 456,
-        "start_line": 1,
-        "end_line": 5,
-        "code": "code snippet"
-    }},
-    ...
-]
-```
-
-If none of the provided code is relevant to the description, please respond with an empty list. (e.g. `[]`)  If responding with an empty list, do not respond with any other text at all (such as an explanation)- just the empty list.
-
-AI: Sure, here is a JSON blob with the relevant code snippets:
-"""
+Please respond with a list of relevant code snippets.  If none of the provided code is relevant to the description, please respond with an empty list. (e.g. `[]`)  If responding with an empty list, do not respond with any other text at all (such as an explanation)- just the empty list."""
