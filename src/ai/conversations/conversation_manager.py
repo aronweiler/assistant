@@ -2,6 +2,7 @@ import logging
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
+from src.ai.agents.general.generic_tool import GenericTool
 from src.ai.system_info import get_system_information
 from src.db.models.code import Code
 
@@ -131,18 +132,18 @@ class ConversationManager:
         previous_tool_calls = self._get_previous_tool_call_headers()
 
         if previous_tool_calls and len(previous_tool_calls) > 0:
-            previous_tool_calls_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "generic_tools_agent_prompts",
-                "PREVIOUS_TOOL_CALLS_TEMPLATE",
-            ).format(
-                previous_tool_calls=previous_tool_calls
+            previous_tool_calls_prompt = (
+                self.prompt_manager.get_prompt_by_category_and_name(
+                    "generic_tools_agent_prompts",
+                    "PREVIOUS_TOOL_CALLS_TEMPLATE",
+                ).format(previous_tool_calls=previous_tool_calls)
             )
         else:
             previous_tool_calls_prompt = ""
 
         return previous_tool_calls_prompt
-    
-    def get_available_tool_descriptions(self, tools: list[GenericTool]):
+
+    def get_available_tool_descriptions(self, tools: List[GenericTool]):
         tool_strings = []
         for tool in tools:
             if tool.additional_instructions:
@@ -174,9 +175,7 @@ class ConversationManager:
 
         previous_tool_calls: List[
             ToolCallResultsModel
-        ] = self.conversation_manager.conversations_helper.get_tool_call_results(
-            self.conversation_manager.conversation_id
-        )
+        ] = self.conversations_helper.get_tool_call_results(self.conversation_id)
 
         if not previous_tool_calls or len(previous_tool_calls) == 0:
             return None

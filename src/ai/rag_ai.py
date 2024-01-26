@@ -242,6 +242,12 @@ class RetrievalAugmentedGenerationAI:
             logging.debug(f"Generated summary: {conversation_summary}")
 
     def generate_conversation_summary(self, query: str):
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["model_configuration"],
+            tags=["conversation-summary-ai"],
+            streaming=False,
+        )
+
         summary_input = ConversationSummaryInput(
             user_query=query,
         )
