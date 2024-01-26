@@ -13,7 +13,6 @@ from langchain.base_language import BaseLanguageModel
 from langchain_core.callbacks.base import BaseCallbackHandler, BaseCallbackManager
 
 from src.ai.agents.general.generic_tool import GenericTool
-from src.ai.agents.general.generic_tool_agent_helpers import GenericToolAgentHelpers
 
 from src.ai.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
@@ -154,7 +153,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 tool_name=intermediate_steps[-1][0].tool,
                 tool_arguments=json.dumps(intermediate_steps[-1][0].tool_input),
                 tool_results=intermediate_steps[-1][1],
-                include_in_conversation=self.tool_manager.should_include_in_conversation(
+                include_in_conversation=ToolManager.should_include_in_conversation(
                     intermediate_steps[-1][0].tool
                 ),
             )
@@ -233,22 +232,27 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
             if kwargs["evaluate_response"]:
                 # TODO: Finish this implementation
-                evaluation = self.evaluate_response(
-                    answer_response, intermediate_steps, **kwargs
-                )
-
-                if kwargs.get("re_planning_threshold", 0.5) >= evaluation["score"]:
-                    # Re-enter the planning stage
-                    logging.error(
-                        f"TODO- IMPLEMENT THIS:: Re-entering planning stage, because the evaluation score was too low: {evaluation['score']}"
+                try:
+                    evaluation = self.evaluate_response(
+                        answer_response, intermediate_steps, **kwargs
                     )
+
+                    if kwargs.get("re_planning_threshold", 0.5) >= evaluation.score:
+                        # Re-enter the planning stage
+                        logging.error(
+                            f"TODO- IMPLEMENT THIS:: Re-entering planning stage, because the evaluation score was too low: {evaluation.score}"
+                        )
+                except Exception as e:
+                    logging.error(f"Evaluation failed, {e}")
 
             return AgentFinish(
                 return_values={"output": answer_response},
                 log="Agent finished.",
             )
 
-    def evaluate_response(self, response, intermediate_steps, **kwargs):
+    def evaluate_response(
+        self, response, intermediate_steps, **kwargs
+    ) -> EvaluationOutput:
         input_object = EvaluationInput(
             chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
             user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
@@ -263,10 +267,10 @@ class GenericToolsAgent(BaseSingleActionAgent):
             selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
         )
 
-        result = self.query_helper.query_llm(
+        result: EvaluationOutput = self.query_helper.query_llm(
             llm=self.llm,
             input_class_instance=input_object,
-            prompt_template_name="EVALUATION_PROMPT_TEMPLATE",
+            prompt_template_name="EVALUATION_TEMPLATE",
             output_class_type=EvaluationOutput,
         )
 
@@ -324,10 +328,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
         # Create the first tool use prompt
         current_step = self.planning_results.steps[self.step_index]
         tool_name = current_step.tool
-        tool_details = ""
-        for tool in self.tools:
-            if tool.name == tool_name:
-                tool_details = self._get_formatted_tool_string(tool=tool)
+        tool_details = ToolManager.get_tool_details(tool_name, self.tools)
 
         helpful_context = self.get_helpful_context(intermediate_steps)
 
@@ -448,22 +449,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 if s[1] is not None
             ]
         )
-
-    def _get_formatted_tool_string(self, tool: GenericTool):
-        args_schema = "\n\t".join(
-            [
-                f"{t['argument_name']}, {t['argument_type']}, {t['required']}"
-                for t in tool.schema["parameters"]
-            ]
-        )
-        if tool.additional_instructions:
-            additional_instructions = (
-                "\nAdditional Instructions: " + tool.additional_instructions
-            )
-        else:
-            additional_instructions = ""
-
-        return f"Name: {tool.name}\nDescription: {tool.description}{additional_instructions}\nArgs (name, type, optional/required):\n\t{args_schema}"
 
     async def aplan(
         self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any
