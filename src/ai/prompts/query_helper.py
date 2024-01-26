@@ -75,36 +75,3 @@ class QueryHelper:
         output_values = output_class_type(**json_result)
 
         return output_values
-
-
-if __name__ == "__main__":
-    config = get_app_configuration()
-    llm = get_llm(
-        config["jarvis_ai"]["model_configuration"],
-        tags=["retrieval-augmented-generation-ai"],
-        streaming=False,
-        model_kwargs={
-            "frequency_penalty": config["jarvis_ai"].get("frequency_penalty", 1.0),
-            "presence_penalty": config["jarvis_ai"].get("presence_penalty", 1.0),
-        },
-    )
-
-    input = ConversationalInput(
-        system_prompt="Hey, you're a really cool digital assistant!",
-        system_information=get_system_information("Mammoth Lakes, CA"),
-        user_name="Aron",
-        user_email="aronweiler@gmail.com",
-        chat_history="",
-        user_query="Tell me a joke!",
-    )
-
-    query_helper = QueryHelper(prompt_manager=PromptManager(llm_type="openai"))
-
-    result = query_helper.query_llm(
-        llm=llm,
-        prompt_template_name="CONVERSATIONAL_TEMPLATE",
-        input_class_instance=input,
-        output_class_type=ConversationalOutput,
-    )
-
-    print(result.answer)

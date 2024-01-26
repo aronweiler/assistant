@@ -17,7 +17,9 @@ I would like you to extract a list of keywords that can be used to later search 
 
 At the very least, there should be a short description of each function within the code (e.g. 'get_chat_history: Retrieves the chat history from the conversation manager.'), but you should also include descriptions of any other interesting functionality that is represented in the code.
 
-Additionally, please write a detailed summary of what this code does. This summary should be at least a paragraph long, and should be written in a way that is understandable to someone who is not familiar with the codebase."""
+Additionally, please write a detailed summary of what this code does. This summary should be at least a paragraph long, and should be written in a way that is understandable to someone who is not familiar with the codebase.
+
+Make sure to include keywords, descriptions, and a summary in your response using the appropriate JSON fields!"""
 
 IDENTIFY_LIKELY_FILES_TEMPLATE = """Please take a look at the following code file summaries and identify which ones are most likely to contain the code that is relevant to the user's query. You can select multiple summaries if you think that multiple files are likely to contain the code that you are looking for.
 
