@@ -14,5 +14,5 @@ class EvaluationInput(BaseModel):
 
 
 class EvaluationOutput(BaseModel):
-    evaluation: float = Field(description="The descriptive evaluation of the AI's response")
+    evaluation: str = Field(description="The descriptive evaluation of the AI's response")
     score: float = Field(description="The score for the evaluation")
