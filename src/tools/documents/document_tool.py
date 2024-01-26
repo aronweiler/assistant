@@ -12,6 +12,10 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.prompts.prompt_models.document_search import (
+    DocumentSearchInput,
+    DocumentSearchOutput,
+)
 from src.ai.prompts.prompt_models.tool_use import (
     AdditionalToolUseInput,
     AdditionalToolUseOutput,
@@ -167,7 +171,7 @@ class DocumentTool:
                     except:
                         pass
 
-                return "\n".join(search_results)
+                return search_results
         except:
             pass
 
@@ -202,7 +206,11 @@ class DocumentTool:
             )
 
         similarity_documents = []
-        if search_type == "Hybrid" or search_type == "Similarity" and semantic_similarity_query.strip() != "":
+        if (
+            search_type == "Hybrid"
+            or search_type == "Similarity"
+            and semantic_similarity_query.strip() != ""
+        ):
             similarity_documents = (
                 self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=semantic_similarity_query,
@@ -226,14 +234,6 @@ class DocumentTool:
                 combined_documents.append(document)
                 document_ids.append(document.id)
 
-        prompt = (
-            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "document_prompts", "QUESTION_PROMPT_TEMPLATE"
-            )
-        )
-
-        # prompt_tokens = num_tokens_from_string(prompt + original_user_input)
-
         # Examine each of the documents to see if they have anything relating to the original query
         # TODO: Split the documents up into chunks that fit within the max tokens - the completion no matter what the top_k is
 
@@ -245,18 +245,25 @@ class DocumentTool:
                 f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}' {page_or_line}"
             )
 
-        prompt = prompt.format(summaries="\n\n".join(summaries), question=user_query)
-
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.search_loaded_documents.__name__,
             streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        result = llm.invoke(prompt)
+        input_object = DocumentSearchInput(summaries=summaries, question=user_query)
 
-        return result.content
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+
+        result: DocumentSearchOutput = query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="QUESTION_PROMPT_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=DocumentSearchOutput,
+        )        
+
+        return result
 
     def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
         summary = llm.invoke(
