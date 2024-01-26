@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import json
@@ -6,7 +7,11 @@ from langchain_core.language_models import BaseLanguageModel
 from pydantic import BaseModel
 from typing import Type, Dict
 
-from src.ai.prompts.prompt_models.conversational import ConversationalInput, ConversationalOutput
+from src.ai.prompts.prompt_models.conversational import (
+    ConversationalInput,
+    ConversationalOutput,
+)
+from src.utilities.json_repair import JsonRepair
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -57,7 +62,14 @@ class QueryHelper:
         # Invoke the language model with the converted dictionary and any additional kwargs
         result = llm.invoke(prompt, **kwargs)
 
-        json_result = json.loads(result.content)
+        try:
+            # Attempt to parse the JSON
+            json_result = json.loads(result.content, strict=False)
+        except json.JSONDecodeError as e:
+            logging.warning("Failed to parse JSON block, attempting repair...")
+            # Attempt to repair the JSON block
+            repaired_text = JsonRepair(result.content).repair()
+            json_result = json.loads(repaired_text, strict=False)
 
         # Verify that result is a dictionary
         if not isinstance(json_result, Dict):
