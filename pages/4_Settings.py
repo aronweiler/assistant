@@ -270,16 +270,16 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         "Same seed values in the same requests will produce more deterministic results."
     )
 
-    st_sucks_col1.selectbox(
-        "Model Output Type",
-        options=["text", "json_object"],
-        value=tool_configuration["model_configuration"]["model_kwargs"][
+    response_format_options = ["text", "json_object"]
+    response_format_value = tool_configuration["model_configuration"]["model_kwargs"][
             "response_format"
         ].get("type", "text")
-        if "model_kwargs" in tool_configuration["model_configuration"]
-        and "response_format"
-        in tool_configuration["model_configuration"]["model_kwargs"]
-        else "text",
+    response_format_index = response_format_options.index(response_format_value)
+
+    st_sucks_col1.selectbox(
+        "Model Output Type",
+        options=response_format_options,
+        index=response_format_index,
         key=f"{tool_name}-response_format",
     )
     st_sucks_col2.markdown(
@@ -438,7 +438,7 @@ def show_model_settings(configuration, tool_name, tool_details):
 
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
-    tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
+    #tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
     tools = get_available_tools(configuration=configuration, conversation_manager=None)
 
     # tool_categories = {tool['category'] for tool in configuration['tool_configurations'].values() if 'category' in tool}
@@ -468,14 +468,14 @@ def tools_settings():
             col1, col2, col3 = st.columns([3, 5, 5])
             col1.toggle(
                 "Enabled",
-                value=tool_manager.is_tool_enabled(tool.name),
+                value=ToolManager.is_tool_enabled(tool.name),
                 key=tool.name,
                 # on_change=tool_manager.toggle_tool,
                 # kwargs={"tool_name": tool.name},
             )
             col2.toggle(
                 "Return results directly to UI",
-                value=tool_manager.should_return_direct(tool.name),
+                value=ToolManager.should_return_direct(tool.name),
                 help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
                 key=f"{tool.name}-return-direct",
                 # on_change=tool_manager.toggle_tool,
@@ -483,7 +483,7 @@ def tools_settings():
             )
             col3.toggle(
                 "Include Results in Conversation",
-                value=tool_manager.should_include_in_conversation(tool.name),
+                value=ToolManager.should_include_in_conversation(tool.name),
                 help="When enabled, the results of this tool will be included in the conversation history.\n\n*Turn this on when you want the LLM to always remember results returned for this tool.*",
                 key=f"{tool.name}-include-in-conversation",
                 # on_change=tool_manager.toggle_tool,
