@@ -363,20 +363,22 @@ class CodeReviewTool:
 
         # Initialize an empty string to hold the review results.
         review = ""
+        
+        
 
         # Determine the type of file and conduct appropriate type of review.
-        if file_info["type"] == "diff":
-            review = self._review_diff_from_url(
-                file_info, target_url, additional_instructions
-            )
-        elif file_info["type"] == "file":
-            review = self._review_file_from_url(
-                file_info, target_url, additional_instructions
-            )
-        else:
-            raise Exception(
-                f"Unknown file type {file_info['metadata']['type']} for {target_url}"
-            )
+        # if file_info["type"] == "diff":
+        #     review = self._review_diff_from_url(
+        #         file_info, target_url, additional_instructions
+        #     )
+        # elif file_info["type"] == "file":
+        #     review = self._review_file_from_url(
+        #         file_info, target_url, additional_instructions
+        #     )
+        # else:
+        #     raise Exception(
+        #         f"Unknown file type {file_info['metadata']['type']} for {target_url}"
+        #     )
 
         return review
 

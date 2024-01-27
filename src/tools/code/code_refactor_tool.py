@@ -406,38 +406,3 @@ class CodeRefactorTool:
         return formatted_results
 
 
-if __name__ == "__main__":
-    # Create an instance of the code refactor tool.
-    code_refactor_tool = CodeRefactorTool(
-        configuration=None,
-        conversation_manager=None,
-    )
-
-    temp = {
-        "language": "python",
-        "metadata": {
-            "type": "file",
-            "project_id": "N/A",
-            "url": "https://github.com/aronweiler/CodeReviewer/blob/main/src/integrations/github_integration.py",
-            "ref": "main",
-            "file_path": "src/integrations/github_integration.py",
-            "repo_path": "aronweiler/CodeReviewer",
-        },
-        "thoughts": "The refactoring focuses on improving the initialization of the GitHubIntegration class to allow for reusability and configuration. The commit_changes function has been updated to use the configuration parameters set during initialization. Error handling has been improved, and the code has been cleaned up to remove unnecessary comments and debug prints. The code now adheres more closely to best practices.",
-        "refactored_code": 'import logging\nimport os\nfrom github import Github, InputGitTreeElement\n\nREGULAR_FILE = "100644"\n\n\nclass GitHubIntegration:\n    def __init__(self, github_token, repository):\n        if not github_token:\n            raise ValueError("GitHub token must be provided")\n        if not repository:\n            raise ValueError("GitHub repository must be provided")\n\n        self.github_token = github_token\n        self.repository = repository\n        self.github = Github(self.github_token)\n\n    def commit_changes(self, source_branch, target_branch, commit_message, metadatas):\n        repo = self.github.get_repo(self.repository)\n\n        # This call ensures the branch is created\n        commit_branch = self._create_branch(repo, source_branch, target_branch)\n\n        # Get the base tree\n        base_tree = repo.get_git_tree(sha=source_branch)\n\n        # Create a new tree with the changes\n        tree_elements = [\n            InputGitTreeElement(\n                path=metadata["file_path"],\n                mode=REGULAR_FILE,\n                type="blob",\n                sha=repo.create_git_blob(content=metadata["code"], encoding="utf-8").sha\n            ) for metadata in metadatas\n        ]\n\n        new_tree = repo.create_git_tree(tree_elements, base_tree)\n\n        # Create the commit\n        new_commit = repo.create_git_commit(\n            message=commit_message,\n            tree=new_tree,\n            parents=[repo.get_commit(repo.get_branch(source_branch).commit.sha)]\n        )\n\n        # Push the commit to the new branch by editing the reference\n        commit_branch.edit(sha=new_commit.sha, force=True)\n\n        logging.info("Changes committed and pushed successfully!")\n\n    def _create_branch(self, repo, source_branch, target_branch):\n        # Get the latest commit of the source branch\n        source_ref = repo.get_git_ref(f"heads/{source_branch}")\n        commit_sha = source_ref.object.sha\n\n        # See if the target branch already exists\n        try:\n            branch = repo.get_git_ref(f"heads/{target_branch}")\n            logging.info(f"Branch \'{target_branch}\' already exists!")\n            return branch\n        except:\n            # Create the new branch with the specified commit\n            new_branch = repo.create_git_ref(f"refs/heads/{target_branch}", commit_sha)\n            logging.info(f"New branch \'{target_branch}\' created successfully!")\n            return new_branch\n\n\nif __name__ == "__main__":\n    logging.basicConfig(level=logging.INFO)\n    github_integration = GitHubIntegration(\n        github_token=os.getenv("GITHUB_TOKEN"),\n        repository=os.getenv("GITHUB_REPOSITORY")\n    )\n\n    github_integration.commit_changes(\n        source_branch="main",\n        target_branch="test-branch",\n        commit_message="Test commit",\n        metadatas=[\n            {\n                "file_path": "examples/code_comment.py",\n                "code": "def test():\\n    print(\'hello world\')\\n"\n            }\n        ]\n    )',
-    }
-
-    results = {
-        "language": temp["language"],
-        "metadata": temp["metadata"],
-        "refactor_thoughts": [
-            {
-                "refactor_type": "Custom",
-                "thoughts": temp["thoughts"],
-            }
-        ],
-        "refactored_code": temp["refactored_code"],
-    }
-
-    bleh = code_refactor_tool.format_refactor_results(results)
-    print(bleh)
