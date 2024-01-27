@@ -58,18 +58,18 @@ class CodeReviewTool:
 
         templates = []
         template_checks = {
-            "security_code_review": "Security",
-            "performance_code_review": "Performance",
-            "memory_code_review": "Memory",
-            "correctness_code_review": "Correctness",
-            "maintainability_code_review": "Maintainability",
-            "reliability_code_review": "Reliability",
+            "enable_code_security_examination": "Security",
+            "enable_code_performance_examination": "Performance",
+            "enable_code_memory_examination": "Memory",
+            "enable_code_correctness_examination": "Correctness",
+            "enable_code_maintainability_examination": "Maintainability",
+            "enable_code_reliability_examination": "Reliability",
         }
 
         for setting, description in template_checks.items():
-            if additional_settings[f"enable_{setting}"]["value"]:
+            if additional_settings[f"{setting}"]["value"]:
                 templates.append(
-                    {"name": f"{setting.upper()}_TEMPLATE", "description": description}
+                    {"name": f"{setting.lstrip('enable_').upper()}_TEMPLATE", "description": description}
                 )
 
         return templates
