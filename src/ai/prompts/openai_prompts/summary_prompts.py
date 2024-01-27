@@ -62,8 +62,6 @@ By adhering to these guidelines, you will help ensure that the final summary is 
 Remember not to fabricate any information. If you do not know something or if certain information is missing, simply state that you don't know or that information is not provided.
 
 If the additional context is not useful, or is unrelated to the user's query, return the existing summary without changes.
-
-AI: 
 """
 
 SIMPLE_REFINE_PROMPT = PromptTemplate.from_template(SIMPLE_REFINE_TEMPLATE)
