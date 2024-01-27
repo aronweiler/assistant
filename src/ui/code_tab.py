@@ -2,6 +2,7 @@ import datetime
 import logging
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
+from src.ai.prompts.prompt_models.code_details_extraction import CodeDetailsExtractionOutput
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.db.models.code import Code
 from src.db.models.conversations import Conversations
@@ -233,23 +234,9 @@ def process_code_file(
             keywords_and_descriptions = (
                 ai.generate_keywords_and_descriptions_from_code_file(code)
             )
-
-            if (
-                not keywords_and_descriptions
-                or "keywords" not in keywords_and_descriptions
-                or "descriptions" not in keywords_and_descriptions
-                or "summary" not in keywords_and_descriptions
-            ):
-                logging.warning(
-                    f"Skipping file {file.path} as no keywords, descriptions, or summary were generated"
-                )
-                return False
+            
         else:
-            keywords_and_descriptions = {
-                "keywords": [],
-                "descriptions": [],
-                "summary": "",
-            }
+            keywords_and_descriptions = None
 
         # Store the code and keywords in the database
 
@@ -259,7 +246,7 @@ def process_code_file(
             file_content=code,
             keywords_and_descriptions=keywords_and_descriptions,
             repository_id=code_repo_id,
-            file_summary=keywords_and_descriptions["summary"],
+            file_summary=keywords_and_descriptions.summary if keywords_and_descriptions else "",
         )
 
         return True

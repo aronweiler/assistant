@@ -11,6 +11,7 @@ from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy import and_, func, select, column, cast, or_
 
 import pgvector.sqlalchemy
+from src.ai.prompts.prompt_models.code_details_extraction import CodeDetailsExtractionOutput
 
 from src.db.models.domain.source_control_provider_model import SourceControlProviderModel, SupportedSourceControlProviderModel
 
@@ -139,7 +140,7 @@ class Code(VectorDatabase):
         file_sha: str,
         file_content: str,
         file_summary: str,
-        keywords_and_descriptions: dict,
+        keywords_and_descriptions: CodeDetailsExtractionOutput,
     ):
         # Create or update the code file, adding the keywords and descriptions as well
         with self.session_context(self.Session()) as session:
@@ -213,25 +214,26 @@ class Code(VectorDatabase):
 
                 code_file_id = new_code_file.id
 
-            for keyword in keywords_and_descriptions["keywords"]:
-                code_keyword = CodeKeyword(code_file_id=code_file_id, keyword=keyword)
+            if keywords_and_descriptions:
+                for keyword in keywords_and_descriptions.keywords:
+                    code_keyword = CodeKeyword(code_file_id=code_file_id, keyword=keyword)
 
-                session.add(code_keyword)
-                session.commit()
+                    session.add(code_keyword)
+                    session.commit()
 
-            for description in keywords_and_descriptions["descriptions"]:
-                code_description = CodeDescription(
-                    code_file_id=code_file_id,
-                    description_text=description,
-                    description_text_embedding=get_embedding(
-                        text=description,
-                        collection_type="Remote",
-                        instruction="Represent the description for retrieval: ",
-                    ),
-                )
+                for description in keywords_and_descriptions.descriptions:
+                    code_description = CodeDescription(
+                        code_file_id=code_file_id,
+                        description_text=description,
+                        description_text_embedding=get_embedding(
+                            text=description,
+                            collection_type="Remote",
+                            instruction="Represent the description for retrieval: ",
+                        ),
+                    )
 
-                session.add(code_description)
-                session.commit()
+                    session.add(code_description)
+                    session.commit()
 
     def get_code_files(self, repository_id: int) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
