@@ -5,7 +5,7 @@ from src.ai.prompts.query_helper import output_type_example
 
 
 class QuestionGenerationInput(BaseModel):
-    chunk_text: str = Field(description="The chunk of text to be analyzed")
+    document_text: str = Field(description="The chunk of document text to be analyzed")
     number_of_questions: int = Field(description="Number of questions to be generated")
 
 

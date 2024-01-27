@@ -12,9 +12,10 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
-from src.ai.prompts.prompt_models.document_chunk_summary import (
+from src.ai.prompts.prompt_models.document_summary import (
     DocumentChunkSummaryInput,
-    DocumentChunkSummaryOutput,
+    DocumentSummaryOutput,
+    DocumentSummaryRefineInput,
 )
 from src.ai.prompts.prompt_models.document_search import (
     DocumentSearchInput,
@@ -215,15 +216,14 @@ class DocumentTool:
             or search_type == "Similarity"
             and semantic_similarity_query.strip() != ""
         ):
-            similarity_documents = (
-                self.conversation_manager.documents_helper.search_document_embeddings(
+            if semantic_similarity_query and semantic_similarity_query.strip() != "":
+                similarity_documents = self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=semantic_similarity_query,
                     collection_id=self.conversation_manager.collection_id,
                     search_type=SearchType.Similarity,
                     top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
                     target_file_id=target_file_id,
                 )
-            )
 
         # De-dupe the documents
         combined_documents = []
@@ -269,15 +269,15 @@ class DocumentTool:
 
         return result
 
-    def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
-        input_object = DocumentChunkSummaryInput(chunk_text=document_text)
+    def generate_detailed_document_chunk_summary(self, chunk_text: str, llm) -> str:
+        input_object = DocumentChunkSummaryInput(chunk_text=chunk_text)
 
         query_helper = QueryHelper(self.conversation_manager.prompt_manager)
         result = query_helper.query_llm(
             llm=llm,
             prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             input_class_instance=input_object,
-            output_class_type=DocumentChunkSummaryOutput,
+            output_class_type=DocumentSummaryOutput,
         )
 
         return result.summary
@@ -321,60 +321,42 @@ class DocumentTool:
             target_file_id=target_file_id
         )
 
+        existing_summary = "No summary yet!"
+
         # Are there already document chunk summaries?
         for chunk in document_chunks:
             if not chunk.document_text_has_summary:
                 # Summarize the chunk
                 summary_chunk = self.generate_detailed_document_chunk_summary(
-                    document_text=chunk.document_text, llm=llm
+                    chunk_text=chunk.document_text, llm=llm
                 )
                 documents.set_document_text_summary(
                     chunk.id, summary_chunk, self.conversation_manager.collection_id
                 )
 
-        reduce_chain = LLMChain(
-            llm=llm,
-            prompt=self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "summary_prompts",
-                "REDUCE_SUMMARIES_PROMPT",
-            ),
-        )
-
-        # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
-        combine_documents_chain = StuffDocumentsChain(
-            llm_chain=reduce_chain, document_variable_name="doc_summaries"
-        )
-
-        # Combines and iteravely reduces the document summaries
-        reduce_documents_chain = ReduceDocumentsChain(
-            # This is final chain that is called.
-            combine_documents_chain=combine_documents_chain,
-            # If documents exceed context for `StuffDocumentsChain`
-            collapse_documents_chain=combine_documents_chain,
-            # The maximum number of tokens to group documents into.
-            token_max=self.conversation_manager.tool_kwargs.get(
-                "max_summary_chunk_tokens", 5000
-            ),
-        )
-
-        document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
-
-        docs = [
-            Document(
-                page_content=doc_chunk.document_text_summary,
-                metadata=doc_chunk.additional_metadata,
+            input_object = DocumentSummaryRefineInput(
+                text=chunk.document_text, existing_summary=existing_summary
             )
-            for doc_chunk in document_chunks
-        ]
 
-        summary = reduce_documents_chain.run(docs)
+            query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+
+            result = query_helper.query_llm(
+                llm=llm,
+                prompt_template_name="DOCUMENT_REFINE_TEMPLATE",
+                input_class_instance=input_object,
+                output_class_type=DocumentSummaryOutput,
+            )
+
+            existing_summary = result.summary
 
         # Put the summary into the DB so we don't have to re-run this.
         documents.update_file_summary_and_class(
-            file_id=file.id, summary=summary, classification=file.file_classification
+            file_id=file.id,
+            summary=existing_summary,
+            classification=file.file_classification,
         )
 
-        return summary
+        return existing_summary
 
     def summarize_search_topic(self, query: str, original_user_query: str):
         """Useful for getting a summary of a topic or query from the user.

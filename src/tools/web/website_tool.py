@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
-from src.ai.prompts.prompt_models.document_chunk_summary import DocumentChunkSummaryInput, DocumentChunkSummaryOutput, DocumentSummaryRefineInput
+from src.ai.prompts.prompt_models.document_summary import DocumentChunkSummaryInput, DocumentSummaryOutput, DocumentQuerySummaryRefineInput
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
 
@@ -98,18 +98,18 @@ class WebsiteTool:
                     llm=llm,
                     prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
                     input_class_instance=input_object,
-                    output_class_type=DocumentChunkSummaryOutput,
+                    output_class_type=DocumentSummaryOutput,
                 )
 
                 existing_summary = result.summary
             else:
-                input_object = DocumentSummaryRefineInput(text=chunk, existing_answer=existing_summary, query=user_query)
+                input_object = DocumentQuerySummaryRefineInput(text=chunk, existing_answer=existing_summary, query=user_query)
 
                 result = query_helper.query_llm(
                     llm=llm,
                     prompt_template_name="SIMPLE_REFINE_TEMPLATE",
                     input_class_instance=input_object,
-                    output_class_type=DocumentChunkSummaryOutput,
+                    output_class_type=DocumentSummaryOutput,
                 )
 
                 existing_summary = result.summary                

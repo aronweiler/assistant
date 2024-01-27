@@ -91,26 +91,20 @@ Remember not to fabricate any information. If you do not know something or if ce
 
 By adhering to these guidelines, you will help ensure that the initial summary is informative, accurate, and useful for anyone who needs to understand this part of the document without reading it in full."""
 
-SIMPLE_DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document that has been split into chunks. You will be provided a summary of all prior chunks, and one additional chunk.
-Use the additional chunk to add to the summary. Do not remove information from the summary unless it is contradicted by information in the current chunk.
+DOCUMENT_REFINE_TEMPLATE = """Your job is to produce a final summary of an entire document that has been split into segments. You will be provided a summary of all prior segments, and one additional segment with which to add to the existing summary.
+
+Use the additional segment of the document to add to the summary in progress. Do not remove information from the summary unless it is contradicted by information in the current additional segment.
+
 The summary in progress is provided below:
 
------ BEGIN EXISTING SUMMARY -----
-{existing_answer}
------ END EXISTING SUMMARY -----
+# Summary in Progress:
+{existing_summary}
 
-Below is an additional chunk that you should consider for an addition to the ongoing summary:
-
------ BEGIN ADDITIONAL CHUNK -----
+# Additional Segment:
 {text}
------ END ADDITIONAL CHUNK -----
 
-Given the additional chunk, refine the original summary by adding to or modifying the existing summary. If the additional chunk isn't useful for adding to the summary, just return the existing summary.
+Given the additional segment of text, refine the summary in progress by adding to or modifying the existing summary. If the additional segment does not contain anything useful for adding to the summary in progress, just return the existing summary.
 """
-
-SIMPLE_DOCUMENT_REFINE_PROMPT = PromptTemplate.from_template(
-    SIMPLE_DOCUMENT_REFINE_TEMPLATE
-)
 
 REDUCE_SUMMARIES_TEMPLATE = """The following is set of summaries generated from a number of document chunks:
 

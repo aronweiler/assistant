@@ -19,9 +19,9 @@ from src.ai.prompts.prompt_models.conversational import (
     ConversationalInput,
     ConversationalOutput,
 )
-from src.ai.prompts.prompt_models.document_chunk_summary import (
+from src.ai.prompts.prompt_models.document_summary import (
     DocumentChunkSummaryInput,
-    DocumentChunkSummaryOutput,
+    DocumentSummaryOutput,
 )
 from src.ai.prompts.prompt_models.question_generation import (
     QuestionGenerationInput,
@@ -301,7 +301,7 @@ class RetrievalAugmentedGenerationAI:
             llm=llm,
             prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
             input_class_instance=input_object,
-            output_class_type=DocumentChunkSummaryOutput,
+            output_class_type=DocumentSummaryOutput,
         )
 
         return result.summary
@@ -317,7 +317,7 @@ class RetrievalAugmentedGenerationAI:
         )
 
         input_object = QuestionGenerationInput(
-            chunk_text=text, number_of_questions=number_of_questions
+            document_text=text, number_of_questions=number_of_questions
         )
 
         result = self.query_helper.query_llm(

@@ -651,100 +651,97 @@ def ingest_files(
                     file_name, active_collection_id
                 )
 
-                if existing_file:
-                    if not overwrite_existing_files:
-                        # See if the hash on this file matches the one we have stored
-                        if existing_file.file_hash == calculate_sha256(
-                            uploaded_file_path
+                if existing_file and not overwrite_existing_files:
+                    # See if the hash on this file matches the one we have stored
+                    if existing_file.file_hash == calculate_sha256(uploaded_file_path):
+                        # It matches, so split the file using the existing document chunks settings
+                        st.info(
+                            f"File '{file_name}' already exists, and the hash matches, so we're checking to see if it's a RESUME op..."
+                        )
+                        logging.info(
+                            f"File '{file_name}' already exists, and the hash matches, so we're checking to see if it's a RESUME op..."
+                        )
+
+                        if (
+                            existing_file.file_classification
+                            != st.session_state.ingestion_settings.file_type
                         ):
-                            # It matches, so split the file using the existing document chunks settings
-                            st.info(
-                                f"File '{file_name}' already exists, and the hash matches, so we're checking to see if it's a RESUME op..."
+                            st.error(
+                                f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
                             )
-                            logging.info(
-                                f"File '{file_name}' already exists, and the hash matches, so we're checking to see if it's a RESUME op..."
-                            )
-
-                            if (
-                                existing_file.file_classification
-                                != st.session_state.ingestion_settings.file_type
-                            ):
-                                st.error(
-                                    f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
-                                )
-                                logging.error(
-                                    f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
-                                )
-
-                            # TODO: Fix all of this- it's a total inefficient mess, the document ingestion needs to be completely re-written
-
-                            # Split the document
-                            documents = asyncio.run(
-                                document_loader.load_and_split_documents(
-                                    document_directory=root_temp_dir,
-                                    split_documents=split_documents,
-                                    is_code=existing_file.file_classification == "Code",
-                                    chunk_size=existing_file.chunk_size,
-                                    chunk_overlap=existing_file.chunk_overlap,
-                                )
+                            logging.error(
+                                f"File '{file_name}' already exists, and the hash matches, but the file type has changed.  Please set the overwrite option and try again."
                             )
 
-                            # Get the documents that match this file name
-                            matching_documents = [
-                                d
-                                for d in documents
-                                if d.metadata["filename"]
-                                .replace(root_temp_dir, "")
-                                .strip("/")
-                                == file_name
-                            ]
+                        # TODO: Fix all of this- it's a total inefficient mess, the document ingestion needs to be completely re-written
 
-                            if (
-                                len(matching_documents) == existing_file.document_count
-                                or existing_file.document_count == 0
-                            ):
-                                files.append(existing_file)
-
-                                # # Save the split documents
-                                # save_split_documents(
-                                #     active_collection_id,
-                                #     status,
-                                #     create_chunk_questions,
-                                #     summarize_chunks,
-                                #     summarize_document,
-                                #     ai,
-                                #     documents_helper,
-                                #     ingest_progress_bar,
-                                #     root_temp_dir,
-                                #     files,
-                                #     documents,
-                                # )
-
-                                # # Done!
-                                # st.balloons()
-                                # return
-                            else:
-                                st.error(
-                                    f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
-                                )
-                                logging.error(
-                                    f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
-                                )
-
-                        st.warning(
-                            f"File '{file_name}' already exists, and overwrite is not enabled"
+                        # Split the document
+                        documents = asyncio.run(
+                            document_loader.load_and_split_documents(
+                                document_directory=root_temp_dir,
+                                split_documents=split_documents,
+                                is_code=existing_file.file_classification == "Code",
+                                chunk_size=existing_file.chunk_size,
+                                chunk_overlap=existing_file.chunk_overlap,
+                            )
                         )
-                        logging.warning(
-                            f"File '{file_name}' already exists, and overwrite is not enabled"
-                        )
-                        logging.debug(f"Deleting temp file: {uploaded_file_path}")
-                        os.remove(uploaded_file_path)
 
-                        continue
+                        # Get the documents that match this file name
+                        matching_documents = [
+                            d
+                            for d in documents
+                            if d.metadata["filename"]
+                            .replace(root_temp_dir, "")
+                            .strip("/")
+                            == file_name
+                        ]
 
-                elif not existing_file or overwrite_existing_files:
-                    if overwrite_existing_files:
-                        # Delete the document chunks
+                        if (
+                            len(matching_documents) == existing_file.document_count
+                            or existing_file.document_count == 0
+                        ):
+                            files.append(existing_file)
+
+                            # # Save the split documents
+                            # save_split_documents(
+                            #     active_collection_id,
+                            #     status,
+                            #     create_chunk_questions,
+                            #     summarize_chunks,
+                            #     summarize_document,
+                            #     ai,
+                            #     documents_helper,
+                            #     ingest_progress_bar,
+                            #     root_temp_dir,
+                            #     files,
+                            #     documents,
+                            # )
+
+                            # # Done!
+                            # st.balloons()
+                            # return
+                        else:
+                            st.error(
+                                f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
+                            )
+                            logging.error(
+                                f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
+                            )
+
+                    st.warning(
+                        f"File '{file_name}' already exists, and overwrite is not enabled"
+                    )
+                    logging.warning(
+                        f"File '{file_name}' already exists, and overwrite is not enabled"
+                    )
+                    logging.debug(f"Deleting temp file: {uploaded_file_path}")
+                    os.remove(uploaded_file_path)
+
+                    continue
+
+                elif not existing_file or (existing_file and overwrite_existing_files):
+                    # Delete the document chunks
+                    if existing_file:
                         documents_helper.delete_document_chunks_by_file_id(
                             existing_file.id
                         )
@@ -932,16 +929,15 @@ def save_split_documents(
 
             document = file_documents[file.file_name][index]
 
-            chunk_questions = []
+            chunk_questions = None
             if create_chunk_questions and hasattr(ai, "generate_chunk_questions"):
                 try:
                     logging.info("Creating questions for chunk...")
                     chunk_questions = ai.generate_chunk_questions(
-                        document_text=document.page_content
+                        text=document.page_content
                     )
                 except Exception as e:
                     logging.error(f"Error creating questions for chunk: {e}")
-                    chunk_questions = []
 
             summary = ""
             if summarize_chunks and hasattr(
@@ -949,7 +945,7 @@ def save_split_documents(
             ):
                 logging.info("Summarizing chunk...")
                 summary = ai.generate_detailed_document_chunk_summary(
-                    document_text=document.page_content
+                    chunk_text=document.page_content
                 )
 
                 # Create the document chunks
@@ -965,11 +961,11 @@ def save_split_documents(
                     additional_metadata=document.metadata,
                     document_name=document.metadata["filename"],
                     embedding_model_name=get_selected_collection_embedding_model_name(),
-                    question_1=chunk_questions[0] if len(chunk_questions) > 0 else "",
-                    question_2=chunk_questions[1] if len(chunk_questions) > 1 else "",
-                    question_3=chunk_questions[2] if len(chunk_questions) > 2 else "",
-                    question_4=chunk_questions[3] if len(chunk_questions) > 3 else "",
-                    question_5=chunk_questions[4] if len(chunk_questions) > 4 else "",
+                    question_1=chunk_questions.questions[0] if chunk_questions and len(chunk_questions.questions) > 0 else "",
+                    question_2=chunk_questions.questions[1] if chunk_questions and len(chunk_questions.questions) > 1 else "",
+                    question_3=chunk_questions.questions[2] if chunk_questions and len(chunk_questions.questions) > 2 else "",
+                    question_4=chunk_questions.questions[3] if chunk_questions and len(chunk_questions.questions) > 3 else "",
+                    question_5=chunk_questions.questions[4] if chunk_questions and len(chunk_questions.questions) > 4 else "",
                 )
             )
 
@@ -1218,7 +1214,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
         )
 
         ai_modes = ["Auto", "Conversation Only"]
-        
+
         col2.selectbox(
             label="Mode",
             label_visibility="collapsed",
@@ -1230,13 +1226,13 @@ def handle_chat(main_window_container, ai_instance, configuration):
             help="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.",
             on_change=set_ai_mode,
         )
-        
+
         if st.session_state["ai_mode"] == "Auto":
             col3.markdown(
                 f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Answer:</b></div>',
                 unsafe_allow_html=True,
             )
-            
+
             col4.toggle(
                 label="Evaluate Response",
                 label_visibility="collapsed",
@@ -1247,7 +1243,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 help="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.",
                 on_change=set_evaluate_response,
             )
-            
+
             col5.markdown(
                 f'<div align="right" title="Threshold at which the AI will re-enter a planning stage.">{help_icon} <b>Re-Planning Threshold:</b></div>',
                 unsafe_allow_html=True,
@@ -1260,7 +1256,9 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 min_value=0.0,
                 max_value=1.0,
                 value=float(
-                    get_app_configuration()["jarvis_ai"].get("re_planning_threshold", 0.6)
+                    get_app_configuration()["jarvis_ai"].get(
+                        "re_planning_threshold", 0.6
+                    )
                 ),
                 step=0.1,
                 help="Threshold at which the AI will re-enter a planning stage.",
@@ -1325,7 +1323,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     llm_callback = StreamingOnlyCallbackHandler(llm_container)
                     agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
-                        max_thought_containers=10,                        
+                        max_thought_containers=10,
                         expand_new_thoughts=True,
                         collapse_completed_thoughts=True,
                     )
@@ -1363,7 +1361,9 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     "evaluate_response": st.session_state["evaluate_response"]
                     if "evaluate_response" in st.session_state
                     else False,
-                    "re_planning_threshold": float(st.session_state["re_planning_threshold"])
+                    "re_planning_threshold": float(
+                        st.session_state["re_planning_threshold"]
+                    )
                     if "re_planning_threshold" in st.session_state
                     else 0.5,
                 }
@@ -1379,14 +1379,13 @@ def handle_chat(main_window_container, ai_instance, configuration):
                         ai_mode=st.session_state["ai_mode"],
                         kwargs=kwargs,
                     )
-                except Exception as e:                                        
+                except Exception as e:
                     logging.error(f"Error querying AI: {str(e)}")
                     result = f"An error occurred when attempting to fulfill your request.\n\n```console\n{str(e)}\n```"
 
                 logging.debug(f"Result: {result}")
 
                 llm_container.markdown(result)
-                
 
 
 def set_jarvis_ai_config_element(key, value):
@@ -1412,15 +1411,18 @@ def set_frequency_penalty():
         "frequency_penalty", st.session_state["frequency_penalty"]
     )
 
+
 def set_re_planning_threshold():
     set_jarvis_ai_config_element(
         "re_planning_threshold", st.session_state["re_planning_threshold"]
     )
 
+
 def set_evaluate_response():
     set_jarvis_ai_config_element(
         "evaluate_response", st.session_state["evaluate_response"]
     )
+
 
 def set_presence_penalty():
     set_jarvis_ai_config_element(

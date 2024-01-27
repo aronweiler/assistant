@@ -117,17 +117,17 @@
             },
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
+                "model": "gpt-4-turbo-preview",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 16384,
+                "max_model_supported_tokens": 128000,
                 "uses_conversation_history": true,
-                "max_conversation_history_tokens": 512,
+                "max_conversation_history_tokens": 5341,
                 "max_completion_tokens": 4096,
                 "model_kwargs": {
                     "seed": 500,
                     "response_format": {
-                        "type": "text"
+                        "type": "json_object"
                     }
                 }
             }
@@ -161,17 +161,17 @@
             "return_direct": false,
             "model_configuration": {
                 "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
+                "model": "gpt-4-turbo-preview",
                 "temperature": 0.0,
                 "max_retries": 3,
-                "max_model_supported_tokens": 16384,
+                "max_model_supported_tokens": 128000,
                 "uses_conversation_history": false,
                 "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 8192,
+                "max_completion_tokens": 4096,
                 "model_kwargs": {
                     "seed": 500,
                     "response_format": {
-                        "type": "text"
+                        "type": "json_object"
                     }
                 }
             }
