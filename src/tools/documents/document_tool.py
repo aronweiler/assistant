@@ -411,12 +411,11 @@ class DocumentTool:
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "summary_prompts",
+            question_prompt=self.conversation_manager.prompt_manager.get_prompt_by_template_name(
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
-            refine_prompt=self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "summary_prompts", refine_prompt
+            refine_prompt=self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",

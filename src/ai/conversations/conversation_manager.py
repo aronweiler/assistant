@@ -133,8 +133,7 @@ class ConversationManager:
 
         if previous_tool_calls and len(previous_tool_calls) > 0:
             previous_tool_calls_prompt = (
-                self.prompt_manager.get_prompt_by_category_and_name(
-                    "generic_tools_agent_prompts",
+                self.prompt_manager.get_prompt_by_template_name(
                     "PREVIOUS_TOOL_CALLS_TEMPLATE",
                 ).format(previous_tool_calls=previous_tool_calls)
             )
@@ -198,8 +197,7 @@ class ConversationManager:
         selected_repo = self.get_selected_repository()
 
         if selected_repo:
-            selected_repo_prompt = self.prompt_manager.get_prompt_by_category_and_name(
-                "generic_tools_agent_prompts",
+            selected_repo_prompt = self.prompt_manager.get_prompt_by_template_name(
                 "SELECTED_REPO_TEMPLATE",
             ).format(
                 selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
@@ -279,8 +277,7 @@ class ConversationManager:
 
         if loaded_documents:
             loaded_documents_prompt = (
-                self.prompt_manager.get_prompt_by_category_and_name(
-                    "generic_tools_agent_prompts",
+                self.prompt_manager.get_prompt_by_template_name(
                     "LOADED_DOCUMENTS_TEMPLATE",
                 ).format(loaded_documents=loaded_documents)
             )
@@ -298,8 +295,7 @@ class ConversationManager:
         chat_history = self._get_chat_history()
 
         if chat_history and len(chat_history) > 0:
-            chat_history_prompt = self.prompt_manager.get_prompt_by_category_and_name(
-                "generic_tools_agent_prompts",
+            chat_history_prompt = self.prompt_manager.get_prompt_by_template_name(
                 "CHAT_HISTORY_TEMPLATE",
             ).format(chat_history=chat_history)
         else:

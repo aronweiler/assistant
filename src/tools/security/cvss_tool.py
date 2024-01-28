@@ -35,13 +35,15 @@ class CvssTool:
         )
 
         identify_vulnerable_component_prompt = (
-            self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-                "security_tools_prompts", "IDENTIFY_VULNERABLE_COMPONENT_PROMPT"
+            self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                "IDENTIFY_VULNERABLE_COMPONENT_PROMPT"
             )
         )
 
-        cvss_instruct_prompt = self.conversation_manager.prompt_manager.get_prompt_by_category_and_name(
-            "security_tools_prompts", "CVSS_INSTRUCT_PROMPT"
+        cvss_instruct_prompt = (
+            self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                "CVSS_INSTRUCT_PROMPT"
+            )
         )
 
         vulnerable_component = llm.invoke(
