@@ -43,16 +43,16 @@ class Stubber:
 
         tools = [
             StructuredTool.from_function(
-                func=code_tool.get_code_structure, callbacks=self.callbacks
+                func=code_tool.get_code_structure, # callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.create_stub_code, callbacks=self.callbacks
+                func=code_tool.create_stub_code, # callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=code_tool.get_dependency_graph, callbacks=self.callbacks
+                func=code_tool.get_dependency_graph, # callbacks=self.callbacks
             ),
             StructuredTool.from_function(
-                func=document_tool.list_documents, callbacks=self.callbacks
+                func=document_tool.list_documents, # callbacks=self.callbacks
             ),
         ]
 

@@ -1,6 +1,9 @@
 import logging
+from typing import List
 
 from langchain.base_language import BaseLanguageModel
+from src.ai.agents.general.generic_tool import GenericTool
+from src.ai.system_info import get_system_information
 from src.db.models.code import Code
 
 from src.db.models.conversation_messages import (
@@ -9,6 +12,7 @@ from src.db.models.conversation_messages import (
     ConversationMessageModel,
 )
 from src.db.models.domain.code_repository_model import CodeRepositoryModel
+from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
 from src.db.models.users import Users
 from src.db.models.documents import Documents
 from src.db.models.conversations import Conversations
@@ -17,6 +21,7 @@ from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
 from src.memory.token_buffer import ConversationTokenBufferMemory
 
 from src.ai.prompts.prompt_manager import PromptManager
+from src.utilities.configuration_utilities import get_app_configuration
 
 
 class ConversationManager:
@@ -26,7 +31,6 @@ class ConversationManager:
         self,
         conversation_id: int,
         user_email: str,
-        llm: BaseLanguageModel,
         prompt_manager: PromptManager,
         max_conversation_history_tokens: int = 1000,
         uses_conversation_history: bool = True,
@@ -48,10 +52,10 @@ class ConversationManager:
         self.prompt_manager = prompt_manager
         self.tool_kwargs = tool_kwargs
         self.collection_id = collection_id
-        
+
         if selected_repository is not None:
             self.set_selected_repository(selected_repository)
-        
+
         self.user_id = user_id
         self.user_name = user_name
         self.user_location = user_location
@@ -62,9 +66,6 @@ class ConversationManager:
 
         if user_email is None:
             raise Exception("user_email cannot be None")
-
-        if llm is None:
-            raise Exception("llm cannot be None")
 
         # Set our internal conversation id
         self.conversation_id = conversation_id
@@ -96,7 +97,7 @@ class ConversationManager:
             # Create the conversation memory
             if uses_conversation_history:
                 self._create_default_conversation_memory(
-                    llm, max_conversation_history_tokens
+                    max_conversation_history_tokens
                 )
         else:
             self.conversation_token_buffer_memory = override_memory
@@ -117,10 +118,8 @@ class ConversationManager:
             self.conversation_id, repository.id if repository is not None else -1
         )
 
-
     def get_selected_repository(self) -> CodeRepositoryModel:
         """Gets the selected repository, if any, for the current conversation."""
-
 
         conversation = self.get_conversation()
 
@@ -128,6 +127,85 @@ class ConversationManager:
             return self.code_helper.get_repository(conversation.last_selected_code_repo)
 
         return None
+
+    def get_previous_tool_calls_prompt(self):
+        previous_tool_calls = self._get_previous_tool_call_headers()
+
+        if previous_tool_calls and len(previous_tool_calls) > 0:
+            previous_tool_calls_prompt = (
+                self.prompt_manager.get_prompt_by_template_name(
+                    "PREVIOUS_TOOL_CALLS_TEMPLATE",
+                ).format(previous_tool_calls=previous_tool_calls)
+            )
+        else:
+            previous_tool_calls_prompt = ""
+
+        return previous_tool_calls_prompt
+
+    def get_available_tool_descriptions(self, tools: List[GenericTool]):
+        tool_strings = []
+        for tool in tools:
+            if tool.additional_instructions:
+                additional_instructions = (
+                    "\nAdditional Instructions: " + tool.additional_instructions
+                )
+            else:
+                additional_instructions = ""
+
+            if tool.document_classes:
+                classes = ", ".join(tool.document_classes)
+                document_class = f"\nIMPORTANT: Only use this tool with documents with classifications of: '{classes}'. For other types of files, refer to specialized tools."
+            else:
+                document_class = ""
+
+            tool_strings.append(
+                f"Name: {tool.name}\nDescription: {tool.description}{additional_instructions}{document_class}"
+            )
+
+        formatted_tools = "\n----\n".join(tool_strings)
+
+        return formatted_tools
+
+    def _get_previous_tool_call_headers(self):
+        # Check the configuration to see if the get_previous_tool_call_results tool is enabled
+        get_previous_tool_call_results_tool_enabled = get_app_configuration()[
+            "tool_configurations"
+        ]["get_previous_tool_call_results"].get("enabled", False)
+
+        previous_tool_calls: List[
+            ToolCallResultsModel
+        ] = self.conversations_helper.get_tool_call_results(self.conversation_id)
+
+        if not previous_tool_calls or len(previous_tool_calls) == 0:
+            return None
+
+        tool_call_list = []
+
+        for tool_call in previous_tool_calls:
+            if tool_call.include_in_conversation:
+                tool_call_list.append(
+                    f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}, tool results: {tool_call.tool_results}"
+                )
+            elif get_previous_tool_call_results_tool_enabled:
+                tool_call_list.append(
+                    f"{tool_call.record_created} - (ID: {tool_call.id}) Name: `{tool_call.tool_name}`, tool input: {tool_call.tool_arguments}, tool results:\nUse the `get_previous_tool_call_results` tool with this ID to view the results."
+                )
+
+        return "\n----\n".join(tool_call_list)
+
+    def get_selected_repository_prompt(self):
+        selected_repo = self.get_selected_repository()
+
+        if selected_repo:
+            selected_repo_prompt = self.prompt_manager.get_prompt_by_template_name(
+                "SELECTED_REPO_TEMPLATE",
+            ).format(
+                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
+            )
+        else:
+            selected_repo_prompt = ""
+
+        return selected_repo_prompt
 
     def get_loaded_documents_for_display(self):
         """Gets the loaded documents for the specified collection."""
@@ -194,10 +272,50 @@ class ConversationManager:
             )
         ]
 
+    def get_loaded_documents_prompt(self):
+        loaded_documents = self.get_loaded_documents_for_reference()
+
+        if loaded_documents:
+            loaded_documents_prompt = (
+                self.prompt_manager.get_prompt_by_template_name(
+                    "LOADED_DOCUMENTS_TEMPLATE",
+                ).format(loaded_documents=loaded_documents)
+            )
+        else:
+            loaded_documents_prompt = "There are no documents loaded."
+
+        return loaded_documents_prompt
+
     def get_conversation(self):
         """Gets the conversation for the specified conversation ID."""
 
         return self.conversations_helper.get_conversation(self.conversation_id)
+
+    def get_chat_history_prompt(self):
+        chat_history = self._get_chat_history()
+
+        if chat_history and len(chat_history) > 0:
+            chat_history_prompt = self.prompt_manager.get_prompt_by_template_name(
+                "CHAT_HISTORY_TEMPLATE",
+            ).format(chat_history=chat_history)
+        else:
+            chat_history_prompt = ""
+
+        return chat_history_prompt
+
+    def _get_chat_history(self):
+        """Gets the chat history for the current conversation"""
+
+        return self.conversation_token_buffer_memory.buffer_as_str
+
+    def get_system_prompt(self):
+        system_prompt = self.prompt_manager.get_prompt_by_template_name(
+            "SYSTEM_TEMPLATE",
+        ).format(
+            system_information=get_system_information(),
+        )
+
+        return system_prompt
 
     def _ensure_conversation_exists(self, user_id: int):
         """Ensures the conversation exists, and creates it if it doesn't."""
@@ -224,7 +342,7 @@ class ConversationManager:
                 f"Interaction ID: {self.conversation_id} already exists for user {user_id}, needs summary: {self.conversation_needs_summary}"
             )
 
-    def _create_default_conversation_memory(self, llm, max_conversation_history_tokens):
+    def _create_default_conversation_memory(self, max_conversation_history_tokens):
         """Creates the conversation memory for the conversation."""
 
         self.postgres_chat_message_history = PostgresChatMessageHistory(
@@ -235,7 +353,6 @@ class ConversationManager:
         self.postgres_chat_message_history.user_id = self.user_id
 
         self.conversation_token_buffer_memory = ConversationTokenBufferMemory(
-            llm=llm,
             memory_key="chat_history",
             input_key="input",
             chat_memory=self.postgres_chat_message_history,

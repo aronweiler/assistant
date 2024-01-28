@@ -1,3 +1,10 @@
+### January 28, 2024 -- RELEASE NOTES: Jarvis 0.73
+- Enhanced conversation management and model interaction through the addition of 'include_in_conversation' column, response evaluation step, and updated config.json for customizable model outputs.
+- Improved project organization and database interaction flexibility with folder restructuring, dynamic query building, and new query models.
+- Streamlined code quality and functionality by refactoring code, removing unnecessary callbacks, deleting GenericToolAgentHelpers class, and refining summary prompts.
+- Expanded application capabilities and improved user experience with additional tool use cases, enhanced document search functionality, and refined code analysis using GPT-4-Turbo model.
+- Addressed repository ingestion issues for smoother data processing.
+
 ### January 20, 2024 -- RELEASE NOTES: Jarvis 0.72
 - Implemented a new organization system by sorting tools into specific categories to enhance user navigation and tool discovery.
 - Rolled back recent changes related to garbage parsing to ensure stability and maintain data integrity.

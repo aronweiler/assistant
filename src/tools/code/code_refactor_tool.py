@@ -4,6 +4,11 @@ from typing import List
 
 # Importing necessary modules and classes for the tool.
 from langchain.base_language import BaseLanguageModel
+from src.ai.prompts.prompt_models.code_refactor import (
+    CodeRefactorInput,
+    CodeRefactorOutput,
+)
+from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
 
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
@@ -60,25 +65,25 @@ class CodeRefactorTool:
 
         templates = []
         template_checks = {
-            "security_code_refactor": "Security",
-            "performance_code_refactor": "Performance",
-            "memory_code_refactor": "Memory",
-            "correctness_code_refactor": "Correctness",
-            "maintainability_code_refactor": "Maintainability",
-            "reliability_code_refactor": "Reliability",
+            "enable_code_security_examination": "Security",
+            "enable_code_performance_examination": "Performance",
+            "enable_code_memory_examination": "Memory",
+            "enable_code_correctness_examination": "Correctness",
+            "enable_code_maintainability_examination": "Maintainability",
+            "enable_code_reliability_examination": "Reliability",
         }
 
         for setting, description in template_checks.items():
-            if additional_settings[f"enable_{setting}"]["value"]:
+            if additional_settings[f"{setting}"]["value"]:
                 templates.append(
-                    {"name": f"{setting.upper()}_TEMPLATE", "description": description}
+                    {"name": f"{setting.lstrip('enable_').upper()}_TEMPLATE", "description": description}
                 )
 
         return templates
 
     def _conduct_code_refactor(
         self,
-        file_data: str,
+        code: str,
         llm: BaseLanguageModel,
         tool_name: str,
         additional_instructions: str = None,
@@ -86,69 +91,6 @@ class CodeRefactorTool:
     ) -> dict:
         """
         Conducts a refactor on a file.
-
-        :param file_data: The raw content of the file to be refactored.
-        :param llm: An instance of a language model used for generating predictions during refactors.
-        :param tool_name: Name of the tool initiating this code refactor process.
-        :param additional_instructions: Additional instructions provided by users for this specific refactor task (optional).
-        :param metadata: Metadata associated with this file (optional).
-        :return: A dictionary containing results of the code refactor process.
-        """
-
-        # Note: Not doing this in refactors
-        # Split the file data into lines and prepend line numbers for clarity.
-        # code_with_line_numbers = [
-        #     f"{line_num + 1}: {line}"
-        #     for line_num, line in enumerate(file_data.splitlines())
-        # ]
-
-        # Retrieve base code refactor instructions and format them with file-specific instructions.
-        base_code_refactor_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor_prompts", "BASE_CODE_REFACTOR_INSTRUCTIONS_TEMPLATE"
-            )
-        )
-
-        code_refactor_format_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor_prompts", "CODE_REFACTOR_FORMAT_TEMPLATE"
-            )
-        )
-
-        # Format the base instructions to include the file-specific format instructions.
-        base_code_refactor_instructions = base_code_refactor_instructions.format(
-            format_instructions=code_refactor_format_instructions
-        )
-
-        # Run the code refactors using the formatted instructions and return the results.
-        return self._run_code_refactors(
-            code=file_data,
-            base_code_refactor_instructions=base_code_refactor_instructions,
-            llm=llm,
-            tool_name=tool_name,
-            additional_instructions=additional_instructions,
-            metadata=metadata,
-        )
-
-    def _run_code_refactors(
-        self,
-        code: List[str],
-        base_code_refactor_instructions: str,
-        llm: BaseLanguageModel,
-        tool_name: str,
-        additional_instructions: str = None,
-        metadata: dict = None,
-    ) -> dict:
-        """
-        Runs code refactors using provided instructions and a language model.
-
-        :param code: A list of strings representing the code to be refactored.
-        :param base_code_refactor_instructions: The base instructions for conducting the refactor.
-        :param llm: An instance of a language model used for generating predictions during refactors.
-        :param tool_name: Name of the tool initiating this code refactor process.
-        :param additional_instructions: Additional instructions provided by users for this specific refactor task (optional).
-        :param metadata: Metadata associated with this refactor (optional).
-        :return: A dictionary containing results of the code refactor process.
         """
 
         # Retrieve active templates based on the tool name.
@@ -157,40 +99,25 @@ class CodeRefactorTool:
         # Initialize containers for results
         refactor_results = []
 
-        if len(templates) == 0:
+        if (
+            len(templates) == 0
+            and not additional_instructions
+            or additional_instructions.strip() == ""
+        ):
             # If the templates are all turned off, just use the additional instructions
             # If there are no additional instructions, don't perform a refactor, throw an exception
-            if not additional_instructions or additional_instructions == "":
-                raise Exception(
-                    "No refactor templates are enabled and no additional instructions were provided"
-                )
-
-            data = self._process_additional_instructions(
-                base_code_refactor_instructions=base_code_refactor_instructions,
-                additional_instructions=additional_instructions,
-                metadata=metadata,
-                code=code,
-                llm=llm,
+            raise Exception(
+                "No refactor templates are enabled and no additional instructions were provided"
             )
 
-            code = data["refactored_code"]
-
-            refactor_results.append(data)
-
-        else:
-            # Format additional instructions if provided.
-            if additional_instructions:
-                additional_instructions = f"\nIn addition to the base code refactor instructions, consider these user-provided instructions:\n{additional_instructions}\n"
-
-            code = self._process_templates(
-                templates=templates,
-                refactor_results=refactor_results,
-                metadata=metadata,
-                additional_instructions=additional_instructions,
-                base_code_refactor_instructions=base_code_refactor_instructions,
-                code=code,
-                llm=llm,
-            )
+        code = self._process_templates(
+            templates=templates,
+            refactor_results=refactor_results,
+            metadata=metadata,
+            additional_instructions=additional_instructions,
+            code=code,
+            llm=llm,
+        )
 
         # Extract metadata from the last set of data processed (assumes consistent structure across all templates).
         refactor_metadata = refactor_results[0]["metadata"]
@@ -215,113 +142,86 @@ class CodeRefactorTool:
         else:
             return self.format_refactor_results(results)
 
-    def _process_additional_instructions(
-        self,
-        base_code_refactor_instructions,
-        additional_instructions,
-        metadata,
-        code,
-        llm:BaseLanguageModel,
-    ):
-        final_code_refactor_instructions = (
-            self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor_prompts", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
-            ).format(
-                code_summary="",
-                code_dependencies="",
-                code=code,
-                code_metadata=metadata,
-                additional_instructions="",
-            )
-        )
-
-        # Get individual prompt for each type of refactor from the template and format it.
-        code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "code_refactor_prompts", "CUSTOM_CODE_REFACTOR_TEMPLATE"
-        ).format(
-            base_code_refactor_instructions=base_code_refactor_instructions,
-            final_code_refactor_instructions=final_code_refactor_instructions,
-            code_refactor_instructions=additional_instructions,
-        )
-
-        # Use language model to predict based on the formatted prompt.
-        json_data = llm.invoke(
-            code_refactor_prompt,
-            #callbacks=self.conversation_manager.agent_callbacks,
-        )
-
-        # Parse JSON data returned by language model prediction into structured data.
-        data = parse_json(json_data.content, llm)
-
-        if "final_answer" in data:
-            # The AI fucked up, and can't actually do its job... surprise surprise
-            return data["final_answer"]
-
-        # Set the old code to the new code
-        code = data["refactored_code"]
-        data["refactor_type"] = f" Custom instructions\n{additional_instructions}"
-
-        return data
-
     def _process_templates(
         self,
         refactor_results,
         templates,
-        metadata,
-        additional_instructions,
-        base_code_refactor_instructions,
-        code,
-        llm,
+        metadata: dict,
+        additional_instructions: str,
+        code: str,
+        llm: BaseLanguageModel,
     ):
-        # Iterate over each template and perform a refactor using the language model.
-        for template in templates:
-            # Format final code refactor instructions with placeholders replaced by actual data.
-            # Note: This needs to be in the loop, because we're going to keep feeding the output of the previous refactor
-            # into the next refactor.
-            final_code_refactor_instructions = (
-                self.conversation_manager.prompt_manager.get_prompt(
-                    "code_refactor_prompts", "FINAL_CODE_REFACTOR_INSTRUCTIONS"
-                ).format(
-                    code_summary="",
-                    code_dependencies="",
+        if not templates or len(templates) == 0:
+            # process the additional instructions on their own
+            code, data = self._perform_single_refactor(
+                metadata=metadata,
+                code=code,
+                llm=llm,
+                additional_instructions=additional_instructions,                
+            )
+
+        else:
+            # Iterate over each template and perform a refactor using the language model.
+            for template in templates:
+                template_instructions = self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                    template["name"]
+                )
+
+                code, data = self._perform_single_refactor(
+                    metadata=metadata,
                     code=code,
-                    code_metadata=metadata,
+                    llm=llm,
+                    template=template,
+                    template_instructions=template_instructions,
                     additional_instructions=additional_instructions,
                 )
-            )
 
-            # Get individual prompt for each type of refactor from the template and format it.
-            code_refactor_prompt = self.conversation_manager.prompt_manager.get_prompt(
-                "code_refactor_prompts", template["name"]
-            ).format(
-                base_code_refactor_instructions=base_code_refactor_instructions,
-                final_code_refactor_instructions=final_code_refactor_instructions,
-            )
+                # Append results from current template's refactor.
+                # Note: This is not currently used anywhere- the ultimate result of this tool is just the final code
+                # However, this is here so that we can do something with the data generated by each of the steps in the future.
+                refactor_results.append(data)
 
-            # Use language model to predict based on the formatted prompt.
-            json_data = llm.invoke(
-                code_refactor_prompt,
-                #callbacks=self.conversation_manager.agent_callbacks,
-            )
+            return code
 
-            # Parse JSON data returned by language model prediction into structured data.
-            data = parse_json(json_data.content, llm)
+    def _perform_single_refactor(
+        self,
+        metadata,
+        code,
+        llm,
+        template="User Instructions",
+        template_instructions="",
+        additional_instructions="",
+    ):
+        input_object = CodeRefactorInput(
+            code_refactor_instructions=template_instructions,
+            additional_instructions=additional_instructions,
+            code_metadata=metadata,
+            code=code,
+        )
 
-            if "final_answer" in data:
-                # The AI fucked up, and can't actually do its job... surprise surprise
-                return data["final_answer"]
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
 
-            # Feed the results of the refactor into the next refactor.
-            code = data["refactored_code"]
+        result: CodeRefactorOutput = query_helper.query_llm(
+            llm=llm,
+            input_class_instance=input_object,
+            prompt_template_name="CODE_REFACTOR_INSTRUCTIONS_TEMPLATE",
+            output_class_type=CodeRefactorOutput,
+        )
 
-            data["refactor_type"] = template["description"]
+        # Feed the results of the refactor into the next refactor by setting the code to the refactored code
+        # (so the AI doesn't continue to refactor the same original code)
+        code = result.refactored_code
 
-            # Append results from current template's refactor.
-            # Note: This is not currently used anywhere- the ultimate result of this tool is just the final code
-            # However, this is here so that we can do something with the data generated by each of the steps in the future.
-            refactor_results.append(data)
+        # Create a new dictionary containing the refactor type and thoughts.
+        data = {
+            "refactor_type": template["description"],
+            "thoughts": result.thoughts,
+            "refactored_code": result.refactored_code,
+            "metadata": result.metadata,
+            "language": result.language,
+        }
 
-        return code
+        return code, data
 
     @register_tool(
         display_name="Perform a Code Refactor on a URL",
@@ -363,10 +263,10 @@ class CodeRefactorTool:
         """
 
         # Extract file content from file_info and remove 'file_content' key.
-        file_data = file_info.pop("file_content", None)
+        code = file_info.pop("file_content", None)
 
         # Calculate the number of tokens in the code file for size check.
-        code_file_token_count = num_tokens_from_string(file_data)
+        code_file_token_count = num_tokens_from_string(code)
 
         # Get maximum allowed token count for a code refactor based on tool configuration.
         max_token_count = self.get_max_code_refactor_token_count(
@@ -382,11 +282,12 @@ class CodeRefactorTool:
             configuration=self.configuration,
             func_name=self.conduct_code_refactor_from_url.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a refactor on the entire file content and return the results.
         return self._conduct_code_refactor(
-            file_data=file_data,
+            code=code,
             additional_instructions=additional_instructions,
             metadata=file_info,
             llm=llm,
@@ -447,18 +348,19 @@ class CodeRefactorTool:
             return "File is not code. Please select a code file to conduct a refactor on, or use a different tool."
 
         # Get raw file data from database and decode it.
-        file_data = documents.get_file_data(file_model.id).decode("utf-8")
+        code = documents.get_file_data(file_model.id).decode("utf-8")
 
         # Initialize language model for prediction.
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.conduct_code_refactor_from_file_id.__name__,
             streaming=True,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         # Conduct a refactor on the entire file content and return the results.
         return self._conduct_code_refactor(
-            file_data=file_data,
+            code=code,
             additional_instructions=additional_instructions,
             metadata={"filename": file_model.file_name},
             llm=llm,
@@ -504,38 +406,3 @@ class CodeRefactorTool:
         return formatted_results
 
 
-if __name__ == "__main__":
-    # Create an instance of the code refactor tool.
-    code_refactor_tool = CodeRefactorTool(
-        configuration=None,
-        conversation_manager=None,
-    )
-
-    temp = {
-        "language": "python",
-        "metadata": {
-            "type": "file",
-            "project_id": "N/A",
-            "url": "https://github.com/aronweiler/CodeReviewer/blob/main/src/integrations/github_integration.py",
-            "ref": "main",
-            "file_path": "src/integrations/github_integration.py",
-            "repo_path": "aronweiler/CodeReviewer",
-        },
-        "thoughts": "The refactoring focuses on improving the initialization of the GitHubIntegration class to allow for reusability and configuration. The commit_changes function has been updated to use the configuration parameters set during initialization. Error handling has been improved, and the code has been cleaned up to remove unnecessary comments and debug prints. The code now adheres more closely to best practices.",
-        "refactored_code": 'import logging\nimport os\nfrom github import Github, InputGitTreeElement\n\nREGULAR_FILE = "100644"\n\n\nclass GitHubIntegration:\n    def __init__(self, github_token, repository):\n        if not github_token:\n            raise ValueError("GitHub token must be provided")\n        if not repository:\n            raise ValueError("GitHub repository must be provided")\n\n        self.github_token = github_token\n        self.repository = repository\n        self.github = Github(self.github_token)\n\n    def commit_changes(self, source_branch, target_branch, commit_message, metadatas):\n        repo = self.github.get_repo(self.repository)\n\n        # This call ensures the branch is created\n        commit_branch = self._create_branch(repo, source_branch, target_branch)\n\n        # Get the base tree\n        base_tree = repo.get_git_tree(sha=source_branch)\n\n        # Create a new tree with the changes\n        tree_elements = [\n            InputGitTreeElement(\n                path=metadata["file_path"],\n                mode=REGULAR_FILE,\n                type="blob",\n                sha=repo.create_git_blob(content=metadata["code"], encoding="utf-8").sha\n            ) for metadata in metadatas\n        ]\n\n        new_tree = repo.create_git_tree(tree_elements, base_tree)\n\n        # Create the commit\n        new_commit = repo.create_git_commit(\n            message=commit_message,\n            tree=new_tree,\n            parents=[repo.get_commit(repo.get_branch(source_branch).commit.sha)]\n        )\n\n        # Push the commit to the new branch by editing the reference\n        commit_branch.edit(sha=new_commit.sha, force=True)\n\n        logging.info("Changes committed and pushed successfully!")\n\n    def _create_branch(self, repo, source_branch, target_branch):\n        # Get the latest commit of the source branch\n        source_ref = repo.get_git_ref(f"heads/{source_branch}")\n        commit_sha = source_ref.object.sha\n\n        # See if the target branch already exists\n        try:\n            branch = repo.get_git_ref(f"heads/{target_branch}")\n            logging.info(f"Branch \'{target_branch}\' already exists!")\n            return branch\n        except:\n            # Create the new branch with the specified commit\n            new_branch = repo.create_git_ref(f"refs/heads/{target_branch}", commit_sha)\n            logging.info(f"New branch \'{target_branch}\' created successfully!")\n            return new_branch\n\n\nif __name__ == "__main__":\n    logging.basicConfig(level=logging.INFO)\n    github_integration = GitHubIntegration(\n        github_token=os.getenv("GITHUB_TOKEN"),\n        repository=os.getenv("GITHUB_REPOSITORY")\n    )\n\n    github_integration.commit_changes(\n        source_branch="main",\n        target_branch="test-branch",\n        commit_message="Test commit",\n        metadatas=[\n            {\n                "file_path": "examples/code_comment.py",\n                "code": "def test():\\n    print(\'hello world\')\\n"\n            }\n        ]\n    )',
-    }
-
-    results = {
-        "language": temp["language"],
-        "metadata": temp["metadata"],
-        "refactor_thoughts": [
-            {
-                "refactor_type": "Custom",
-                "thoughts": temp["thoughts"],
-            }
-        ],
-        "refactored_code": temp["refactored_code"],
-    }
-
-    bleh = code_refactor_tool.format_refactor_results(results)
-    print(bleh)

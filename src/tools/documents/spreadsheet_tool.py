@@ -59,12 +59,13 @@ class SpreadsheetsTool:
             configuration=self.configuration,
             func_name=self.query_spreadsheet_pandas.__name__,
             streaming=True,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         agent = self.create_pandas_agent(llm=llm, files=[file])
 
         # self.callbacks is set outside of this class
-        results = agent.run(query, callbacks=self.callbacks)
+        results = agent.run(query, # callbacks=self.callbacks)
 
         return results
 
@@ -89,7 +90,7 @@ class SpreadsheetsTool:
             include_df_in_prompt=True,
             number_of_head_rows=3,
             verbose=True,
-            callbacks=self.callbacks,
+            # callbacks=self.callbacks,
         )
 
         return pandas_agent

@@ -17,6 +17,7 @@ from src.utilities.token_helper import num_tokens_from_string
 from src.tools.code.code_dependency import CodeDependency
 from src.ai.llm_helper import get_tool_llm
 
+
 @tool_class
 class CodeTool:
     def __init__(self, configuration, conversation_manager: ConversationManager):
@@ -368,13 +369,11 @@ class CodeTool:
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
-        C_STUBBING_TEMPLATE = self.conversation_manager.prompt_manager.get_prompt(
-            "code_stubbing_prompts", "C_STUBBING_TEMPLATE"
+        C_STUBBING_TEMPLATE = self.conversation_manager.prompt_manager.get_prompt_by_template_name("C_STUBBING_TEMPLATE"
         )
 
         stub_dependencies_template = (
-            self.conversation_manager.prompt_manager.get_prompt(
-                "code_stubbing_prompts",
+            self.conversation_manager.prompt_manager.get_prompt_by_template_name(
                 "STUB_DEPENDENCIES_TEMPLATE",
             )
         )
@@ -404,6 +403,7 @@ class CodeTool:
             configuration=self.configuration,
             func_name=self.create_stub_code.__name__,
             streaming=True,
+            ## callbacks=self.conversation_manager.agent_callbacks,
         )
 
         for doc in documents:
@@ -413,8 +413,8 @@ class CodeTool:
                     stub_dependencies_template=stub_dependencies,
                 )
                 stubbed_code = llm.invoke(
-                    prompt, 
-                    #callbacks=self.conversation_manager.agent_callbacks
+                    prompt,
+                    # # callbacks=self.conversation_manager.agent_callbacks
                 )
                 break
 

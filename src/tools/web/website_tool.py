@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.llm_helper import get_tool_llm
+from src.ai.prompts.prompt_models.document_summary import DocumentChunkSummaryInput, DocumentSummaryOutput, DocumentQuerySummaryRefineInput
+from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -82,23 +84,34 @@ class WebsiteTool:
             configuration=self.configuration,
             func_name=self.get_text_from_website.__name__,
             streaming=True,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         existing_summary = None
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
 
         for chunk in split_text:
             if not existing_summary:
-                prompt = self.conversation_manager.prompt_manager.get_prompt(
-                    category="summary_prompts",
-                    prompt_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-                ).format(existing_answer=existing_summary, text=chunk, query=user_query)
+                input_object = DocumentChunkSummaryInput(chunk_text=chunk)
+
+                result = query_helper.query_llm(
+                    llm=llm,
+                    prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+                    input_class_instance=input_object,
+                    output_class_type=DocumentSummaryOutput,
+                )
+
+                existing_summary = result.summary
             else:
-                prompt = self.conversation_manager.prompt_manager.get_prompt(
-                    category="summary_prompts", prompt_name="SIMPLE_REFINE_TEMPLATE"
-                ).format(existing_answer=existing_summary, text=chunk, query=user_query)
+                input_object = DocumentQuerySummaryRefineInput(text=chunk, existing_answer=existing_summary, query=user_query)
 
-            existing_summary = llm.invoke(
-                prompt
-            )
+                result = query_helper.query_llm(
+                    llm=llm,
+                    prompt_template_name="SIMPLE_REFINE_TEMPLATE",
+                    input_class_instance=input_object,
+                    output_class_type=DocumentSummaryOutput,
+                )
 
-        return existing_summary.content
+                existing_summary = result.summary                
+
+        return existing_summary

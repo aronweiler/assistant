@@ -1,6 +1,7 @@
 ## Taken from langchain... had to modify this to allow me to prune stored messages on retrieval,
 # not have the pruning occur on savecontext. Should probably create a PR or something.
 
+from functools import lru_cache
 from typing import Any, Dict, List
 
 from langchain.memory.chat_memory import BaseChatMemory
@@ -13,7 +14,6 @@ class ConversationTokenBufferMemory(BaseChatMemory):
 
     human_prefix: str = "Human"
     ai_prefix: str = "AI"
-    llm: BaseLanguageModel
     memory_key: str = "history"
     max_token_limit: int = 2000
 
@@ -55,11 +55,71 @@ class ConversationTokenBufferMemory(BaseChatMemory):
     def get_messages(self):
         # Prune buffer if it exceeds max token limit
         buffer = self.chat_memory.messages
-        curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+        curr_buffer_length = self.get_num_tokens_from_messages(buffer)
         if curr_buffer_length > self.max_token_limit:
             pruned_memory = []
             while curr_buffer_length > self.max_token_limit:
                 pruned_memory.append(buffer.pop(0))
-                curr_buffer_length = self.llm.get_num_tokens_from_messages(buffer)
+                curr_buffer_length = self.get_num_tokens_from_messages(buffer)
 
         return buffer
+
+    def get_token_ids(self, text: str) -> List[int]:
+        """Return the ordered ids of the tokens in a text.
+
+        Args:
+            text: The string input to tokenize.
+
+        Returns:
+            A list of ids corresponding to the tokens in the text, in order they occur
+                in the text.
+        """
+        return self._get_token_ids_default_method(text)
+
+    def get_num_tokens(self, text: str) -> int:
+        """Get the number of tokens present in the text.
+
+        Useful for checking if an input will fit in a model's context window.
+
+        Args:
+            text: The string input to tokenize.
+
+        Returns:
+            The integer number of tokens in the text.
+        """
+        return len(self.get_token_ids(text))
+
+    def get_num_tokens_from_messages(self, messages: List[BaseMessage]) -> int:
+        """Get the number of tokens in the messages.
+
+        Useful for checking if an input will fit in a model's context window.
+
+        Args:
+            messages: The message inputs to tokenize.
+
+        Returns:
+            The sum of the number of tokens across the messages.
+        """
+        return sum([self.get_num_tokens(get_buffer_string([m])) for m in messages])
+
+    def _get_token_ids_default_method(self, text: str) -> List[int]:
+        """Encode the text into token IDs."""
+        # get the cached tokenizer
+        tokenizer = get_tokenizer()
+
+        # tokenize the text using the GPT-2 tokenizer
+        return tokenizer.encode(text)
+
+
+@lru_cache(maxsize=None)  # Cache the tokenizer
+def get_tokenizer() -> Any:
+    try:
+        from transformers import GPT2TokenizerFast  # type: ignore[import]
+    except ImportError:
+        raise ImportError(
+            "Could not import transformers python package. "
+            "This is needed in order to calculate get_token_ids. "
+            "Please install it with `pip install transformers`."
+        )
+    # create a GPT-2 tokenizer instance
+    return GPT2TokenizerFast.from_pretrained("gpt2")

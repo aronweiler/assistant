@@ -7,6 +7,27 @@ from langchain.base_language import BaseLanguageModel
 from langchain.agents import AgentExecutor
 from langchain.chains.llm import LLMChain
 from langchain.memory.readonly import ReadOnlySharedMemory
+from src.ai.prompts.prompt_models.code_details_extraction import (
+    CodeDetailsExtractionInput,
+    CodeDetailsExtractionOutput,
+)
+from src.ai.prompts.prompt_models.conversation_summary import (
+    ConversationSummaryInput,
+    ConversationSummaryOutput,
+)
+from src.ai.prompts.prompt_models.conversational import (
+    ConversationalInput,
+    ConversationalOutput,
+)
+from src.ai.prompts.prompt_models.document_summary import (
+    DocumentChunkSummaryInput,
+    DocumentSummaryOutput,
+)
+from src.ai.prompts.prompt_models.question_generation import (
+    QuestionGenerationInput,
+    QuestionGenerationOutput,
+)
+from src.ai.prompts.query_helper import QueryHelper
 
 from src.configuration.assistant_configuration import (
     ModelConfiguration,
@@ -50,21 +71,6 @@ class RetrievalAugmentedGenerationAI:
         self.streaming = streaming
         self.prompt_manager = prompt_manager
 
-        # Initialize the language model with the provided configuration
-        self.llm = get_llm(
-            self.configuration["jarvis_ai"]["model_configuration"],
-            tags=["retrieval-augmented-generation-ai"],
-            streaming=streaming,
-            model_kwargs={
-                "frequency_penalty": self.configuration["jarvis_ai"].get(
-                    "frequency_penalty", DEFAULT_FREQUENCY_PENALTY
-                ),
-                "presence_penalty": self.configuration["jarvis_ai"].get(
-                    "presence_penalty", DEFAULT_PRESENCE_PENALTY
-                ),
-            },
-        )
-
         # Extract conversation history settings from the configuration
         max_conversation_history_tokens = self.configuration["jarvis_ai"][
             "model_configuration"
@@ -77,26 +83,13 @@ class RetrievalAugmentedGenerationAI:
         self.conversation_manager = ConversationManager(
             conversation_id=conversation_id,
             user_email=user_email,
-            llm=self.llm,
             prompt_manager=self.prompt_manager,
             max_conversation_history_tokens=max_conversation_history_tokens,
             uses_conversation_history=uses_conversation_history,
             override_memory=override_memory,
         )
 
-        # Initialize the shared memory for conversation history
-        memory = ReadOnlySharedMemory(
-            memory=self.conversation_manager.conversation_token_buffer_memory
-        )
-
-        # Set up the language model chain with the appropriate prompts and memory
-        self.chain = LLMChain(
-            llm=self.llm,
-            prompt=self.prompt_manager.get_prompt(
-                "conversational_prompts", "CONVERSATIONAL_PROMPT"
-            ),
-            memory=memory,
-        )
+        self.query_helper = QueryHelper(prompt_manager=self.prompt_manager)
 
         # Initialize the tool manager and load the available tools
         self.tool_manager = ToolManager(
@@ -114,6 +107,7 @@ class RetrievalAugmentedGenerationAI:
         agent = GenericToolsAgent(
             model_configuration=model_configuration,
             conversation_manager=self.conversation_manager,
+            tool_manager=self.tool_manager,
             tools=tools,
             streaming=self.streaming,
         )
@@ -162,17 +156,6 @@ class RetrievalAugmentedGenerationAI:
 
             output = results["output"]
 
-            for step in results["intermediate_steps"]:
-                self.conversation_manager.conversations_helper.add_tool_call_results(
-                    conversation_id=self.conversation_manager.conversation_id,
-                    tool_name=step[0].tool,
-                    tool_arguments=json.dumps(step[0].tool_input),
-                    tool_results=step[1],
-                )
-        elif ai_mode.lower().startswith("code"):
-            logging.debug("Running agent in 'Code' mode")
-            raise NotImplementedError("Code mode is not yet implemented")
-
         # if results is a list, collapse it into a single string
         if isinstance(output, list):
             output = "\n".join(output)
@@ -188,24 +171,47 @@ class RetrievalAugmentedGenerationAI:
         return output
 
     def run_chain(self, query: str, kwargs: dict = {}):
-        return self.chain.run(
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["model_configuration"],
+            tags=["conversational-ai"],
+            callbacks=self.conversation_manager.llm_callbacks,
+            streaming=True,
+            model_kwargs={
+                "frequency_penalty": self.configuration["jarvis_ai"].get(
+                    "frequency_penalty", DEFAULT_FREQUENCY_PENALTY
+                ),
+                "presence_penalty": self.configuration["jarvis_ai"].get(
+                    "presence_penalty", DEFAULT_PRESENCE_PENALTY
+                ),
+            },
+        )
+
+        input_object = ConversationalInput(
             system_prompt="You are a friendly AI who's purpose it is to engage a user in conversation.  Try to mirror their emotional state, and answer their questions.  If you don't know the answer, don't make anything up, just say you don't know.",
-            input=query,
+            user_query=query,
             user_name=self.conversation_manager.user_name,
             user_email=self.conversation_manager.user_email,
+            chat_history=self.conversation_manager.get_chat_history_prompt(),
             system_information=get_system_information(
                 self.conversation_manager.user_location
             ),
-            context="N/A",
-            loaded_documents="\n".join(
-                self.conversation_manager.get_loaded_documents_for_display()
-            ),
-            callbacks=self.conversation_manager.llm_callbacks,
         )
+
+        result = self.query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="CONVERSATIONAL_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=ConversationalOutput,
+        )
+
+        return result.answer
 
     def run_agent(self, query: str, kwargs: dict = {}):
         timeout = kwargs.get("agent_timeout", 300)
         max_iterations = kwargs.get("max_iterations", 25)
+        evaluate_response = kwargs.get("evaluate_response", False)
+        re_planning_threshold = kwargs.get("re_planning_threshold", 0.5)
+
         logging.debug(f"Creating agent with {timeout} second timeout")
         agent = self.create_agent(agent_timeout=timeout, max_iterations=max_iterations)
 
@@ -219,7 +225,8 @@ class RetrievalAugmentedGenerationAI:
                 ),
                 "user_name": self.conversation_manager.user_name,
                 "user_email": self.conversation_manager.user_email,
-                # "callbacks": self.conversation_manager.agent_callbacks,
+                "evaluate_response": evaluate_response,
+                "re_planning_threshold": re_planning_threshold,
             }
         )
 
@@ -228,87 +235,99 @@ class RetrievalAugmentedGenerationAI:
     def check_summary(self, query):
         if self.conversation_manager.conversation_needs_summary:
             logging.debug("Interaction needs summary, generating one now")
-            conversation_summary = self.llm.invoke(
-                self.prompt_manager.get_prompt(
-                    "summary_prompts",
-                    "SUMMARIZE_FOR_LABEL_TEMPLATE",
-                ).format(query=query)
-            )
+            conversation_summary = self.generate_conversation_summary(query=query)
 
-            self.conversation_manager.set_conversation_summary(
-                conversation_summary.content
-            )
+            self.conversation_manager.set_conversation_summary(conversation_summary)
             self.conversation_manager.conversation_needs_summary = False
-            logging.debug(f"Generated summary: {conversation_summary.content}")
+            logging.debug(f"Generated summary: {conversation_summary}")
 
-    def generate_keywords_and_descriptions_from_code_file(self, code: str) -> dict:
+    def generate_conversation_summary(self, query: str):
+        llm = get_llm(
+            self.configuration["jarvis_ai"]["model_configuration"],
+            tags=["conversation-summary-ai"],
+            streaming=False,
+        )
+
+        summary_input = ConversationSummaryInput(
+            user_query=query,
+        )
+
+        summary_output = self.query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="SUMMARIZE_FOR_LABEL_TEMPLATE",
+            input_class_instance=summary_input,
+            output_class_type=ConversationSummaryOutput,
+        )
+
+        return summary_output.summary
+
+    def generate_keywords_and_descriptions_from_code_file(self, code: str) -> CodeDetailsExtractionOutput:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"
             ],
-            tags=["retrieval-augmented-generation-ai"],
+            tags=["generate_keywords_and_descriptions_from_code_file"],
             streaming=False,
         )
 
-        response = llm.invoke(
-            self.prompt_manager.get_prompt(
-                "code_general_prompts",
-                "CODE_DETAILS_EXTRACTION_TEMPLATE",
-            ).format(code=code),
+        input_object = CodeDetailsExtractionInput(code=code)
+
+        result = self.query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="CODE_DETAILS_EXTRACTION_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=CodeDetailsExtractionOutput,
             timeout=30000,
         )
 
-        keywords = parse_json(text=response.content, llm=llm)
-
-        return keywords
+        return result
 
     # Required by the Jarvis UI when ingesting files
     def generate_detailed_document_chunk_summary(
         self,
-        document_text: str,
+        chunk_text: str,
     ) -> str:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"
             ],
-            tags=["retrieval-augmented-generation-ai"],
+            tags=["generate_detailed_document_chunk_summary"],
             streaming=False,
         )
 
-        summary = llm.invoke(
-            self.prompt_manager.get_prompt(
-                "summary_prompts",
-                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text)
+        input_object = DocumentChunkSummaryInput(chunk_text=chunk_text)
+
+        result = self.query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=DocumentSummaryOutput,
         )
 
-        return summary.content
+        return result.summary
 
     # Required by the Jarvis UI when generating questions for ingested files
-    def generate_chunk_questions(
-        self, document_text: str, number_of_questions: int = 5
-    ) -> List:
+    def generate_chunk_questions(self, text: str, number_of_questions: int = 5) -> List:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"
             ],
-            tags=["retrieval-augmented-generation-ai"],
+            tags=["generate_chunk_questions"],
             streaming=False,
         )
 
-        response = llm.invoke(
-            self.prompt_manager.get_prompt(
-                "questions_prompts",
-                "CHUNK_QUESTIONS_TEMPLATE",
-            ).format(
-                document_text=document_text, number_of_questions=number_of_questions
-            ),
-            timeout=30000,
+        input_object = QuestionGenerationInput(
+            document_text=text, number_of_questions=number_of_questions
         )
 
-        questions = parse_json(text=response.content, llm=llm)
+        result = self.query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="CHUNK_QUESTIONS_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=QuestionGenerationOutput,
+        )
 
-        return questions
+        return result
 
     def generate_detailed_document_summary(
         self,

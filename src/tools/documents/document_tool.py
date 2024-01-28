@@ -12,6 +12,22 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.prompts.prompt_models.document_summary import (
+    DocumentChunkSummaryInput,
+    DocumentSummaryOutput,
+    DocumentSummaryRefineInput,
+)
+from src.ai.prompts.prompt_models.document_search import (
+    DocumentSearchInput,
+    DocumentSearchOutput,
+)
+from src.ai.prompts.prompt_models.tool_use import (
+    AdditionalToolUseInput,
+    AdditionalToolUseOutput,
+)
+from src.ai.prompts.query_helper import QueryHelper
+from src.ai.tools.tool_loader import get_available_tools
+from src.ai.tools.tool_manager import ToolManager
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.utilities.parsing_utilities import parse_json
 
@@ -87,47 +103,80 @@ class DocumentTool:
                         "frequency_penalty": 0.7,
                         "presence_penalty": 0.9,
                     },
+                    callbacks=self.conversation_manager.agent_callbacks,
                 )
 
-                additional_prompt_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
-                        "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
-                    )
+                available_tools = get_available_tools(
+                    self.configuration, self.conversation_manager
                 )
 
-                def get_chat_history():
-                    if self.conversation_manager:
-                        return (
-                            self.conversation_manager.conversation_token_buffer_memory.buffer_as_str
-                        )
-                    else:
-                        return "No chat history."
-
-                split_prompts = llm.invoke(
-                    additional_prompt_prompt.format(
-                        additional_prompts=split_prompts,
-                        user_query=user_query,
-                        chat_history=get_chat_history(),
+                input_object = AdditionalToolUseInput(
+                    tool_name=self.search_loaded_documents.__name__,
+                    user_query=user_query,
+                    additional_tool_uses=split_prompts
+                    - 1,  # -1 to account for the original tool use
+                    system_prompt=self.conversation_manager.get_system_prompt(),
+                    loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+                    selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+                    chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
+                    previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
+                    tool_use_description=ToolManager.get_tool_details(
+                        self.search_loaded_documents.__name__, available_tools
                     ),
-                    #callbacks=self.conversation_manager.agent_callbacks,
+                    initial_tool_use=json.dumps(
+                        {
+                            "tool_name": self.search_loaded_documents.__name__,
+                            "tool_args": {
+                                "semantic_similarity_query": semantic_similarity_query,
+                                "keywords_list": keywords_list,
+                                "user_query": user_query,
+                                "target_file_id": target_file_id,
+                            },
+                        }
+                    ),
                 )
 
-                split_prompts = parse_json(split_prompts.content, llm)
+                query_helper = QueryHelper(self.conversation_manager.prompt_manager)
 
-                results = []
-                for prompt in split_prompts["prompts"]:
-                    results.append(
-                        self._search_loaded_documents(
-                            semantic_similarity_query=prompt[
-                                "semantic_similarity_query"
-                            ],
-                            keywords_list=prompt["keywords_list"],
-                            user_query=prompt["query"],
-                            target_file_id=target_file_id,
-                        )
+                result: AdditionalToolUseOutput = query_helper.query_llm(
+                    llm=llm,
+                    prompt_template_name="ADDITIONAL_TOOL_USE_TEMPLATE",
+                    input_class_instance=input_object,
+                    output_class_type=AdditionalToolUseOutput,
+                )
+
+                # Create a list of search results to add to
+                search_results = []
+
+                # Get the original tool use results
+                search_results.append(
+                    self._search_loaded_documents(
+                        semantic_similarity_query=semantic_similarity_query,
+                        keywords_list=keywords_list,
+                        user_query=user_query,
+                        target_file_id=target_file_id,
                     )
+                )
 
-                return "\n".join(results)
+                # If there are any additional tool uses, add them to the search results
+                for additional_tool_uses in result.additional_tool_use_objects:
+                    try:
+                        search_results.append(
+                            self._search_loaded_documents(
+                                semantic_similarity_query=additional_tool_uses.tool_args[
+                                    "semantic_similarity_query"
+                                ],
+                                keywords_list=additional_tool_uses.tool_args[
+                                    "keywords_list"
+                                ],
+                                user_query=additional_tool_uses.tool_args["user_query"],
+                                target_file_id=target_file_id,
+                            )
+                        )
+                    except:
+                        pass
+
+                return search_results
         except:
             pass
 
@@ -162,16 +211,19 @@ class DocumentTool:
             )
 
         similarity_documents = []
-        if search_type == "Hybrid" or search_type == "Similarity":
-            similarity_documents = (
-                self.conversation_manager.documents_helper.search_document_embeddings(
+        if (
+            search_type == "Hybrid"
+            or search_type == "Similarity"
+            and semantic_similarity_query.strip() != ""
+        ):
+            if semantic_similarity_query and semantic_similarity_query.strip() != "":
+                similarity_documents = self.conversation_manager.documents_helper.search_document_embeddings(
                     search_query=semantic_similarity_query,
                     collection_id=self.conversation_manager.collection_id,
                     search_type=SearchType.Similarity,
                     top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
                     target_file_id=target_file_id,
                 )
-            )
 
         # De-dupe the documents
         combined_documents = []
@@ -186,12 +238,6 @@ class DocumentTool:
                 combined_documents.append(document)
                 document_ids.append(document.id)
 
-        prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "document_prompts", "QUESTION_PROMPT_TEMPLATE"
-        )
-
-        # prompt_tokens = num_tokens_from_string(prompt + original_user_input)
-
         # Examine each of the documents to see if they have anything relating to the original query
         # TODO: Split the documents up into chunks that fit within the max tokens - the completion no matter what the top_k is
 
@@ -203,30 +249,38 @@ class DocumentTool:
                 f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}' {page_or_line}"
             )
 
-        prompt = prompt.format(summaries="\n\n".join(summaries), question=user_query)
-
         llm = get_tool_llm(
             configuration=self.configuration,
             func_name=self.search_loaded_documents.__name__,
             streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        result = llm.invoke(
-            prompt, 
-            #callbacks=self.conversation_manager.agent_callbacks
+        input_object = DocumentSearchInput(summaries=summaries, question=user_query)
+
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+
+        result: DocumentSearchOutput = query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="QUESTION_PROMPT_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=DocumentSearchOutput,
         )
 
-        return result.content
+        return result
 
-    def generate_detailed_document_chunk_summary(self, document_text: str, llm) -> str:
-        summary = llm.invoke(
-            self.conversation_manager.prompt_manager.get_prompt(
-                "summary_prompts",
-                "DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
-            ).format(text=document_text),
-            #callbacks=self.conversation_manager.agent_callbacks,
+    def generate_detailed_document_chunk_summary(self, chunk_text: str, llm) -> str:
+        input_object = DocumentChunkSummaryInput(chunk_text=chunk_text)
+
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+        result = query_helper.query_llm(
+            llm=llm,
+            prompt_template_name="DETAILED_DOCUMENT_CHUNK_SUMMARY_TEMPLATE",
+            input_class_instance=input_object,
+            output_class_type=DocumentSummaryOutput,
         )
-        return summary.content
+
+        return result.summary
 
     # TODO: Replace this summarize with a summarize call when ingesting documents.  Store the summary in the DB for retrieval here.
     @register_tool(
@@ -248,6 +302,7 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.summarize_entire_document.__name__,
             streaming=True,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         return self.summarize_entire_document_with_llm(llm, target_file_id)
@@ -266,60 +321,42 @@ class DocumentTool:
             target_file_id=target_file_id
         )
 
+        existing_summary = "No summary yet!"
+
         # Are there already document chunk summaries?
         for chunk in document_chunks:
             if not chunk.document_text_has_summary:
                 # Summarize the chunk
                 summary_chunk = self.generate_detailed_document_chunk_summary(
-                    document_text=chunk.document_text, llm=llm
+                    chunk_text=chunk.document_text, llm=llm
                 )
                 documents.set_document_text_summary(
                     chunk.id, summary_chunk, self.conversation_manager.collection_id
                 )
 
-        reduce_chain = LLMChain(
-            llm=llm,
-            prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "summary_prompts",
-                "REDUCE_SUMMARIES_PROMPT",
-            ),
-        )
-
-        # Takes a list of documents, combines them into a single string, and passes this to an LLMChain
-        combine_documents_chain = StuffDocumentsChain(
-            llm_chain=reduce_chain, document_variable_name="doc_summaries"
-        )
-
-        # Combines and iteravely reduces the document summaries
-        reduce_documents_chain = ReduceDocumentsChain(
-            # This is final chain that is called.
-            combine_documents_chain=combine_documents_chain,
-            # If documents exceed context for `StuffDocumentsChain`
-            collapse_documents_chain=combine_documents_chain,
-            # The maximum number of tokens to group documents into.
-            token_max=self.conversation_manager.tool_kwargs.get(
-                "max_summary_chunk_tokens", 5000
-            ),
-        )
-
-        document_chunks = documents.get_document_chunks_by_file_id(target_file_id)
-
-        docs = [
-            Document(
-                page_content=doc_chunk.document_text_summary,
-                metadata=doc_chunk.additional_metadata,
+            input_object = DocumentSummaryRefineInput(
+                text=chunk.document_text, existing_summary=existing_summary
             )
-            for doc_chunk in document_chunks
-        ]
 
-        summary = reduce_documents_chain.run(docs)
+            query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+
+            result = query_helper.query_llm(
+                llm=llm,
+                prompt_template_name="DOCUMENT_REFINE_TEMPLATE",
+                input_class_instance=input_object,
+                output_class_type=DocumentSummaryOutput,
+            )
+
+            existing_summary = result.summary
 
         # Put the summary into the DB so we don't have to re-run this.
         documents.update_file_summary_and_class(
-            file_id=file.id, summary=summary, classification=file.file_classification
+            file_id=file.id,
+            summary=existing_summary,
+            classification=file.file_classification,
         )
 
-        return summary
+        return existing_summary
 
     def summarize_search_topic(self, query: str, original_user_query: str):
         """Useful for getting a summary of a topic or query from the user.
@@ -358,6 +395,7 @@ class DocumentTool:
             configuration=self.configuration,
             func_name=self.summarize_search_topic.__name__,
             streaming=True,
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         summary = self.refine_summarize(llm=llm, query=query, docs=docs)
@@ -373,12 +411,11 @@ class DocumentTool:
         chain = load_summarize_chain(
             llm=llm,
             chain_type="refine",
-            question_prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "summary_prompts",
+            question_prompt=self.conversation_manager.prompt_manager.get_prompt_by_template_name(
                 "DETAILED_SUMMARIZE_PROMPT",
             ),
-            refine_prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "summary_prompts", refine_prompt
+            refine_prompt=self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                refine_prompt
             ),
             return_intermediate_steps=True,
             input_key="input_documents",
@@ -409,107 +446,6 @@ class DocumentTool:
         return "The loaded documents I have access to are:\n\n-" + "\n-".join(
             self.conversation_manager.get_loaded_documents_for_display()
         )
-
-    @register_tool(
-        display_name="Search Entire Document",
-        description="Exhaustively searches a single document for one or more queries.",
-        additional_instructions="Exhaustively searches a single document for one or more queries.  The input to this tool (queries) should be a list of one or more stand-alone FULLY FORMED questions you want answered.  Make sure that each question can stand on its own, without referencing the chat history or any other context.  The question should be formed for the purpose of having an LLM use it to search a chunk of text, e.g. 'What is the origin of the universe?', or 'What is the meaning of life?'.",
-        help_text="Exhaustively searches a single document for one or more queries. ⚠️ This can be slow and expensive, as it will process the entire target document.",
-        requires_documents=True,
-        document_classes=["Document", "Code", "Spreadsheet"],
-    )
-    def search_entire_document(self, target_file_id: int, queries: List[str]):
-        """Search the entire document."""
-
-        documents = Documents()
-
-        file = documents.get_file(target_file_id)
-
-        # Get the document chunks
-        document_chunks = documents.get_document_chunks_by_file_id(
-            target_file_id=target_file_id
-        )
-
-        tool_config = configuration_utilities.get_tool_configuration(
-            configuration=self.configuration,
-            func_name=self.search_entire_document.__name__,
-        )
-
-        # TODO: Figure out the right amount of prompt tokens- currently too many causes the LLM to miss things.
-        # max_prompt_tokens = (
-        #     tool_config["model_configuration"]["max_model_supported_tokens"] * 0.75
-        # )
-        max_prompt_tokens = 1000
-
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.search_entire_document.__name__,
-            streaming=True,
-        )
-
-        questions = "- " + "\n-".join(queries)
-        prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "document_prompts", "SEARCH_ENTIRE_DOCUMENT_TEMPLATE"
-        )
-
-        document_chunks_length = len(document_chunks)
-
-        intermediate_results = []
-        index = 0
-        while index < document_chunks_length:
-            previous_context = (
-                f"CHUNK {index - 1}:\n{document_chunks[index - 1].document_text}\nSOURCE: file_id='{document_chunks[index - 1].file_id}', file_name='{document_chunks[index - 1].document_name}' {self.get_page_or_line(document_chunks[index - 1])}\n----"
-                if index > 0
-                else ""
-            )
-
-            document_texts = []
-
-            while True:
-                document_texts.append(
-                    f"CHUNK {index}:\n{document_chunks[index].document_text}\nSOURCE: file_id='{document_chunks[index].file_id}', file_name='{document_chunks[index].document_name}' {self.get_page_or_line(document_chunks[index])}"
-                )
-
-                # Get the approximate number of tokens in the prompt
-                current_prompt_text = (
-                    prompt
-                    + "\n"
-                    + questions
-                    + "\n"
-                    + previous_context
-                    + "\n"
-                    + "\n----\n".join(document_texts)
-                )
-
-                total_tokens = num_tokens_from_string(current_prompt_text)
-
-                index += 1
-
-                if total_tokens >= max_prompt_tokens or index >= document_chunks_length:
-                    break
-
-            formatted_prompt = prompt.format(
-                questions=questions,
-                previous_context=previous_context,
-                current_context="\n----\n".join(document_texts),
-            )
-
-            answer = llm.invoke(
-                formatted_prompt,
-                #callbacks=self.conversation_manager.agent_callbacks,
-            ).content
-
-            if not answer.lower().startswith("no relevant information"):
-                intermediate_results.append(answer)
-            else:
-                logging.debug("No relevant information found in chunk.")
-
-        result = (
-            f"Searching the document, '{file.file_name}', yielded the following data:\n"
-            + "\n".join(intermediate_results)
-        )
-
-        return result
 
     def get_page_or_line(self, document):
         if "page" in document.additional_metadata:

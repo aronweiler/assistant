@@ -35,6 +35,7 @@ class LLMTool:
                 "frequency_penalty": 0.7,
                 "presence_penalty": 0.6,
             },
+            # callbacks=self.conversation_manager.agent_callbacks,
         )
 
         uses_conversation_history = self.configuration["tool_configurations"][
@@ -78,8 +79,8 @@ class LLMTool:
 
         self.chain = LLMChain(
             llm=llm,
-            prompt=self.conversation_manager.prompt_manager.get_prompt(
-                "conversational_prompts", "CONVERSATIONAL_PROMPT"
+            prompt=self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                "CONVERSATIONAL_PROMPT"
             ),
             memory=memory,
         )
@@ -96,5 +97,5 @@ class LLMTool:
             loaded_documents="\n".join(
                 self.conversation_manager.get_loaded_documents_for_display()
             ),
-            callbacks=self.llm_callbacks,
+            # callbacks=self.llm_callbacks,
         )

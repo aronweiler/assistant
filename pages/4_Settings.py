@@ -270,6 +270,22 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         "Same seed values in the same requests will produce more deterministic results."
     )
 
+    response_format_options = ["text", "json_object"]
+    response_format_value = tool_configuration["model_configuration"]["model_kwargs"][
+            "response_format"
+        ].get("type", "text")
+    response_format_index = response_format_options.index(response_format_value)
+
+    st_sucks_col1.selectbox(
+        "Model Output Type",
+        options=response_format_options,
+        index=response_format_index,
+        key=f"{tool_name}-response_format",
+    )
+    st_sucks_col2.markdown(
+        "Using the `json_object` response format will return the model output as a JSON object, making tool use and other features more reliable."
+    )
+
     def update_sliders(
         max_supported_tokens,
         max_model_completion_tokens,
@@ -422,7 +438,7 @@ def show_model_settings(configuration, tool_name, tool_details):
 
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
-    tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
+    #tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
     tools = get_available_tools(configuration=configuration, conversation_manager=None)
 
     # tool_categories = {tool['category'] for tool in configuration['tool_configurations'].values() if 'category' in tool}
@@ -452,18 +468,26 @@ def tools_settings():
             col1, col2, col3 = st.columns([3, 5, 5])
             col1.toggle(
                 "Enabled",
-                value=tool_manager.is_tool_enabled(tool.name),
+                value=ToolManager.is_tool_enabled(tool.name),
                 key=tool.name,
-                on_change=tool_manager.toggle_tool,
-                kwargs={"tool_name": tool.name},
+                # on_change=tool_manager.toggle_tool,
+                # kwargs={"tool_name": tool.name},
             )
             col2.toggle(
                 "Return results directly to UI",
-                value=tool_manager.should_return_direct(tool.name),
+                value=ToolManager.should_return_direct(tool.name),
                 help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
                 key=f"{tool.name}-return-direct",
-                on_change=tool_manager.toggle_tool,
-                kwargs={"tool_name": tool.name},
+                # on_change=tool_manager.toggle_tool,
+                # kwargs={"tool_name": tool.name},
+            )
+            col3.toggle(
+                "Include Results in Conversation",
+                value=ToolManager.should_include_in_conversation(tool.name),
+                help="When enabled, the results of this tool will be included in the conversation history.\n\n*Turn this on when you want the LLM to always remember results returned for this tool.*",
+                key=f"{tool.name}-include-in-conversation",
+                # on_change=tool_manager.toggle_tool,
+                # kwargs={"tool_name": tool.name},
             )
 
             show_model_settings(configuration, tool.name, tool)
@@ -495,6 +519,15 @@ def save_tool_settings(tools, configuration, selected_category):
         if enabled != existing_tool_configuration["enabled"]:
             needs_saving = True
 
+        include_results_in_conversation_history = st.session_state[
+            f"{tool.name}-include-in-conversation"
+        ]
+        if (
+            include_results_in_conversation_history
+            != existing_tool_configuration["include_in_conversation"]
+        ):
+            needs_saving = True
+
         return_direct = st.session_state[f"{tool.name}-return-direct"]
         if return_direct != existing_tool_configuration["return_direct"]:
             needs_saving = True
@@ -508,6 +541,7 @@ def save_tool_settings(tools, configuration, selected_category):
             save_tool_settings_to_file(
                 tool_name=tool.name,
                 enabled=enabled,
+                include_results_in_conversation_history=include_results_in_conversation_history,
                 return_direct=return_direct,
                 model_configuration=model_configuration,
             )
@@ -587,6 +621,18 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
         ):
             needs_saving = True
 
+        response_format_type = st.session_state[f"{tool_name}-response_format"]
+        if (
+            "model_kwargs" not in existing_tool_configuration["model_configuration"]
+            or "response_format"
+            not in existing_tool_configuration["model_configuration"]["model_kwargs"]
+            or response_format_type
+            != existing_tool_configuration["model_configuration"]["model_kwargs"][
+                "response_format"
+            ].get("type", "text")
+        ):
+            needs_saving = True
+
         model_configuration = {
             "llm_type": llm_type,
             "model": model,
@@ -596,7 +642,10 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
             "uses_conversation_history": uses_conversation_history,
             "max_conversation_history_tokens": max_conversation_history_tokens,
             "max_completion_tokens": max_completion_tokens,
-            "model_kwargs": {"seed": seed},
+            "model_kwargs": {
+                "seed": seed,
+                "response_format": {"type": response_format_type},
+            },
         }
 
     return model_configuration, needs_saving
@@ -627,9 +676,18 @@ def save_jarvis_settings_to_file(
     st.session_state["app_config"] = configuration
 
 
-def save_tool_settings_to_file(tool_name, enabled, return_direct, model_configuration):
+def save_tool_settings_to_file(
+    tool_name,
+    enabled,
+    include_results_in_conversation_history,
+    return_direct,
+    model_configuration,
+):
     configuration = ui_shared.get_app_configuration()
     configuration["tool_configurations"][tool_name]["enabled"] = enabled
+    configuration["tool_configurations"][tool_name][
+        "include_in_conversation"
+    ] = include_results_in_conversation_history
     configuration["tool_configurations"][tool_name]["return_direct"] = return_direct
     if model_configuration:
         configuration["tool_configurations"][tool_name][

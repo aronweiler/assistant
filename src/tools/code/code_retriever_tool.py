@@ -93,7 +93,7 @@ class CodeRetrieverTool:
         description="Gets source code from a specified URL",
         additional_instructions="Use this tool to get source code from a source control provider, such as GitHub or GitLab.",
     )
-    def retrieve_source_code_from_url(self, url: str) -> str:
+    def retrieve_source_code_from_url(self, url: str) -> dict:
         """
         Retrieves source code from a given URL using the appropriate source control provider.
 
@@ -109,7 +109,7 @@ class CodeRetrieverTool:
         except Exception as e:
             return f"Error retrieving source code.  Please check your source control settings.  Exception: {e}"
 
-    def retrieve_source_code(self, url: str) -> str:
+    def retrieve_source_code(self, url: str) -> dict:
         """
         Retrieves source code from a given URL using the appropriate source control provider.
 

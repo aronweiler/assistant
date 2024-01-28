@@ -11,6 +11,21 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
+from src.ai.prompts.prompt_models.code_examination import (
+    AnswerQueryInput,
+    AnswerQueryOutput,
+    GetRelevantSnippetsInput,
+    GetRelevantSnippetsOutput,
+    IdentifyLikelyFilesInput,
+    IdentifyLikelyFilesOutput,
+)
+from src.ai.prompts.prompt_models.tool_use import (
+    AdditionalToolUseInput,
+    AdditionalToolUseOutput,
+)
+from src.ai.prompts.query_helper import QueryHelper
+from src.ai.tools.tool_loader import get_available_tools
+from src.ai.tools.tool_manager import ToolManager
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.db.models.domain.code_file_model import CodeFileModel
 from src.utilities.parsing_utilities import parse_json
@@ -68,8 +83,8 @@ class CodeRepositoryTool:
 
         results = ""
         for code_file in code_files:
-            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"       
-                 
+            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"
+
         return results
 
     @register_tool(
@@ -244,6 +259,13 @@ class CodeRepositoryTool:
     def codebase_functionality_search(self, description: str, keywords_list: List[str]):
         """Locates specific functionality within the codebase."""
         try:
+            llm = get_tool_llm(
+                configuration=self.configuration,
+                func_name=self.codebase_functionality_search.__name__,
+                streaming=True,
+                callbacks=self.conversation_manager.agent_callbacks,
+            )
+
             # Use the file_information_discovery tool to find files that may contain the desired functionality
             file_info_list = self.file_information_discovery(
                 semantic_similarity_query=description, keywords_list=keywords_list
@@ -256,38 +278,27 @@ class CodeRepositoryTool:
                     file_ids=[file_info["file_id"]]
                 )
 
-                get_relevant_snippets_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
-                        "code_general_prompts", "GET_RELEVANT_SNIPPETS_TEMPLATE"
-                    )
-                ).format(
+                input_object = GetRelevantSnippetsInput(
                     file_id=file_info["file_id"],
                     file_name=file_info["file_name"],
                     code=code_file["file_content"],
-                    description=description,
+                    code_description=description,
                 )
 
-                llm = get_tool_llm(
-                    configuration=self.configuration,
-                    func_name=self.codebase_functionality_search.__name__,
-                    streaming=True,
-                )
+                query_helper = QueryHelper(self.conversation_manager.prompt_manager)
 
-                relevant_snippets = parse_json(
-                    llm.invoke(
-                        get_relevant_snippets_prompt,
-                        #callbacks=self.conversation_manager.agent_callbacks,
-                    ),
+                result: GetRelevantSnippetsOutput = query_helper.query_llm(
                     llm=llm,
+                    input_class_instance=input_object,
+                    prompt_template_name="GET_RELEVANT_SNIPPETS_TEMPLATE",
+                    output_class_type=GetRelevantSnippetsOutput,
                 )
-                
-                content = relevant_snippets.content
 
-                if isinstance(content, str):
-                    content = [content]
+                if isinstance(result.relevant_snippets, str):
+                    result.relevant_snippets = [result.relevant_snippets]
 
-                if len(content) == 0:
-                    content = [
+                if len(result.relevant_snippets) == 0:
+                    result.relevant_snippets = [
                         f"No relevant snippets found in {file_info['file_name']}."
                     ]
 
@@ -295,11 +306,12 @@ class CodeRepositoryTool:
                     {
                         "file_name": file_info["file_name"],
                         "file_id": file_info["file_id"],
-                        "snippets": content,  
+                        "snippets": result.relevant_snippets,
                     }
                 )
 
             return functionality_snippets
+
         except Exception as e:
             return f"An error occurred during the search: {str(e)}"
 
@@ -373,46 +385,77 @@ class CodeRepositoryTool:
                         "frequency_penalty": 0.7,
                         "presence_penalty": 0.9,
                     },
+                    callbacks=self.conversation_manager.agent_callbacks,
                 )
 
-                additional_prompt_prompt = (
-                    self.conversation_manager.prompt_manager.get_prompt(
-                        "prompt_refactoring_prompts", "ADDITIONAL_PROMPTS_TEMPLATE"
+                available_tools = get_available_tools(
+                    self.configuration, self.conversation_manager
+                )
+
+                input_object = AdditionalToolUseInput(
+                    tool_name=self.comprehensive_repository_search.__name__,
+                    user_query=user_query,
+                    additional_tool_uses=split_prompts
+                    - 1,  # -1 to account for the original tool use
+                    system_prompt=self.conversation_manager.get_system_prompt(),
+                    loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
+                    selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+                    chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
+                    previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
+                    tool_use_description=ToolManager.get_tool_details(
+                        self.comprehensive_repository_search.__name__, available_tools
+                    ),
+                    initial_tool_use=json.dumps(
+                        {
+                            "tool_name": self.comprehensive_repository_search.__name__,
+                            "tool_args": {
+                                "semantic_similarity_query": semantic_similarity_query,
+                                "keywords_list": keywords_list,
+                                "user_query": user_query,
+                                "exclude_file_names": exclude_file_names,
+                            },
+                        }
+                    ),
+                )
+
+                query_helper = QueryHelper(self.conversation_manager.prompt_manager)
+
+                result: AdditionalToolUseOutput = query_helper.query_llm(
+                    llm=llm,
+                    prompt_template_name="ADDITIONAL_TOOL_USE_TEMPLATE",
+                    input_class_instance=input_object,
+                    output_class_type=AdditionalToolUseOutput,
+                )
+
+                search_results = []
+
+                # Get the results from the initial tool use
+                search_results.append(
+                    self._search_repository_documents(
+                        repository_id=self.conversation_manager.get_selected_repository().id,
+                        semantic_similarity_query=semantic_similarity_query,
+                        keywords_list=keywords_list,
+                        user_query=user_query,
+                        exclude_file_names=exclude_file_names,
                     )
                 )
 
-                def get_chat_history():
-                    if self.conversation_manager:
-                        return (
-                            self.conversation_manager.conversation_token_buffer_memory.buffer_as_str
-                        )
-                    else:
-                        return "No chat history."
-
-                split_prompts = llm.invoke(
-                    additional_prompt_prompt.format(
-                        additional_prompts=split_prompts,
-                        user_query=user_query,
-                        chat_history=get_chat_history(),
-                    ),
-                    #callbacks=self.conversation_manager.agent_callbacks,
-                )
-
-                split_prompts = parse_json(split_prompts.content, llm)
-
-                results = []
-                for prompt in split_prompts["prompts"]:
-                    results.append(
+                # If we have additional tool uses, we need to run them
+                for additional_tool_uses in result.additional_tool_use_objects:
+                    search_results.append(
                         self._search_repository_documents(
-                            semantic_similarity_query=prompt[
+                            repository_id=self.conversation_manager.get_selected_repository().id,
+                            semantic_similarity_query=additional_tool_uses.tool_args[
                                 "semantic_similarity_query"
                             ],
-                            keywords_list=prompt["keywords_list"],
-                            user_query=prompt["query"],
+                            keywords_list=additional_tool_uses.tool_args[
+                                "keywords_list"
+                            ],
+                            user_query=additional_tool_uses.tool_args["user_query"],
                         )
                     )
 
-                return "\n".join(results)
+                return search_results
         except:
             pass
 
@@ -421,7 +464,7 @@ class CodeRepositoryTool:
             semantic_similarity_query=semantic_similarity_query,
             keywords_list=keywords_list,
             user_query=user_query,
-            exclude_file_names=exclude_file_names
+            exclude_file_names=exclude_file_names,
         )
 
     def _search_repository_documents(
@@ -430,7 +473,7 @@ class CodeRepositoryTool:
         semantic_similarity_query: str,
         keywords_list: List[str],
         user_query: str,
-        exclude_file_names:List[str] = [],
+        exclude_file_names: List[str] = [],
     ):
         code_file_model_search_results: List[
             CodeFileModel
@@ -442,13 +485,14 @@ class CodeRepositoryTool:
             exclude_file_names=exclude_file_names,
         )
 
-        identify_likely_files_prompt = (
-            self.conversation_manager.prompt_manager.get_prompt(
-                "code_general_prompts", "IDENTIFY_LIKELY_FILES_TEMPLATE"
-            )
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.comprehensive_repository_search.__name__,
+            streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        summaries = ""
+        summaries = []
         for result in code_file_model_search_results:
             # Get the code file keywords, and descriptions
             keywords = self.conversation_manager.code_helper.get_code_file_keywords(
@@ -460,33 +504,30 @@ class CodeRepositoryTool:
                 )
             )
 
-            summaries += f"\n### (ID: {result.id}) {result.code_file_name}\n**Summary:** {result.code_file_summary}\n**Keywords:** {', '.join(keywords)}\n**Descriptions:** {', '.join(descriptions)}\n\n"
+            summaries.append(
+                f"\n### (ID: {result.id}) {result.code_file_name}\n**Summary:** {result.code_file_summary}\n**Keywords:** {', '.join(keywords)}\n**Descriptions:** {', '.join(descriptions)}"
+            )
 
-        identify_likely_files_prompt = identify_likely_files_prompt.format(
-            summaries=summaries,
-            user_query=user_query,
+        input_object = IdentifyLikelyFilesInput(
+            user_query=user_query, file_summaries=summaries
         )
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.comprehensive_repository_search.__name__,
-            streaming=True,
-        )
+        query_helper = QueryHelper(self.conversation_manager.prompt_manager)
 
-        result = llm.invoke(
-            identify_likely_files_prompt,
-            # callbacks=self.conversation_manager.agent_callbacks,
+        result: IdentifyLikelyFilesOutput = query_helper.query_llm(
+            llm=llm,
+            input_class_instance=input_object,
+            prompt_template_name="IDENTIFY_LIKELY_FILES_TEMPLATE",
+            output_class_type=IdentifyLikelyFilesOutput,
         )
-
-        # Now we have the result of which file(s) the AI thinks are most likely to contain the code that we're looking for
-        likely_file_ids = parse_json(result.content, llm)
 
         code_contents = []
-        for file_id in likely_file_ids:
+        for file_id in result.likely_files:
+            # Get the code file by ID
             code_file: CodeFileModel = (
                 self.conversation_manager.code_helper.get_code_file_by_id(file_id)
             )
-            
+
             code_contents.append(
                 {
                     "file": code_file.code_file_name,
@@ -494,25 +535,13 @@ class CodeRepositoryTool:
                 }
             )
 
-        # Now we have the code contents, we can run it through the LLM to try to answer the question
-        answer_query_prompt = self.conversation_manager.prompt_manager.get_prompt(
-            "code_general_prompts", "ANSWER_QUERY_TEMPLATE"
+        answer_query_input = AnswerQueryInput(user_query=user_query, code=code_contents)
+
+        answer_result: AnswerQueryOutput = query_helper.query_llm(
+            llm=llm,
+            input_class_instance=answer_query_input,
+            prompt_template_name="ANSWER_QUERY_TEMPLATE",
+            output_class_type=AnswerQueryOutput,
         )
 
-        code_contents_string = ""
-        for code_content in code_contents:
-            code_contents_string += (
-                f"**{code_content['file']}:**\n```\n{code_content['content']}\n```\n\n"
-            )
-
-        answer_query_prompt = answer_query_prompt.format(
-            code_contents=code_contents_string,
-            user_query=user_query,
-        )
-
-        answer = llm.invoke(
-            answer_query_prompt, 
-            #callbacks=self.conversation_manager.agent_callbacks
-        )
-
-        return answer.content
+        return answer_result
