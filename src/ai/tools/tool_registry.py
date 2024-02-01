@@ -1,5 +1,6 @@
 from collections import defaultdict
 import inspect
+import logging
 
 # This dictionary will hold all tool classes with their associated functions and metadata
 registered_tools = defaultdict(list)
@@ -9,7 +10,7 @@ registered_tools = defaultdict(list)
 def tool_class(cls):
     """Decorator to register tool classes."""
     # Print a message indicating which tool class is being registered
-    print(f"Registering tool {cls.__name__}.")
+    logging.info(f"Registering tool {cls.__name__}.")
 
     # Add the class to the registered_tools dictionary under its module name
     registered_tools[cls.__module__]["class"] = cls
@@ -70,7 +71,7 @@ def get_tool_functions(cls):
         # Check if the function has the 'tool_function' attribute
         if hasattr(func, "tool_function"):
             # Print a message indicating the function has the 'tool_function' attribute
-            print(
+            logging.info(
                 f"Function {name} in class {cls.__name__} has the @tool_function attribute."
             )
             # Add the function to the tool_functions dictionary

@@ -9,17 +9,6 @@ class UserModel:
         self.location = location
         self.email = email
 
-    # def get_setting(self, setting_name, default):
-    #     for setting in self.user_settings:
-    #         if setting.setting_name == setting_name:
-    #             return setting.setting_value
-    #     return default
-
-    # def set_setting(self, setting_name, value):
-    #     for setting in self.user_settings:
-    #         if setting.setting_name == setting_name:
-    #             setting.setting_value = value
-
     def to_database_model(self):
         return User(
             id=self.id,
