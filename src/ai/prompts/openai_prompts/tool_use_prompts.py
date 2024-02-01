@@ -83,7 +83,9 @@ Please be creative and attempt to construct different tool use JSON objects in o
 Additionally, please ensure the tool JSON you provide includes all required arguments for `{tool_name}`."""
 
 PREVIOUS_TOOL_CALLS_TEMPLATE = """
-The following are previous tool calls that were made in this conversation.  If you are considering constructing a new tool call, you should consider the previous tool calls to ensure you are not repeating a tool call that has already been made.
+The following are previous tool calls that were made in this conversation.  If you are considering constructing a new tool call, you should consider the previous tool calls to ensure you are not repeating a tool call that has already been made.  
+
+IMPORTANT! When using the results from previous tool calls, make sure to CAREFULLY examine the previous call to ensure that it exactly matches the tool call you would construct, otherwise you may be using the wrong results.  This includes file name searches, code pulls, etc.  If you are unsure, please construct a NEW tool call instead of using the results from a previous tool call.
 --- PREVIOUS TOOL CALLS ---
 {previous_tool_calls}
 --- PREVIOUS TOOL CALLS ---

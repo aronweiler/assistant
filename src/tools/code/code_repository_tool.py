@@ -83,7 +83,7 @@ class CodeRepositoryTool:
 
         results = ""
         for code_file in code_files:
-            results += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"
+            results += f"\n- {code_file.code_file_name} (ID: {code_file.id})"
 
         return results
 
@@ -152,7 +152,7 @@ class CodeRepositoryTool:
         display_name="Specific File Retrieval",
         requires_repository=True,
         description="Retrieve a particular file (or files) from the repository using its unique identifier.",
-        additional_instructions="To retrieve a file or files, pass in a list of file IDs. Use the 'Repository Structure Overview' tool to find necessary file identifiers.",
+        additional_instructions="Before attempting to retrieve the contents of any files using this tool, please first identify the unique identifiers (IDs) of the target file(s) within the repository.  Use the `repository_structure_overview` tool to find necessary file identifiers, or `file_name_search` if you are looking for an ID that represents a specific file.",
     )
     def specific_file_retrieval(self, file_ids: List[int]):
         """Gets a specific code file from a loaded code repository by name or ID."""

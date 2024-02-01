@@ -1,1 +1,1 @@
-python -m unittest discover -s "tests" -p "*_tests.py"
+python -m unittest discover -s "tests/ai" -p "*_tests.py" -v

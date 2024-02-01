@@ -217,6 +217,7 @@ class RetrievalAugmentedGenerationAI:
 
         # Run the agent
         logging.debug("Running agent")
+
         agent_results = agent.invoke(
             {
                 "input": query,
@@ -261,7 +262,9 @@ class RetrievalAugmentedGenerationAI:
 
         return summary_output.summary
 
-    def generate_keywords_and_descriptions_from_code_file(self, code: str) -> CodeDetailsExtractionOutput:
+    def generate_keywords_and_descriptions_from_code_file(
+        self, code: str
+    ) -> CodeDetailsExtractionOutput:
         llm = get_llm(
             self.configuration["jarvis_ai"]["file_ingestion_configuration"][
                 "model_configuration"

@@ -1,6 +1,10 @@
+import os
+import sys
 import unittest
 from unittest.mock import patch, MagicMock
 from uuid import uuid4
+
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 
