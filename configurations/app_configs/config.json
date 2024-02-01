@@ -713,7 +713,7 @@
         },
         "get_text_from_website": {
             "category": "Web",
-            "enabled": true,
+            "enabled": false,
             "include_in_conversation": false,
             "return_direct": false,
             "model_configuration": {
