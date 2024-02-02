@@ -80,31 +80,37 @@ def settings_page():
 
 def jama_settings():
     st.subheader("Jama Configuration")
-    
+
     if "rag_ai" not in st.session_state:
-        st.error("The AI is not currently running.  Please start the AI by navigating to the `Jarvis` tab, and then return here to configure Jama settings.")
+        st.error(
+            "The AI is not currently running.  Please start the AI by navigating to the `Jarvis` tab, and then return here to configure Jama settings."
+        )
         return
-    
+
     user_settings_helper = UserSettingsCRUD()
     user_id = st.session_state["rag_ai"].conversation_manager.user_id
 
     jama_api_url = st.text_input(
         "Jama API URL",
-        value=user_settings_helper.get_user_setting(user_id, "jama_api_url").setting_value,
+        value=user_settings_helper.get_user_setting(
+            user_id, "jama_api_url"
+        ).setting_value,
     )
     jama_client_id = st.text_input(
         "Jama Client ID",
-        value=user_settings_helper.get_user_setting(user_id, "jama_client_id").setting_value,
+        value=user_settings_helper.get_user_setting(
+            user_id, "jama_client_id"
+        ).setting_value,
     )
     jama_client_secret = st.text_input(
         "Jama Client Secret",
-        value=user_settings_helper.get_user_setting(user_id, "jama_client_secret").setting_value,
+        value=user_settings_helper.get_user_setting(
+            user_id, "jama_client_secret"
+        ).setting_value,
     )
 
     if st.button("Save Jama Settings"):
         save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret)
-        
-        
 
 
 def google_auth_settings():

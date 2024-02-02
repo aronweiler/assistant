@@ -211,7 +211,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                     return AgentFinish(
                         return_values={
                             "output": "I ran out of retries attempting to answer.  Here's my last output:\n"
-                            + result
+                            + result.answer
                         },
                         log="Agent finished.",
                     )
@@ -369,7 +369,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         action = AgentAction(
             tool=result.tool,
-            tool_input=result.tool_args,
+            tool_input=result.tool_args if result.tool_args else {},
             log=result.tool_use_description,
         )
 

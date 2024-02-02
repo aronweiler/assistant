@@ -65,7 +65,7 @@ class SpreadsheetsTool:
         agent = self.create_pandas_agent(llm=llm, files=[file])
 
         # self.callbacks is set outside of this class
-        results = agent.run(query, # callbacks=self.callbacks)
+        results = agent.run(query)
 
         return results
 
