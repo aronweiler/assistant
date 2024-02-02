@@ -5,10 +5,7 @@ Return any relevant text verbatim, including citations of page or line numbers, 
 
 {summaries}
 
-Question: {question}
-
-Relevant text, if any, including document and page/line citations (in Markdown format):
-"""
+Question: {question}"""
 
 DOCUMENT_PROMPT_TEMPLATE = """CONTENT: \n{page_content}\nSOURCE: file_id='{file_id}', file_name='{filename}', page='{page}'"""
 
