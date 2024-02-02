@@ -14,6 +14,7 @@ from src.db.models.code import Code
 from src.db.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
 )
+from src.db.models.user_settings import UserSettingsCRUD
 
 from src.utilities.configuration_utilities import (
     get_app_config_path,
@@ -42,7 +43,7 @@ def settings_page():
         st.session_state["current_tab"] = 0
 
     # Define your tabs and store them in a list
-    tabs = ["General Settings", "Jarvis AI", "Source Control", "Tools"]
+    tabs = ["General Settings", "Jarvis AI", "Source Control", "Tools", "Jama"]
 
     # Set callback function for on_change event of tabs
     def on_tab_change():
@@ -71,8 +72,45 @@ def settings_page():
         source_control_provider_form()
     elif selected_tab == "Tools":
         tools_settings()
+    elif selected_tab == "Jama":
+        jama_settings()
     # elif selected_tab == "Google Auth":
     #     google_auth_settings()
+
+
+def jama_settings():
+    st.subheader("Jama Configuration")
+
+    if "rag_ai" not in st.session_state:
+        st.error(
+            "The AI is not currently running.  Please start the AI by navigating to the `Jarvis` tab, and then return here to configure Jama settings."
+        )
+        return
+
+    user_settings_helper = UserSettingsCRUD()
+    user_id = st.session_state["rag_ai"].conversation_manager.user_id
+
+    jama_api_url = st.text_input(
+        "Jama API URL",
+        value=user_settings_helper.get_user_setting(
+            user_id, "jama_api_url"
+        ).setting_value,
+    )
+    jama_client_id = st.text_input(
+        "Jama Client ID",
+        value=user_settings_helper.get_user_setting(
+            user_id, "jama_client_id"
+        ).setting_value,
+    )
+    jama_client_secret = st.text_input(
+        "Jama Client Secret",
+        value=user_settings_helper.get_user_setting(
+            user_id, "jama_client_secret"
+        ).setting_value,
+    )
+
+    if st.button("Save Jama Settings"):
+        save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret)
 
 
 def google_auth_settings():
@@ -272,8 +310,8 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
 
     response_format_options = ["text", "json_object"]
     response_format_value = tool_configuration["model_configuration"]["model_kwargs"][
-            "response_format"
-        ].get("type", "text")
+        "response_format"
+    ].get("type", "text")
     response_format_index = response_format_options.index(response_format_value)
 
     st_sucks_col1.selectbox(
@@ -438,7 +476,7 @@ def show_model_settings(configuration, tool_name, tool_details):
 
 def tools_settings():
     configuration = ui_shared.get_app_configuration()
-    #tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
+    # tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
     tools = get_available_tools(configuration=configuration, conversation_manager=None)
 
     # tool_categories = {tool['category'] for tool in configuration['tool_configurations'].values() if 'category' in tool}
@@ -651,6 +689,27 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
     return model_configuration, needs_saving
 
 
+def save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret):
+    user_settings_helper = UserSettingsCRUD()
+    user_id = st.session_state["rag_ai"].conversation_manager.user_id
+
+    user_settings_helper.add_update_user_setting(
+        user_id=user_id, setting_name="jama_api_url", setting_value=jama_api_url
+    )
+
+    user_settings_helper.add_update_user_setting(
+        user_id=user_id, setting_name="jama_client_id", setting_value=jama_client_id
+    )
+
+    user_settings_helper.add_update_user_setting(
+        user_id=user_id,
+        setting_name="jama_client_secret",
+        setting_value=jama_client_secret,
+    )
+
+    st.success("Jama settings saved successfully!")
+
+
 def save_jarvis_settings_to_file(
     show_llm_thoughts, model_configuration, file_ingestion_model_configuration
 ):
@@ -835,9 +894,20 @@ def add_provider_form(code_helper: Code):
             [s.name for s in code_helper.get_supported_source_control_providers()],
             key="supported_provider_name",
         )
-        st.text_input("Name", key="name")
-        st.text_input("URL", key="url")
-        st.checkbox("Requires Authentication", key="requires_auth")
+        st.text_input(
+            "Name", key="name", help="Enter a friendly name for this provider."
+        )
+        st.text_input(
+            "URL", key="url", help="Enter the URL of the API for this provider."
+        )
+        st.caption(
+            "Make sure you enter the correct URL for the API of this provider.  i.e., for GitHub, it would be 'https://api.github.com'."
+        )
+        use_auth = st.checkbox(
+            "Requires Authentication",
+            key="requires_auth",
+            help="Check this box if the provider requires authentication.",
+        )
         st.text_input("Access Token", key="access_token")
 
         col1, col2 = st.columns(2)
@@ -907,14 +977,21 @@ def edit_provider_form(
             key="supported_provider_name",
         )
         st.text_input(
-            "Name", value=existing_provider.source_control_provider_name, key="name"
+            "Name",
+            value=existing_provider.source_control_provider_name,
+            key="name",
+            help="Enter a friendly name for this provider.",
         )
         st.text_input(
-            "URL", value=existing_provider.source_control_provider_url, key="url"
+            "URL",
+            value=existing_provider.source_control_provider_url,
+            key="url",
+            help="Enter the URL of the API for this provider. (e.g., 'https://api.github.com')",
         )
-        st.checkbox(
+        use_auth = st.checkbox(
             "Requires Authentication",
             value=existing_provider.requires_authentication,
+            help="Check this box if the provider requires authentication.",
             key="requires_auth",
         )
         st.text_input(

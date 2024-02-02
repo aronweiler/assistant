@@ -72,24 +72,21 @@ class User(ModelBase):
 
 # TODO: Refactor Jarvis so that all of the settings are contained within this table.
 # Need to do this before it can become multi-user
-# class UserSetting(ModelBase):
-#     __tablename__ = "user_settings"
+class UserSetting(ModelBase):
+    __tablename__ = "user_settings"
 
-#     id = Column(Integer, primary_key=True)
-#     user_id = Column(Integer, ForeignKey("users.id"))
-#     setting_name = Column(String, nullable=False)
-#     setting_value = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    setting_name = Column(String, nullable=False)
+    setting_value = Column(String, nullable=False)
 
-#     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
-#     user_constraint = ForeignKeyConstraint([user_id], [User.id])
+    # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
+    user_constraint = ForeignKeyConstraint([user_id], [User.id])
 
-#     # Define the CheckConstraint to enforce user_id existing in users table
-#     user_check_constraint = CheckConstraint(
-#         "user_id IN (SELECT id FROM users)", name="ck_user_id_in_users"
-#     )
-
-#     # Define the many to one relationship with User
-#     user = relationship("User", back_populates="user_settings")
+    # Define the CheckConstraint to enforce user_id existing in users table
+    user_check_constraint = CheckConstraint(
+        "user_id IN (SELECT id FROM users)", name="ck_user_id_in_users"
+    )
 
 
 # Conversation model represents a conversation in the system with its properties and relationships.

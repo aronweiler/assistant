@@ -3,13 +3,12 @@ import os
 import re
 import sys
 
-import dotenv
-from src.integrations.github import github_file_iterator
 
 # Append the root directory of the project to the system path for module importing.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 # Import shared GitHub integration utilities.
+from src.integrations.github import github_file_iterator
 import src.integrations.github.github_shared as github_shared
 
 
@@ -166,3 +165,17 @@ class GitHubRetriever:
             "url": url,
             "changes": changes2,
         }
+        
+if __name__ == "__main__":
+   
+    # Create an instance of GitHubRetriever.
+    gr = GitHubRetriever(
+        source_control_url="https://api.github.com",
+        source_control_pat="xxx",
+        requires_authentication=True,
+    )
+
+    # Retrieve branches from a repository.
+    branches = gr.retrieve_branches(url="https://github.com/aronweiler/assistant")
+    
+    print(branches)

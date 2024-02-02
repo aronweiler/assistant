@@ -148,11 +148,16 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         # If there are intermediate steps and we've called a tool, save the tool call results for the last step
         if len(intermediate_steps) > 0 and intermediate_steps[-1][0].tool is not None:
+            tool_results = intermediate_steps[-1][1]
+            # if the tool results are a dictionary or a string, leave them.  If it's a pydantic model, convert it to a dictionary.
+            if hasattr(tool_results, "dict"):
+                tool_results = tool_results.dict()
+
             self.conversation_manager.conversations_helper.add_tool_call_results(
                 conversation_id=self.conversation_manager.conversation_id,
                 tool_name=intermediate_steps[-1][0].tool,
                 tool_arguments=json.dumps(intermediate_steps[-1][0].tool_input),
-                tool_results=intermediate_steps[-1][1],
+                tool_results=tool_results,
                 include_in_conversation=ToolManager.should_include_in_conversation(
                     intermediate_steps[-1][0].tool
                 ),
@@ -211,7 +216,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                     return AgentFinish(
                         return_values={
                             "output": "I ran out of retries attempting to answer.  Here's my last output:\n"
-                            + result
+                            + result.answer
                         },
                         log="Agent finished.",
                     )
@@ -369,7 +374,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         action = AgentAction(
             tool=result.tool,
-            tool_input=result.tool_args,
+            tool_input=result.tool_args if result.tool_args else {},
             log=result.tool_use_description,
         )
 
