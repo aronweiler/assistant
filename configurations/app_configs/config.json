@@ -109,7 +109,7 @@
                     "label": "Split Prompt",
                     "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
                     "type": "int",
-                    "value": 3,
+                    "value": 1,
                     "min": 1,
                     "max": 5,
                     "step": 1
@@ -795,6 +795,12 @@
         "get_all_business_details": {
             "category": "Web",
             "enabled": false,
+            "include_in_conversation": false,
+            "return_direct": false
+        },
+        "make_jama_api_call": {
+            "category": "Jama",
+            "enabled": true,
             "include_in_conversation": false,
             "return_direct": false
         }
