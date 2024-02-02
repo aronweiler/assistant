@@ -1,3 +1,8 @@
+### February 2, 2024 -- RELEASE NOTES: Jarvis 0.74
+- Added basic Jama API functionality (and settings page)
+- Fixed several issues with tools after migration to dynamic query building
+- Re-added general user settings table and models
+
 ### January 28, 2024 -- RELEASE NOTES: Jarvis 0.73
 - Enhanced conversation management and model interaction through the addition of 'include_in_conversation' column, response evaluation step, and updated config.json for customizable model outputs.
 - Improved project organization and database interaction flexibility with folder restructuring, dynamic query building, and new query models.
