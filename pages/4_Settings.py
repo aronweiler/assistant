@@ -28,7 +28,7 @@ import src.ui.streamlit_shared as ui_shared
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
-def settings_page():
+def settings_page(user_email):
     st.set_page_config(
         page_title="Jarvis - Settings",
         page_icon="⚙️",
@@ -71,7 +71,7 @@ def settings_page():
     elif selected_tab == "Source Control":
         source_control_provider_form()
     elif selected_tab == "Tools":
-        tools_settings()
+        tools_settings(user_email)
     elif selected_tab == "Jama":
         jama_settings()
     # elif selected_tab == "Google Auth":
@@ -298,9 +298,11 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
 
     st_sucks_col1.number_input(
         "Model Seed Value",
-        value=tool_configuration["model_configuration"]["model_kwargs"].get("seed", 500)
-        if "model_kwargs" in tool_configuration["model_configuration"]
-        else 500,
+        value=(
+            tool_configuration["model_configuration"]["model_kwargs"].get("seed", 500)
+            if "model_kwargs" in tool_configuration["model_configuration"]
+            else 500
+        ),
         key=f"{tool_name}-seed",
     )
     st_sucks_col2.markdown("Set this to a value to seed the model.  ")
@@ -392,35 +394,36 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
 
 
 def show_additional_settings(configuration, tool_name, tool_details):
-    # If there are additional settings, get the settings and show the widgets
-    if "additional_settings" in configuration["tool_configurations"][tool_name]:
-        with st.expander(
-            label=f"🦿 {tool_details.display_name} Additional Settings",
-            expanded=False,
-        ):
-            additional_settings = configuration["tool_configurations"][tool_name][
-                "additional_settings"
-            ]
+    if tool_name in configuration["tool_configurations"]:
+        # If there are additional settings, get the settings and show the widgets    
+        if "additional_settings" in configuration["tool_configurations"][tool_name]:
+            with st.expander(
+                label=f"🦿 {tool_details.display_name} Additional Settings",
+                expanded=False,
+            ):
+                additional_settings = configuration["tool_configurations"][tool_name][
+                    "additional_settings"
+                ]
 
-            for additional_setting_name in additional_settings:
-                additional_setting = additional_settings[additional_setting_name]
-                session_state_key = f"{tool_name}-{additional_setting_name}"
-                if additional_setting["type"] == "int":
-                    int_setting(
-                        tool_name,
-                        additional_setting_name,
-                        additional_setting,
-                        session_state_key,
-                    )
-                elif additional_setting["type"] == "bool":
-                    bool_setting(
-                        tool_name,
-                        additional_setting_name,
-                        additional_setting,
-                        session_state_key,
-                    )
+                for additional_setting_name in additional_settings:
+                    additional_setting = additional_settings[additional_setting_name]
+                    session_state_key = f"{tool_name}-{additional_setting_name}"
+                    if additional_setting["type"] == "int":
+                        int_setting(
+                            tool_name,
+                            additional_setting_name,
+                            additional_setting,
+                            session_state_key,
+                        )
+                    elif additional_setting["type"] == "bool":
+                        bool_setting(
+                            tool_name,
+                            additional_setting_name,
+                            additional_setting,
+                            session_state_key,
+                        )
 
-                st.markdown(additional_setting["description"])
+                    st.markdown(additional_setting["description"])
 
 
 def bool_setting(
@@ -459,33 +462,34 @@ def int_setting(
 
 
 def show_model_settings(configuration, tool_name, tool_details):
-    if "model_configuration" in configuration["tool_configurations"][tool_name]:
-        available_models = ui_shared.get_available_models()
-        tool_configuration = configuration["tool_configurations"][tool_name]
+    if tool_name in configuration["tool_configurations"]:
+        if "model_configuration" in configuration["tool_configurations"][tool_name]:
+            available_models = ui_shared.get_available_models()
+            tool_configuration = configuration["tool_configurations"][tool_name]
 
-        with st.expander(
-            label=f"⚙️ {tool_details.display_name} Model Settings",
-            expanded=False,
-        ):
-            generate_model_settings(
-                tool_name=tool_name,
-                tool_configuration=tool_configuration,
-                available_models=available_models,
-            )
+            with st.expander(
+                label=f"⚙️ {tool_details.display_name} Model Settings",
+                expanded=False,
+            ):
+                generate_model_settings(
+                    tool_name=tool_name,
+                    tool_configuration=tool_configuration,
+                    available_models=available_models,
+                )
 
 
-def tools_settings():
+def tools_settings(user_email):
     configuration = ui_shared.get_app_configuration()
-    # tool_manager = ToolManager(configuration=configuration, conversation_manager=None)
-    tools = get_available_tools(configuration=configuration, conversation_manager=None)
+    conversation_manager = ConversationManager(
+        conversation_id=None, user_email=user_email, prompt_manager=None
+    )
+    tools = get_available_tools(
+        configuration=configuration, conversation_manager=conversation_manager
+    )
+    
 
-    # tool_categories = {tool['category'] for tool in configuration['tool_configurations'].values() if 'category' in tool}
-    tool_categories = {
-        configuration["tool_configurations"][tool]["category"]
-        for tool in configuration["tool_configurations"]
-        if "category" in configuration["tool_configurations"][tool]
-        and tool in [t.name for t in tools]
-    }
+    tool_categories = set([t.structured_tool.func._tool_metadata['category'] for t in tools])
+    
     # reorder tools_categories alphabetically
     tool_categories = sorted(tool_categories)
 
@@ -499,33 +503,32 @@ def tools_settings():
 
     # Filter tools by the selected category
     for tool in tools:
-        tool_config = configuration["tool_configurations"].get(tool.name, {})
-        if tool_config.get("category", "Uncategorized") == selected_category:
+        if tool.structured_tool.func._tool_metadata['category'] == selected_category:
             st.markdown(f"#### {tool.display_name}")
             st.markdown(tool.help_text)
             col1, col2, col3 = st.columns([3, 5, 5])
             col1.toggle(
                 "Enabled",
-                value=ToolManager.is_tool_enabled(tool.name),
+                value=ToolManager.is_tool_enabled(
+                    conversation_manager=conversation_manager, tool_name=tool.name
+                ),
                 key=tool.name,
-                # on_change=tool_manager.toggle_tool,
-                # kwargs={"tool_name": tool.name},
             )
             col2.toggle(
                 "Return results directly to UI",
-                value=ToolManager.should_return_direct(tool.name),
+                value=ToolManager.should_return_direct(
+                    tool_name=tool.name, conversation_manager=conversation_manager
+                ),
                 help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
                 key=f"{tool.name}-return-direct",
-                # on_change=tool_manager.toggle_tool,
-                # kwargs={"tool_name": tool.name},
             )
             col3.toggle(
                 "Include Results in Conversation",
-                value=ToolManager.should_include_in_conversation(tool.name),
+                value=ToolManager.should_include_in_conversation(
+                    tool_name=tool.name, conversation_manager=conversation_manager
+                ),
                 help="When enabled, the results of this tool will be included in the conversation history.\n\n*Turn this on when you want the LLM to always remember results returned for this tool.*",
                 key=f"{tool.name}-include-in-conversation",
-                # on_change=tool_manager.toggle_tool,
-                # kwargs={"tool_name": tool.name},
             )
 
             show_model_settings(configuration, tool.name, tool)
@@ -533,28 +536,37 @@ def tools_settings():
 
             st.divider()
 
-    save_tool_settings(tools, configuration, selected_category)
+    save_tool_settings(
+        tools=tools,
+        configuration=configuration,
+        selected_category=selected_category,
+        conversation_manager=conversation_manager,
+    )
 
 
-def save_tool_settings(tools, configuration, selected_category):
+def save_tool_settings(
+    tools, configuration, selected_category, conversation_manager: ConversationManager
+):
     # Iterate through all of the tools and save their settings
     for tool in tools:
         # are we on the tab for this tool?  Might not be displayed.
         if tool.name not in st.session_state:
             continue
 
-        existing_tool_configuration = configuration["tool_configurations"][tool.name]
+        ToolManager.get_tool_category(tool_name=tool.name, conversation_manager=conversation_manager)
 
-        if selected_category != existing_tool_configuration.get(
-            "category", "Uncategorized"
-        ):
+        
+
+        if selected_category != (tool.structured_tool.func._tool_metadata['category'] or "Uncategorized"):
             continue
 
         # Only save if the settings are different
         needs_saving = False
 
         enabled = st.session_state[tool.name]
-        if enabled != existing_tool_configuration["enabled"]:
+        if enabled != ToolManager.is_tool_enabled(
+            conversation_manager=conversation_manager, tool_name=tool.name
+        ):
             needs_saving = True
 
         include_results_in_conversation_history = st.session_state[
@@ -562,25 +574,53 @@ def save_tool_settings(tools, configuration, selected_category):
         ]
         if (
             include_results_in_conversation_history
-            != existing_tool_configuration["include_in_conversation"]
+            != ToolManager.should_include_in_conversation(
+                tool_name=tool.name, conversation_manager=conversation_manager
+            )
         ):
             needs_saving = True
 
         return_direct = st.session_state[f"{tool.name}-return-direct"]
-        if return_direct != existing_tool_configuration["return_direct"]:
+        if return_direct != ToolManager.should_return_direct(
+            conversation_manager=conversation_manager, tool_name=tool.name
+        ):
             needs_saving = True
 
-        model_configuration, needs_saving = model_needs_saving(
-            tool.name, existing_tool_configuration, needs_saving
-        )
+        # see if there is any extra settings to save
+        if tool.name in configuration["tool_configurations"]:
+            existing_tool_configuration = configuration["tool_configurations"][tool.name]
+
+            model_configuration, needs_saving = model_needs_saving(
+                tool.name, existing_tool_configuration, needs_saving
+            )
+        else:
+            model_configuration = None
 
         if needs_saving:
             st.toast(f"Saving {tool.name} settings...")
+
+            # Save settings to database
+            conversation_manager.user_settings_helper.add_update_user_setting(
+                user_id=conversation_manager.user_id,
+                setting_name=tool.name + "_enabled",
+                setting_value=enabled,
+            )
+
+            conversation_manager.user_settings_helper.add_update_user_setting(
+                user_id=conversation_manager.user_id,
+                setting_name=tool.name + "_include_in_conversation",
+                setting_value=include_results_in_conversation_history,
+            )
+
+            conversation_manager.user_settings_helper.add_update_user_setting(
+                user_id=conversation_manager.user_id,
+                setting_name=tool.name + "_return_direct",
+                setting_value=return_direct,
+            )
+
+            # Save settings to file
             save_tool_settings_to_file(
                 tool_name=tool.name,
-                enabled=enabled,
-                include_results_in_conversation_history=include_results_in_conversation_history,
-                return_direct=return_direct,
                 model_configuration=model_configuration,
             )
 
@@ -737,30 +777,22 @@ def save_jarvis_settings_to_file(
 
 def save_tool_settings_to_file(
     tool_name,
-    enabled,
-    include_results_in_conversation_history,
-    return_direct,
     model_configuration,
 ):
     configuration = ui_shared.get_app_configuration()
-    configuration["tool_configurations"][tool_name]["enabled"] = enabled
-    configuration["tool_configurations"][tool_name][
-        "include_in_conversation"
-    ] = include_results_in_conversation_history
-    configuration["tool_configurations"][tool_name]["return_direct"] = return_direct
     if model_configuration:
         configuration["tool_configurations"][tool_name][
             "model_configuration"
         ] = model_configuration
 
-    app_config_path = get_app_config_path()
+        app_config_path = get_app_config_path()
 
-    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+        ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
 
-    if "rag_ai" in st.session_state:
-        del st.session_state["rag_ai"]
+        if "rag_ai" in st.session_state:
+            del st.session_state["rag_ai"]
 
-    st.session_state["app_config"] = configuration
+        st.session_state["app_config"] = configuration
 
 
 def save_additional_setting(tool_name, setting_name, session_state_key):
@@ -1017,7 +1049,9 @@ def edit_provider_form(
 # Run the settings page
 if __name__ == "__main__":
     try:
-        settings_page()
+        user_email = os.environ.get("USER_EMAIL", None)
+        if ui_shared.ensure_user(user_email):
+            settings_page(user_email)
     except:
         # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
         # Check to see if the type of exception is a "StopException",

@@ -176,36 +176,6 @@
                 }
             }
         },
-        "get_previous_tool_call_results": {
-            "category": "General",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "list_documents": {
-            "category": "Documents",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_code_details": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_code_structure": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_pretty_dependency_graph": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
         "create_stubs": {
             "category": "Code Files",
             "enabled": false,
@@ -227,18 +197,6 @@
                     }
                 }
             }
-        },
-        "get_all_code_in_file": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "retrieve_source_code_from_url": {
-            "category": "Code On the Web",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
         },
         "conduct_code_review_from_file_id": {
             "category": "Code Files",
@@ -390,18 +348,6 @@
                 }
             }
         },
-        "create_code_review_issue": {
-            "category": "Code On the Web",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "commit_single_code_file": {
-            "category": "Code On the Web",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
         "conduct_code_refactor_from_file_id": {
             "category": "Code Files",
             "enabled": false,
@@ -552,54 +498,6 @@
                 }
             }
         },
-        "repository_structure_overview": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "specific_files_retrieval": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_file_summary": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": true,
-            "return_direct": false
-        },
-        "file_information_discovery": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "codebase_analysis": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": true,
-            "return_direct": false
-        },
-        "file_name_search": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": true,
-            "return_direct": false
-        },
-        "get_code_files_by_folder": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "function_presence_check": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": true,
-            "return_direct": false
-        },
         "codebase_functionality_search": {
             "category": "Code Repositories",
             "enabled": true,
@@ -699,18 +597,6 @@
                 }
             }
         },
-        "get_weather": {
-            "category": "General",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_time": {
-            "category": "General",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
         "get_text_from_website": {
             "category": "Web",
             "enabled": false,
@@ -743,66 +629,6 @@
                     "step": 100
                 }
             }
-        },
-        "get_news_for_topic": {
-            "category": "News",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_top_news_headlines": {
-            "category": "News",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_full_article": {
-            "category": "News",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_news_by_location": {
-            "category": "News",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "query_image": {
-            "category": "Images",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "search_for_emails": {
-            "category": "Email",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_email_by_ids": {
-            "category": "Email",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "search_businesses": {
-            "category": "Web",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "get_all_business_details": {
-            "category": "Web",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
-        },
-        "make_jama_api_call": {
-            "category": "Jama",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false
         }
     }
 }
