@@ -9,7 +9,16 @@ class UserSettings(VectorDatabase):
             db_model = UserSettingModel.to_database_model(user_setting_model)
             session.add(db_model)
 
-    def get_user_setting(self, user_id, setting_name):
+    def get_user_settings(self, user_id):
+        with self.session_context(self.Session()) as session:
+            db_models = (
+                session.query(UserSetting).filter(UserSetting.user_id == user_id).all()
+            )
+            return [
+                UserSettingModel.from_database_model(db_model) for db_model in db_models
+            ]
+
+    def get_user_setting(self, user_id, setting_name, default_value=None):
         with self.session_context(self.Session()) as session:
             db_model = (
                 session.query(UserSetting)
@@ -19,7 +28,13 @@ class UserSettings(VectorDatabase):
                 )
                 .first()
             )
-            return UserSettingModel.from_database_model(db_model) if db_model else None
+            
+            if db_model:
+                return UserSettingModel.from_database_model(db_model)
+            elif default_value is not None:
+                return UserSettingModel(user_id, setting_name, default_value)            
+            else:
+                return None
 
     def add_update_user_setting(self, user_id, setting_name, setting_value):
         with self.session_context(self.Session()) as session:

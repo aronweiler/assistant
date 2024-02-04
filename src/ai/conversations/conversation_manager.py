@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Union
 
 from langchain.base_language import BaseLanguageModel
 from src.ai.agents.general.generic_tool import GenericTool
@@ -13,6 +13,7 @@ from src.db.models.conversation_messages import (
 )
 from src.db.models.domain.code_repository_model import CodeRepositoryModel
 from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
+from src.db.models.user_settings import UserSettings
 from src.db.models.users import Users
 from src.db.models.documents import Documents
 from src.db.models.conversations import Conversations
@@ -21,6 +22,7 @@ from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
 from src.memory.token_buffer import ConversationTokenBufferMemory
 
 from src.ai.prompts.prompt_manager import PromptManager
+from src.tools.tool_results.tool_results import get_previous_tool_call_results
 from src.utilities.configuration_utilities import get_app_configuration
 
 
@@ -29,7 +31,7 @@ class ConversationManager:
 
     def __init__(
         self,
-        conversation_id: int,
+        conversation_id: Union[int, None],
         user_email: str,
         prompt_manager: PromptManager,
         max_conversation_history_tokens: int = 1000,
@@ -61,15 +63,13 @@ class ConversationManager:
         self.user_location = user_location
         self.conversation_needs_summary = conversation_needs_summary
 
-        if conversation_id is None:
-            raise Exception("conversation_id cannot be None")
-
         if user_email is None:
             raise Exception("user_email cannot be None")
 
         # Set our internal conversation id
         self.conversation_id = conversation_id
 
+        self.user_settings_helper = UserSettings()
         self.conversations_helper = Conversations()
         self.conversation_messages_helper = ConversationMessages()
         self.users_helper = Users()
@@ -91,16 +91,17 @@ class ConversationManager:
         self.user_location = user.location
 
         # Ensure the conversation exists
-        self._ensure_conversation_exists(self.user_id)
+        if conversation_id is not None:
+            self._ensure_conversation_exists(self.user_id)
 
-        if not override_memory:
-            # Create the conversation memory
-            if uses_conversation_history:
-                self._create_default_conversation_memory(
-                    max_conversation_history_tokens
-                )
-        else:
-            self.conversation_token_buffer_memory = override_memory
+            if not override_memory:
+                # Create the conversation memory
+                if uses_conversation_history:
+                    self._create_default_conversation_memory(
+                        max_conversation_history_tokens
+                    )
+            else:
+                self.conversation_token_buffer_memory = override_memory
 
     def set_conversation_summary(self, summary: str):
         """Sets the conversation summary to the specified summary."""
@@ -168,13 +169,17 @@ class ConversationManager:
 
     def _get_previous_tool_call_headers(self):
         # Check the configuration to see if the get_previous_tool_call_results tool is enabled
-        get_previous_tool_call_results_tool_enabled = get_app_configuration()[
-            "tool_configurations"
-        ]["get_previous_tool_call_results"].get("enabled", False)
+        get_previous_tool_call_results_tool_enabled = (
+            self.user_settings_helper.get_user_setting(
+                self.user_id,
+                get_previous_tool_call_results.__name__ + "_enabled",
+                False,
+            )
+        )
 
-        previous_tool_calls: List[
-            ToolCallResultsModel
-        ] = self.conversations_helper.get_tool_call_results(self.conversation_id)
+        previous_tool_calls: List[ToolCallResultsModel] = (
+            self.conversations_helper.get_tool_call_results(self.conversation_id)
+        )
 
         if not previous_tool_calls or len(previous_tool_calls) == 0:
             return None
@@ -276,13 +281,11 @@ class ConversationManager:
         loaded_documents = self.get_loaded_documents_for_reference()
 
         if loaded_documents:
-            loaded_documents_prompt = (
-                self.prompt_manager.get_prompt_by_template_name(
-                    "LOADED_DOCUMENTS_TEMPLATE",
-                ).format(loaded_documents=loaded_documents)
-            )
+            loaded_documents_prompt = self.prompt_manager.get_prompt_by_template_name(
+                "LOADED_DOCUMENTS_TEMPLATE",
+            ).format(loaded_documents=loaded_documents)
         else:
-            loaded_documents_prompt = "There are no documents loaded."
+            loaded_documents_prompt = ""
 
         return loaded_documents_prompt
 
@@ -312,7 +315,7 @@ class ConversationManager:
         system_prompt = self.prompt_manager.get_prompt_by_template_name(
             "SYSTEM_TEMPLATE",
         ).format(
-            system_information=get_system_information(),
+            system_information=get_system_information(location=self.user_location),
         )
 
         return system_prompt
