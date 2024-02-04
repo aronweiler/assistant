@@ -604,18 +604,21 @@ def save_tool_settings(
                 user_id=conversation_manager.user_id,
                 setting_name=tool.name + "_enabled",
                 setting_value=enabled,
+                available_for_llm=True,
             )
 
             conversation_manager.user_settings_helper.add_update_user_setting(
                 user_id=conversation_manager.user_id,
                 setting_name=tool.name + "_include_in_conversation",
                 setting_value=include_results_in_conversation_history,
+                available_for_llm=False,
             )
 
             conversation_manager.user_settings_helper.add_update_user_setting(
                 user_id=conversation_manager.user_id,
                 setting_name=tool.name + "_return_direct",
                 setting_value=return_direct,
+                available_for_llm=False,
             )
 
             # Save settings to file
@@ -734,17 +737,18 @@ def save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret)
     user_id = st.session_state["rag_ai"].conversation_manager.user_id
 
     user_settings_helper.add_update_user_setting(
-        user_id=user_id, setting_name="jama_api_url", setting_value=jama_api_url
+        user_id=user_id, setting_name="jama_api_url", setting_value=jama_api_url, available_for_llm=False,
     )
 
     user_settings_helper.add_update_user_setting(
-        user_id=user_id, setting_name="jama_client_id", setting_value=jama_client_id
+        user_id=user_id, setting_name="jama_client_id", setting_value=jama_client_id, available_for_llm=False,
     )
 
     user_settings_helper.add_update_user_setting(
         user_id=user_id,
         setting_name="jama_client_secret",
         setting_value=jama_client_secret,
+        available_for_llm=False,
     )
 
     st.success("Jama settings saved successfully!")
