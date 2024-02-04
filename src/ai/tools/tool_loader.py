@@ -4,6 +4,10 @@ import importlib
 import inspect
 import sys
 import os
+from src.ai.conversations.conversation_manager import ConversationManager
+
+
+from src.db.models.user_settings import UserSettings
 
 
 # Append the path to the tools directory to the system path
@@ -22,7 +26,7 @@ def load_tool_modules():
     def load_recursive(package_name, path):
         for loader, module_name, is_pkg in pkgutil.walk_packages([path]):
             # For some reason we get wrong file paths in the returns from walk_packages
-            if loader.path.replace('\\', '/').endswith(path):
+            if loader.path.replace("\\", "/").endswith(path):
                 full_module_name = f"{package_name}.{module_name}"
                 if is_pkg:
                     next_path = path + "/" + module_name
@@ -48,13 +52,15 @@ def get_available_tools(configuration, conversation_manager):
             "configuration": configuration,
             "conversation_manager": conversation_manager,
         }
-        # You can add logic here to determine which dependencies are needed
-        # for each tool and inject them accordingly
+        # I can add logic here to determine which dependencies are needed
+        # for each tool and inject them accordingly, right now it's just the configuration and conversation_manager
 
         if "class" not in tool_info:
             for function_name, function_info in tool_info["functions"].items():
                 generic_tool = create_generic_tool(
-                    configuration, function_name, function_info["function"]
+                    function_name,
+                    function_info["function"],
+                    conversation_manager,
                 )
 
                 generic_tools.append(generic_tool)
@@ -75,22 +81,37 @@ def get_available_tools(configuration, conversation_manager):
 
             for function_name, function_info in tool_info["functions"].items():
                 func = getattr(tool_instance, function_name)
-                generic_tool = create_generic_tool(configuration, function_name, func)
+                generic_tool = create_generic_tool(
+                    function_name, func, conversation_manager
+                )
                 generic_tools.append(generic_tool)
 
     return generic_tools
 
 
-def create_generic_tool(configuration, function_name, func):
+def get_tool_setting(
+    function_name,
+    setting_name,
+    conversation_manager: ConversationManager,
+    default_value=None,
+):
+    return conversation_manager.user_settings_helper.get_user_setting(
+        user_id=conversation_manager.user_id,
+        setting_name=function_name + "_" + setting_name,
+        default_value=default_value,
+    ).setting_value
+
+
+def create_generic_tool(function_name, func, conversation_manager: ConversationManager):
     if hasattr(func, "_tool_metadata"):
         tool_metadata = func._tool_metadata
 
-    if function_name in configuration["tool_configurations"]:
-        return_direct = configuration["tool_configurations"][function_name].get(
-            "return_direct", False
-        )
-    else:
-        return_direct = False
+    return_direct = get_tool_setting(
+        function_name=function_name,
+        setting_name="return_direct",
+        conversation_manager=conversation_manager,
+        default_value=tool_metadata.get("return_direct", False),
+    )
 
     generic_tool = GenericTool(
         description=tool_metadata.get("description", function_name),
