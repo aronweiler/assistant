@@ -15,7 +15,7 @@ from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
 
 from src.tools.code.code_dependency import CodeDependency
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 
 
 @tool_class

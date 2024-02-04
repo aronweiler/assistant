@@ -4,7 +4,7 @@ from langchain.memory.readonly import ReadOnlySharedMemory
 from langchain.memory.token_buffer import ConversationTokenBufferMemory
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.system_info import get_system_information
 from src.ai.tools.tool_registry import register_tool
 

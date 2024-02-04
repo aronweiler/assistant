@@ -16,7 +16,7 @@ from src.tools.code.code_retriever_tool import CodeRetrieverTool
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.integrations.github import github_issue_creator
 from src.tools.code.issue_tool import IssueTool
 

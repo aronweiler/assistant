@@ -3,7 +3,7 @@ from typing import List
 
 from langchain.base_language import BaseLanguageModel
 from src.ai.agents.general.generic_tool import GenericTool
-from src.ai.system_info import get_system_information
+from src.ai.utilities.system_info import get_system_information
 from src.db.models.code import Code
 
 from src.db.models.conversation_messages import (

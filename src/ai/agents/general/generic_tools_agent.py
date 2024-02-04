@@ -14,7 +14,7 @@ from langchain_core.callbacks.base import BaseCallbackHandler, BaseCallbackManag
 
 from src.ai.agents.general.generic_tool import GenericTool
 
-from src.ai.llm_helper import get_llm
+from src.ai.utilities.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.prompts.prompt_models.answer import AnswerInput, AnswerOutput
 from src.ai.prompts.prompt_models.evaluation import EvaluationInput, EvaluationOutput

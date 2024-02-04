@@ -37,7 +37,7 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
 
@@ -102,7 +102,7 @@ class CodeRepositoryTool:
 
         result = ""
         for code_file in code_files:
-            result += f"**\n{code_file.code_file_name}\n**"
+            result += f"**\n{code_file.code_file_name} (ID: {code_file.id})\n**"
             if include_summary:
                 result += f"Summary: {code_file.code_file_summary}\n"
 
@@ -149,12 +149,12 @@ class CodeRepositoryTool:
         return summary
 
     @register_tool(
-        display_name="Specific File Retrieval",
+        display_name="Specific File(s) Retrieval",
         requires_repository=True,
         description="Retrieve a particular file (or files) from the repository using its unique identifier.",
         additional_instructions="Before attempting to retrieve the contents of any files using this tool, please first identify the unique identifiers (IDs) of the target file(s) within the repository.  Use the `repository_structure_overview` tool to find necessary file identifiers, or `file_name_search` if you are looking for an ID that represents a specific file.",
     )
-    def specific_file_retrieval(self, file_ids: List[int]):
+    def specific_files_retrieval(self, file_ids: List[int]):
         """Gets a specific code file from a loaded code repository by name or ID."""
         # Handle the case where the file_ids is a single int
 
@@ -195,6 +195,9 @@ class CodeRepositoryTool:
     ) -> List[CodeFileModel]:
         """Retrieves all code files from the database that reside in a specified folder."""
         try:
+            # Clean up the folder path by removing any leading or trailing slashes, and converting backslashes to forward slashes
+            folder_path = folder_path.strip().replace("\\", "/").strip("/")           
+            
             if (
                 folder_path is None
                 or folder_path == ""
@@ -274,7 +277,7 @@ class CodeRepositoryTool:
             # Process the results to extract relevant code snippets
             functionality_snippets = []
             for file_info in file_info_list:
-                code_file = self.specific_file_retrieval(
+                code_file = self.specific_files_retrieval(
                     file_ids=[file_info["file_id"]]
                 )
 

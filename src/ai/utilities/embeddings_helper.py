@@ -8,9 +8,9 @@ local_embeddings_model = None
 
 def get_local_embeddings_model(model_name):
     from InstructorEmbedding import INSTRUCTOR
-    
+
     global local_embeddings_model
-    
+
     if not local_embeddings_model:
         model_config = configuration_utilities.get_app_configuration()["jarvis_ai"][
             "embedding_models"
@@ -26,7 +26,7 @@ def get_local_embeddings_model(model_name):
 
 def get_embedding(
     text: str,
-    collection_type:str,
+    collection_type: str,
     instruction: str = None,
 ):
     if collection_type.lower().startswith("remote"):
@@ -40,14 +40,21 @@ def get_embedding(
     else:
         raise Exception(f"Unknown collection type {collection_type}")
 
-    return get_embedding_with_model(text=text, model_name=model_name, instruction=instruction)
+    return get_embedding_with_model(
+        text=text, model_name=model_name, instruction=instruction
+    )
 
 
 def get_embedding_with_model(text: str, model_name: str, instruction: str = None):
     # You're special, OpenAI
     if model_name == "text-embedding-ada-002":
-        return openai.embeddings.create(input=[text], model=model_name).data[0].embedding
+        return (
+            openai.embeddings.create(input=[text], model=model_name).data[0].embedding
+        )
     else:
         model = get_local_embeddings_model(model_name)
 
-        return [m.item() for m in model.encode([[instruction, text]], convert_to_numpy=False)[0]]#model.encode([[instruction, text]], convert_to_numpy=False)[0]
+        return [
+            m.item()
+            for m in model.encode([[instruction, text]], convert_to_numpy=False)[0]
+        ]  # model.encode([[instruction, text]], convert_to_numpy=False)[0]

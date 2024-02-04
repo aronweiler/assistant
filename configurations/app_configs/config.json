@@ -236,7 +236,7 @@
         },
         "retrieve_source_code_from_url": {
             "category": "Code On the Web",
-            "enabled": true,
+            "enabled": false,
             "include_in_conversation": false,
             "return_direct": false
         },
@@ -558,7 +558,7 @@
             "include_in_conversation": false,
             "return_direct": false
         },
-        "specific_file_retrieval": {
+        "specific_files_retrieval": {
             "category": "Code Repositories",
             "enabled": true,
             "include_in_conversation": false,
@@ -701,13 +701,13 @@
         },
         "get_weather": {
             "category": "General",
-            "enabled": false,
+            "enabled": true,
             "include_in_conversation": false,
             "return_direct": false
         },
         "get_time": {
             "category": "General",
-            "enabled": false,
+            "enabled": true,
             "include_in_conversation": false,
             "return_direct": false
         },
@@ -788,13 +788,13 @@
         },
         "search_businesses": {
             "category": "Web",
-            "enabled": false,
+            "enabled": true,
             "include_in_conversation": false,
             "return_direct": false
         },
         "get_all_business_details": {
             "category": "Web",
-            "enabled": false,
+            "enabled": true,
             "include_in_conversation": false,
             "return_direct": false
         },

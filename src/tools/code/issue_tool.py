@@ -5,7 +5,7 @@ import json
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.integrations.github import github_issue_creator
 

@@ -15,7 +15,7 @@ from langchain.schema.language_model import BaseLanguageModel
 
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 
 from src.db.models.domain.file_model import FileModel
 from src.db.models.documents import Documents

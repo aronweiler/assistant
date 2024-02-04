@@ -21,7 +21,7 @@ from src.db.models.domain.document_collection_model import DocumentCollectionMod
 from src.db.models.domain.document_model import DocumentModel
 from src.db.models.domain.file_model import FileModel
 
-from src.ai.embeddings_helper import get_embedding, get_embedding_with_model
+from src.ai.utilities.embeddings_helper import get_embedding, get_embedding_with_model
 
 
 class Documents(VectorDatabase):

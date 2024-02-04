@@ -64,30 +64,14 @@ class ConversationTokenBufferMemory(BaseChatMemory):
 
         return buffer
 
-    def get_token_ids(self, text: str) -> List[int]:
-        """Return the ordered ids of the tokens in a text.
-
-        Args:
-            text: The string input to tokenize.
-
-        Returns:
-            A list of ids corresponding to the tokens in the text, in order they occur
-                in the text.
-        """
-        return self._get_token_ids_default_method(text)
-
     def get_num_tokens(self, text: str) -> int:
-        """Get the number of tokens present in the text.
+        # get the cached tokenizer
+        tokenizer = get_tokenizer()
 
-        Useful for checking if an input will fit in a model's context window.
+        # tokenize the text using the GPT-2 tokenizer
+        tokens = tokenizer.encode(text)
 
-        Args:
-            text: The string input to tokenize.
-
-        Returns:
-            The integer number of tokens in the text.
-        """
-        return len(self.get_token_ids(text))
+        return len(tokens)
 
     def get_num_tokens_from_messages(self, messages: List[BaseMessage]) -> int:
         """Get the number of tokens in the messages.
@@ -101,14 +85,6 @@ class ConversationTokenBufferMemory(BaseChatMemory):
             The sum of the number of tokens across the messages.
         """
         return sum([self.get_num_tokens(get_buffer_string([m])) for m in messages])
-
-    def _get_token_ids_default_method(self, text: str) -> List[int]:
-        """Encode the text into token IDs."""
-        # get the cached tokenizer
-        tokenizer = get_tokenizer()
-
-        # tokenize the text using the GPT-2 tokenizer
-        return tokenizer.encode(text)
 
 
 @lru_cache(maxsize=None)  # Cache the tokenizer

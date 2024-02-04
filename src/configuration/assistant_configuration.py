@@ -38,24 +38,3 @@ class ApplicationConfigurationLoader:
         with open(file_path, "w") as file:
             json.dump(config_data, file, indent=4)
 
-
-# Example usage
-if __name__ == "__main__":
-    json_file_path = "configurations/ui_configs/ui_config.json"
-    with open(json_file_path, "r") as file:
-        json_string = file.read()
-
-    config = AssistantConfigurationLoader.from_file(json_file_path)
-    # config = AssistantConfigurationLoader.from_string(json_string)
-
-    print(config.general_ai.model_configuration.llm_type)
-    print(config.general_ai.model_configuration.model)
-    print(config.general_ai.model_configuration.temperature)
-
-    for route in config.general_ai.destination_routes:
-        print(route.name)
-        print(route.module)
-        print(route.class_name)
-        print(route.description)
-        print(route.model_configuration.model)
-        print(route.model_configuration.temperature)

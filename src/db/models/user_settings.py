@@ -3,7 +3,7 @@ from src.db.models.domain.user_settings_model import UserSettingModel
 from src.db.models.vector_database import VectorDatabase
 
 
-class UserSettingsCRUD(VectorDatabase):
+class UserSettings(VectorDatabase):
     def create_user_setting(self, user_setting_model):
         with self.session_context(self.Session()) as session:
             db_model = UserSettingModel.to_database_model(user_setting_model)

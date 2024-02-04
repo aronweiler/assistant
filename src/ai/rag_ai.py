@@ -3,10 +3,7 @@ import logging
 from uuid import UUID
 from typing import List
 
-from langchain.base_language import BaseLanguageModel
 from langchain.agents import AgentExecutor
-from langchain.chains.llm import LLMChain
-from langchain.memory.readonly import ReadOnlySharedMemory
 from src.ai.prompts.prompt_models.code_details_extraction import (
     CodeDetailsExtractionInput,
     CodeDetailsExtractionOutput,
@@ -33,13 +30,12 @@ from src.configuration.assistant_configuration import (
     ModelConfiguration,
 )
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_llm
+from src.ai.utilities.llm_helper import get_llm
 from src.ai.prompts.prompt_manager import PromptManager
-from src.ai.system_info import get_system_information
+from src.ai.utilities.system_info import get_system_information
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
 from src.tools.documents.document_tool import DocumentTool
 from src.ai.tools.tool_manager import ToolManager
-from src.utilities.parsing_utilities import parse_json
 
 
 # Constants for default penalties

@@ -9,7 +9,7 @@ from src.configuration.runner_configuration import RunnerConfig
 from src.utilities.instance_utility import create_instance_from_module_and_class
 
 from src.ai.general_ai import GeneralAI
-from src.runners.runner import Runner
+from src.ai.voice.runner import Runner
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -14,7 +14,7 @@ from src.db.models.code import Code
 from src.db.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
 )
-from src.db.models.user_settings import UserSettingsCRUD
+from src.db.models.user_settings import UserSettings
 
 from src.utilities.configuration_utilities import (
     get_app_config_path,
@@ -87,7 +87,7 @@ def jama_settings():
         )
         return
 
-    user_settings_helper = UserSettingsCRUD()
+    user_settings_helper = UserSettings()
     user_id = st.session_state["rag_ai"].conversation_manager.user_id
 
     jama_api_url = st.text_input(
@@ -690,7 +690,7 @@ def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
 
 
 def save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret):
-    user_settings_helper = UserSettingsCRUD()
+    user_settings_helper = UserSettings()
     user_id = st.session_state["rag_ai"].conversation_manager.user_id
 
     user_settings_helper.add_update_user_setting(

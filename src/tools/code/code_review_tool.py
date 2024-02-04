@@ -1,7 +1,7 @@
 from typing import List
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.prompts.prompt_models.code_review import CodeReviewInput, CodeReviewOutput
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.tools.code.code_retriever_tool import CodeRetrieverTool

@@ -1,7 +1,7 @@
 from typing import Union
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.tools.tool_registry import register_tool, tool_class
-from src.db.models.user_settings import UserSettingsCRUD
+from src.db.models.user_settings import UserSettings
 from src.integrations.jama.jama_session import JamaSession
 
 
@@ -10,7 +10,7 @@ class JamaTool:
     def __init__(self, configuration, conversation_manager: ConversationManager):
         self.configuration = configuration
         self.conversation_manager = conversation_manager
-        self.user_settings_helper = UserSettingsCRUD()
+        self.user_settings_helper = UserSettings()
 
         if not conversation_manager:
             return None
