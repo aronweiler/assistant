@@ -79,6 +79,7 @@ class UserSetting(ModelBase):
     user_id = Column(Integer, ForeignKey("users.id"))
     setting_name = Column(String, nullable=False)
     setting_value = Column(String, nullable=False)
+    available_for_llm = Column(Boolean, nullable=False, default=False)
 
     # Define the ForeignKeyConstraint to ensure the user_id exists in the users table
     user_constraint = ForeignKeyConstraint([user_id], [User.id])

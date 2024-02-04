@@ -161,18 +161,18 @@ class ConversationManager:
         return settings_prompt
 
     def get_all_user_settings(self) -> List[UserSettingModel]:
-        return self.user_settings_helper.get_user_settings(user_id=self.user_id)
+        return self.user_settings_helper.get_user_settings(user_id=self.user_id, available_for_llm=True)
 
     def get_user_setting(
         self, setting_name: str, default_value=None
     ) -> UserSettingModel:
         return self.user_settings_helper.get_user_setting(
-            user_id=self.user_id, setting_name=setting_name, default_value=default_value
+            user_id=self.user_id, setting_name=setting_name, default_value=default_value, available_for_llm=True
         )
 
     def set_user_setting(self, setting_name: str, setting_value: str) -> None:
         return self.user_settings_helper.add_update_user_setting(
-            user_id=self.user_id, setting_name=setting_name, setting_value=setting_value
+            user_id=self.user_id, setting_name=setting_name, setting_value=setting_value, available_for_llm=True
         )
 
     def get_available_tool_descriptions(self, tools: List[GenericTool]):
