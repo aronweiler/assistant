@@ -159,7 +159,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 tool_arguments=json.dumps(intermediate_steps[-1][0].tool_input),
                 tool_results=tool_results,
                 include_in_conversation=ToolManager.should_include_in_conversation(
-                    tool_name=intermediate_steps[-1][0].tool, conversation_manager=self.conversation_manager
+                    tool_name=intermediate_steps[-1][0].tool,
+                    conversation_manager=self.conversation_manager,
                 ),
             )
 
@@ -270,6 +271,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             ),
             loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
             selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+            user_settings_prompt=self.conversation_manager.get_user_settings_prompt(),
         )
 
         result: EvaluationOutput = self.query_helper.query_llm(
@@ -292,6 +294,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             ),
             chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
             user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
+            user_settings_prompt=self.conversation_manager.get_user_settings_prompt(),
         )
 
         result = self.query_helper.query_llm(

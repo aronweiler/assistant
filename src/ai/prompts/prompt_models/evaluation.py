@@ -13,6 +13,7 @@ class EvaluationInput(BaseModel):
     available_tool_descriptions: str = Field(description="The available tool descriptions")
     loaded_documents_prompt: str = Field(description="The loaded documents prompt")
     selected_repository_prompt: str = Field(description="The selected repository prompt")
+    user_settings_prompt: str = Field(description="The user settings prompt")
 
 
 class EvaluationOutput(BaseModel):

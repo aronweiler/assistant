@@ -1,18 +1,16 @@
 import logging
 from typing import List, Union
 
-from langchain.base_language import BaseLanguageModel
 from src.ai.agents.general.generic_tool import GenericTool
 from src.ai.utilities.system_info import get_system_information
 from src.db.models.code import Code
 
 from src.db.models.conversation_messages import (
     ConversationMessages,
-    SearchType,
-    ConversationMessageModel,
 )
 from src.db.models.domain.code_repository_model import CodeRepositoryModel
 from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
+from src.db.models.domain.user_settings_model import UserSettingModel
 from src.db.models.user_settings import UserSettings
 from src.db.models.users import Users
 from src.db.models.documents import Documents
@@ -23,7 +21,6 @@ from src.memory.token_buffer import ConversationTokenBufferMemory
 
 from src.ai.prompts.prompt_manager import PromptManager
 from src.tools.tool_results.tool_results import get_previous_tool_call_results
-from src.utilities.configuration_utilities import get_app_configuration
 
 
 class ConversationManager:
@@ -142,6 +139,41 @@ class ConversationManager:
             previous_tool_calls_prompt = ""
 
         return previous_tool_calls_prompt
+
+    def get_user_settings_prompt(self):
+        settings_prompt = ""
+
+        get_user_settings_enabled = self.user_settings_helper.get_user_setting(
+            self.user_id,
+            "get_settings_enabled",  # Typically I'd like to use the actual reference here, but it would create a circular import
+            False,
+        )
+
+        setting_names = [s.setting_name for s in self.get_all_user_settings()]
+
+        if get_user_settings_enabled and setting_names and len(setting_names) > 0:
+            setting_names = ", ".join(setting_names)
+
+            settings_prompt = self.prompt_manager.get_prompt_by_template_name(
+                "SETTINGS_HEADERS_TEMPLATE",
+            ).format(settings_headers=setting_names)
+
+        return settings_prompt
+
+    def get_all_user_settings(self) -> List[UserSettingModel]:
+        return self.user_settings_helper.get_user_settings(user_id=self.user_id)
+
+    def get_user_setting(
+        self, setting_name: str, default_value=None
+    ) -> UserSettingModel:
+        return self.user_settings_helper.get_user_setting(
+            user_id=self.user_id, setting_name=setting_name, default_value=default_value
+        )
+
+    def set_user_setting(self, setting_name: str, setting_value: str) -> None:
+        return self.user_settings_helper.add_update_user_setting(
+            user_id=self.user_id, setting_name=setting_name, setting_value=setting_value
+        )
 
     def get_available_tool_descriptions(self, tools: List[GenericTool]):
         tool_strings = []

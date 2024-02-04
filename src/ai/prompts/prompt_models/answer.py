@@ -7,7 +7,7 @@ from src.ai.prompts.query_helper import output_type_example
 class AnswerInput(BaseModel):
     user_query: str = Field(description="The user query to be analyzed")
     chat_history: str = Field(description="The chat history")
-    helpful_context: str = Field(description="The helpful context")
+    helpful_context: str = Field(description="The helpful context")    
 
 class AnswerOutput(BaseModel):
     status: str = Field(

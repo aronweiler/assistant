@@ -12,6 +12,7 @@ class PlanningStageInput(BaseModel):
     available_tool_descriptions: str = Field(description="The available tool descriptions")
     chat_history_prompt: str = Field(description="The chat history prompt")
     user_query: str = Field(description="The user query to be analyzed")
+    user_settings_prompt: str = Field(description="The user settings prompt")
 
 class Step(BaseModel):
     step_num: int = Field(description="The step number")
