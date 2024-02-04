@@ -159,7 +159,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 tool_arguments=json.dumps(intermediate_steps[-1][0].tool_input),
                 tool_results=tool_results,
                 include_in_conversation=ToolManager.should_include_in_conversation(
-                    intermediate_steps[-1][0].tool
+                    tool_name=intermediate_steps[-1][0].tool, conversation_manager=self.conversation_manager
                 ),
             )
 
@@ -383,14 +383,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
     def prompt_and_predict_tool_use_retry(
         self, intermediate_steps, **kwargs: Any
     ) -> AgentAction:
-        # # Create the first tool use prompt
-        # if self.step_index == -1:
-        #     # Handle the case where no steps could be found
-        #     step = {
-        #         "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.wrong_tool_calls, indent=4)}"
-        #     }
-        # else:
-        #     step = self.planning_results["steps"][self.step_index]
 
         input_object = ToolUseRetryInput(
             system_prompt=self.conversation_manager.get_system_prompt(),
@@ -449,7 +441,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         return "\n----\n".join(
             [
-                f"using the `{s[0].tool}` tool returned:\n'{s[1]}'"
+                f"You used the `{s[0].tool}` tool, which returned:\n'{s[1]}'"
                 for s in intermediate_steps
                 if s[1] is not None
             ]
