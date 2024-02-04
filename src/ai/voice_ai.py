@@ -233,7 +233,7 @@ class VoiceRunner:
 
             ai_query_start_time = time.time()
 
-            ai_response = self.rag_ai.query(query=transcribed_audio, ai_mode="Auto")
+            ai_response = self.rag_ai.query(query=transcribed_audio, ai_mode=self.settings.get_user_setting(self.user.id, "ai_mode", "Auto"))
 
             ai_query_end_time = time.time()
 
@@ -254,11 +254,12 @@ class VoiceRunner:
             text_to_speech_start_time = time.time()
             self.text_to_speech.speak(
                 ai_response,
-                self.voice_configuration.default_tts_voice,
+                self.settings.get_user_setting(self.user.id, "text_to_speech_voice", "Matthew"),
                 self.stop_event,
-                self.voice_configuration.speech_rate,
+                self.settings.get_user_setting(self.user.id, "text_to_speech_rate", 150),
             )
             text_to_speech_end_time = time.time()
+            
             logging.info(
                 f"Text to speech took {str(text_to_speech_end_time - text_to_speech_start_time)} seconds"
             )
