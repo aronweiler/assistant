@@ -49,6 +49,7 @@ Consider the chat history for additional context.
 ANSWER_PROMPT_TEMPLATE = """I need your help to answer the following question.  Please review the chat history and context carefully to formulate a comprehensive response to the user's query.
 
 ## Context:
+*This context contains any previous tool call results that have been made in the context of the current query from the user.*
 {helpful_context}
 
 ## Chat History:

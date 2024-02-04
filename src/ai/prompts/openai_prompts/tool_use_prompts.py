@@ -1,6 +1,7 @@
 TOOL_USE_TEMPLATE = """{system_prompt}
 
-Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:{loaded_documents_prompt}
+Your task is to create a JSON structure formatted as a Markdown code block. This JSON will define a call to a specific tool based on the details provided below:
+{loaded_documents_prompt}
 {selected_repository_prompt}
 {previous_tool_calls_prompt}
 {chat_history_prompt}
@@ -40,7 +41,7 @@ TOOL_USE_RETRY_TEMPLATE = """{system_prompt}
 
 I'm giving you a very important job. Your job is to construct a JSON blob that represents a tool call given the following information.
 
-Please construct a new tool call that uses the one of the following tools.  The tool call should be different han the previous tool call.
+Please construct a new tool call that uses the one of the following tools.  The goal is to attempt to retry the previous failed tool call(s) with a modified tool call that uses a different tool or the same tool with different arguments, in order to get better results.
 --- AVAILABLE TOOLS ---
 {available_tool_descriptions}
 --- AVAILABLE TOOLS ---
