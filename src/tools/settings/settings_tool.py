@@ -2,7 +2,6 @@ import logging
 from src.ai.conversations.conversation_manager import ConversationManager
 
 from src.ai.tools.tool_registry import register_tool, tool_class
-from src.db.models.domain.user_settings_model import UserSettingModel
 
 
 @tool_class
