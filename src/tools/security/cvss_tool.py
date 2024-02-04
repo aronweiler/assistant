@@ -19,6 +19,7 @@ class CvssTool:
         requires_documents=False,
         description="Creates a CVSS evaluation from user provided data.",
         additional_instructions="Use this tool to create a CVSS evaluation (and score) from data provided by the user.  The vulnerability_data argument should be a string containing the data to evaluate- this data should be whatever the user has given you to evaluate.",
+        category="Security",
     )
     def create_cvss_evaluation(self, vulnerability_data: str):
         """Creates a CVSS evaluation for the given vulnerability data.

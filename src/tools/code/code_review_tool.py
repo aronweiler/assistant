@@ -72,6 +72,7 @@ class CodeReviewTool:
         requires_documents=False,
         description="Performs a code review of a specified code file or pull request / merge request located at a URL.",
         additional_instructions="Use this tool for conducting a code review of a file located at a URL. Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
+        category="Code",
     )
     def conduct_code_review_from_url(
         self, target_url, additional_instructions: str = None

@@ -92,6 +92,7 @@ class CodeRetrieverTool:
         requires_documents=False,
         description="Gets source code from a specified URL",
         additional_instructions="Use this tool to get source code from a source control provider, such as GitHub or GitLab.",
+        category="Code",
     )
     def retrieve_source_code_from_url(self, url: str) -> dict:
         """

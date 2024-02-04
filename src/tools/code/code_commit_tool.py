@@ -57,7 +57,8 @@ class CodeCommitTool:
         help_text="Commits code to a source control repository.",
         requires_documents=False,
         description="Commits a single code file to source control.",
-        additional_instructions="Call this tool when the user requests that you commit code to source control.  ",
+        additional_instructions="Call this tool when the user requests that you commit code to source control.",
+        category="Code",
     )
     def commit_single_code_file(
         self,

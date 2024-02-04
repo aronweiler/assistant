@@ -14,6 +14,7 @@ from src.ai.tools.tool_registry import register_tool
     requires_documents=False,
     description="Queries the weather at a given location.",
     additional_instructions="Location is a string representing the City, State, and Country (if outside the US) of the location to get the weather for, e.g. 'Phoenix, AZ'. Date is optional, and should be a string ('%Y-%m-%d') representing the date to get the weather for, e.g. '2023-4-15'.  If no date is provided, the weather for the current date will be returned.",
+    category="Weather",
 )
 def get_weather(location: str, date: str = None) -> str:
     """Get the weather for a location and date.
@@ -61,7 +62,7 @@ def get_weather(location: str, date: str = None) -> str:
             return f"Could not find a forecast for {parsed_date}."
     except Exception as e:
         logging.error(e)
-        return "An error occurred while processing your request."
+        return f"An error occurred while processing your request.\n{e}"
 
 
 async def get(query):

@@ -58,6 +58,7 @@ class IssueTool:
         requires_documents=False,
         description="Creates an issue from a Code Review.",
         additional_instructions="Call this tool when the user requests an issue be created from a code review.",
+        category="Code",
     )
     def create_code_review_issue(
         self,

@@ -40,6 +40,7 @@ class JamaTool:
     #     help_text="Retrieves all projects from Jama",
     #     requires_repository=False,
     #     requires_documents=False,
+    #     category="Jama",
     # )
     # def get_jama_projects(self):
     #     endpoint = "projects"
@@ -52,6 +53,7 @@ class JamaTool:
         additional_instructions="You must know the specific endpoint (e.g. 'projects', 'items/{{item_id}}', etc.) in order to make this call.",
         requires_repository=False,
         requires_documents=False,
+        category="Jama",
     )
     def make_jama_api_call(
         self, endpoint: str, method: str = "GET", data: Union[None, dict] = None

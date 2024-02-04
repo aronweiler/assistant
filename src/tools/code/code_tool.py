@@ -31,6 +31,7 @@ class CodeTool:
         additional_instructions="Use this tool when a user is asking for the dependencies of any code file. This tool will return a dependency graph of the specified file (represented by the 'target_file_id').",
         requires_documents=True,
         document_classes=["Code"],
+        category="Code",
     )
     def get_pretty_dependency_graph(self, target_file_id) -> str:
         """Get a graph of the dependencies for a given file.
@@ -230,6 +231,7 @@ class CodeTool:
         description="Gets all of the code in the target file.",
         additional_instructions="Useful for getting all of the code in a specific 'Code' file when the user asks you to show them code from a particular file.",
         document_classes=["Code"],
+        category="Code",
     )
     def get_all_code_in_file(self, target_file_id: int):
         """Useful for getting all of the code in a loaded 'Code' file.

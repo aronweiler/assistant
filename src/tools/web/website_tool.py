@@ -40,6 +40,7 @@ class WebsiteTool:
         requires_documents=False,
         description="Reads text from the specified URL.",
         additional_instructions="Pass in the URL of the target website, along with the user's original query.",
+        category="Web",
     )
     def get_text_from_website(self, url: str, user_query: str) -> str:
         """Reads content from a website"""
