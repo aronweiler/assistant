@@ -33,7 +33,10 @@ class CodeReviewTool:
             code = documents.get_file_data(file_model.id).decode("utf-8")
             metadata = {"filename": file_model.file_name, "type": "file"}
         elif url:
-            file_info = CodeRetrieverTool().retrieve_source_code_from_url(url)
+            file_info = CodeRetrieverTool(
+                configuration=self.configuration,
+                conversation_manager=self.conversation_manager,
+            ).retrieve_source_code(url=url)
             if file_info["type"] != "diff":
                 code = file_info.pop("file_content")
 

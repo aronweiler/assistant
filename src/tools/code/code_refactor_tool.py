@@ -66,7 +66,10 @@ class CodeRefactorTool:
             code = documents.get_file_data(file_model.id).decode("utf-8")
             metadata = {"filename": file_model.file_name}
         elif url:
-            file_info = CodeRetrieverTool().retrieve_source_code_from_url(url)
+            file_info = CodeRetrieverTool(
+                configuration=self.configuration,
+                conversation_manager=self.conversation_manager,
+            ).retrieve_source_code(url=url)
             code = file_info.pop("file_content")
             metadata = file_info
         elif repository_file_id:
