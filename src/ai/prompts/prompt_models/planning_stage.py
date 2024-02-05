@@ -13,6 +13,7 @@ class PlanningStageInput(BaseModel):
     chat_history_prompt: str = Field(description="The chat history prompt")
     user_query: str = Field(description="The user query to be analyzed")
     user_settings_prompt: str = Field(description="The user settings prompt")
+    rephrase_answer_instructions_prompt: Optional[str] = Field(description="Use this prompt to rephrase the answer, if necessary.")
 
 class Step(BaseModel):
     step_num: int = Field(description="The step number")
