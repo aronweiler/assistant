@@ -62,8 +62,8 @@ Use the settings tool(s) to interact with these settings.
 
 ANSWER_PROMPT_TEMPLATE = """I need your help to answer the following question.  Please review the chat history and context carefully to formulate a comprehensive response to the user's query.
 
-## Context:
-*This context contains any previous tool call results that have been made in the context of the current query from the user.*
+## Internal Context:
+*This internal context contains any previous tool call results that have been made for the current query from the user.  Note: The user will never see this information!  If you are constructing an answer that uses this data, be sure to repeat it in your response, don't ever refer to this information in your answer (because the user will never see it).*
 {helpful_context}
 
 ## Chat History:

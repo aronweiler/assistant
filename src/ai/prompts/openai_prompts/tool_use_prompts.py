@@ -5,7 +5,7 @@ Your task is to create a JSON structure formatted as a Markdown code block. This
 {selected_repository_prompt}
 {previous_tool_calls_prompt}
 {chat_history_prompt}
-Additional context for the tool's use:
+Additional context for the tool's use (please note: the user will never see this context):
 --- HELPFUL CONTEXT ---
 {helpful_context}
 --- HELPFUL CONTEXT ---
