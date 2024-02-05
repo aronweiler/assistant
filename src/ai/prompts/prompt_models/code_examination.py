@@ -42,7 +42,7 @@ GetRelevantSnippetsOutput = output_type_example(
 
 class IdentifyLikelyFilesInput(BaseModel):
     user_query: str = Field(description="The user's query")
-    file_summaries: List[str] = Field(description="List of file summaries")
+    summaries: List[str] = Field(description="List of file summaries")
 
 
 class IdentifyLikelyFilesOutput(BaseModel):

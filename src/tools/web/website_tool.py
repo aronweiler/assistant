@@ -8,7 +8,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import sys
 from pathlib import Path
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.prompts.prompt_models.document_summary import DocumentChunkSummaryInput, DocumentSummaryOutput, DocumentQuerySummaryRefineInput
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
@@ -40,6 +40,7 @@ class WebsiteTool:
         requires_documents=False,
         description="Reads text from the specified URL.",
         additional_instructions="Pass in the URL of the target website, along with the user's original query.",
+        category="Web",
     )
     def get_text_from_website(self, url: str, user_query: str) -> str:
         """Reads content from a website"""

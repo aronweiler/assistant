@@ -67,6 +67,7 @@ class Stubber:
         help_text="Creates stubs for a specified code file.",
         requires_documents=True,
         document_classes=["Code"],
+        category="Code",
     )
     def create_stubs(self, file_id: int):
         """Create mocks / stubs for the dependencies of a given code file.

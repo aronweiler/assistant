@@ -69,9 +69,14 @@ def create_documents_collection_tab(ai, tab: DeltaGenerator):
 
         selected_collection_id = streamlit_shared.get_selected_collection_id()
         if "rag_ai" in st.session_state and selected_collection_id != '-1':
+            st.session_state.rag_ai.conversation_manager.collection_id = selected_collection_id
+            
             loaded_docs = (
                 st.session_state.rag_ai.conversation_manager.get_loaded_documents_for_display()
             )
+            
+            if not loaded_docs:
+                loaded_docs = []
 
             with st.expander(
                 label=f"({len(loaded_docs)}) documents in {streamlit_shared.get_selected_collection_name()}",

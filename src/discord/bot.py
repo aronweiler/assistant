@@ -12,7 +12,7 @@ from src.utilities.configuration_utilities import (
     get_app_config_path,
 )
 
-from src.ai.llm_helper import get_llm
+from src.ai.utilities.llm_helper import get_llm
 from src.ai.prompts.prompt_manager import PromptManager
 
 from src.configuration.assistant_configuration import (

@@ -8,7 +8,7 @@ from langchain.base_language import BaseLanguageModel
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.integrations.github import github_issue_creator
 from src.tools.code.issue_tool import IssueTool
 
@@ -57,7 +57,8 @@ class CodeCommitTool:
         help_text="Commits code to a source control repository.",
         requires_documents=False,
         description="Commits a single code file to source control.",
-        additional_instructions="Call this tool when the user requests that you commit code to source control.  ",
+        additional_instructions="Call this tool when the user requests that you commit code to source control.",
+        category="Code",
     )
     def commit_single_code_file(
         self,

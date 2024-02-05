@@ -1,3 +1,10 @@
+### February 4, 2024 -- RELEASE NOTES: Jarvis 0.75
+- Re-enabled voice assistant features, enhancing user interaction capabilities.
+- Significant prompt improvements for better user guidance and interaction.
+- Comprehensive code cleanup including removal of unused code and configurations, streamlining the application.
+- Updated tool registrations and management, improving tool accessibility and customization.
+- Major refactor on user settings and the Yelp tool, enhancing personalization and functionality.
+
 ### February 2, 2024 -- RELEASE NOTES: Jarvis 0.74
 - Added basic Jama API functionality (and settings page)
 - Fixed several issues with tools after migration to dynamic query building

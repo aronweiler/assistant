@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.discord.memory_manager import get_conversation_memory
-from src.ai.llm_helper import get_llm
+from src.ai.utilities.llm_helper import get_llm
 
 from src.db.models.documents import Documents, FileModel, DocumentModel
 from src.db.models.users import Users
@@ -70,8 +70,7 @@ class RagBot(discord.Client):
                     # Add typing indicator
                     response: str = rag_ai.query(
                         query=message.content,
-                        collection_id=self.target_collection_id,
-                        ai_mode="Auto",
+                        collection_id=self.target_collection_id
                     )
 
                     # Sometimes the response can be over 2000 characters, so we need to split it

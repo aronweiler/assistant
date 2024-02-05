@@ -1,7 +1,7 @@
 from typing import List
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.prompts.prompt_models.code_review import CodeReviewInput, CodeReviewOutput
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
@@ -72,6 +72,7 @@ class CodeReviewTool:
         requires_documents=False,
         description="Performs a code review of a specified code file or pull request / merge request located at a URL.",
         additional_instructions="Use this tool for conducting a code review of a file located at a URL. Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
+        category="Code",
     )
     def conduct_code_review_from_url(
         self, target_url, additional_instructions: str = None

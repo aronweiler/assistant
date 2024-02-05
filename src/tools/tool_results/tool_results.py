@@ -1,5 +1,4 @@
 from typing import List
-from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.tools.tool_registry import register_tool
 from src.db.models.conversations import Conversations
 
@@ -9,6 +8,7 @@ from src.db.models.conversations import Conversations
     requires_documents=False,
     description="Get a previous tool call result (or results) by ID.",
     additional_instructions="Call this tool when you need to get the results of a previous tool call or calls.",
+    category="General",
 )
 def get_previous_tool_call_results(tool_call_result_ids: List[int]):
     """

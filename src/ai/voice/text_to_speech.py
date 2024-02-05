@@ -11,7 +11,7 @@ import sys
 other_directory_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
 sys.path.append(other_directory_path)
 
-from src.runners.voice.player import  play_mp3_stream
+from src.ai.voice.player import  play_mp3_stream
 
 class TextToSpeech():
 
@@ -29,12 +29,7 @@ class TextToSpeech():
             # This opens the door to having the AI generate SSML tags for things like emphasis, pauses, etc.
             #text = f"<speak><prosody rate=\"{speech_rate_percentage}%\">" + text + "</prosody></speak>"
      
-            try:
-                # TODO: Make sure this is valid SSML
-                response = self.polly.synthesize_speech(Text=text, OutputFormat="mp3", VoiceId=voice_id, SampleRate=str(self.sample_rate), TextType="ssml")
-            except:
-                # Retry without SSML
-                response = self.polly.synthesize_speech(Text=text, OutputFormat="mp3", VoiceId=voice_id, SampleRate=str(self.sample_rate))
+            response = self.polly.synthesize_speech(Text=text, OutputFormat="mp3", VoiceId=voice_id, SampleRate=str(self.sample_rate))
             
         except (BotoCoreError, ClientError) as error:
             logging.error(error)

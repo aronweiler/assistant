@@ -1,5 +1,6 @@
 import os
 from src.configuration.assistant_configuration import ApplicationConfigurationLoader
+from src.configuration.voice_configuration import VoiceConfiguration
 
 
 def get_tool_configuration(configuration: dict, func_name: str) -> dict:
@@ -17,9 +18,23 @@ def get_app_config_path():
 
     return app_config_path
 
+def get_voice_config_path():
+    voice_config_path = os.environ.get(
+        "VOICE_CONFIG_PATH",
+        "configurations/app_configs/voice.json",
+    )
+
+    return voice_config_path
+
 
 def get_app_configuration():
     """Loads the configuration from the path"""
     app_config_path = get_app_config_path()
 
     return ApplicationConfigurationLoader.from_file(app_config_path)
+
+def get_voice_configuration():
+    """Loads the configuration from the path"""
+    app_config_path = get_voice_config_path()
+
+    return VoiceConfiguration.from_file(app_config_path)

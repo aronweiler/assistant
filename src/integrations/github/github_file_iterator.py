@@ -14,8 +14,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from src.integrations.github import github_shared
 
 
-
-
 def get_text_based_files_from_repo(
     github_client: Github, repository_name: str, branch_name: str
 ):
@@ -39,4 +37,4 @@ def is_text_based_extension(file_path: str):
     # Extract the file extension and check if it's in our set of text-based extensions
     _, extension = os.path.splitext(file_path)
 
-    return extension.lower() in CODE_FILE_EXTENSIONS
+    return extension.strip() == "" or extension.lower() in CODE_FILE_EXTENSIONS

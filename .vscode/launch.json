@@ -82,14 +82,10 @@
       "justMyCode": true
     },
     {
-      "name": "Run OpenAI Assistant Console",
+      "name": "Voice Jarvis",
       "type": "python",
       "request": "launch",
-      "program": "src/run.py",
-      "args": [
-        "--config=configurations/console_configs/openai_config.json",
-        "--logging_level=DEBUG"
-      ],
+      "program": "src/ai/voice_ai.py",      
       "console": "integratedTerminal",
       "justMyCode": true
     },

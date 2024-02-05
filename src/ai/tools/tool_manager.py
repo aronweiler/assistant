@@ -3,7 +3,7 @@ import logging
 from typing import List
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.tools.tool_loader import get_available_tools
+from src.ai.tools.tool_loader import get_available_tools, get_tool_setting
 
 from src.ai.agents.general.generic_tool import GenericTool
 from src.utilities.configuration_utilities import (
@@ -24,7 +24,11 @@ class ToolManager:
     def get_enabled_tools(self) -> list[GenericTool]:
         # Filter the list by tools that are enabled in the environment (or their defaults)
         tools_that_should_be_enabled = [
-            tool for tool in self.tools if ToolManager.is_tool_enabled(tool.name)
+            tool
+            for tool in self.tools
+            if ToolManager.is_tool_enabled(
+                conversation_manager=self.conversation_manager, tool_name=tool.name
+            )
         ]
 
         # Now filter them down based on document-related tools, and if there are documents loaded
@@ -49,36 +53,64 @@ class ToolManager:
         return self.tools
 
     @staticmethod
-    def is_tool_enabled(tool_name) -> bool:
+    def is_tool_enabled(conversation_manager, tool_name) -> bool:
         # See if this tool name is in the environment
-        configuration = get_app_configuration()
-        config = configuration["tool_configurations"].get(tool_name, None)
-        if config is not None:
-            # If it is, use the value
-            return config.get("enabled", False)
 
-        # Disabled by default
-        return False
+        setting = get_tool_setting(
+            conversation_manager=conversation_manager,
+            function_name=tool_name,
+            setting_name="enabled",
+            default_value=False,
+        )
+        
+        logging.debug(f"ToolManager.is_tool_enabled: {tool_name} setting: {setting}")
+        
+        # If the setting is a string, then we need to convert it to a boolean
+        if isinstance(setting, str):
+            return setting.lower() == "true"
+        else:
+            return setting
 
     @staticmethod
-    def should_include_in_conversation(tool_name):
-        configuration = get_app_configuration()
-        if tool_name in configuration["tool_configurations"]:
-            return configuration["tool_configurations"][tool_name].get(
-                "include_in_conversation", False
-            )
-        else:
-            return False
+    def get_tool_category(tool_name, conversation_manager):
+        setting = get_tool_setting(
+            conversation_manager=conversation_manager,
+            function_name=tool_name,
+            setting_name="get_tool_category",
+            default_value=False,
+        )
+
+        return setting
 
     @staticmethod
-    def should_return_direct(tool_name):
-        configuration = get_app_configuration()
-        if tool_name in configuration["tool_configurations"]:
-            return configuration["tool_configurations"][tool_name].get(
-                "return_direct", False
-            )
+    def should_include_in_conversation(tool_name, conversation_manager):
+        setting = get_tool_setting(
+            conversation_manager=conversation_manager,
+            function_name=tool_name,
+            setting_name="include_in_conversation",
+            default_value=False,
+        )
+
+        # If the setting is a string, then we need to convert it to a boolean
+        if isinstance(setting, str):
+            return setting.lower() == "true"
         else:
-            return False
+            return setting
+
+    @staticmethod
+    def should_return_direct(tool_name, conversation_manager):
+        setting = get_tool_setting(
+            conversation_manager=conversation_manager,
+            function_name=tool_name,
+            setting_name="return_direct",
+            default_value=False,
+        )
+        
+        # If the setting is a string, then we need to convert it to a boolean
+        if isinstance(setting, str):
+            return setting.lower() == "true"
+        else:
+            return setting
 
     @staticmethod
     def get_tool_details(tool_name: str, tools: List[GenericTool]):

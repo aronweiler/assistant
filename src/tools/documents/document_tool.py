@@ -38,7 +38,7 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
 
@@ -59,6 +59,7 @@ class DocumentTool:
         help_text="Searches the loaded documents for a query. If the query is directed at a specific document, this will search just that document, otherwise, it will search all loaded documents.",
         requires_documents=True,
         document_classes=["Document", "Code", "Spreadsheet"],
+        category="Documents",
     )
     def search_loaded_documents(
         self,
@@ -290,6 +291,7 @@ class DocumentTool:
         help_text="Summarizes an entire document using one of the summarization methods.  ⚠️ If you did not ingest your documents with the summary turned on, this can be slow and expensive, as it will process the entire document.",
         document_classes=["Code", "Spreadsheet", "Document"],
         requires_documents=True,
+        category="Documents",
     )
     def summarize_entire_document(self, target_file_id: int):
         """Useful for getting a summary of an entire specific document.  The target_file_id argument is required.
@@ -437,6 +439,7 @@ class DocumentTool:
         description="Lists all loaded documents.",
         help_text="Lists all loaded documents.",
         requires_documents=False,
+        category="Documents",
     )
     def list_documents(self):
         """Useful for discovering which documents or files are loaded or otherwise available to you.

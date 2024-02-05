@@ -1,5 +1,5 @@
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.tools.tool_registry import register_tool, tool_class
 
 
@@ -19,6 +19,7 @@ class CvssTool:
         requires_documents=False,
         description="Creates a CVSS evaluation from user provided data.",
         additional_instructions="Use this tool to create a CVSS evaluation (and score) from data provided by the user.  The vulnerability_data argument should be a string containing the data to evaluate- this data should be whatever the user has given you to evaluate.",
+        category="Security",
     )
     def create_cvss_evaluation(self, vulnerability_data: str):
         """Creates a CVSS evaluation for the given vulnerability data.

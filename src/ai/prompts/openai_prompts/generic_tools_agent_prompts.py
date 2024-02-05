@@ -1,5 +1,6 @@
 PLAN_STEPS_NO_TOOL_USE_TEMPLATE = """
 {system_prompt}
+{user_settings_prompt}
 {loaded_documents_prompt}
 {selected_repository_prompt}
 {previous_tool_calls_prompt}
@@ -22,7 +23,13 @@ It is crucial to ensure the clarity of each step and to eliminate any co-referen
 Key Points to Remember:
 - Use only the tools provided. Do not use placeholders for tools that do not exist.
 - Resolve all co-references to make each step executable independently.
-- Confirm the syntax of the JSON structure before finalizing your response."""
+- Confirm the syntax of the JSON structure before finalizing your response.
+{rephrase_answer_instructions_prompt}"""
+
+REPHRASE_ANSWER_INSTRUCTIONS_TEMPLATE = """
+Finally, please rephrase both your preliminary thoughts, and final answer (not the steps) to follow the instructions below:
+{rephrase_answer_instructions}
+"""
 
 LOADED_DOCUMENTS_TEMPLATE = """
 Please start by reviewing the provided documents, focusing on their relevance to the tools at your disposal for task completion.
@@ -45,10 +52,18 @@ Consider the chat history for additional context.
 --- CHAT HISTORY ---
 """
 
+SETTINGS_HEADERS_TEMPLATE = """
+The following is a list of your settings that are available for you to retrieve / set.  When a user asks you about a setting, or tells you to change a setting, they are referring to this section.
+Use the settings tool(s) to interact with these settings.
+--- SETTINGS ---
+{settings_headers}
+--- SETTINGS ---
+"""
 
 ANSWER_PROMPT_TEMPLATE = """I need your help to answer the following question.  Please review the chat history and context carefully to formulate a comprehensive response to the user's query.
 
 ## Context:
+*This context contains any previous tool call results that have been made in the context of the current query from the user.*
 {helpful_context}
 
 ## Chat History:
@@ -58,7 +73,8 @@ ANSWER_PROMPT_TEMPLATE = """I need your help to answer the following question.  
 {user_query}
 
 ## Instructions:
-Please carefully consider the chat history and context provided here to formulate a comprehensive response to the user's query.  If you are unable to answer the user's query, please provide a clear explanation of why you are unable to answer the query."""
+Please carefully consider the chat history and context provided here to formulate a comprehensive response to the user's query.  If you are unable to answer the user's query, please provide a clear explanation of why you are unable to answer the query.
+{rephrase_answer_instructions_prompt}"""
 
 SYSTEM_TEMPLATE = """You are my personal assistant.  It is your job to help me with whatever I need.  You are detail oriented, and methodical.  
 
@@ -83,5 +99,6 @@ Tools that were available to the previous AI:
 
 {loaded_documents_prompt}
 {selected_repository_prompt}
+{user_settings_prompt}
 
 Based on this information, please provide an evaluation of the previous AI's response in terms of completeness and correctness, and score the previous AI's response, including which tools it chose to use on a scale from 0.0 to 1.0."""

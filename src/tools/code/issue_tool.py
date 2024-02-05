@@ -5,7 +5,7 @@ import json
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.integrations.github import github_issue_creator
 
@@ -58,6 +58,7 @@ class IssueTool:
         requires_documents=False,
         description="Creates an issue from a Code Review.",
         additional_instructions="Call this tool when the user requests an issue be created from a code review.",
+        category="Code",
     )
     def create_code_review_issue(
         self,

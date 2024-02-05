@@ -37,7 +37,7 @@ class QueryHelper:
         prompt_template_name: str,
         input_class_instance,
         output_class_type: Type[BaseModel],
-        **kwargs,
+        **metadata,
     ):
         # Verify that input_class_instance is an instance of a Pydantic model
         if not isinstance(input_class_instance, BaseModel):
@@ -69,7 +69,8 @@ class QueryHelper:
         )
 
         # Invoke the language model with the converted dictionary and any additional kwargs
-        result = llm.invoke(prompt, **kwargs)
+        #runnable = llm.with_config()
+        result = llm.invoke(prompt, config=metadata)        
 
         try:
             # Attempt to parse the JSON

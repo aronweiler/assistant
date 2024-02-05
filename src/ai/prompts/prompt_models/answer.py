@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from src.ai.prompts.query_helper import output_type_example
@@ -8,6 +8,7 @@ class AnswerInput(BaseModel):
     user_query: str = Field(description="The user query to be analyzed")
     chat_history: str = Field(description="The chat history")
     helpful_context: str = Field(description="The helpful context")
+    rephrase_answer_instructions_prompt: Optional[str] = Field(description="Use this prompt to rephrase the answer, if necessary.")
 
 class AnswerOutput(BaseModel):
     status: str = Field(

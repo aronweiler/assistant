@@ -4,7 +4,7 @@ from typing import List
 
 # Importing necessary modules and classes for the tool.
 from langchain.base_language import BaseLanguageModel
-from src.ai.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.db.models.code import Code
 from src.integrations.github import github_issue_creator
@@ -92,6 +92,7 @@ class CodeRetrieverTool:
         requires_documents=False,
         description="Gets source code from a specified URL",
         additional_instructions="Use this tool to get source code from a source control provider, such as GitHub or GitLab.",
+        category="Code",
     )
     def retrieve_source_code_from_url(self, url: str) -> dict:
         """

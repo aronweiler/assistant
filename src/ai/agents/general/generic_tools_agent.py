@@ -14,7 +14,7 @@ from langchain_core.callbacks.base import BaseCallbackHandler, BaseCallbackManag
 
 from src.ai.agents.general.generic_tool import GenericTool
 
-from src.ai.llm_helper import get_llm
+from src.ai.utilities.llm_helper import get_llm
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.prompts.prompt_models.answer import AnswerInput, AnswerOutput
 from src.ai.prompts.prompt_models.evaluation import EvaluationInput, EvaluationOutput
@@ -107,6 +107,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             "user_email",
             "evaluate_response",
             "re_planning_threshold",
+            "rephrase_answer_instructions",
         ]
 
     def plan(
@@ -159,7 +160,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 tool_arguments=json.dumps(intermediate_steps[-1][0].tool_input),
                 tool_results=tool_results,
                 include_in_conversation=ToolManager.should_include_in_conversation(
-                    intermediate_steps[-1][0].tool
+                    tool_name=intermediate_steps[-1][0].tool,
+                    conversation_manager=self.conversation_manager,
                 ),
             )
 
@@ -198,6 +200,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 user_query=kwargs["input"],
                 helpful_context=self.get_helpful_context(intermediate_steps),
                 chat_history=self.conversation_manager.get_chat_history_prompt(),
+                rephrase_answer_instructions_prompt=self.get_rephrase_prompt(kwargs),
             )
 
             result: AnswerOutput = self.query_helper.query_llm(
@@ -205,6 +208,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 input_class_instance=input_object,
                 prompt_template_name="ANSWER_PROMPT_TEMPLATE",
                 output_class_type=AnswerOutput,
+                metadata={"output_type": "AnswerOutput"},
             )
 
             # Check to see if the result is a failure or not
@@ -270,6 +274,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             ),
             loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
             selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
+            user_settings_prompt=self.conversation_manager.get_user_settings_prompt(),
         )
 
         result: EvaluationOutput = self.query_helper.query_llm(
@@ -277,11 +282,16 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="EVALUATION_TEMPLATE",
             output_class_type=EvaluationOutput,
+            metadata={"output_type": "EvaluationOutput"},
         )
 
         return result
 
     def get_step_plans_or_direct_answer(self, kwargs) -> PlanningStageOutput:
+
+        # There may be some rephrasing instructions to include in the prompt (i.e. for voice output, etc.)
+        rephrase_answer_instructions_prompt = self.get_rephrase_prompt(kwargs)
+
         input_object = PlanningStageInput(
             system_prompt=self.conversation_manager.get_system_prompt(),
             loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
@@ -292,6 +302,8 @@ class GenericToolsAgent(BaseSingleActionAgent):
             ),
             chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
             user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
+            user_settings_prompt=self.conversation_manager.get_user_settings_prompt(),
+            rephrase_answer_instructions_prompt=rephrase_answer_instructions_prompt,
         )
 
         result = self.query_helper.query_llm(
@@ -299,9 +311,26 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
             output_class_type=PlanningStageOutput,
+            metadata={"output_type": "PlanningStageOutput"},
         )
 
         return result
+
+    def get_rephrase_prompt(self, kwargs):
+        rephrase_answer_instructions_prompt = ""
+        if (
+            "rephrase_answer_instructions" in kwargs
+            and kwargs["rephrase_answer_instructions"].strip() != ""
+        ):
+            rephrase_answer_instructions_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                    "REPHRASE_ANSWER_INSTRUCTIONS_TEMPLATE",
+                ).format(
+                    rephrase_answer_instructions=kwargs["rephrase_answer_instructions"]
+                )
+            )
+
+        return rephrase_answer_instructions_prompt
 
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
@@ -364,6 +393,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="TOOL_USE_TEMPLATE",
             output_class_type=ToolUseOutput,
+            metadata={"output_type": "ToolUseOutput"},
         )
 
         # if "final_answer" in action_json:
@@ -383,14 +413,6 @@ class GenericToolsAgent(BaseSingleActionAgent):
     def prompt_and_predict_tool_use_retry(
         self, intermediate_steps, **kwargs: Any
     ) -> AgentAction:
-        # # Create the first tool use prompt
-        # if self.step_index == -1:
-        #     # Handle the case where no steps could be found
-        #     step = {
-        #         "step_description": f"No valid steps could be found.  Here is the user's query, in case it helps: {kwargs['input']}.\n\nIn addition, here is ALL of the step data we could gather:\n{json.dumps(self.wrong_tool_calls, indent=4)}"
-        #     }
-        # else:
-        #     step = self.planning_results["steps"][self.step_index]
 
         input_object = ToolUseRetryInput(
             system_prompt=self.conversation_manager.get_system_prompt(),
@@ -412,6 +434,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="TOOL_USE_RETRY_TEMPLATE",
             output_class_type=ToolUseOutput,
+            metadata={"output_type": "ToolUseOutput"},
         )
 
         action = AgentAction(
@@ -449,7 +472,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
 
         return "\n----\n".join(
             [
-                f"using the `{s[0].tool}` tool returned:\n'{s[1]}'"
+                f"You used the `{s[0].tool}` tool, which returned:\n'{s[1]}'"
                 for s in intermediate_steps
                 if s[1] is not None
             ]
