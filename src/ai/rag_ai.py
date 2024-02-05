@@ -126,7 +126,6 @@ class RetrievalAugmentedGenerationAI:
         self,
         query: str,
         collection_id: int = None,
-        ai_mode: str = "Auto",
         kwargs: dict = {},
     ):
         # Set the document collection id on the conversation manager
@@ -138,6 +137,11 @@ class RetrievalAugmentedGenerationAI:
         # Ensure we have a summary / title for the chat
         logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
+
+        # Get the AI mode setting
+        ai_mode = self.conversation_manager.get_user_setting(
+            setting_name="ai_mode", default_value="auto"
+        ).setting_value
 
         if ai_mode.lower().startswith("conversation"):
             logging.debug("Running chain in 'Conversation Only' mode")
@@ -207,6 +211,7 @@ class RetrievalAugmentedGenerationAI:
         max_iterations = kwargs.get("max_iterations", 25)
         evaluate_response = kwargs.get("evaluate_response", False)
         re_planning_threshold = kwargs.get("re_planning_threshold", 0.5)
+        rephrase_answer_instructions = kwargs.get("rephrase_answer_instructions", None)
 
         logging.debug(f"Creating agent with {timeout} second timeout")
         agent = self.create_agent(agent_timeout=timeout, max_iterations=max_iterations)
@@ -224,6 +229,7 @@ class RetrievalAugmentedGenerationAI:
                 "user_email": self.conversation_manager.user_email,
                 "evaluate_response": evaluate_response,
                 "re_planning_threshold": re_planning_threshold,
+                "rephrase_answer_instructions": rephrase_answer_instructions or "",
             }
         )
 

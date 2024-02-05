@@ -70,8 +70,7 @@ class RagBot(discord.Client):
                     # Add typing indicator
                     response: str = rag_ai.query(
                         query=message.content,
-                        collection_id=self.target_collection_id,
-                        ai_mode="Auto",
+                        collection_id=self.target_collection_id
                     )
 
                     # Sometimes the response can be over 2000 characters, so we need to split it
