@@ -4,6 +4,7 @@ from src.ai.prompts.prompt_models.code_review import CodeReviewInput, CodeReview
 from src.ai.utilities.llm_helper import get_tool_llm
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.db.models.documents import Documents
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 
@@ -12,6 +13,84 @@ class CodeReviewTool:
     def __init__(self, configuration, conversation_manager: ConversationManager):
         self.configuration = configuration
         self.conversation_manager = conversation_manager
+
+    @register_tool(
+        display_name="Perform a Code Review",
+        description="Perform a code review on a loaded document, a URL, or a repository file.",
+        additional_instructions="Use this tool for conducting a code review on a loaded document, a URL, or a repository file. Make sure to understand and pass the correct argument (either `loaded_document_id`, `url`, or `repository_file_id`) based on the user's request.  If the user specifies a URL, do not use the loaded repository, instead pass the URL in here.  Use the additional_instructions field to pass additional code review instructions from the user, if any.",
+        category="Code",
+    )
+    def conduct_code_review(
+        self,
+        loaded_document_id: int = None,
+        url: str = None,
+        repository_file_id: int = None,
+        additional_instructions: str = None,
+    ) -> dict:
+        if loaded_document_id:
+            documents = Documents()
+            file_model = documents.get_file(file_id=loaded_document_id)
+            code = documents.get_file_data(file_model.id).decode("utf-8")
+            metadata = {"filename": file_model.file_name, "type": "file"}
+        elif url:
+            file_info = CodeRetrieverTool().retrieve_source_code_from_url(url)
+            if file_info["type"] != "diff":
+                code = file_info.pop("file_content")
+
+            metadata = file_info
+        elif repository_file_id:
+            code_file = self.conversation_manager.code_helper.get_code_file_by_id(
+                repository_file_id
+            )
+            code = code_file.code_file_content
+            metadata = {"filename": code_file.code_file_name, "type": "file"}
+        else:
+            raise ValueError(
+                "A valid loaded_document_id, url, or repository_file_id must be provided."
+            )
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.conduct_code_review.__name__,
+            streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
+        )
+
+        templates = self.get_active_code_review_templates(
+            self.conduct_code_review.__name__
+        )
+
+        reviews = []
+
+        if metadata["type"] == "diff":
+            # Extract changes from metadata and remove 'changes' key from metadata.
+            changes = file_info.pop("changes", None)
+
+            for diff in changes:
+                file_info["old_path"] = diff["old_path"]
+                file_info["new_path"] = diff["new_path"]
+
+                reviews.extend(
+                    self._process_templates(
+                        templates=templates,
+                        metadata=file_info,
+                        additional_instructions=additional_instructions,
+                        code=diff["raw"],
+                        llm=llm,
+                    )
+                )
+        else:
+            reviews.extend(
+                self._process_templates(
+                    templates=templates,
+                    metadata=metadata,
+                    additional_instructions=additional_instructions,
+                    code=code,
+                    llm=llm,
+                )
+            )
+
+        return reviews
 
     def _perform_single_review(
         self,
@@ -65,66 +144,6 @@ class CodeReviewTool:
         }
 
         return review_results
-
-    @register_tool(
-        display_name="Conduct Code Review from URL",
-        help_text="Conducts a code review from a specified URL.",
-        requires_documents=False,
-        description="Performs a code review of a specified code file or pull request / merge request located at a URL.",
-        additional_instructions="Use this tool for conducting a code review of a file located at a URL. Use the additional_instructions field to pass any code review additional instructions from the user, if any.",
-        category="Code",
-    )
-    def conduct_code_review_from_url(
-        self, target_url, additional_instructions: str = None
-    ) -> dict:
-        # Get the code from the URL.
-        retriever = CodeRetrieverTool()
-        file_info = retriever.retrieve_source_code_from_url(url=target_url)
-
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.conduct_code_review_from_url.__name__,
-            streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
-        )
-
-        templates = self.get_active_code_review_templates(
-            self.conduct_code_review_from_url.__name__
-        )
-
-        reviews = []
-
-        if file_info["type"] == "diff":
-            # Extract changes from metadata and remove 'changes' key from metadata.
-            changes = file_info.pop("changes", None)
-
-            for diff in changes:
-                file_info["old_path"] = diff["old_path"]
-                file_info["new_path"] = diff["new_path"]
-
-                reviews.extend(
-                    self._process_templates(
-                        templates=templates,
-                        metadata=file_info,
-                        additional_instructions=additional_instructions,
-                        code=diff["raw"],
-                        llm=llm,
-                    )
-                )
-        else:
-            content = file_info.pop("file_content")
-
-            reviews.extend(
-                self._process_templates(
-                    templates=templates,
-                    metadata=file_info,
-                    additional_instructions=additional_instructions,
-                    code=content,
-                    llm=llm,
-                )
-            )
-
-        return reviews
 
     def get_active_code_review_templates(self, tool_name: str) -> List[dict]:
         """

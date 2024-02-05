@@ -53,7 +53,7 @@ class CodeRefactorTool:
     @register_tool(
         display_name="Perform a Code Refactor",
         description="Perform a code refactor on a loaded document, a URL, or a repository file.",
-        additional_instructions="Use this tool for conducting a loaded document, a URL, or a repository file. Make sure to understand and pass the correct argument (either `loaded_document_id`, `url`, or `repository_file_id`) based on the user's request.  If the user specifies a URL, do not use the loaded repository, instead pass the URL in here.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
+        additional_instructions="Use this tool for conducting a code refactor on a loaded document, a URL, or a repository file. Make sure to understand and pass the correct argument (either `loaded_document_id`, `url`, or `repository_file_id`) based on the user's request.  If the user specifies a URL, do not use the loaded repository, instead pass the URL in here.  Use the additional_instructions field to pass additional code refactor instructions from the user, if any.",
         category="Code",
     )
     def conduct_code_refactor(
