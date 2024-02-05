@@ -34,7 +34,9 @@ from src.db.models.documents import FileModel, DocumentModel, Documents
 from src.db.models.conversations import Conversations
 from src.db.models.conversation_messages import ConversationMessages
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
-from src.ai.callbacks.streaming_only_callback import StreamingOnlyCallbackHandler
+from src.ai.callbacks.streaming_only_callback import (
+    StreamlitStreamingOnlyCallbackHandler
+)
 
 from src.utilities.hash_utilities import calculate_sha256
 
@@ -961,11 +963,31 @@ def save_split_documents(
                     additional_metadata=document.metadata,
                     document_name=document.metadata["filename"],
                     embedding_model_name=get_selected_collection_embedding_model_name(),
-                    question_1=chunk_questions.questions[0] if chunk_questions and len(chunk_questions.questions) > 0 else "",
-                    question_2=chunk_questions.questions[1] if chunk_questions and len(chunk_questions.questions) > 1 else "",
-                    question_3=chunk_questions.questions[2] if chunk_questions and len(chunk_questions.questions) > 2 else "",
-                    question_4=chunk_questions.questions[3] if chunk_questions and len(chunk_questions.questions) > 3 else "",
-                    question_5=chunk_questions.questions[4] if chunk_questions and len(chunk_questions.questions) > 4 else "",
+                    question_1=(
+                        chunk_questions.questions[0]
+                        if chunk_questions and len(chunk_questions.questions) > 0
+                        else ""
+                    ),
+                    question_2=(
+                        chunk_questions.questions[1]
+                        if chunk_questions and len(chunk_questions.questions) > 1
+                        else ""
+                    ),
+                    question_3=(
+                        chunk_questions.questions[2]
+                        if chunk_questions and len(chunk_questions.questions) > 2
+                        else ""
+                    ),
+                    question_4=(
+                        chunk_questions.questions[3]
+                        if chunk_questions and len(chunk_questions.questions) > 3
+                        else ""
+                    ),
+                    question_5=(
+                        chunk_questions.questions[4]
+                        if chunk_questions and len(chunk_questions.questions) > 4
+                        else ""
+                    ),
                 )
             )
 
@@ -1215,13 +1237,16 @@ def handle_chat(main_window_container, ai_instance, configuration):
 
         ai_modes = ["Auto", "Conversation Only"]
 
+        # Get the AI mode setting
+        ai_mode = ai_instance.conversation_manager.get_user_setting(
+            setting_name="ai_mode", default_value="Auto"
+        ).setting_value
+
         col2.selectbox(
             label="Mode",
             label_visibility="collapsed",
             options=ai_modes,
-            index=ai_modes.index(
-                get_app_configuration()["jarvis_ai"].get("ai_mode", "Auto")
-            ),
+            index=ai_modes.index(ai_mode),
             key="ai_mode",
             help="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.",
             on_change=set_ai_mode,
@@ -1320,7 +1345,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 llm_container = st.container().empty()
 
                 if configuration["jarvis_ai"].get("show_llm_thoughts", False):
-                    llm_callback = StreamingOnlyCallbackHandler(llm_container)
+                    llm_callback = StreamlitStreamingOnlyCallbackHandler(llm_container)
                     agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
                         max_thought_containers=10,
@@ -1339,33 +1364,47 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 logging.debug(f"Collection ID: {collection_id}")
 
                 kwargs = {
-                    "search_top_k": int(st.session_state["search_top_k"])
-                    if "search_top_k" in st.session_state
-                    else 5,
-                    "search_type": st.session_state["search_type"]
-                    if "search_type" in st.session_state
-                    else "Similarity",
-                    "use_pandas": st.session_state["use_pandas"]
-                    if "use_pandas" in st.session_state
-                    else True,
-                    "override_file": st.session_state["override_file"].split(":")[0]
-                    if "override_file" in st.session_state
-                    and st.session_state["override_file"].split(":")[0] != "0"
-                    else None,
-                    "agent_timeout": int(st.session_state["agent_timeout"])
-                    if "agent_timeout" in st.session_state
-                    else 300,
-                    "max_iterations": int(st.session_state["max_iterations"])
-                    if "max_iterations" in st.session_state
-                    else 25,
-                    "evaluate_response": st.session_state["evaluate_response"]
-                    if "evaluate_response" in st.session_state
-                    else False,
-                    "re_planning_threshold": float(
-                        st.session_state["re_planning_threshold"]
-                    )
-                    if "re_planning_threshold" in st.session_state
-                    else 0.5,
+                    "search_top_k": (
+                        int(st.session_state["search_top_k"])
+                        if "search_top_k" in st.session_state
+                        else 5
+                    ),
+                    "search_type": (
+                        st.session_state["search_type"]
+                        if "search_type" in st.session_state
+                        else "Similarity"
+                    ),
+                    "use_pandas": (
+                        st.session_state["use_pandas"]
+                        if "use_pandas" in st.session_state
+                        else True
+                    ),
+                    "override_file": (
+                        st.session_state["override_file"].split(":")[0]
+                        if "override_file" in st.session_state
+                        and st.session_state["override_file"].split(":")[0] != "0"
+                        else None
+                    ),
+                    "agent_timeout": (
+                        int(st.session_state["agent_timeout"])
+                        if "agent_timeout" in st.session_state
+                        else 300
+                    ),
+                    "max_iterations": (
+                        int(st.session_state["max_iterations"])
+                        if "max_iterations" in st.session_state
+                        else 25
+                    ),
+                    "evaluate_response": (
+                        st.session_state["evaluate_response"]
+                        if "evaluate_response" in st.session_state
+                        else False
+                    ),
+                    "re_planning_threshold": (
+                        float(st.session_state["re_planning_threshold"])
+                        if "re_planning_threshold" in st.session_state
+                        else 0.5
+                    ),
                 }
                 logging.debug(f"kwargs: {kwargs}")
 
@@ -1376,7 +1415,6 @@ def handle_chat(main_window_container, ai_instance, configuration):
                     result = ai_instance.query(
                         query=prompt,
                         collection_id=collection_id if collection_id != -1 else None,
-                        ai_mode=st.session_state["ai_mode"],
                         kwargs=kwargs,
                     )
                 except Exception as e:
@@ -1431,7 +1469,8 @@ def set_presence_penalty():
 
 
 def set_ai_mode():
-    set_jarvis_ai_config_element("ai_mode", st.session_state["ai_mode"])
+    ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
+    ai.conversation_manager.set_user_setting("ai_mode", st.session_state["ai_mode"])
 
 
 def update_conversation_name():

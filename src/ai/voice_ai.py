@@ -4,19 +4,17 @@ import platform
 import sys
 import time
 import threading
-import numpy as np
 import pyaudio
 import queue
-from collections import deque
 import logging
-import json
 import uuid
 
-from src.db.models.user_settings import UserSettings
 
 # Append the path to the tools directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
+from src.ai.callbacks.streaming_only_callback import VoiceToolUsingCallbackHandler
+from src.db.models.user_settings import UserSettings
 from src.ai.prompts.prompt_manager import PromptManager
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.ai.voice.player import play_wav_file
@@ -75,9 +73,6 @@ class VoiceRunner:
         users = Users()
         self.user = users.get_user_by_email(self.voice_configuration.user_email)
 
-        # initialize settings
-        # self.initialize_settings()
-
         self.prompt_manager = PromptManager(
             self.app_configuration["jarvis_ai"]["model_configuration"]["llm_type"]
         )
@@ -90,8 +85,42 @@ class VoiceRunner:
             ),  # probably should be in settings or something
             user_email=self.user.email,
             prompt_manager=self.prompt_manager,
-            streaming=False,  # Look at changing this later
+            streaming=True,  # Look at changing this later
         )
+
+        # TODO: Remove
+        agent_callbacks = [VoiceToolUsingCallbackHandler(speak_function=self.speak)]
+        llm_callbacks = [VoiceToolUsingCallbackHandler(speak_function=self.speak)]
+        self.rag_ai.conversation_manager.agent_callbacks = agent_callbacks
+        self.rag_ai.conversation_manager.llm_callbacks = llm_callbacks
+
+        self.initialize_voice_settings()
+
+    def initialize_voice_settings(self):
+        # initialize the text to speech settings
+        voice_setting = self.settings.get_user_setting(
+            user_id=self.user.id, setting_name="text_to_speech_voice"
+        )
+
+        if voice_setting is None:
+            self.settings.add_update_user_setting(
+                user_id=self.user.id,
+                setting_name="text_to_speech_voice",
+                setting_value="Matthew",
+                available_for_llm=True,
+            )
+
+        speech_rate_setting = self.settings.get_user_setting(
+            user_id=self.user.id, setting_name="text_to_speech_rate"
+        )
+
+        if speech_rate_setting is None:
+            self.settings.add_update_user_setting(
+                user_id=self.user.id,
+                setting_name="text_to_speech_rate",
+                setting_value=150,
+                available_for_llm=True,
+            )
 
     def run(self):
         # Start the thread that listens to the microphone, putting data into the audio_queue
@@ -233,7 +262,16 @@ class VoiceRunner:
 
             ai_query_start_time = time.time()
 
-            ai_response = self.rag_ai.query(query=transcribed_audio, ai_mode=self.settings.get_user_setting(self.user.id, "ai_mode", "Auto"))
+            ai_response = self.rag_ai.query(
+                query=transcribed_audio,
+                kwargs={
+                    "rephrase_answer_instructions": self.settings.get_user_setting(
+                        user_id=self.user.id,
+                        setting_name="voice_assistant_rephrase_answer_instructions",
+                        default_value="Act like you're writing copy for a news broadcaster who needs to deliver their information with alacrity and grace- you are writing to get the details across, but you keep things very short and concise. Rephrase your response so that it can be spoken aloud without any modifications.  Re-word and write out any symbols or codes phonetically; including variable names, abbreviations, and other language that would not usually be spoken aloud.",
+                    ).setting_value
+                },
+            )
 
             ai_query_end_time = time.time()
 
@@ -252,14 +290,11 @@ class VoiceRunner:
             logging.debug("AI Response: " + ai_response)
 
             text_to_speech_start_time = time.time()
-            self.text_to_speech.speak(
-                ai_response,
-                self.settings.get_user_setting(self.user.id, "text_to_speech_voice", "Matthew"),
-                self.stop_event,
-                self.settings.get_user_setting(self.user.id, "text_to_speech_rate", 150),
-            )
+
+            self.speak(ai_response)
+
             text_to_speech_end_time = time.time()
-            
+
             logging.info(
                 f"Text to speech took {str(text_to_speech_end_time - text_to_speech_start_time)} seconds"
             )
@@ -269,6 +304,18 @@ class VoiceRunner:
                 os.path.join(os.path.dirname(__file__), "voice/audio", "error.wav"),
                 self.stop_event,
             )
+
+    def speak(self, text):
+        self.text_to_speech.speak(
+            text,
+            self.settings.get_user_setting(
+                self.user.id, "text_to_speech_voice", "Matthew"
+            ).setting_value,
+            self.stop_event,
+            self.settings.get_user_setting(
+                self.user.id, "text_to_speech_rate", 150
+            ).setting_value,
+        )
 
 
 if __name__ == "__main__":

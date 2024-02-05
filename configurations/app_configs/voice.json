@@ -3,11 +3,9 @@
   "activation_cooldown": 2,
   "mute_while_listening": false,
   "save_audio": false,
-  "default_tts_voice": "Matthew",  
   "sts_model": "tiny.en",  
   "model_activation_threshold": 0.5,
   "wake_word_model_path": "src/ai/voice/models/hey_jarvis_v0.1.onnx",
   "input_gain": 1.0,
-  "max_audio_queue_size": 1024,
-  "speech_rate": 150
+  "max_audio_queue_size": 1024
 }
