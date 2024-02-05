@@ -63,6 +63,8 @@ class ToolManager:
             default_value=False,
         )
         
+        logging.debug(f"ToolManager.is_tool_enabled: {tool_name} setting: {setting}")
+        
         # If the setting is a string, then we need to convert it to a boolean
         if isinstance(setting, str):
             return setting.lower() == "true"

@@ -98,7 +98,7 @@ def get_tool_setting(
     return conversation_manager.user_settings_helper.get_user_setting(
         user_id=conversation_manager.user_id,
         setting_name=function_name + "_" + setting_name,
-        default_value=default_value,
+        default_value=default_value
     ).setting_value
 
 
