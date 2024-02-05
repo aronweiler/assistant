@@ -2,15 +2,6 @@ from typing import List
 
 import json
 
-from langchain.chains.llm import LLMChain
-from langchain.base_language import BaseLanguageModel
-from langchain.chains import (
-    RetrievalQAWithSourcesChain,
-    StuffDocumentsChain,
-    ReduceDocumentsChain,
-)
-from langchain.schema import Document
-from langchain.chains.summarize import load_summarize_chain
 from src.ai.prompts.prompt_models.code_examination import (
     AnswerQueryInput,
     AnswerQueryOutput,
@@ -28,17 +19,9 @@ from src.ai.tools.tool_loader import get_available_tools
 from src.ai.tools.tool_manager import ToolManager
 from src.ai.tools.tool_registry import register_tool, tool_class
 from src.db.models.domain.code_file_model import CodeFileModel
-from src.utilities.parsing_utilities import parse_json
-
-from src.utilities.token_helper import num_tokens_from_string
-
-from src.db.models.conversation_messages import SearchType
-from src.db.models.documents import Documents
-from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.utilities.llm_helper import get_tool_llm
-import src.utilities.configuration_utilities as configuration_utilities
 
 
 @tool_class
@@ -153,43 +136,6 @@ class CodeRepositoryTool:
         return summary
 
     @register_tool(
-        display_name="Specific File(s) Retrieval",
-        requires_repository=True,
-        description="Retrieve a particular file (or files) from the repository using its unique identifier.",
-        additional_instructions="Before attempting to retrieve the contents of any files using this tool, please first identify the unique identifiers (IDs) of the target file(s) within the repository.  Use the `repository_structure_overview` tool to find necessary file identifiers, or `file_name_search` if you are looking for an ID that represents a specific file.",
-        category="Code Repositories",
-    )
-    def specific_files_retrieval(self, file_ids: List[int]):
-        """Gets a specific code file from a loaded code repository by name or ID."""
-        # Handle the case where the file_ids is a single int
-
-        if file_ids is None or len(file_ids) == 0:
-            return "Please provide one or more file IDs.  File IDs can be found by using the repository structure overview tool."
-
-        if isinstance(file_ids, int):
-            file_ids = [file_ids]
-
-        code_files = []
-        for file_id in file_ids:
-            # Get the code file by ID
-            code_file = self.conversation_manager.code_helper.get_code_file_by_id(
-                file_id
-            )
-
-            if code_file is not None:
-                code_files.append(code_file)
-
-        if code_files is None or len(code_files) == 0:
-            return "Code file(s) with the provided IDs were not found."
-
-        return "\n".join(
-            [
-                f"**{code_file.code_file_name}**\n```\n{code_file.code_file_content}\n```\n\n"
-                for code_file in code_files
-            ]
-        )
-
-    @register_tool(
         display_name="Retrieve Code Files by Folder",
         description="Retrieves all code files from the database that reside in a specified folder.",
         additional_instructions=None,
@@ -202,8 +148,8 @@ class CodeRepositoryTool:
         """Retrieves all code files from the database that reside in a specified folder."""
         try:
             # Clean up the folder path by removing any leading or trailing slashes, and converting backslashes to forward slashes
-            folder_path = folder_path.strip().replace("\\", "/").strip("/")           
-            
+            folder_path = folder_path.strip().replace("\\", "/").strip("/")
+
             if (
                 folder_path is None
                 or folder_path == ""
@@ -228,9 +174,9 @@ class CodeRepositoryTool:
                 {
                     "file_id": result.id,
                     "file_name": result.code_file_name,
-                    "file_summary": result.code_file_summary
-                    if include_summary
-                    else None,
+                    "file_summary": (
+                        result.code_file_summary if include_summary else None
+                    ),
                 }
                 for result in code_files
             ]
@@ -285,8 +231,8 @@ class CodeRepositoryTool:
             # Process the results to extract relevant code snippets
             functionality_snippets = []
             for file_info in file_info_list:
-                code_file = self.specific_files_retrieval(
-                    file_ids=[file_info["file_id"]]
+                code_file = self.conversation_manager.code_helper.get_code_file_by_id(
+                    file_info["file_id"]
                 )
 
                 input_object = GetRelevantSnippetsInput(
@@ -339,13 +285,13 @@ class CodeRepositoryTool:
         """Searches the loaded repository for the given query and returns file IDs, names, and summaries."""
         try:
             # Perform the search using the existing _search_repository_documents method
-            code_file_model_search_results: List[
-                CodeFileModel
-            ] = self.conversation_manager.code_helper.search_code_files(
-                repository_id=self.conversation_manager.get_selected_repository().id,
-                similarity_query=semantic_similarity_query,
-                keywords=keywords_list,
-                top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
+            code_file_model_search_results: List[CodeFileModel] = (
+                self.conversation_manager.code_helper.search_code_files(
+                    repository_id=self.conversation_manager.get_selected_repository().id,
+                    similarity_query=semantic_similarity_query,
+                    keywords=keywords_list,
+                    top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
+                )
             )
 
             # Extract the required information from the search results
@@ -488,14 +434,14 @@ class CodeRepositoryTool:
         user_query: str,
         exclude_file_names: List[str] = [],
     ):
-        code_file_model_search_results: List[
-            CodeFileModel
-        ] = self.conversation_manager.code_helper.search_code_files(
-            repository_id=repository_id,
-            similarity_query=semantic_similarity_query,
-            keywords=keywords_list,
-            top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
-            exclude_file_names=exclude_file_names,
+        code_file_model_search_results: List[CodeFileModel] = (
+            self.conversation_manager.code_helper.search_code_files(
+                repository_id=repository_id,
+                similarity_query=semantic_similarity_query,
+                keywords=keywords_list,
+                top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
+                exclude_file_names=exclude_file_names,
+            )
         )
 
         llm = get_tool_llm(

@@ -17,15 +17,12 @@ from src.tools.code.code_retriever_tool import CodeRetrieverTool
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.ai.utilities.llm_helper import get_tool_llm
-from src.integrations.github import github_issue_creator
-from src.tools.code.issue_tool import IssueTool
 
 
 # Importing database models and utilities.
 from src.db.models.documents import Documents
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
-from src.utilities.parsing_utilities import parse_json
 
 
 @tool_class
