@@ -7,12 +7,20 @@ from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
 
 class GitlabCommitter:
-    def __init__(self, source_control_url: str, source_control_pat: str, requires_authentication=False):
+    def __init__(
+        self,
+        source_control_url: str,
+        source_control_pat: str,
+        requires_authentication=False,
+    ):
+        """Initialize the GitlabCommitter with URL, PAT, and authentication requirement."""
         self.source_control_url = source_control_url
         self.source_control_pat = source_control_pat
 
         self.gitlab = gitlab_shared.retrieve_gitlab_client(
-            source_control_url, source_control_pat, requires_authentication=requires_authentication
+            source_control_url,
+            source_control_pat,
+            requires_authentication=requires_authentication,
         )
 
     def commit_changes(
@@ -23,6 +31,7 @@ class GitlabCommitter:
         commit_message,
         code_and_file_paths: List[dict],
     ):
+        """Commit changes from the source branch to the target branch in the specified repository."""
         retriever = GitlabRetriever(
             source_control_url=self.source_control_url,
             source_control_pat=self.source_control_pat,
@@ -31,15 +40,11 @@ class GitlabCommitter:
 
         project = repo_data["project"]
 
-        # Get the latest commit of the target_branch
         try:
             target_branch_commit = project.branches.get(target_branch).commit
-
-            # If target_branch exists, start from target_branch
             source_branch = target_branch
 
         except gitlab.exceptions.GitlabGetError:
-            # If target_branch does not exist, start from source_branch
             source_branch_commit = project.branches.get(source_branch).commit
             target_branch_commit = source_branch_commit
 
@@ -52,7 +57,6 @@ class GitlabCommitter:
             for code_and_file_path in code_and_file_paths
         ]
 
-        # Create a new commit in the repository
         commit = project.commits.create(
             {
                 "branch": target_branch,
@@ -65,6 +69,7 @@ class GitlabCommitter:
         logging.info("Changes committed and pushed successfully!")
 
     def _create_branch(self, project, source_branch, target_branch):
+        """Create a new branch if it does not exist, or log if it already exists."""
         try:
             branch = project.branches.get(target_branch)
             logging.info(f"Branch '{target_branch}' already exists!")
