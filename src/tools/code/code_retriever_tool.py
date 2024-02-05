@@ -110,19 +110,6 @@ class CodeRetrieverTool:
         except Exception as e:
             return f"Error retrieving source code.  Please check your source control settings.  Exception: {e}"
 
-    def retrieve_source_code(self, url: str) -> dict:
-        """
-        Retrieves source code from a given URL using the appropriate source control provider.
-
-        :param url: The URL from which to retrieve the source code file.
-        :return: The retrieved source code or an error message if retrieval is not supported.
-        """
-        # Get the corresponding retriever instance
-        retriever_instance = self.get_retriever_instance(url)
-
-        # Use the instantiated retriever to fetch data from the provided URL.
-        return retriever_instance.retrieve_data(url=url)
-
     def get_retriever_instance(self, url):
         code_helper = Code()
         source_control_provider = code_helper.get_provider_from_url(url)        
