@@ -522,7 +522,7 @@ class CodeRepositoryTool:
             )
 
         input_object = IdentifyLikelyFilesInput(
-            user_query=user_query, file_summaries=summaries
+            user_query=user_query, summaries=summaries
         )
 
         query_helper = QueryHelper(self.conversation_manager.prompt_manager)
