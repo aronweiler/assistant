@@ -17,9 +17,9 @@ class SettingsTool:
         ]
 
     @register_tool(
-        display_name="Get Internal Settings",
-        description="Gets a list of this application's internal user-specific settings.",
-        additional_instructions="Use this tool to get a single specific setting (by passing the `setting_name` argument) or a complete list of the internal settings (and their values) that are available for the current user.",
+        display_name="Get Settings",
+        description="Gets a specific setting, or the complete list of settings.",
+        additional_instructions="To get a specific setting, pass the `setting_name` argument using one of the setting names you are aware of. If `setting_name` is not provided, this will return a complete list of settings and their values.",
         category="Settings",
     )
     def get_settings(self, setting_name=None):
@@ -50,7 +50,7 @@ class SettingsTool:
     @register_tool(
         display_name="Sets an Internal Setting Value",
         description="Sets a user-specific internal setting value.",
-        additional_instructions="Use this tool to set an internal setting value for the current user.",
+        additional_instructions="Use this tool to set an internal setting value for the current user.  If you are creating a brand-new setting, be sure to set the `create_new_setting` argument to `True`.",
         category="Settings",
     )
     def set_setting(self, setting_name, setting_value, create_new_setting=False):

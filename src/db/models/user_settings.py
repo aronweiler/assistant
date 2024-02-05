@@ -20,15 +20,14 @@ class UserSettings(VectorDatabase):
             ]
 
     def get_user_setting(
-        self, user_id, setting_name, default_value=None, available_for_llm=False
+        self, user_id, setting_name, default_value=None, default_available_for_llm=False
     ):
         with self.session_context(self.Session()) as session:
             db_model = (
                 session.query(UserSetting)
                 .filter(
                     UserSetting.user_id == user_id,
-                    UserSetting.setting_name == setting_name,
-                    UserSetting.available_for_llm == available_for_llm,
+                    UserSetting.setting_name == setting_name
                 )
                 .first()
             )
@@ -36,7 +35,7 @@ class UserSettings(VectorDatabase):
             if db_model:
                 return UserSettingModel.from_database_model(db_model)
             elif default_value is not None:
-                return UserSettingModel(user_id, setting_name, default_value, available_for_llm)
+                return UserSettingModel(user_id, setting_name, default_value, default_available_for_llm)
             else:
                 return None
 
