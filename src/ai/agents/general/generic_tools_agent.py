@@ -107,6 +107,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             "user_email",
             "evaluate_response",
             "re_planning_threshold",
+            "rephrase_answer_instructions",
         ]
 
     def plan(
@@ -199,6 +200,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 user_query=kwargs["input"],
                 helpful_context=self.get_helpful_context(intermediate_steps),
                 chat_history=self.conversation_manager.get_chat_history_prompt(),
+                rephrase_answer_instructions_prompt=self.get_rephrase_prompt(kwargs),
             )
 
             result: AnswerOutput = self.query_helper.query_llm(
@@ -206,6 +208,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
                 input_class_instance=input_object,
                 prompt_template_name="ANSWER_PROMPT_TEMPLATE",
                 output_class_type=AnswerOutput,
+                metadata={"output_type": "AnswerOutput"},
             )
 
             # Check to see if the result is a failure or not
@@ -279,11 +282,16 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="EVALUATION_TEMPLATE",
             output_class_type=EvaluationOutput,
+            metadata={"output_type": "EvaluationOutput"},
         )
 
         return result
 
     def get_step_plans_or_direct_answer(self, kwargs) -> PlanningStageOutput:
+
+        # There may be some rephrasing instructions to include in the prompt (i.e. for voice output, etc.)
+        rephrase_answer_instructions_prompt = self.get_rephrase_prompt(kwargs)
+
         input_object = PlanningStageInput(
             system_prompt=self.conversation_manager.get_system_prompt(),
             loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
@@ -295,6 +303,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             chat_history_prompt=self.conversation_manager.get_chat_history_prompt(),
             user_query=f"{kwargs['user_name']} ({kwargs['user_email']}): {kwargs['input']}",
             user_settings_prompt=self.conversation_manager.get_user_settings_prompt(),
+            rephrase_answer_instructions_prompt=rephrase_answer_instructions_prompt,
         )
 
         result = self.query_helper.query_llm(
@@ -302,9 +311,26 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="PLAN_STEPS_NO_TOOL_USE_TEMPLATE",
             output_class_type=PlanningStageOutput,
+            metadata={"output_type": "PlanningStageOutput"},
         )
 
         return result
+
+    def get_rephrase_prompt(self, kwargs):
+        rephrase_answer_instructions_prompt = ""
+        if (
+            "rephrase_answer_instructions" in kwargs
+            and kwargs["rephrase_answer_instructions"].strip() != ""
+        ):
+            rephrase_answer_instructions_prompt = (
+                self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                    "REPHRASE_ANSWER_INSTRUCTIONS_TEMPLATE",
+                ).format(
+                    rephrase_answer_instructions=kwargs["rephrase_answer_instructions"]
+                )
+            )
+
+        return rephrase_answer_instructions_prompt
 
     def remove_steps_without_tool(self, steps, tools):
         # Create a set containing the names of tools for faster lookup
@@ -367,6 +393,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="TOOL_USE_TEMPLATE",
             output_class_type=ToolUseOutput,
+            metadata={"output_type": "ToolUseOutput"},
         )
 
         # if "final_answer" in action_json:
@@ -407,6 +434,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             input_class_instance=input_object,
             prompt_template_name="TOOL_USE_RETRY_TEMPLATE",
             output_class_type=ToolUseOutput,
+            metadata={"output_type": "ToolUseOutput"},
         )
 
         action = AgentAction(
