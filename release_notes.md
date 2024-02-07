@@ -1,3 +1,10 @@
+### February 7, 2024 -- RELEASE NOTES: Jarvis 0.76
+- Added comments for better code clarity and maintainability.
+- Removed old code refactor tools to streamline the toolset.
+- Updated context in prompt templates for more accurate tool responses.
+- Consolidated code refactoring tools into a single, more efficient tool.
+- Refactored code review tool for general use across files, URLs, and repository files, enhancing versatility.
+
 ### February 4, 2024 -- RELEASE NOTES: Jarvis 0.75
 - Re-enabled voice assistant features, enhancing user interaction capabilities.
 - Significant prompt improvements for better user guidance and interaction.
