@@ -50,7 +50,7 @@
             }
         },
         "search_type": "Hybrid",
-        "search_top_k": 10,
+        "search_top_k": 20,
         "frequency_penalty": 0.3,
         "presence_penalty": 0.7,
         "evaluate_response": false,

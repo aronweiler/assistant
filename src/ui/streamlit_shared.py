@@ -921,7 +921,7 @@ def save_split_documents(
             # TODO: Fix the progress bar
             ingest_progress_bar.progress(
                 calculate_progress(file_doc_chunk_len, index + 1),
-                text=f"Processing {file.file_name} chunk {index} of {file_doc_chunk_len}",
+                text=f"Processing {file.file_name} chunk {index + 1} of {file_doc_chunk_len}",
             )
 
             document = file_documents[file.file_name][index]

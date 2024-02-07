@@ -224,137 +224,6 @@ class CodeTool:
                     else:
                         others.append(metadata)
 
-    @register_tool(
-        display_name="Get All Code In Loaded File",
-        help_text="Gets all of the code in the target file.",
-        requires_documents=True,
-        description="Gets all of the code in the target file.",
-        additional_instructions="Useful for getting all of the code in a specific 'Code' file when the user asks you to show them code from a particular file.",
-        document_classes=["Code"],
-        category="Code",
-    )
-    def get_all_code_in_file(self, target_file_id: int):
-        """Useful for getting all of the code in a loaded 'Code' file.
-
-        Args:
-            target_file_id (int): The 'Code' classified file ID you would like to get the full code for.
-        """
-        documents = Documents()
-
-        file_model = documents.get_file(target_file_id)
-        if file_model.file_classification.lower() != "code":
-            return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
-
-        file_data = documents.get_file_data(file_model.id).decode("utf-8")
-
-        max_code_file_size = self.conversation_manager.tool_kwargs.get(
-            "max_code_file_size", 5000
-        )
-        if num_tokens_from_string(file_data) > max_code_file_size:
-            return f"File '{file_model.file_name}' is too large- please refactor it into a reasonable size!"
-
-        return f"Here is the code for the file with id: '{target_file_id}':\n```\n{file_data}\n```"
-
-    def get_code_details(
-        self,
-        target_file_id: int,
-        target_signature: str,
-    ):
-        """Useful for getting the details of a specific signature (signature cannot be blank) in a specific loaded 'Code' file (required: target_file_id).
-
-        !! PAY ATTENTION: This tool should only be used if you have a specific code signature you are looking for. Never use it without a signature, or with a blank signature !!
-
-        Don't use this on anything that isn't classified as 'Code'.
-
-        Args:
-            target_file_id (int): The 'Code' classified file ID you would like to get the code details for.
-            target_signature (str): The signature (e.g. class declaration, function declaration, etc.) of the piece of code you would like to get the details for.
-        """
-        documents = Documents()
-        get_code_details = ""
-
-        try:
-            target_document_chunk = None
-            if target_file_id:
-                file = documents.get_file(target_file_id)
-                if file.file_classification.lower() != "code":
-                    return "File is not code. Please select a code file to conduct a code review on, or use a different tool."
-
-                document_chunks = documents.get_document_chunks_by_file_id(
-                    target_file_id
-                )
-
-                get_code_details = (
-                    f"The code details for {target_signature or file.file_name} is:\n\n"
-                )
-
-                if target_signature is None or target_signature == "":
-                    return get_code_details + documents.get_file_data(file.id).decode(
-                        "utf-8"
-                    )
-
-                # Find the document chunk that matches the target signature
-                for doc in document_chunks:
-                    if doc.additional_metadata is not None:
-                        metadata = doc.additional_metadata
-                        if target_signature in metadata["signature"]:
-                            target_document_chunk = doc
-                            break
-
-            if target_file_id is None or target_document_chunk is None:
-                # Sometimes the AI is stupid and gets in here before it has a signature.  Let's try to help it out.
-                # Fall back to searching the code file for the signature the AI passed in
-                related_documents = documents.search_document_embeddings(
-                    target_signature,
-                    SearchType.Similarity,
-                    self.conversation_manager.collection_id,
-                    target_file_id,
-                    top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 10),
-                )
-
-                full_metadata_list = []
-                modules = []
-                functions = []
-                class_methods = []
-                others = []
-
-                self.get_metadata(
-                    full_metadata_list,
-                    modules,
-                    functions,
-                    class_methods,
-                    others,
-                    related_documents,
-                )
-
-                # TODO: ... magic number
-                # Loop through the full metadata list and add it to the output, checking to see if we're over the arbitrary token limit of 1000
-                for doc in related_documents:
-                    max_document_chunk_size = self.conversation_manager.tool_kwargs.get(
-                        "max_document_chunk_size", 1000
-                    )
-                    if (
-                        num_tokens_from_string(get_code_details)
-                        > max_document_chunk_size
-                    ):
-                        break
-                    metadata = doc.additional_metadata
-                    if metadata["type"] != "MODULE":
-                        get_code_details += metadata["text"] + "\n\n"
-
-                # If we still can't find anything, tell the AI it's behaving badly
-                return (
-                    "I found the following code, but no code exists with that signature!  You were probably being a bad AI and NOT following the instructions where I told you to use the get_code_structure tool first!  BAD AI!\n\n"
-                    + get_code_details
-                )
-            else:
-                get_code_details += target_document_chunk.document_text
-
-                return target_document_chunk.document_text  # get_code_details
-        except Exception as e:
-            logging.error(f"Error getting code details: {e}")
-            return f"There was an error getting the code details: {e}"
-
     def create_stub_code(self, file_id: int, available_dependencies: List[str] = None):
         """Create a mock / stub version of the given code file.
 
@@ -371,7 +240,10 @@ class CodeTool:
 
         documents = documents_helper.get_document_chunks_by_file_id(file_id)
 
-        C_STUBBING_TEMPLATE = self.conversation_manager.prompt_manager.get_prompt_by_template_name("C_STUBBING_TEMPLATE"
+        C_STUBBING_TEMPLATE = (
+            self.conversation_manager.prompt_manager.get_prompt_by_template_name(
+                "C_STUBBING_TEMPLATE"
+            )
         )
 
         stub_dependencies_template = (

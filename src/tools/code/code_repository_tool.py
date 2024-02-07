@@ -190,16 +190,16 @@ class CodeRepositoryTool:
         display_name="Function Presence Check",
         requires_repository=True,
         description="Identify files containing specified functions by their names.",
-        additional_instructions="List the names of functions to locate files that contain them. This tool returns file IDs and names, which can be used to retrieve the full file content.",
+        additional_instructions="List the names of functions (or partial names) to locate files that contain them. This tool returns file IDs and names, which can be used to retrieve the full file content.",
         category="Code Repositories",
     )
-    def function_presence_check(self, partial_function_names: List[str]):
+    def function_presence_check(self, function_names: List[str]):
         """Locate Files Containing a Particular Function or Functions"""
         try:
             # Use the file_information_discovery tool to find files that may contain the desired functionality
             file_info_list = self.file_information_discovery(
                 semantic_similarity_query="",
-                keywords_list=partial_function_names,
+                keywords_list=function_names,
             )
 
             return file_info_list
