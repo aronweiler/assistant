@@ -1,5 +1,6 @@
 import datetime
 import logging
+import os
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
@@ -180,13 +181,16 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
             progress_bar = st.progress(0)
             progress_text = st.empty()
 
+            # Create a unique temp directory to store the files
+            temp_dir = f"/tmp/code/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+            files = filter_and_save_files(files, temp_dir, code_repo_id, code_repo.code_repository_address, code_repo.branch_name)
+
             for i, file in enumerate(files):
                 progress_text.text(f"Processing {file.path}")
                 if not process_code_file(
+                    temp_dir=temp_dir,
                     file=file,
                     ai=ai,
-                    repo_address=code_repo.code_repository_address,
-                    branch_name=code_repo.branch_name,
                     code_repo_id=code_repo_id,
                 ):
                     unprocessed_files.append(file.path)
@@ -204,50 +208,84 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
                 st.write(unprocessed_files)
 
 
+def filter_and_save_files(files, temp_dir, code_repo_id, repo_address, branch_name):
+    import os
+    from src.db.models.code import Code
+
+    code_helper = Code()
+    count = 0
+
+    stored_files = []
+
+    for file in files:
+        # Skip the file if the same file (sha) has already been processed
+        existing_code_file_id = code_helper.get_code_file_id(
+            code_file_name=file.path, file_sha=file.sha
+        )
+        if existing_code_file_id:
+            # Skip saving the file, but link the code file with the code repo
+            code_helper.link_code_file_to_repo(
+                code_file_id=existing_code_file_id, code_repo_id=code_repo_id
+            )
+
+            logging.info(
+                f"The file `{file.path}` has already been processed- linking it to this repo."
+            )
+
+        else:
+            # File does not exist, so prepare to write it out
+            retriever = CodeRetrieverTool(
+                conversation_manager=st.session_state.rag_ai.conversation_manager,
+                configuration=None,
+            )
+
+            # Retrieve the code from the repo
+            code_data = retriever.get_code_from_repo_and_branch(
+                file.path, repo_address, branch_name
+            )
+
+            code = code_data["file_content"]
+
+            file_path = os.path.join(temp_dir, file.path)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            with open(file_path, "w") as f:
+                f.write(code)
+                
+            stored_files.append(file)
+
+            count += 1
+
+    logging.info(
+        f"{count} files were different/new, and have been saved to {temp_dir}."
+    )
+    
+    return stored_files
+
+
 def process_code_file(
+    temp_dir: str,
     file,
     ai: RetrievalAugmentedGenerationAI,
-    repo_address: str,
-    branch_name: str,
     code_repo_id: int,
 ):
     """Processes the code file"""
     code_helper = Code()
 
-    # Skip the file if the same file (sha) has already been processed
-    existing_code_file_id = code_helper.get_code_file_id(
-        code_file_name=file.path, file_sha=file.sha
-    )
-    if existing_code_file_id:
-        # Link the code file with the code repo
-        code_helper.link_code_file_to_repo(
-            code_file_id=existing_code_file_id, code_repo_id=code_repo_id
-        )
-
-        logging.info(
-            f"The file `{file.path}` has already been processed- linking it to this repo."
-        )
-        return True
     try:
-        # Retrieve the code from the file
-        code_data = CodeRetrieverTool(
-            conversation_manager=st.session_state.rag_ai.conversation_manager,
-            configuration=None,
-        ).get_code_from_repo_and_branch(file.path, repo_address, branch_name)
 
-        code = code_data["file_content"]
+        # read the code in from the file
+        with open(os.path.join(temp_dir, file.path), "r") as f:
+            code = f.read()
 
         if code.strip() != "":
-            # Generate the keywords from the code
+            # Generate the keywords and descriptions from the code, skipping empty files
             keywords_and_descriptions = (
                 ai.generate_keywords_and_descriptions_from_code_file(code)
             )
-
         else:
             keywords_and_descriptions = None
 
         # Store the code and keywords in the database
-
         code_helper.add_update_code(
             file_name=file.path,
             file_sha=file.sha,

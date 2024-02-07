@@ -3,23 +3,25 @@ import pathlib
 import sys
 import clang.cindex
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../"))
+)
 
 from src.documents.codesplitter.splitter.dependency_analyzer_base import (
     DependencyAnalyzerBase,
 )
 
-_PARSABLE_EXTENSIONS = (".c", ".cc", ".cpp", ".h", ".hh", ".hpp")
-
 
 class CppAnalyzer(DependencyAnalyzerBase):
+    _PARSABLE_EXTENSIONS = (".c", ".cc", ".cpp", ".h", ".hh", ".hpp")
+
     def process_code(self, directory):
         results = []
         allowed_include_paths = [os.path.dirname(directory)]
 
         for root, dirs, files in os.walk(directory):
             for file in files:
-                if file.endswith(_PARSABLE_EXTENSIONS):
+                if file.endswith(self._PARSABLE_EXTENSIONS):
                     full_path = os.path.join(root, file)
                     result = self._analyze_file(full_path, allowed_include_paths)
                     results.append(result)

@@ -12,11 +12,13 @@ from src.documents.codesplitter.splitter.dependency_analyzer_base import (
 
 
 class PythonAnalyzer(DependencyAnalyzerBase):
+    _PARSABLE_EXTENSIONS = ".py"
+
     def process_code(self, directory: str) -> list:
         results = []
         for root, dirs, files in os.walk(directory):
             for file in files:
-                if file.endswith(".py"):
+                if file.endswith(self._PARSABLE_EXTENSIONS):
                     full_path = os.path.join(root, file)
                     result = self._analyze_file(full_path)
                     results.append(result)
@@ -29,7 +31,7 @@ class PythonAnalyzer(DependencyAnalyzerBase):
             for node in ast.walk(tree):
                 if type(node) in (ast.Import, ast.ImportFrom):
                     dependencies.append(node.names[0].name)
-                    
+
         return {"file": file_path, "dependencies": dependencies}
 
 
