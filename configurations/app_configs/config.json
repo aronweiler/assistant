@@ -50,7 +50,7 @@
             }
         },
         "search_type": "Hybrid",
-        "search_top_k": 10,
+        "search_top_k": 20,
         "frequency_penalty": 0.3,
         "presence_penalty": 0.7,
         "evaluate_response": false,
@@ -197,82 +197,7 @@
                 }
             }
         },
-        "conduct_code_review_from_file_id": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "additional_settings": {
-                "json_output": {
-                    "label": "Output the refactored code as JSON",
-                    "description": "This is useful for integrating with other tools.",
-                    "type": "bool",
-                    "value": false
-                },
-                "max_code_size_tokens": {
-                    "label": "Max Code Size Tokens",
-                    "description": "The maximum number of tokens to allow for code being reviewed.",
-                    "type": "int",
-                    "value": 8000,
-                    "min": 1,
-                    "max": 20000,
-                    "step": 25
-                },
-                "enable_code_security_examination": {
-                    "label": "Examine code for security issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_performance_examination": {
-                    "label": "Examine code for performance issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_memory_examination": {
-                    "label": "Examine code for memory issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_correctness_examination": {
-                    "label": "Examine code for correctness issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": true
-                },
-                "enable_code_maintainability_examination": {
-                    "label": "Examine code for maintainability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": true
-                },
-                "enable_code_reliability_examination": {
-                    "label": "Examine code for reliability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                }
-            },
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "conduct_code_review_from_url": {
+        "conduct_code_review": {
             "category": "Code On the Web",
             "enabled": false,
             "include_in_conversation": false,
@@ -315,7 +240,7 @@
                     "label": "Examine code for correctness issues",
                     "description": "",
                     "type": "bool",
-                    "value": true
+                    "value": false
                 },
                 "enable_code_maintainability_examination": {
                     "label": "Examine code for maintainability issues",
@@ -347,7 +272,7 @@
                 }
             }
         },
-        "conduct_code_refactor_from_file_id": {
+        "conduct_code_refactor": {
             "category": "Code Files",
             "enabled": false,
             "include_in_conversation": false,
@@ -390,82 +315,7 @@
                     "label": "Examine code for correctness issues",
                     "description": "",
                     "type": "bool",
-                    "value": true
-                },
-                "enable_code_maintainability_examination": {
-                    "label": "Examine code for maintainability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": true
-                },
-                "enable_code_reliability_examination": {
-                    "label": "Examine code for reliability issues",
-                    "description": "",
-                    "type": "bool",
                     "value": false
-                }
-            },
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "conduct_code_refactor_from_url": {
-            "category": "Code On the Web",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": true,
-            "additional_settings": {
-                "json_output": {
-                    "label": "Output the refactored code as JSON",
-                    "description": "This is useful for integrating with other tools.",
-                    "type": "bool",
-                    "value": false
-                },
-                "max_code_size_tokens": {
-                    "label": "Max Code Size Tokens",
-                    "description": "The maximum number of tokens to allow for code being refactored.",
-                    "type": "int",
-                    "value": 20000,
-                    "min": 1,
-                    "max": 20000,
-                    "step": 25
-                },
-                "enable_code_security_examination": {
-                    "label": "Examine code for security issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_performance_examination": {
-                    "label": "Examine code for performance issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_memory_examination": {
-                    "label": "Examine code for memory issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_correctness_examination": {
-                    "label": "Examine code for correctness issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": true
                 },
                 "enable_code_maintainability_examination": {
                     "label": "Examine code for maintainability issues",

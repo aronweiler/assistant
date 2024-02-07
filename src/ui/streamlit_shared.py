@@ -1,7 +1,5 @@
 import logging
 import os
-from threading import Timer
-import time
 from typing import List
 import uuid
 import asyncio
@@ -10,7 +8,6 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 import requests
 
-from streamlit.runtime.scriptrunner import RerunException
 
 import src.ui.code_tab as code_tab
 import src.ui.document_tab as document_tab
@@ -21,8 +18,6 @@ from src.configuration.assistant_configuration import (
 
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-from src.db.models.code import Code
-from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 from src.utilities.configuration_utilities import (
     get_app_configuration,
@@ -926,7 +921,7 @@ def save_split_documents(
             # TODO: Fix the progress bar
             ingest_progress_bar.progress(
                 calculate_progress(file_doc_chunk_len, index + 1),
-                text=f"Processing {file.file_name} chunk {index} of {file_doc_chunk_len}",
+                text=f"Processing {file.file_name} chunk {index + 1} of {file_doc_chunk_len}",
             )
 
             document = file_documents[file.file_name][index]

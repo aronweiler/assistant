@@ -1,4 +1,3 @@
-from base64 import b64encode
 from json import JSONDecodeError
 from requests.auth import HTTPBasicAuth
 import logging
@@ -6,6 +5,7 @@ import requests
 
 
 class JamaSession:
+    """Handles sessions with the Jama API, supporting basic and OAuth authentication."""
     def __init__(
         self, api_url, api_version="v1", auth_type="basic", **auth_credentials
     ):
@@ -25,11 +25,13 @@ class JamaSession:
             )
 
     def _authenticate_basic(self, username, password):
+        """Authenticate using basic auth."""
         basic = HTTPBasicAuth(username=username, password=password)
 
         self.session.auth = basic
 
     def _authenticate_oauth(self, client_id, client_secret):
+        """Authenticate using OAuth."""
         # This is a simplified example; actual OAuth flow will require more steps
         token_url = f"{self.api_url}/oauth/token"
         data = {"grant_type": "client_credentials"}
@@ -47,6 +49,7 @@ class JamaSession:
         self.session.headers.update({"Authorization": f"Bearer {access_token}"})
 
     def make_api_call(self, endpoint, method="GET", data=None):
+        """Make an API call to the specified endpoint."""
         url = f"{self.api_url}/{self.api_version}/{endpoint}"
         headers = {"Content-Type": "application/json"}
         if method == "POST" and data:
@@ -56,7 +59,7 @@ class JamaSession:
         else:
             # Add other methods as needed
             pass
-        
+
         try:
             return response.json()
         except JSONDecodeError:

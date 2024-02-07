@@ -2,7 +2,6 @@ import datetime
 import logging
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
-from src.ai.prompts.prompt_models.code_details_extraction import CodeDetailsExtractionOutput
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.db.models.code import Code
 from src.db.models.conversations import Conversations
@@ -55,7 +54,9 @@ def create_code_collection_tab(ai, tab: DeltaGenerator):
             on_change=on_change_code_repo,
         )
 
-        if col2.button("➕", help="Add a new code repository", key="show_add_code_repo"):
+        if col2.button(
+            "➕", help="Add a new code repository", key="show_add_code_repo"
+        ):
             st.session_state.adding_repo = True
 
         repo_id = streamlit_shared.get_selected_code_repo_id()
@@ -112,7 +113,10 @@ def show_branches(tab: DeltaGenerator):
         with tab:
             if repo_address != "":
                 try:
-                    retriever = CodeRetrieverTool()
+                    retriever = CodeRetrieverTool(
+                        conversation_manager=st.session_state.rag_ai.conversation_manager,
+                        configuration=None,
+                    )
                     branches = retriever.get_branches(repo_address)
                 except Exception as e:
                     st.error(f"Could not retrieve branches: {e}")
@@ -155,7 +159,10 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
     """Scans the selected repo"""
     code_repo_id = streamlit_shared.get_selected_code_repo_id()
     code_repo = Code().get_repository(code_repo_id)
-    retriever = CodeRetrieverTool()
+    retriever = CodeRetrieverTool(
+        conversation_manager=st.session_state.rag_ai.conversation_manager,
+        configuration=None,
+    )
 
     files = retriever.scan_repo(
         code_repo.code_repository_address, code_repo.branch_name
@@ -223,9 +230,10 @@ def process_code_file(
         return True
     try:
         # Retrieve the code from the file
-        code_data = CodeRetrieverTool().get_code_from_repo_and_branch(
-            file.path, repo_address, branch_name
-        )
+        code_data = CodeRetrieverTool(
+            conversation_manager=st.session_state.rag_ai.conversation_manager,
+            configuration=None,
+        ).get_code_from_repo_and_branch(file.path, repo_address, branch_name)
 
         code = code_data["file_content"]
 
@@ -234,7 +242,7 @@ def process_code_file(
             keywords_and_descriptions = (
                 ai.generate_keywords_and_descriptions_from_code_file(code)
             )
-            
+
         else:
             keywords_and_descriptions = None
 
@@ -246,7 +254,9 @@ def process_code_file(
             file_content=code,
             keywords_and_descriptions=keywords_and_descriptions,
             repository_id=code_repo_id,
-            file_summary=keywords_and_descriptions.summary if keywords_and_descriptions else "",
+            file_summary=(
+                keywords_and_descriptions.summary if keywords_and_descriptions else ""
+            ),
         )
 
         return True

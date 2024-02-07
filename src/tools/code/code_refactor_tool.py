@@ -17,15 +17,12 @@ from src.tools.code.code_retriever_tool import CodeRetrieverTool
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.ai.utilities.llm_helper import get_tool_llm
-from src.integrations.github import github_issue_creator
-from src.tools.code.issue_tool import IssueTool
 
 
 # Importing database models and utilities.
 from src.db.models.documents import Documents
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.utilities.token_helper import num_tokens_from_string
-from src.utilities.parsing_utilities import parse_json
 
 
 @tool_class
@@ -49,6 +46,71 @@ class CodeRefactorTool:
         """
         self.configuration = configuration
         self.conversation_manager = conversation_manager
+
+    @register_tool(
+        display_name="Perform a Code Refactor",
+        description="Perform a code refactor on a loaded document, a URL, or a repository file.",
+        additional_instructions="Use this tool for conducting a code refactor on a loaded document, a URL, or a repository file. Make sure to understand and pass the correct argument (either `loaded_document_id`, `url`, or `repository_file_id`) based on the user's request.  If the user specifies a URL, do not use the loaded repository, instead pass the URL in here.  Use the additional_instructions field to pass additional code refactor instructions from the user, if any.",
+        category="Code",
+    )
+    def conduct_code_refactor(
+        self,
+        loaded_document_id: int = None,
+        url: str = None,
+        repository_file_id: int = None,
+        additional_instructions: str = None,
+    ) -> dict:
+        if loaded_document_id:
+            documents = Documents()
+            file_model = documents.get_file(file_id=loaded_document_id)
+            code = documents.get_file_data(file_model.id).decode("utf-8")
+            metadata = {"filename": file_model.file_name}
+        elif url:
+            file_info = CodeRetrieverTool(
+                configuration=self.configuration,
+                conversation_manager=self.conversation_manager,
+            ).retrieve_source_code(url=url)
+            code = file_info.pop("file_content")
+            metadata = file_info
+        elif repository_file_id:
+            code_file = self.conversation_manager.code_helper.get_code_file_by_id(
+                repository_file_id
+            )
+            code = code_file.code_file_content
+            metadata = {"filename": code_file.code_file_name}
+        else:
+            raise ValueError(
+                "A valid loaded_document_id, url, or repository_file_id must be provided."
+            )
+
+        # Get maximum allowed token count for a code refactor based on tool configuration.
+        max_token_count = self.get_max_code_refactor_token_count(
+            self.conduct_code_refactor.__name__
+        )
+
+        # Calculate the number of tokens in the code file for size check.
+        code_file_token_count = num_tokens_from_string(code)
+
+        # If the file is too large, return an error message indicating so.
+        if code_file_token_count > max_token_count:
+            return f"File is too large to be refactored ({code_file_token_count} tokens). Adjust max code refactor tokens, or refactor this code file so that it's smaller."
+
+        llm = get_tool_llm(
+            configuration=self.configuration,
+            func_name=self.conduct_code_refactor.__name__,
+            streaming=True,
+            callbacks=self.conversation_manager.agent_callbacks,
+        )
+
+        refactored_code = self._conduct_code_refactor(
+            code=code,
+            additional_instructions=additional_instructions,
+            metadata=metadata,
+            llm=llm,
+            tool_name=self.conduct_code_refactor.__name__,
+        )
+
+        return refactored_code
 
     def get_active_code_refactor_templates(self, tool_name: str) -> List[dict]:
         """
@@ -76,7 +138,10 @@ class CodeRefactorTool:
         for setting, description in template_checks.items():
             if additional_settings[f"{setting}"]["value"]:
                 templates.append(
-                    {"name": f"{setting.lstrip('enable_').upper()}_TEMPLATE", "description": description}
+                    {
+                        "name": f"{setting.lstrip('enable_').upper()}_TEMPLATE",
+                        "description": description,
+                    }
                 )
 
         return templates
@@ -157,7 +222,7 @@ class CodeRefactorTool:
                 metadata=metadata,
                 code=code,
                 llm=llm,
-                additional_instructions=additional_instructions,                
+                additional_instructions=additional_instructions,
             )
 
         else:
@@ -223,78 +288,6 @@ class CodeRefactorTool:
 
         return code, data
 
-    @register_tool(
-        display_name="Perform a Code Refactor on a URL",
-        requires_documents=False,
-        help_text="Performs a code refactor of a specified URL.",
-        description="Performs a code refactor of a specified URL.",
-        additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
-        category="Code",
-    )
-    def conduct_code_refactor_from_url(
-        self, target_url: str, additional_instructions: str = None
-    ) -> str:
-        """
-        Conducts a code refactor on a file or diff obtained from a given URL.
-
-        :param target_url: The URL of the source code to be refactored.
-        :param additional_instructions: Additional instructions provided by users for this specific refactor task (optional).
-        :return: A string containing the formatted results of the code refactor in JSON.
-        """
-
-        # Retrieve file information from the URL.
-        retriever = CodeRetrieverTool()
-        file_info = retriever.retrieve_source_code_from_url(url=target_url)
-
-        # Determine the type of file and conduct appropriate type of refactor.
-        return self._refactor_file_from_url(
-            file_info, target_url, additional_instructions
-        )
-
-    def _refactor_file_from_url(
-        self, file_info: dict, target_url: str, additional_instructions: str
-    ) -> dict:
-        """
-        Conducts a code refactor on a single file from a URL and returns structured results.
-
-        :param file_info: Metadata and content information about the file.
-        :param target_url: The URL of the source code to be refactored.
-        :param additional_instructions: Additional instructions provided by users for this specific refactor task (optional).
-        :return: A dictionary containing the results of the file code refactor.
-        """
-
-        # Extract file content from file_info and remove 'file_content' key.
-        code = file_info.pop("file_content", None)
-
-        # Calculate the number of tokens in the code file for size check.
-        code_file_token_count = num_tokens_from_string(code)
-
-        # Get maximum allowed token count for a code refactor based on tool configuration.
-        max_token_count = self.get_max_code_refactor_token_count(
-            self.conduct_code_refactor_from_url.__name__
-        )
-
-        # If the file is too large, return an error message indicating so.
-        if code_file_token_count > max_token_count:
-            return f"File is too large to be refactored ({code_file_token_count} tokens). Adjust max code refactor tokens, or refactor this code file so that it's smaller."
-
-        # Initialize language model for prediction.
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.conduct_code_refactor_from_url.__name__,
-            streaming=True,
-            callbacks=self.conversation_manager.agent_callbacks,
-        )
-
-        # Conduct a refactor on the entire file content and return the results.
-        return self._conduct_code_refactor(
-            code=code,
-            additional_instructions=additional_instructions,
-            metadata=file_info,
-            llm=llm,
-            tool_name=self.conduct_code_refactor_from_url.__name__,
-        )
-
     def get_max_code_refactor_token_count(self, tool_name: str) -> int:
         """
         Retrieves the maximum token count allowed for a code refactor based on tool configuration.
@@ -317,57 +310,6 @@ class CodeRefactorTool:
         return self.configuration["tool_configurations"][tool_name][
             "additional_settings"
         ]["json_output"]["value"]
-
-    @register_tool(
-        display_name="Perform a Code Refactor on Loaded Code File",
-        help_text="Performs a code refactor of a specified code file.",
-        requires_documents=False,
-        description="Performs a code refactor of a specified code file.",
-        additional_instructions="Use this tool for conducting a code refactor on a URL. Make sure to extract and pass the URL specified by the user as an argument to this tool.  Use the additional_instructions field to pass any code refactor additional instructions from the user, if any.",
-        category="Code",
-    )
-    def conduct_code_refactor_from_file_id(
-        self, target_file_id: int, additional_instructions: str = None
-    ) -> dict:
-        """
-        Conducts a code refactor on a file identified by its database ID.
-
-        :param target_file_id: The database ID of the file to be refactored.
-        :param additional_instructions: Additional instructions provided by users for this specific refactor task (optional).
-        :return: A dictionary containing the results of the code refactor.
-        """
-
-        # Format additional instructions if provided.
-        if additional_instructions:
-            additional_instructions = f"\n--- ADDITIONAL INSTRUCTIONS ---\n{additional_instructions}\n--- ADDITIONAL INSTRUCTIONS ---\n"
-
-        # Retrieve file model from database using Documents class and file ID.
-        documents = Documents()
-        file_model = documents.get_file(file_id=target_file_id)
-
-        # Check if the retrieved file is classified as code; if not, return an error message.
-        if file_model.file_classification.lower() != "code":
-            return "File is not code. Please select a code file to conduct a refactor on, or use a different tool."
-
-        # Get raw file data from database and decode it.
-        code = documents.get_file_data(file_model.id).decode("utf-8")
-
-        # Initialize language model for prediction.
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.conduct_code_refactor_from_file_id.__name__,
-            streaming=True,
-            ## callbacks=self.conversation_manager.agent_callbacks,
-        )
-
-        # Conduct a refactor on the entire file content and return the results.
-        return self._conduct_code_refactor(
-            code=code,
-            additional_instructions=additional_instructions,
-            metadata={"filename": file_model.file_name},
-            llm=llm,
-            tool_name=self.conduct_code_refactor_from_file_id.__name__,
-        )
 
     def format_refactor_results(self, refactor_results: dict) -> str:
         """
@@ -397,14 +339,14 @@ class CodeRefactorTool:
 
         formatted_results = formatted_results.format(
             language=refactor_results["language"],
-            filename_or_url=refactor_results["metadata"]["url"]
-            if "url" in refactor_results["metadata"]
-            else refactor_results["metadata"]["filename"],
+            filename_or_url=(
+                refactor_results["metadata"]["url"]
+                if "url" in refactor_results["metadata"]
+                else refactor_results["metadata"]["filename"]
+            ),
             thoughts=thoughts,
             code=refactor_results["refactored_code"],
         )
 
         # Return the formatted results.
         return formatted_results
-
-
