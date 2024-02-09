@@ -1,11 +1,13 @@
 import datetime
 import logging
 import os
+import shutil
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.db.models.code import Code
 from src.db.models.conversations import Conversations
+from src.documents.codesplitter.splitter.dependency_analyzer import DependencyAnalyzer
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 import src.ui.streamlit_shared as streamlit_shared
 
@@ -183,10 +185,21 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
 
             # Create a unique temp directory to store the files
             temp_dir = f"/tmp/code/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-            files = filter_and_save_files(files, temp_dir, code_repo_id, code_repo.code_repository_address, code_repo.branch_name)
+            files = filter_and_save_files(
+                files=files,
+                temp_dir=temp_dir,
+                code_repo_id=code_repo_id,
+                repo_address=code_repo.code_repository_address,
+                branch_name=code_repo.branch_name,
+                progress_bar=progress_bar,
+                progress_text=progress_text,
+            )
+
+            # Reset the progress bar
+            progress_bar.progress(0)
 
             for i, file in enumerate(files):
-                progress_text.text(f"Processing {file.path}")
+                progress_text.text(f"Processing changed file:\n'{file.path}'")
                 if not process_code_file(
                     temp_dir=temp_dir,
                     file=file,
@@ -201,14 +214,29 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
 
             Code().update_last_scanned(code_repo_id, datetime.datetime.now())
 
-            st.success(f"Done scanning {len(files)} files!")
+            st.success(f"Done processing {len(files)} new or changed files")
+
+            try:
+                # Remove the temp directory, including all files and subdirectories
+                shutil.rmtree(temp_dir)
+
+            except Exception as e:
+                logging.error(f"Could not remove temp directory {temp_dir}: {e}")
 
             if len(unprocessed_files) > 0:
                 st.warning(f"Could not process {len(unprocessed_files)} files:")
                 st.write(unprocessed_files)
 
 
-def filter_and_save_files(files, temp_dir, code_repo_id, repo_address, branch_name):
+def filter_and_save_files(
+    files,
+    temp_dir,
+    code_repo_id,
+    repo_address,
+    branch_name,
+    progress_bar,
+    progress_text,
+):
     import os
     from src.db.models.code import Code
 
@@ -217,7 +245,10 @@ def filter_and_save_files(files, temp_dir, code_repo_id, repo_address, branch_na
 
     stored_files = []
 
-    for file in files:
+    for i, file in enumerate(files):
+        progress_text.text(f"Inspecting:\n{file.path}")
+        progress_bar.progress((i + 1) / len(files))
+
         # Skip the file if the same file (sha) has already been processed
         existing_code_file_id = code_helper.get_code_file_id(
             code_file_name=file.path, file_sha=file.sha
@@ -228,6 +259,7 @@ def filter_and_save_files(files, temp_dir, code_repo_id, repo_address, branch_na
                 code_file_id=existing_code_file_id, code_repo_id=code_repo_id
             )
 
+            progress_text.text(f"{file.path} unchanged")
             logging.info(
                 f"The file `{file.path}` has already been processed- linking it to this repo."
             )
@@ -247,10 +279,14 @@ def filter_and_save_files(files, temp_dir, code_repo_id, repo_address, branch_na
             code = code_data["file_content"]
 
             file_path = os.path.join(temp_dir, file.path)
+            # replace any backslashes with forward slashes
+            file_path = file_path.replace("\\", "/")
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "w") as f:
+
+            # Create the file at the file_path location
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(code)
-                
+
             stored_files.append(file)
 
             count += 1
@@ -258,7 +294,7 @@ def filter_and_save_files(files, temp_dir, code_repo_id, repo_address, branch_na
     logging.info(
         f"{count} files were different/new, and have been saved to {temp_dir}."
     )
-    
+
     return stored_files
 
 
@@ -272,9 +308,10 @@ def process_code_file(
     code_helper = Code()
 
     try:
+        file_path = os.path.join(temp_dir, file.path)
 
         # read the code in from the file
-        with open(os.path.join(temp_dir, file.path), "r") as f:
+        with open(file_path, "r") as f:
             code = f.read()
 
         if code.strip() != "":
@@ -282,6 +319,14 @@ def process_code_file(
             keywords_and_descriptions = (
                 ai.generate_keywords_and_descriptions_from_code_file(code)
             )
+
+            # Get the code dependencies
+            dependencies = DependencyAnalyzer().process_code_file(file_path, temp_dir)
+            
+            # Add the dependencies to the database
+            
+            
+
         else:
             keywords_and_descriptions = None
 
