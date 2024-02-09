@@ -83,22 +83,29 @@ Here is some helpful system information:
 
 EVALUATION_TEMPLATE = """{chat_history_prompt}
 
-Please evaluate the following information and provide an evaluation and score for the previous AI's response to the user's query.  
+Please look closely at the following information and provide an evaluation and score for the previous AI's response to the user's query.  
 
-User's Original Query:
-{user_query}
-
-Previous AI's Response:
-{previous_ai_response}
-
-Tools Used by Previous AI (including results from tool calls):
+## Tools Used by Previous AI to resolve the user's query (including results from tool calls):
 {tool_history}
 
-Tools that were available to the previous AI:
+## Tools that were available to the previous AI:
 {available_tool_descriptions}
 
 {loaded_documents_prompt}
 {selected_repository_prompt}
 {user_settings_prompt}
 
-Based on this information, please provide an evaluation of the previous AI's response in terms of completeness and correctness, and score the previous AI's response, including which tools it chose to use on a scale from 0.0 to 1.0."""
+# User's Original Query:
+{user_query}
+
+# Previous AI's Response:
+{previous_ai_response}
+
+Based on this information, please provide an evaluation of how well the previous AI's response resolves the user's query and score the previous AI's response on a scale from 0.0 to 1.0.
+
+Make sure you look at attributes such as:
+- Completeness - Did the previous AI fully resolve the user's query?
+- Correctness - Was the previous AI's response as correct as it could be?
+- Clarity - Was the previous AI's response clear and easy to understand?
+- Relevance - Was the previous AI's response relevant to the user's query?
+- Use of available tools - Did the previous AI use the available tools effectively?"""
