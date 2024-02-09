@@ -50,7 +50,11 @@ class CppAnalyzer(DependencyAnalyzerBase):
             if self._is_node_in_allowed_path(
                 include_obj.include.name, allowed_include_paths
             ):
-                include_files.append(include_obj.include.name)
+                dependency_name = include_obj.include.name
+                # Strip everything before the last / or \ to get the file name
+                dependency_name = dependency_name.split("/")[-1]
+                include_files.append(dependency_name)
+        
         return include_files
 
     def _is_node_in_allowed_path(self, node, allowed_include_paths):

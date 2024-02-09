@@ -13,8 +13,12 @@ from src.documents.codesplitter.splitter.dependency_analyzer_base import (
 
 class PythonAnalyzer(DependencyAnalyzerBase):
     _PARSABLE_EXTENSIONS = ".py"
-    
+
     def process_code_file(self, code_file: str) -> dict:
+        # Ensure the code_file is a file and not a directory
+        if not os.path.isfile(code_file):
+            raise ValueError(f"{code_file} is not a file")
+
         with open(code_file, "r", encoding="utf-8") as file:
             tree = ast.parse(file.read(), filename=code_file)
             dependencies = []
