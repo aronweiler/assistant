@@ -15,7 +15,12 @@ from src.documents.codesplitter.splitter.dependency_analyzer_base import (
 class CppAnalyzer(DependencyAnalyzerBase):
     _PARSABLE_EXTENSIONS = (".c", ".cc", ".cpp", ".h", ".hh", ".hpp")
 
-    def process_code(self, directory):
+    def process_code_file(self, code_file):
+        allowed_include_paths = [os.path.dirname(code_file)]
+        result = self._analyze_file(code_file, allowed_include_paths)
+        return result
+
+    def process_code_directory(self, directory):
         results = []
         allowed_include_paths = [os.path.dirname(directory)]
 
