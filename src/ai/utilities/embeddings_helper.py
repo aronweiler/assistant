@@ -24,37 +24,58 @@ def get_local_embeddings_model(model_name):
     return local_embeddings_model
 
 
-def get_embedding(
+def get_embedding_by_name(
     text: str,
-    collection_type: str,
+    embedding_name: str,
     instruction: str = None,
 ):
-    if collection_type.lower().startswith("remote"):
-        model_name = get_app_configuration()["jarvis_ai"]["embedding_models"][
-            "default"
-        ]["remote"]
-    elif collection_type.lower().startswith("local"):
-        model_name = get_app_configuration()["jarvis_ai"]["embedding_models"][
-            "default"
-        ]["local"]
-    else:
-        raise Exception(f"Unknown collection type {collection_type}")
+    model_name = get_app_configuration()["jarvis_ai"]["embedding_models"][
+        "available"
+    ].get(embedding_name, None)
 
-    return get_embedding_with_model(
+    if not model_name:
+        raise Exception(f"Unknown embedding name {embedding_name}")
+
+    return get_embedding_by_model(
         text=text, model_name=model_name, instruction=instruction
     )
 
 
-def get_embedding_with_model(text: str, model_name: str, instruction: str = None):
+def find_key_by_value(d, value):
+    for key, val in d.items():
+        if val == value:
+            return key
+    return None
+
+
+def get_embedding_by_model(text: str, model_name: str, instruction: str = None):
+
+    available_models = get_app_configuration()["jarvis_ai"]["embedding_models"][
+        "available"
+    ]
+
+    key = find_key_by_value(available_models, model_name)
+
+    if not key:
+        raise Exception(f"Unknown model name {model_name}")
+
+    embedding_config = get_app_configuration()["jarvis_ai"]["embedding_models"][
+        model_name
+    ]
+
     # You're special, OpenAI
-    if model_name == "text-embedding-ada-002":
-        return (
-            openai.embeddings.create(input=[text], model=model_name).data[0].embedding
+    if key.lower().startswith("openai"):
+        embedding = openai.embeddings.create(
+            input=text,
+            model=model_name,
+            dimensions=embedding_config["dimensions"],
         )
+
+        return embedding.data[0].embedding
     else:
         model = get_local_embeddings_model(model_name)
 
         return [
             m.item()
             for m in model.encode([[instruction, text]], convert_to_numpy=False)[0]
-        ]  # model.encode([[instruction, text]], convert_to_numpy=False)[0]
+        ]

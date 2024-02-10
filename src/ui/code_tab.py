@@ -7,6 +7,7 @@ from streamlit.delta_generator import DeltaGenerator
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.db.models.code import Code
 from src.db.models.conversations import Conversations
+from src.db.models.user_settings import UserSettings
 from src.documents.codesplitter.splitter.dependency_analyzer import DependencyAnalyzer
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 import src.ui.streamlit_shared as streamlit_shared
@@ -210,6 +211,12 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
 
                 progress_bar.progress((i + 1) / len(files))
 
+            process_dependencies(
+                repo_id=code_repo_id,
+                progress_bar=progress_bar,
+                progress_text=progress_text,
+            )
+
             progress_bar.empty()
 
             Code().update_last_scanned(code_repo_id, datetime.datetime.now())
@@ -219,7 +226,6 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
             try:
                 # Remove the temp directory, including all files and subdirectories
                 shutil.rmtree(temp_dir)
-
             except Exception as e:
                 logging.error(f"Could not remove temp directory {temp_dir}: {e}")
 
@@ -243,7 +249,7 @@ def filter_and_save_files(
     code_helper = Code()
     count = 0
 
-    stored_files = []
+    files_to_process = []
 
     for i, file in enumerate(files):
         progress_text.text(f"Inspecting:\n{file.path}")
@@ -287,7 +293,7 @@ def filter_and_save_files(
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(code)
 
-            stored_files.append(file)
+            files_to_process.append(file)
 
             count += 1
 
@@ -295,7 +301,7 @@ def filter_and_save_files(
         f"{count} files were different/new, and have been saved to {temp_dir}."
     )
 
-    return stored_files
+    return files_to_process
 
 
 def process_code_file(
@@ -321,11 +327,18 @@ def process_code_file(
                 ai.generate_keywords_and_descriptions_from_code_file(code)
             )
 
-            # Get the code dependencies
-            dependencies = DependencyAnalyzer().process_code_file(file_path, temp_dir)
-
         else:
             keywords_and_descriptions = None
+
+        embedding_name = (
+            UserSettings()
+            .get_user_setting(
+                user_id=st.session_state.rag_ai.conversation_manager.user_id,
+                setting_name="repository_embedding_name",
+                default_value="OpenAI: text-embedding-3-small",
+            )
+            .setting_value
+        )
 
         # Store the code and keywords in the database
         code_file_id = code_helper.add_update_code(
@@ -337,6 +350,7 @@ def process_code_file(
             file_summary=(
                 keywords_and_descriptions.summary if keywords_and_descriptions else ""
             ),
+            embedding_name=embedding_name,
         )
 
         if not code_file_id:
@@ -345,18 +359,65 @@ def process_code_file(
             )
             return False
 
-        if not dependencies:
-            logging.info(f"No dependencies found for {file.path}")
-        else:
-            for dependency in dependencies["dependencies"]:
-                # Add the dependency to the database
-                # TODO: Refactor this to take multiple dependencies at once
-                code_helper.add_code_file_dependency(
-                    code_file_id=code_file_id,
-                    dependency_name=dependency,
-                )
-
         return True
     except Exception as e:
         logging.error(f"Could not process file {file.path}: {e}")
         return False
+
+
+def process_dependencies(repo_id: int, progress_bar, progress_text):
+    # This is a final step when ingesting a repo, where we process the dependencies of the files we've stored
+    code_helper = Code()
+    dependency_analyzer = DependencyAnalyzer()
+    progress_text.text(f"Processing dependencies for repo")
+    progress_bar.progress(0)
+
+    # Write out the repo contents (from the database) to a temp directory
+    repo_files = code_helper.get_code_files(repo_id)
+
+    temp_dir = f"/tmp/code-deps/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    # Make sure the temp directory exists and is empty
+    os.makedirs(temp_dir, exist_ok=True)
+
+    for i, file in enumerate(repo_files):
+        progress_text.text(
+            f"Preparing to scan for dependencies:\n'{file.code_file_name}'"
+        )
+        # Get the file content
+        file_content = file.code_file_content
+
+        # Write the file content to a temp directory
+        with open(f"{temp_dir}/{file.code_file_name}", "w") as f:
+            f.write(file_content)
+
+        progress_bar.progress((i + 1) / len(repo_files))
+
+    progress_bar.progress(0)
+
+    # Once all of the files are written, process the dependencies
+    for i, file in enumerate(repo_files):
+        progress_text.text(f"Scanning for dependencies:\n'{file.code_file_name}'")
+        # Remove any existing dependencies for this file
+        code_helper.delete_code_file_dependencies(file.id)
+
+        # Process the dependencies
+        dependencies = dependency_analyzer.process_code_file(
+            f"{temp_dir}/{file.code_file_name}", temp_dir
+        )
+
+        if dependencies:
+            # Add the dependencies to the database
+            for dependency in dependencies["dependencies"]:
+                code_helper.add_code_file_dependency(
+                    code_file_id=file.id,
+                    dependency_name=dependency,
+                )
+
+        progress_bar.progress((i + 1) / len(repo_files))
+        
+    # Remove the temp directory
+    try:
+        shutil.rmtree(temp_dir)
+    except Exception as e:
+        logging.error(f"Could not remove temp directory {temp_dir}: {e}")        

@@ -299,7 +299,7 @@ class DocumentCollection(ModelBase):
     id = Column(Integer, primary_key=True)
     collection_name = Column(String, nullable=False, unique=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    collection_type = Column(String, nullable=False)
+    embedding_name = Column(String, nullable=False)
 
     documents = relationship("Document", back_populates="collection")
 

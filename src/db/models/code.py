@@ -7,7 +7,6 @@ from typing import List, Any
 from urllib.parse import urlparse
 from requests import Session
 
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 from sqlalchemy import and_, func, select, column, cast, or_
 
 import pgvector.sqlalchemy
@@ -19,6 +18,7 @@ from src.db.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
     SupportedSourceControlProviderModel,
 )
+from src.db.models.user_settings import UserSettings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -36,12 +36,8 @@ from src.db.database.tables import (
     code_repository_files_association,
 )
 
-from src.db.models.vector_database import VectorDatabase, SearchType
-from src.db.models.domain.document_collection_model import DocumentCollectionModel
-from src.db.models.domain.document_model import DocumentModel
-from src.db.models.domain.file_model import FileModel
-
-from src.ai.utilities.embeddings_helper import get_embedding, get_embedding_with_model
+from src.db.models.vector_database import VectorDatabase
+from src.ai.utilities.embeddings_helper import get_embedding_by_name, get_embedding_by_model
 
 
 class Code(VectorDatabase):
@@ -147,6 +143,7 @@ class Code(VectorDatabase):
         file_content: str,
         file_summary: str,
         keywords_and_descriptions: CodeDetailsExtractionOutput,
+        embedding_name:str
     ):
         # Create or update the code file, adding the keywords and descriptions as well
         with self.session_context(self.Session()) as session:
@@ -187,7 +184,8 @@ class Code(VectorDatabase):
                     return existing_code_file.id
 
             else:
-                logging.info(f"Creating a new entry for code file {file_name}.")
+                logging.info(f"Creating a new entry for code file {file_name}.")               
+                
 
                 # Create a new CodeFile instance since it doesn't exist yet
                 new_code_file = CodeFile(
@@ -197,9 +195,9 @@ class Code(VectorDatabase):
                     code_file_summary=file_summary,
                     # TODO: Implement embedding model selection for code
                     code_file_summary_embedding=(
-                        get_embedding(
+                        get_embedding_by_name(
                             text=file_summary,
-                            collection_type="Remote",
+                            embedding_name=embedding_name,
                             instruction="Represent the summary for retrieval: ",
                         )
                         if file_summary.strip() != ""
@@ -235,9 +233,9 @@ class Code(VectorDatabase):
                     code_description = CodeDescription(
                         code_file_id=code_file_id,
                         description_text=description,
-                        description_text_embedding=get_embedding(
+                        description_text_embedding=get_embedding_by_name(
                             text=description,
-                            collection_type="Remote",
+                            embedding_name=embedding_name,
                             instruction="Represent the description for retrieval: ",
                         ),
                     )
@@ -338,6 +336,13 @@ class Code(VectorDatabase):
                 .all()
             )
             return [dependency.dependency_name for dependency in dependencies]
+        
+    def delete_code_file_dependencies(self, code_file_id):
+        with self.session_context(self.Session()) as session:
+            session.query(CodeFileDependencies).filter(
+                CodeFileDependencies.code_file_id == code_file_id
+            ).delete()
+            session.commit()
 
     def get_code_file_by_name(
         self, code_repo_id: int, code_file_name: str
@@ -452,29 +457,32 @@ class Code(VectorDatabase):
         repository_id: int,
         similarity_query: str,
         keywords: List[str],
-        top_k=10,
+        embedding_name:str,
+        top_k=10,        
         exclude_file_names: List[str] = [],
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
             if similarity_query.strip() != "":
                 # Perform similarity search on CodeFile.code_file_summary_embedding
                 code_file_similarity_results = self._get_similarity_results(
-                    session,
-                    repository_id,
-                    CodeFile.code_file_summary_embedding,
-                    similarity_query,
-                    top_k,
-                    exclude_file_names,
+                    session=session,
+                    repository_id=repository_id,
+                    embedding_column=CodeFile.code_file_summary_embedding,
+                    similarity_query=similarity_query,
+                    top_k=top_k,
+                    exclude_file_names=exclude_file_names,
+                    embedding_name=embedding_name
                 )
 
                 # Perform similarity search on CodeDescription.description_text_embedding
                 code_description_similarity_results = self._get_similarity_results(
-                    session,
-                    repository_id,
-                    CodeDescription.description_text_embedding,
-                    similarity_query,
-                    top_k,
-                    exclude_file_names,
+                    session=session,
+                    repository_id=repository_id,
+                    embedding_column=CodeDescription.description_text_embedding,
+                    similarity_query=similarity_query,
+                    top_k=top_k,
+                    exclude_file_names=exclude_file_names,
+                    embedding_name=embedding_name
                 )
             else:
                 code_file_similarity_results = []
@@ -530,11 +538,12 @@ class Code(VectorDatabase):
         embedding_column,
         similarity_query,
         top_k: int,
+        embedding_name: str,        
         exclude_file_names: List[str] = [],
     ):
-        query_embedding = get_embedding(
+        query_embedding = get_embedding_by_name(
             text=similarity_query,
-            collection_type="Remote",
+            embedding_name=embedding_name,
             instruction="Represent the query for retrieval: ",
         )
 
@@ -782,28 +791,3 @@ class Code(VectorDatabase):
             print(f"An error occurred: {e}")
             return None
 
-
-# Testing
-if __name__ == "__main__":
-    code = Code()
-
-    # Test get_repositories
-    repositories = code.get_repositories()
-    print(repositories)
-
-    # Test searching for code
-    code_files = code.search_code_files(
-        1,
-        "What is the meaning of the Auto setting on the UI?",
-        ["Auto", "UI", "Setting"],
-        20,
-    )
-
-    print(
-        "\n\n".join(
-            [
-                f"{cf.code_file_name} summary:\n{cf.code_file_summary}"
-                for cf in code_files
-            ]
-        )
-    )

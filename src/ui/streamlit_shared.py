@@ -358,37 +358,36 @@ def get_selected_code_repo_id():
     return selected_code_repo_id
 
 
-def get_selected_collection_type():
+def get_selected_embedding_name():
     collection_id = get_selected_collection_id()
 
     if collection_id == -1:
-        return "None"
+        return None
 
     collection = Documents().get_collection(collection_id)
 
     if not collection:
-        return "None"
+        return None
 
-    return collection.collection_type
+    return collection.embedding_name
 
 
 def get_selected_collection_embedding_model_name():
-    collection_type = get_selected_collection_type()
+    embedding_name = get_selected_embedding_name()
+    
+    if not embedding_name:
+        return None
 
-    if collection_type.lower().startswith("remote"):
-        key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
-            "remote"
-        ]
-    else:
-        key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
-            "local"
-        ]
+    key = get_app_configuration()["jarvis_ai"]["embedding_models"]["available"][embedding_name]
 
     return key
 
 
 def get_selected_collection_configuration():
     key = get_selected_collection_embedding_model_name()
+    
+    if not key:
+        return None
 
     return get_app_configuration()["jarvis_ai"]["embedding_models"][key]
 
@@ -499,7 +498,11 @@ def select_documents(tab, ai=None):
                 value=st.session_state.ingestion_settings.split_documents,
             )
 
-            max_chunk_size = get_selected_collection_configuration()["max_token_length"]
+            collection_config = get_selected_collection_configuration()
+            if collection_config:
+                max_chunk_size = collection_config["max_token_length"]
+            else:
+                max_chunk_size = 500
 
             col1, col2 = st.columns(2)
             col1.number_input(
@@ -526,7 +529,7 @@ def select_documents(tab, ai=None):
             )
 
             st.markdown(
-                f"*Embedding model: **{get_selected_collection_type()}**, max chunk size: **{max_chunk_size}***"
+                f"*Embedding model: **{get_selected_embedding_name()}**, max chunk size: **{max_chunk_size}***"
             )
 
         with tab.form(key="upload_files_form", clear_on_submit=True):
@@ -1115,81 +1118,83 @@ def refresh_messages_session_state(ai_instance):
     st.session_state["messages"] = []
 
     for message in entire_chat_history:
-        if message.type == "human":
-            st.session_state["messages"].append(
-                {
-                    "role": "user",
-                    "content": message.content,
-                    "avatar": "🗣️",
-                    "id": message.additional_kwargs["id"],
-                    "in_memory": message in messages_in_memory,
-                }
-            )
-        else:
-            st.session_state["messages"].append(
-                {
-                    "role": "assistant",
-                    "content": message.content,
-                    "avatar": "🤖",
-                    "id": message.additional_kwargs["id"],
-                    "in_memory": message in messages_in_memory,
-                }
-            )
+        if "messages" in st.session_state: # Why streamlit, why???
+            if message.type == "human":            
+                st.session_state["messages"].append(
+                    {
+                        "role": "user",
+                        "content": message.content,
+                        "avatar": "🗣️",
+                        "id": message.additional_kwargs["id"],
+                        "in_memory": message in messages_in_memory,
+                    }
+                )
+            else:
+                st.session_state["messages"].append(
+                    {
+                        "role": "assistant",
+                        "content": message.content,
+                        "avatar": "🤖",
+                        "id": message.additional_kwargs["id"],
+                        "in_memory": message in messages_in_memory,
+                    }
+                )
 
 
 def show_old_messages(ai_instance):
     refresh_messages_session_state(ai_instance)
 
-    for message in st.session_state["messages"]:
-        with st.chat_message(message["role"], avatar=message["avatar"]):
-            # TODO: Put better (faster) deleting of conversation items in place.. maybe checkboxes?
+    if "messages" in st.session_state:
+        for message in st.session_state["messages"]:
+            with st.chat_message(message["role"], avatar=message["avatar"]):
+                # TODO: Put better (faster) deleting of conversation items in place.. maybe checkboxes?
 
-            if message["in_memory"]:
-                in_memory = "*🐘 :green[Message in chat memory]*"
-            else:
-                in_memory = "*🙊 :red[Message not in chat memory]*"
+                if message["in_memory"]:
+                    in_memory = "*🐘 :green[Message in chat memory]*"
+                else:
+                    in_memory = "*🙊 :red[Message not in chat memory]*"
 
-            col1, col2, col3 = st.container().columns([0.10, 0.01, 0.01])
+                col1, col2, col3 = st.container().columns([0.10, 0.01, 0.01])
 
-            col1.markdown(in_memory)
+                col1.markdown(in_memory)
 
-            st.markdown(message["content"])
+                st.markdown(message["content"])
 
-            if (
-                f"confirm_conversation_item_delete_{message['id']}"
-                not in st.session_state
-            ):
-                st.session_state[
+                if (
                     f"confirm_conversation_item_delete_{message['id']}"
-                ] = False
+                    not in st.session_state
+                ):
+                    st.session_state[
+                        f"confirm_conversation_item_delete_{message['id']}"
+                    ] = False
 
-            if (
-                st.session_state[f"confirm_conversation_item_delete_{message['id']}"]
-                == False
-            ):
-                col3.button(
-                    "🗑️",
-                    help="Delete this conversation entry",
-                    on_click=set_confirm_conversation_item_delete,
-                    kwargs={"val": True, "id": message["id"]},
-                    key=str(uuid.uuid4()),
-                )
-            else:
-                col2.button(
-                    "✅",
-                    help="Click to confirm delete",
-                    key=str(uuid.uuid4()),
-                    on_click=delete_conversation_item,
-                    kwargs={"id": message["id"]},
-                )
+                if (
+                    st.session_state[f"confirm_conversation_item_delete_{message['id']}"]
+                    == False
+                ):
+                    col3.button(
+                        "🗑️",
+                        help="Delete this conversation entry",
+                        on_click=set_confirm_conversation_item_delete,
+                        kwargs={"val": True, "id": message["id"]},
+                        key=str(uuid.uuid4()),
+                    )
+                else:
+                    col2.button(
+                        "✅",
+                        help="Click to confirm delete",
+                        key=str(uuid.uuid4()),
+                        on_click=delete_conversation_item,
+                        kwargs={"id": message["id"]},
+                    )
 
-                col3.button(
-                    "❌",
-                    help="Click to cancel delete",
-                    on_click=set_confirm_conversation_item_delete,
-                    kwargs={"val": False, "id": message["id"]},
-                    key=str(uuid.uuid4()),
-                )
+                    col3.button(
+                        "❌",
+                        help="Click to cancel delete",
+                        on_click=set_confirm_conversation_item_delete,
+                        kwargs={"val": False, "id": message["id"]},
+                        key=str(uuid.uuid4()),
+                    )
 
 
 def handle_chat(main_window_container, ai_instance, configuration):

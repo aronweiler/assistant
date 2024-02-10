@@ -2,7 +2,7 @@ import os
 import sys
 import gitlab
 
-from src.integrations.shared import CODE_FILE_EXTENSIONS
+from src.integrations.shared import TEXT_BASED_EXTENSIONS, is_text_based_extension
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -10,7 +10,9 @@ from src.integrations.gitlab import gitlab_shared
 
 
 class GitlabFileIterator:
-    def __init__(self, source_control_url, source_control_pat, requires_authentication=False):
+    def __init__(
+        self, source_control_url, source_control_pat, requires_authentication=False
+    ):
         self._gl = gitlab_shared.retrieve_gitlab_client(
             source_control_url=source_control_url,
             source_control_pat=source_control_pat,
@@ -24,18 +26,10 @@ class GitlabFileIterator:
         matching_files = [
             item
             for item in items
-            if item["type"] == "blob" and self.is_text_based_extension(item["path"])
+            if item["type"] == "blob" and is_text_based_extension(item["path"])
         ]
 
         return matching_files
-
-    @staticmethod
-    def is_text_based_extension(file_path):
-        _, extension = os.path.splitext(file_path)
-        return (
-            extension.lower() in CODE_FILE_EXTENSIONS
-            or file_path in CODE_FILE_EXTENSIONS
-        )
 
 
 if __name__ == "__main__":

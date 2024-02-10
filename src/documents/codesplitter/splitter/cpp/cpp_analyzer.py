@@ -35,7 +35,9 @@ class CppAnalyzer(DependencyAnalyzerBase):
 
     def _analyze_file(self, file_path, allowed_include_paths):
         index = clang.cindex.Index.create()
-        tu = index.parse(file_path)
+        args = ["-I" + path for path in allowed_include_paths]       
+            
+        tu = index.parse(file_path, args=args) #, args=['-I/path/to/include1', '-I/path/to/include2'])        
         dependencies = self._get_dependencies(tu, allowed_include_paths)
 
         return {
@@ -76,11 +78,11 @@ class CppAnalyzer(DependencyAnalyzerBase):
 
 if __name__ == "__main__":
     analyzer = CppAnalyzer()
-    results = analyzer.process_code(
-        "/Repos/sample_docs/cpp/Dave/StateMachine-Code_Only"
+    results = analyzer.process_code_file(
+        "/Repos/sample_docs/cpp/Dave/StateMachine-Code_Only/Motor.cpp"
     )
     print(
         "\n".join(
-            [f"{result['file']} : {result['dependencies']}" for result in results]
+            [f"{results['file']} : {result}" for result in results['dependencies']]
         )
     )

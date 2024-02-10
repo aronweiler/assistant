@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import time
 import uuid
 
 import streamlit as st
@@ -189,42 +190,83 @@ if __name__ == "__main__":
         user_email = os.environ.get("USER_EMAIL", None)        
         logging.debug(f"User email: {user_email}")
         
+        # Time the operation
+        start_time = time.time()
         rag_ui = RagUI(user_email=user_email)
+        logging.info(f"Time to load RagUI: {time.time() - start_time}")
 
         # Always comes first!
         logging.debug("Loading configuration")
+        # Time the operation
+        start_time = time.time()
         rag_ui.load_configuration()
+        logging.info(f"Time to load configuration: {time.time() - start_time}")
 
         logging.debug("Setting page config")
+        # Time the operation
+        start_time = time.time()
         rag_ui.set_page_config()        
+        logging.info(f"Time to set page config: {time.time() - start_time}")
 
         if not user_email:
             raise ValueError("USER_EMAIL environment variable not set")
 
         logging.debug("Ensuring user exists")
+        # Time the operation
+        start_time = time.time()
         if ui_shared.ensure_user(user_email):
+            logging.info(f"Time to ensure user exists: {time.time() - start_time}")
+            
             logging.debug("User exists")
+            
+            # Time the operation
+            start_time = time.time()
             ui_shared.set_user_id_from_email(user_email)
+            logging.info(f"Time to set user id from email: {time.time() - start_time}")
+            
+            # Time the operation
+            start_time = time.time()
             ui_shared.ensure_conversation()
+            logging.info(f"Time to ensure conversation: {time.time() - start_time}")
 
             conversations, files_and_settings = st.sidebar.tabs(
                 ["Conversations", "Files & Settings"]
             )
 
+            # Time the operation
+            start_time = time.time()
             ui_shared.load_conversation_selectbox(rag_ui.load_ai, conversations)
+            logging.info(f"Time to load conversation selectbox: {time.time() - start_time}")
+            
             # Set up columns for chat and collections
             col1, col2 = st.columns([0.65, 0.35])
 
+            # Time the operation
+            start_time = time.time()
             rag_ui.load_ai()
+            logging.info(f"Time to load AI: {time.time() - start_time}")
+            
+            # Time the operation
+            start_time = time.time()
             rag_ui.create_collections_container(col2)
+            logging.info(f"Time to create collections container: {time.time() - start_time}")
 
+            # Time the operation
+            start_time = time.time()
             ui_shared.select_documents(
                 ai=st.session_state["rag_ai"], tab=files_and_settings
             )
+            logging.info(f"Time to select documents: {time.time() - start_time}")
 
+            # Time the operation
+            start_time = time.time()
             ui_shared.handle_chat(col1, st.session_state["rag_ai"], st.session_state["app_config"])
+            logging.info(f"Time to handle chat: {time.time() - start_time}")
 
+            # Time the operation
+            start_time = time.time()
             ui_shared.show_version()            
+            logging.info(f"Time to show version: {time.time() - start_time}")
     except:
         # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
         # Check to see if the type of exception is a "StopException",

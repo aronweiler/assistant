@@ -30,15 +30,27 @@ class DependencyAnalyzer:
                 
                 return analyzer.process_code_file(code_file, base_directory)
             
-        return []
+        return None
 
 
 if __name__ == "__main__":
     analyzer = DependencyAnalyzer()
-    results = analyzer.process_code_file("/Repos/assistant/about.py")    
+    # results = analyzer.process_code_file("/Repos/assistant/about.py")    
+    # for result in results['dependencies']:
+    #     print(f"{results['file']} : {result}")
+
+    # results = analyzer.process_code_file("C:\Repos\sample_docs\cpp\Dave\StateMachine-Code_Only\Allocator.cpp", "C:\Repos\sample_docs\cpp\Dave\StateMachine-Code_Only")
+    # for result in results['dependencies']:
+    #     print(f"{results['file']} : {result}")
+        
+    results = analyzer.process_code_file("/Repos/sample_docs/cpp/Dave/StateMachine-Code_Only/Allocator.cpp", "/Repos/sample_docs/cpp/Dave/StateMachine-Code_Only")
+    for result in results['dependencies']:
+        print(f"{results['file']} : {result}")        
+        
+    results = analyzer.process_code_file("/tmp/code-deps/20240210092722/Allocator.cpp", "/tmp/code-deps/20240210092722")    
     for result in results['dependencies']:
         print(f"{results['file']} : {result}")
 
-    results = analyzer.process_code_file("C:\Repos\sample_docs\cpp\Dave\StateMachine-Code_Only\Motor.cpp")
-    for result in results['dependencies']:
-        print(f"{results['file']} : {result}")
+    # results = analyzer.process_code_file("C:/tmp/code-deps/20240210092722/Allocator.cpp", "C:/tmp/code-deps/20240210092722")    
+    # for result in results['dependencies']:
+    #     print(f"{results['file']} : {result}")
