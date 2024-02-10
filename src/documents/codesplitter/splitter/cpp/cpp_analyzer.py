@@ -15,9 +15,9 @@ from src.documents.codesplitter.splitter.dependency_analyzer_base import (
 class CppAnalyzer(DependencyAnalyzerBase):
     _PARSABLE_EXTENSIONS = (".c", ".cc", ".cpp", ".h", ".hh", ".hpp")
 
-    def process_code_file(self, code_file):
-        allowed_include_paths = [os.path.dirname(code_file)]
-        result = self._analyze_file(code_file, allowed_include_paths)
+    def process_code_file(self, code_file, base_directory: str = None):
+        allowed_include_paths = base_directory or os.path.dirname(code_file)
+        result = self._analyze_file(code_file, [allowed_include_paths])
         return result
 
     def process_code_directory(self, directory):
@@ -54,7 +54,7 @@ class CppAnalyzer(DependencyAnalyzerBase):
                 # Strip everything before the last / or \ to get the file name
                 dependency_name = dependency_name.split("/")[-1]
                 include_files.append(dependency_name)
-        
+
         return include_files
 
     def _is_node_in_allowed_path(self, node, allowed_include_paths):

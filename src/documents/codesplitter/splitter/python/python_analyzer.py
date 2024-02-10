@@ -14,7 +14,7 @@ from src.documents.codesplitter.splitter.dependency_analyzer_base import (
 class PythonAnalyzer(DependencyAnalyzerBase):
     _PARSABLE_EXTENSIONS = ".py"
 
-    def process_code_file(self, code_file: str) -> dict:
+    def process_code_file(self, code_file: str, base_directory: str = None) -> dict:
         # Ensure the code_file is a file and not a directory
         if not os.path.isfile(code_file):
             raise ValueError(f"{code_file} is not a file")
@@ -24,7 +24,9 @@ class PythonAnalyzer(DependencyAnalyzerBase):
             dependencies = []
             for node in ast.walk(tree):
                 if isinstance(node, (ast.Import, ast.ImportFrom)):
-                    dependencies.append(node.names[0].name)
+
+                    module_name = node.names[0].name
+                    dependencies.append(module_name)
 
         return {"file": code_file, "dependencies": dependencies}
 
@@ -34,7 +36,7 @@ class PythonAnalyzer(DependencyAnalyzerBase):
             for file in files:
                 if file.endswith(self._PARSABLE_EXTENSIONS):
                     full_path = os.path.join(root, file)
-                    result = self._analyze_file(full_path)
+                    result = self.process_code_file(full_path, directory)
                     results.append(result)
         return results
 
@@ -51,6 +53,6 @@ class PythonAnalyzer(DependencyAnalyzerBase):
 
 if __name__ == "__main__":
     analyzer = PythonAnalyzer()
-    results = analyzer.process_code("/repos/assistant/src")
+    results = analyzer.process_code_directory("/repos/assistant/src")
     for result in results:
         print(f"{result['file']} : {result['dependencies']}")
