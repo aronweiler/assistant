@@ -184,7 +184,7 @@ class Code(VectorDatabase):
                     session.commit()
 
                     # If the file exists, we don't need to update the keywords and descriptions
-                    return
+                    return existing_code_file.id
 
             else:
                 logging.info(f"Creating a new entry for code file {file_name}.")
@@ -244,6 +244,8 @@ class Code(VectorDatabase):
 
                     session.add(code_description)
                     session.commit()
+                    
+            return code_file_id
 
     def get_code_files(self, repository_id: int) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:

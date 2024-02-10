@@ -306,6 +306,7 @@ def process_code_file(
 ):
     """Processes the code file"""
     code_helper = Code()
+    dependencies = {}
 
     try:
         file_path = os.path.join(temp_dir, file.path)
@@ -322,16 +323,12 @@ def process_code_file(
 
             # Get the code dependencies
             dependencies = DependencyAnalyzer().process_code_file(file_path, temp_dir)
-            
-            # Add the dependencies to the database
-            
-            
 
         else:
             keywords_and_descriptions = None
 
         # Store the code and keywords in the database
-        code_helper.add_update_code(
+        code_file_id = code_helper.add_update_code(
             file_name=file.path,
             file_sha=file.sha,
             file_content=code,
@@ -341,6 +338,23 @@ def process_code_file(
                 keywords_and_descriptions.summary if keywords_and_descriptions else ""
             ),
         )
+
+        if not code_file_id:
+            logging.error(
+                f"Could not add code file {file.path} to the database. Skipping."
+            )
+            return False
+
+        if not dependencies:
+            logging.info(f"No dependencies found for {file.path}")
+        else:
+            for dependency in dependencies["dependencies"]:
+                # Add the dependency to the database
+                # TODO: Refactor this to take multiple dependencies at once
+                code_helper.add_code_file_dependency(
+                    code_file_id=code_file_id,
+                    dependency_name=dependency,
+                )
 
         return True
     except Exception as e:
