@@ -26,7 +26,7 @@ class DependencyAnalyzer:
             
         file_extension = os.path.splitext(code_file)[1]
         for extension, analyzer in self.analyzers.items():
-            if file_extension in analyzer._PARSABLE_EXTENSIONS:
+            if file_extension.strip() != '' and file_extension in analyzer._PARSABLE_EXTENSIONS:
                 
                 return analyzer.process_code_file(code_file, base_directory)
             

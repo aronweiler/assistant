@@ -283,7 +283,7 @@ def ensure_user(user_email):
 
         if name and location:  # Check if both name and location inputs are not empty
             # Display a confirmation button for the user to create their account
-            if st.button("Create User"):
+            if st.button("Create User", type="primary"):
                 user = users_helper.create_user(
                     email=user_email, name=name, location=location, age=999
                 )
