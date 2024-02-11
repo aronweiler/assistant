@@ -1,7 +1,7 @@
 from src.db.database.tables import CodeFileDependencies
 
 
-class CodeFileDependenciesModel:
+class CodeFileDependencyModel:
     def __init__(self, code_file_id, dependency_name, id=None):
         self.id = id
         self.code_file_id = code_file_id

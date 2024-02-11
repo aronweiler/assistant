@@ -13,6 +13,7 @@ import pgvector.sqlalchemy
 from src.ai.prompts.prompt_models.code_details_extraction import (
     CodeDetailsExtractionOutput,
 )
+from src.db.models.domain.code_file_dependency_model import CodeFileDependencyModel
 
 from src.db.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
@@ -37,7 +38,10 @@ from src.db.database.tables import (
 )
 
 from src.db.models.vector_database import VectorDatabase
-from src.ai.utilities.embeddings_helper import get_embedding_by_name, get_embedding_by_model
+from src.ai.utilities.embeddings_helper import (
+    get_embedding_by_name,
+    get_embedding_by_model,
+)
 
 
 class Code(VectorDatabase):
@@ -143,7 +147,7 @@ class Code(VectorDatabase):
         file_content: str,
         file_summary: str,
         keywords_and_descriptions: CodeDetailsExtractionOutput,
-        embedding_name:str
+        embedding_name: str,
     ):
         # Create or update the code file, adding the keywords and descriptions as well
         with self.session_context(self.Session()) as session:
@@ -184,8 +188,7 @@ class Code(VectorDatabase):
                     return existing_code_file.id
 
             else:
-                logging.info(f"Creating a new entry for code file {file_name}.")               
-                
+                logging.info(f"Creating a new entry for code file {file_name}.")
 
                 # Create a new CodeFile instance since it doesn't exist yet
                 new_code_file = CodeFile(
@@ -242,7 +245,7 @@ class Code(VectorDatabase):
 
                     session.add(code_description)
                     session.commit()
-                    
+
             return code_file_id
 
     def get_code_files(self, repository_id: int) -> List[CodeFileModel]:
@@ -328,15 +331,17 @@ class Code(VectorDatabase):
             )
             session.commit()
 
-    def get_code_file_dependencies(self, code_file_id):
+    def get_code_file_dependencies(self, code_file_id) -> List[CodeFileDependencyModel]:
         with self.session_context(self.Session()) as session:
             dependencies = (
                 session.query(CodeFileDependencies)
                 .filter(CodeFileDependencies.code_file_id == code_file_id)
                 .all()
             )
-            return [dependency.dependency_name for dependency in dependencies]
-        
+            return [
+                CodeFileDependencyModel.from_database_model(d) for d in dependencies
+            ]
+
     def delete_code_file_dependencies(self, code_file_id):
         with self.session_context(self.Session()) as session:
             session.query(CodeFileDependencies).filter(
@@ -457,8 +462,8 @@ class Code(VectorDatabase):
         repository_id: int,
         similarity_query: str,
         keywords: List[str],
-        embedding_name:str,
-        top_k=10,        
+        embedding_name: str,
+        top_k=10,
         exclude_file_names: List[str] = [],
     ) -> List[CodeFileModel]:
         with self.session_context(self.Session()) as session:
@@ -471,7 +476,7 @@ class Code(VectorDatabase):
                     similarity_query=similarity_query,
                     top_k=top_k,
                     exclude_file_names=exclude_file_names,
-                    embedding_name=embedding_name
+                    embedding_name=embedding_name,
                 )
 
                 # Perform similarity search on CodeDescription.description_text_embedding
@@ -482,7 +487,7 @@ class Code(VectorDatabase):
                     similarity_query=similarity_query,
                     top_k=top_k,
                     exclude_file_names=exclude_file_names,
-                    embedding_name=embedding_name
+                    embedding_name=embedding_name,
                 )
             else:
                 code_file_similarity_results = []
@@ -538,7 +543,7 @@ class Code(VectorDatabase):
         embedding_column,
         similarity_query,
         top_k: int,
-        embedding_name: str,        
+        embedding_name: str,
         exclude_file_names: List[str] = [],
     ):
         query_embedding = get_embedding_by_name(
@@ -790,4 +795,3 @@ class Code(VectorDatabase):
         except Exception as e:
             print(f"An error occurred: {e}")
             return None
-

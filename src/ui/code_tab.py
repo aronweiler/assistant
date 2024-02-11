@@ -314,13 +314,12 @@ def process_code_file(
 ):
     """Processes the code file"""
     code_helper = Code()
-    dependencies = {}
 
     try:
         file_path = os.path.join(temp_dir, file.path)
 
         # read the code in from the file
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             code = f.read()
 
         if code.strip() != "":
