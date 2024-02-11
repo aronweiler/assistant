@@ -30,7 +30,7 @@ from src.db.models.conversations import Conversations
 from src.db.models.conversation_messages import ConversationMessages
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from src.ai.callbacks.streaming_only_callback import (
-    StreamlitStreamingOnlyCallbackHandler
+    StreamlitStreamingOnlyCallbackHandler,
 )
 
 from src.utilities.hash_utilities import calculate_sha256
@@ -374,18 +374,20 @@ def get_selected_embedding_name():
 
 def get_selected_collection_embedding_model_name():
     embedding_name = get_selected_embedding_name()
-    
+
     if not embedding_name:
         return None
 
-    key = get_app_configuration()["jarvis_ai"]["embedding_models"]["available"][embedding_name]
+    key = get_app_configuration()["jarvis_ai"]["embedding_models"]["available"][
+        embedding_name
+    ]
 
     return key
 
 
 def get_selected_collection_configuration():
     key = get_selected_collection_embedding_model_name()
-    
+
     if not key:
         return None
 
@@ -1118,8 +1120,8 @@ def refresh_messages_session_state(ai_instance):
     st.session_state["messages"] = []
 
     for message in entire_chat_history:
-        if "messages" in st.session_state: # Why streamlit, why???
-            if message.type == "human":            
+        if "messages" in st.session_state:  # Why streamlit, why???
+            if message.type == "human":
                 st.session_state["messages"].append(
                     {
                         "role": "user",
@@ -1169,7 +1171,9 @@ def show_old_messages(ai_instance):
                     ] = False
 
                 if (
-                    st.session_state[f"confirm_conversation_item_delete_{message['id']}"]
+                    st.session_state[
+                        f"confirm_conversation_item_delete_{message['id']}"
+                    ]
                     == False
                 ):
                     col3.button(
@@ -1252,7 +1256,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
             on_change=set_ai_mode,
         )
 
-        if st.session_state["ai_mode"] == "Auto":
+        if st.session_state.get("ai_mode", "auto").lower().startswith("auto"):
             col3.markdown(
                 f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Answer:</b></div>',
                 unsafe_allow_html=True,
@@ -1308,7 +1312,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 step=0.1,
                 help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
                 on_change=set_frequency_penalty,
-                disabled=st.session_state["ai_mode"] != "Conversation Only",
+                disabled=not st.session_state.get("ai_mode", "auto").lower().startswith("conversation"),
             )
 
             col5.markdown(
@@ -1328,7 +1332,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 step=0.1,
                 help="The higher the penalty, the more variety of words will be introduced in the completion.",
                 on_change=set_presence_penalty,
-                disabled=st.session_state["ai_mode"] != "Conversation Only",
+                disabled=not st.session_state.get("ai_mode", "auto").lower().startswith("conversation"),
             )
 
     if prompt:
@@ -1470,7 +1474,7 @@ def set_presence_penalty():
 
 def set_ai_mode():
     ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
-    ai.conversation_manager.set_user_setting("ai_mode", st.session_state["ai_mode"])
+    ai.conversation_manager.set_user_setting("ai_mode", st.session_state.get("ai_mode", "auto"))
 
 
 def update_conversation_name():

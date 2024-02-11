@@ -211,6 +211,14 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
 
                 progress_bar.progress((i + 1) / len(files))
 
+            try:
+                # if the temp directory exists, remove it
+                if os.path.exists(temp_dir):
+                    # Remove the temp directory, including all files and subdirectories
+                    shutil.rmtree(temp_dir)
+            except Exception as e:
+                logging.error(f"Could not remove temp directory {temp_dir}: {e}")
+
             process_dependencies(
                 repo_id=code_repo_id,
                 progress_bar=progress_bar,
@@ -222,12 +230,6 @@ def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
             Code().update_last_scanned(code_repo_id, datetime.datetime.now())
 
             st.success(f"Done processing {len(files)} new or changed files")
-
-            try:
-                # Remove the temp directory, including all files and subdirectories
-                shutil.rmtree(temp_dir)
-            except Exception as e:
-                logging.error(f"Could not remove temp directory {temp_dir}: {e}")
 
             if len(unprocessed_files) > 0:
                 st.warning(f"Could not process {len(unprocessed_files)} files:")
@@ -378,7 +380,6 @@ def process_dependencies(repo_id: int, progress_bar, progress_text):
     temp_dir = f"/tmp/code-deps/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     # Make sure the temp directory exists and is empty
-    os.makedirs(temp_dir, exist_ok=True)
 
     for i, file in enumerate(repo_files):
         progress_text.text(
@@ -386,9 +387,12 @@ def process_dependencies(repo_id: int, progress_bar, progress_text):
         )
         # Get the file content
         file_content = file.code_file_content
+        file_path = f"{temp_dir}/{file.code_file_name}"
+
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         # Write the file content to a temp directory
-        with open(f"{temp_dir}/{file.code_file_name}", "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(file_content)
 
         progress_bar.progress((i + 1) / len(repo_files))
@@ -415,9 +419,12 @@ def process_dependencies(repo_id: int, progress_bar, progress_text):
                 )
 
         progress_bar.progress((i + 1) / len(repo_files))
-        
+
     # Remove the temp directory
     try:
-        shutil.rmtree(temp_dir)
+        # if the temp directory exists, remove it
+        if os.path.exists(temp_dir):
+            # Remove the temp directory, including all files and subdirectories
+            shutil.rmtree(temp_dir)
     except Exception as e:
-        logging.error(f"Could not remove temp directory {temp_dir}: {e}")        
+        logging.error(f"Could not remove temp directory {temp_dir}: {e}")
