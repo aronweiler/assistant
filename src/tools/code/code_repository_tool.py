@@ -239,7 +239,7 @@ class CodeRepositoryTool:
                 input_object = GetRelevantSnippetsInput(
                     file_id=file_info["file_id"],
                     file_name=file_info["file_name"],
-                    code=code_file["file_content"],
+                    code=code_file.code_file_content,
                     code_description=description,
                 )
 
