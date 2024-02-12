@@ -144,12 +144,15 @@ class VoiceRunner:
             if self.audio_queue.full():
                 self.audio_queue.get()
 
-            # Read a frame from the mic and add it to the queue used by the wake word detection
-            frame = mic_stream.read(CHUNK, exception_on_overflow=False)
-            self.audio_queue.put(frame, block=True)
+            try:
+                # Read a frame from the mic and add it to the queue used by the wake word detection
+                frame = mic_stream.read(CHUNK, exception_on_overflow=False)
+                self.audio_queue.put(frame, block=True)
 
-            # Also put the frame into the audio transcriber
-            self.audio_transcriber.add_frame_to_buffer(frame)
+                # Also put the frame into the audio transcriber
+                self.audio_transcriber.add_frame_to_buffer(frame)
+            except Exception as e:
+                logging.error("Failed to read from mic.  ", e)
 
     def look_for_wake_words(self):
         # Set the last activation time to cooldown seconds ago so that we can activate immediately
