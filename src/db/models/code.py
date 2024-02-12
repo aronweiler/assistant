@@ -495,7 +495,7 @@ class Code(VectorDatabase):
 
             if keywords != []:
                 # Perform keyword search on CodeKeywords.keyword
-                keyword_search_results = self._get_keyword_search_results(
+                keyword_search_results = self.search_code_for_keywords(
                     session, repository_id, keywords, top_k, exclude_file_names
                 )
             else:
@@ -573,7 +573,7 @@ class Code(VectorDatabase):
 
         return [(code_file, distance) for code_file, distance in result]
 
-    def _get_keyword_search_results(
+    def search_code_for_keywords(
         self,
         session: Session,
         repository_id: int,
@@ -621,13 +621,11 @@ class Code(VectorDatabase):
             for code_file in combined_results[:top_k]
         ]  # No distance for keyword search
 
-    # Add a function to add a supported source control provider
     def add_supported_source_control_provider(self, name):
         with self.session_context(self.Session()) as session:
             session.add(SupportedSourceControlProvider(name=name))
             session.commit()
 
-    # Add a function to retrieve supported source control providers
     def get_supported_source_control_providers(self):
         with self.session_context(self.Session()) as session:
             providers = session.query(SupportedSourceControlProvider).all()
@@ -662,7 +660,6 @@ class Code(VectorDatabase):
                 else None
             )
 
-    # Add a function to add a source control provider
     def add_source_control_provider(
         self,
         supported_source_control_provider: SupportedSourceControlProviderModel,
@@ -694,7 +691,6 @@ class Code(VectorDatabase):
             )
             session.commit()
 
-    # Add a function to update a source control provider
     def update_source_control_provider(
         self,
         id,
@@ -718,7 +714,6 @@ class Code(VectorDatabase):
             )
             session.commit()
 
-    # Add a function to delete a source control provider
     def delete_source_control_provider(self, id):
         with self.session_context(self.Session()) as session:
             session.query(SourceControlProvider).filter(
@@ -726,7 +721,6 @@ class Code(VectorDatabase):
             ).delete()
             session.commit()
 
-    # Add a function to retrieve all source control providers
     def get_all_source_control_providers(self):
         with self.session_context(self.Session()) as session:
             providers = session.query(SourceControlProvider).all()
@@ -735,7 +729,6 @@ class Code(VectorDatabase):
                 for provider in providers
             ]
 
-    # Add a function to retrieve a single source control provider
     def get_source_control_provider(self, id):
         with self.session_context(self.Session()) as session:
             provider = (
