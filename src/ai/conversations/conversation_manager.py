@@ -1,5 +1,6 @@
 import logging
 from typing import List, Union
+from uuid import UUID
 
 from src.ai.agents.general.generic_tool import GenericTool
 from src.ai.utilities.system_info import get_system_information
@@ -28,7 +29,7 @@ class ConversationManager:
 
     def __init__(
         self,
-        conversation_id: Union[int, None],
+        conversation_id: Union[UUID, None],
         user_email: str,
         prompt_manager: PromptManager,
         max_conversation_history_tokens: int = 1000,
