@@ -144,12 +144,15 @@ class VoiceRunner:
             if self.audio_queue.full():
                 self.audio_queue.get()
 
-            # Read a frame from the mic and add it to the queue used by the wake word detection
-            frame = mic_stream.read(CHUNK, exception_on_overflow=False)
-            self.audio_queue.put(frame, block=True)
+            try:
+                # Read a frame from the mic and add it to the queue used by the wake word detection
+                frame = mic_stream.read(CHUNK, exception_on_overflow=False)
+                self.audio_queue.put(frame, block=True)
 
-            # Also put the frame into the audio transcriber
-            self.audio_transcriber.add_frame_to_buffer(frame)
+                # Also put the frame into the audio transcriber
+                self.audio_transcriber.add_frame_to_buffer(frame)
+            except Exception as e:
+                logging.error("Failed to read from mic.  ", e)
 
     def look_for_wake_words(self):
         # Set the last activation time to cooldown seconds ago so that we can activate immediately
@@ -261,6 +264,10 @@ class VoiceRunner:
                 return
 
             ai_query_start_time = time.time()
+            
+            voice_ai_mode = self.rag_ai.conversation_manager.get_user_setting(
+                setting_name="voice_ai_mode", default_value="Conversation Only"
+            ).setting_value
 
             ai_response = self.rag_ai.query(
                 query=transcribed_audio,
@@ -271,6 +278,7 @@ class VoiceRunner:
                         default_value="Act like you're writing copy for a news broadcaster who needs to deliver their information with alacrity and grace- you are writing to get the details across, but you keep things very short and concise. Rephrase your response so that it can be spoken aloud without any modifications.  Re-word and write out any symbols or codes phonetically; including variable names, abbreviations, and other language that would not usually be spoken aloud.",
                     ).setting_value
                 },
+                ai_mode=voice_ai_mode
             )
 
             ai_query_end_time = time.time()

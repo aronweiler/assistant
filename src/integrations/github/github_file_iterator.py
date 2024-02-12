@@ -6,7 +6,7 @@ from github import Github
 
 from github.ContentFile import ContentFile
 
-from src.integrations.shared import CODE_FILE_EXTENSIONS
+from src.integrations.shared import TEXT_BASED_EXTENSIONS, is_text_based_extension
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
@@ -31,10 +31,3 @@ def get_text_based_files_from_repo(
     ]
 
     return matching_files
-
-
-def is_text_based_extension(file_path: str):
-    # Extract the file extension and check if it's in our set of text-based extensions
-    _, extension = os.path.splitext(file_path)
-
-    return extension.strip() == "" or extension.lower() in CODE_FILE_EXTENSIONS

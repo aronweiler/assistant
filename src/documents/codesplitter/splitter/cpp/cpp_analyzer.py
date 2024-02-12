@@ -3,23 +3,30 @@ import pathlib
 import sys
 import clang.cindex
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../"))
+)
 
 from src.documents.codesplitter.splitter.dependency_analyzer_base import (
     DependencyAnalyzerBase,
 )
 
-_PARSABLE_EXTENSIONS = (".c", ".cc", ".cpp", ".h", ".hh", ".hpp")
-
 
 class CppAnalyzer(DependencyAnalyzerBase):
-    def process_code(self, directory):
+    _PARSABLE_EXTENSIONS = (".c", ".cc", ".cpp", ".h", ".hh", ".hpp")
+
+    def process_code_file(self, code_file, base_directory: str = None):
+        allowed_include_paths = base_directory or os.path.dirname(code_file)
+        result = self._analyze_file(code_file, [allowed_include_paths])
+        return result
+
+    def process_code_directory(self, directory):
         results = []
         allowed_include_paths = [os.path.dirname(directory)]
 
         for root, dirs, files in os.walk(directory):
             for file in files:
-                if file.endswith(_PARSABLE_EXTENSIONS):
+                if file.endswith(self._PARSABLE_EXTENSIONS):
                     full_path = os.path.join(root, file)
                     result = self._analyze_file(full_path, allowed_include_paths)
                     results.append(result)
@@ -28,7 +35,9 @@ class CppAnalyzer(DependencyAnalyzerBase):
 
     def _analyze_file(self, file_path, allowed_include_paths):
         index = clang.cindex.Index.create()
-        tu = index.parse(file_path)
+        args = ["-I" + path for path in allowed_include_paths]       
+            
+        tu = index.parse(file_path, args=args) #, args=['-I/path/to/include1', '-I/path/to/include2'])        
         dependencies = self._get_dependencies(tu, allowed_include_paths)
 
         return {
@@ -43,7 +52,11 @@ class CppAnalyzer(DependencyAnalyzerBase):
             if self._is_node_in_allowed_path(
                 include_obj.include.name, allowed_include_paths
             ):
-                include_files.append(include_obj.include.name)
+                dependency_name = include_obj.include.name
+                # Strip everything before the last / or \ to get the file name
+                dependency_name = dependency_name.split("/")[-1]
+                include_files.append(dependency_name)
+
         return include_files
 
     def _is_node_in_allowed_path(self, node, allowed_include_paths):
@@ -65,11 +78,11 @@ class CppAnalyzer(DependencyAnalyzerBase):
 
 if __name__ == "__main__":
     analyzer = CppAnalyzer()
-    results = analyzer.process_code(
-        "/Repos/sample_docs/cpp/Dave/StateMachine-Code_Only"
+    results = analyzer.process_code_file(
+        "/Repos/sample_docs/cpp/Dave/StateMachine-Code_Only/Motor.cpp"
     )
     print(
         "\n".join(
-            [f"{result['file']} : {result['dependencies']}" for result in results]
+            [f"{results['file']} : {result}" for result in results['dependencies']]
         )
     )

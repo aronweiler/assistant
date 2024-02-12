@@ -21,16 +21,16 @@ from src.db.models.domain.document_collection_model import DocumentCollectionMod
 from src.db.models.domain.document_model import DocumentModel
 from src.db.models.domain.file_model import FileModel
 
-from src.ai.utilities.embeddings_helper import get_embedding, get_embedding_with_model
+from src.ai.utilities.embeddings_helper import get_embedding_by_name, get_embedding_by_model
 
 
 class Documents(VectorDatabase):
     def create_collection(
-        self, collection_name, collection_type
+        self, collection_name, embedding_name
     ) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = DocumentCollection(
-                collection_name=collection_name, collection_type=collection_type
+                collection_name=collection_name, embedding_name=embedding_name
             )
 
             session.add(collection)
@@ -56,7 +56,7 @@ class Documents(VectorDatabase):
                     DocumentCollection.id,
                     DocumentCollection.collection_name,
                     DocumentCollection.record_created,
-                    DocumentCollection.collection_type,
+                    DocumentCollection.embedding_name,
                 )
                 .filter(DocumentCollection.id == collection_id)
                 .first()
@@ -71,7 +71,7 @@ class Documents(VectorDatabase):
                     DocumentCollection.id,
                     DocumentCollection.collection_name,
                     DocumentCollection.record_created,
-                    DocumentCollection.collection_type,
+                    DocumentCollection.embedding_name,
                 )
                 .filter(DocumentCollection.collection_name == collection_name)
                 .first()
@@ -85,7 +85,7 @@ class Documents(VectorDatabase):
                 DocumentCollection.id,
                 DocumentCollection.collection_name,
                 DocumentCollection.record_created,
-                DocumentCollection.collection_type,
+                DocumentCollection.embedding_name,
             ).all()
 
             return [DocumentCollectionModel.from_database_model(c) for c in collections]
@@ -335,7 +335,7 @@ class Documents(VectorDatabase):
     def store_document(self, document: DocumentModel) -> DocumentModel:
         with self.session_context(self.Session()) as session:
             # Generate the embedding for the document text
-            embedding = get_embedding_with_model(
+            embedding = get_embedding_by_model(
                 text=document.document_text,
                 model_name=document.embedding_model_name,
                 instruction="Represent the document for retrieval: ",
@@ -344,7 +344,7 @@ class Documents(VectorDatabase):
             # Generate the embedding for the document text summary
             document_text_summary_embedding = None
             if document.document_text_summary.strip() != "":
-                document_text_summary_embedding = get_embedding_with_model(
+                document_text_summary_embedding = get_embedding_by_model(
                     document.document_text_summary,
                     model_name=document.embedding_model_name,
                     instruction="Represent the summary for retrieval: ",
@@ -355,7 +355,7 @@ class Documents(VectorDatabase):
             for question_number in range(1, 6):
                 question = getattr(document, f"question_{question_number}")
                 if str(question).strip() != "":
-                    question_embedding = get_embedding_with_model(
+                    question_embedding = get_embedding_by_model(
                         question,
                         model_name=document.embedding_model_name,
                         instruction=f"Represent the question for retrieval: ",
@@ -391,16 +391,16 @@ class Documents(VectorDatabase):
     def set_document_text_summary(
         self, document_id: int, document_text_summary: str, collection_id: int
     ):
-        collection_type = self.get_collection(
+        embedding_name = self.get_collection(
             collection_id=collection_id
-        ).collection_type
+        ).embedding_name
 
         with self.session_context(self.Session()) as session:
             document_text_summary_embedding = None
             if document_text_summary.strip() != "":
-                document_text_summary_embedding = get_embedding(
+                document_text_summary_embedding = get_embedding_by_name(
                     document_text_summary,
-                    collection_type=collection_type,
+                    embedding_name=embedding_name,
                     instruction="Represent the summary for retrieval: ",
                 )
 
@@ -425,9 +425,9 @@ class Documents(VectorDatabase):
     ) -> List[DocumentModel]:
         # # TODO: Handle searching metadata... e.g. metadata_search_query: Union[str,None] = None
 
-        collection_type = self.get_collection(
+        embedding_name = self.get_collection(
             collection_id=collection_id
-        ).collection_type
+        ).embedding_name
 
         with self.session_context(self.Session()) as session:
             # Before searching, pre-filter the query to only include conversations that match the single inputs
@@ -477,9 +477,9 @@ class Documents(VectorDatabase):
                 ]
 
             elif search_type == SearchType.Similarity:
-                query_embedding = get_embedding(
+                query_embedding = get_embedding_by_name(
                     text=search_query,
-                    collection_type=collection_type,
+                    embedding_name=embedding_name,
                     instruction="Represent the query for retrieval: ",
                 )
 

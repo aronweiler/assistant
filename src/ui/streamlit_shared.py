@@ -30,7 +30,7 @@ from src.db.models.conversations import Conversations
 from src.db.models.conversation_messages import ConversationMessages
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
 from src.ai.callbacks.streaming_only_callback import (
-    StreamlitStreamingOnlyCallbackHandler
+    StreamlitStreamingOnlyCallbackHandler,
 )
 
 from src.utilities.hash_utilities import calculate_sha256
@@ -283,7 +283,7 @@ def ensure_user(user_email):
 
         if name and location:  # Check if both name and location inputs are not empty
             # Display a confirmation button for the user to create their account
-            if st.button("Create User"):
+            if st.button("Create User", type="primary"):
                 user = users_helper.create_user(
                     email=user_email, name=name, location=location, age=999
                 )
@@ -358,37 +358,38 @@ def get_selected_code_repo_id():
     return selected_code_repo_id
 
 
-def get_selected_collection_type():
+def get_selected_embedding_name():
     collection_id = get_selected_collection_id()
 
     if collection_id == -1:
-        return "None"
+        return None
 
     collection = Documents().get_collection(collection_id)
 
     if not collection:
-        return "None"
+        return None
 
-    return collection.collection_type
+    return collection.embedding_name
 
 
 def get_selected_collection_embedding_model_name():
-    collection_type = get_selected_collection_type()
+    embedding_name = get_selected_embedding_name()
 
-    if collection_type.lower().startswith("remote"):
-        key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
-            "remote"
-        ]
-    else:
-        key = get_app_configuration()["jarvis_ai"]["embedding_models"]["default"][
-            "local"
-        ]
+    if not embedding_name:
+        return None
+
+    key = get_app_configuration()["jarvis_ai"]["embedding_models"]["available"][
+        embedding_name
+    ]
 
     return key
 
 
 def get_selected_collection_configuration():
     key = get_selected_collection_embedding_model_name()
+
+    if not key:
+        return None
 
     return get_app_configuration()["jarvis_ai"]["embedding_models"][key]
 
@@ -499,7 +500,11 @@ def select_documents(tab, ai=None):
                 value=st.session_state.ingestion_settings.split_documents,
             )
 
-            max_chunk_size = get_selected_collection_configuration()["max_token_length"]
+            collection_config = get_selected_collection_configuration()
+            if collection_config:
+                max_chunk_size = collection_config["max_token_length"]
+            else:
+                max_chunk_size = 500
 
             col1, col2 = st.columns(2)
             col1.number_input(
@@ -526,7 +531,7 @@ def select_documents(tab, ai=None):
             )
 
             st.markdown(
-                f"*Embedding model: **{get_selected_collection_type()}**, max chunk size: **{max_chunk_size}***"
+                f"*Embedding model: **{get_selected_embedding_name()}**, max chunk size: **{max_chunk_size}***"
             )
 
         with tab.form(key="upload_files_form", clear_on_submit=True):
@@ -1115,81 +1120,85 @@ def refresh_messages_session_state(ai_instance):
     st.session_state["messages"] = []
 
     for message in entire_chat_history:
-        if message.type == "human":
-            st.session_state["messages"].append(
-                {
-                    "role": "user",
-                    "content": message.content,
-                    "avatar": "🗣️",
-                    "id": message.additional_kwargs["id"],
-                    "in_memory": message in messages_in_memory,
-                }
-            )
-        else:
-            st.session_state["messages"].append(
-                {
-                    "role": "assistant",
-                    "content": message.content,
-                    "avatar": "🤖",
-                    "id": message.additional_kwargs["id"],
-                    "in_memory": message in messages_in_memory,
-                }
-            )
+        if "messages" in st.session_state:  # Why streamlit, why???
+            if message.type == "human":
+                st.session_state["messages"].append(
+                    {
+                        "role": "user",
+                        "content": message.content,
+                        "avatar": "🗣️",
+                        "id": message.additional_kwargs["id"],
+                        "in_memory": message in messages_in_memory,
+                    }
+                )
+            else:
+                st.session_state["messages"].append(
+                    {
+                        "role": "assistant",
+                        "content": message.content,
+                        "avatar": "🤖",
+                        "id": message.additional_kwargs["id"],
+                        "in_memory": message in messages_in_memory,
+                    }
+                )
 
 
 def show_old_messages(ai_instance):
     refresh_messages_session_state(ai_instance)
 
-    for message in st.session_state["messages"]:
-        with st.chat_message(message["role"], avatar=message["avatar"]):
-            # TODO: Put better (faster) deleting of conversation items in place.. maybe checkboxes?
+    if "messages" in st.session_state:
+        for message in st.session_state["messages"]:
+            with st.chat_message(message["role"], avatar=message["avatar"]):
+                # TODO: Put better (faster) deleting of conversation items in place.. maybe checkboxes?
 
-            if message["in_memory"]:
-                in_memory = "*🐘 :green[Message in chat memory]*"
-            else:
-                in_memory = "*🙊 :red[Message not in chat memory]*"
+                if message["in_memory"]:
+                    in_memory = "*🐘 :green[Message in chat memory]*"
+                else:
+                    in_memory = "*🙊 :red[Message not in chat memory]*"
 
-            col1, col2, col3 = st.container().columns([0.10, 0.01, 0.01])
+                col1, col2, col3 = st.container().columns([0.10, 0.01, 0.01])
 
-            col1.markdown(in_memory)
+                col1.markdown(in_memory)
 
-            st.markdown(message["content"])
+                st.markdown(message["content"])
 
-            if (
-                f"confirm_conversation_item_delete_{message['id']}"
-                not in st.session_state
-            ):
-                st.session_state[
+                if (
                     f"confirm_conversation_item_delete_{message['id']}"
-                ] = False
+                    not in st.session_state
+                ):
+                    st.session_state[
+                        f"confirm_conversation_item_delete_{message['id']}"
+                    ] = False
 
-            if (
-                st.session_state[f"confirm_conversation_item_delete_{message['id']}"]
-                == False
-            ):
-                col3.button(
-                    "🗑️",
-                    help="Delete this conversation entry",
-                    on_click=set_confirm_conversation_item_delete,
-                    kwargs={"val": True, "id": message["id"]},
-                    key=str(uuid.uuid4()),
-                )
-            else:
-                col2.button(
-                    "✅",
-                    help="Click to confirm delete",
-                    key=str(uuid.uuid4()),
-                    on_click=delete_conversation_item,
-                    kwargs={"id": message["id"]},
-                )
+                if (
+                    st.session_state[
+                        f"confirm_conversation_item_delete_{message['id']}"
+                    ]
+                    == False
+                ):
+                    col3.button(
+                        "🗑️",
+                        help="Delete this conversation entry",
+                        on_click=set_confirm_conversation_item_delete,
+                        kwargs={"val": True, "id": message["id"]},
+                        key=str(uuid.uuid4()),
+                    )
+                else:
+                    col2.button(
+                        "✅",
+                        help="Click to confirm delete",
+                        key=str(uuid.uuid4()),
+                        on_click=delete_conversation_item,
+                        kwargs={"id": message["id"]},
+                    )
 
-                col3.button(
-                    "❌",
-                    help="Click to cancel delete",
-                    on_click=set_confirm_conversation_item_delete,
-                    kwargs={"val": False, "id": message["id"]},
-                    key=str(uuid.uuid4()),
-                )
+                    col3.button(
+                        "❌",
+                        help="Click to cancel delete",
+                        on_click=set_confirm_conversation_item_delete,
+                        kwargs={"val": False, "id": message["id"]},
+                        key=str(uuid.uuid4()),
+                    )
 
 
 def handle_chat(main_window_container, ai_instance, configuration):
@@ -1247,7 +1256,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
             on_change=set_ai_mode,
         )
 
-        if st.session_state["ai_mode"] == "Auto":
+        if st.session_state.get("ai_mode", "auto").lower().startswith("auto"):
             col3.markdown(
                 f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Answer:</b></div>',
                 unsafe_allow_html=True,
@@ -1303,7 +1312,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 step=0.1,
                 help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
                 on_change=set_frequency_penalty,
-                disabled=st.session_state["ai_mode"] != "Conversation Only",
+                disabled=not st.session_state.get("ai_mode", "auto").lower().startswith("conversation"),
             )
 
             col5.markdown(
@@ -1323,7 +1332,7 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 step=0.1,
                 help="The higher the penalty, the more variety of words will be introduced in the completion.",
                 on_change=set_presence_penalty,
-                disabled=st.session_state["ai_mode"] != "Conversation Only",
+                disabled=not st.session_state.get("ai_mode", "auto").lower().startswith("conversation"),
             )
 
     if prompt:
@@ -1465,7 +1474,7 @@ def set_presence_penalty():
 
 def set_ai_mode():
     ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
-    ai.conversation_manager.set_user_setting("ai_mode", st.session_state["ai_mode"])
+    ai.conversation_manager.set_user_setting("ai_mode", st.session_state.get("ai_mode", "auto"))
 
 
 def update_conversation_name():

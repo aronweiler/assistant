@@ -127,6 +127,7 @@ class RetrievalAugmentedGenerationAI:
         query: str,
         collection_id: int = None,
         kwargs: dict = {},
+        ai_mode: str = None,
     ):
         # Set the document collection id on the conversation manager
         self.conversation_manager.collection_id = collection_id
@@ -138,10 +139,11 @@ class RetrievalAugmentedGenerationAI:
         logging.debug("Checking to see if summary exists for this chat")
         self.check_summary(query=query)
 
-        # Get the AI mode setting
-        ai_mode = self.conversation_manager.get_user_setting(
-            setting_name="ai_mode", default_value="auto"
-        ).setting_value
+        if not ai_mode:
+            # Get the AI mode setting
+            ai_mode = self.conversation_manager.get_user_setting(
+                setting_name="ai_mode", default_value="auto"
+            ).setting_value
 
         if ai_mode.lower().startswith("conversation"):
             logging.debug("Running chain in 'Conversation Only' mode")

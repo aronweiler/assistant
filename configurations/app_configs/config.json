@@ -1,16 +1,28 @@
 {
     "jarvis_ai": {
         "embedding_models": {
-            "default": {
-                "local": "hkunlp/instructor-xl",
-                "remote": "text-embedding-ada-002"
+            "available": {
+                "OpenAI: text-embedding-ada-002": "text-embedding-ada-002",
+                "OpenAI: text-embedding-3-small": "text-embedding-3-small",
+                "OpenAI: text-embedding-3-large": "text-embedding-3-large",
+                "Local: instructor-xl": "hkunlp/instructor-xl"
             },
             "hkunlp/instructor-xl": {
                 "path": "H:\\LLM\\embeddings\\instructor-xl",
-                "max_token_length": 512
+                "max_token_length": 512,
+                "dimensions": 768
             },
             "text-embedding-ada-002": {
-                "max_token_length": 8191
+                "max_token_length": 8191,
+                "dimensions": 1536
+            },
+            "text-embedding-3-small": {
+                "max_token_length": 8191,
+                "dimensions": 1536
+            },
+            "text-embedding-3-large": {
+                "max_token_length": 8191,
+                "dimensions": 3072
             }
         },
         "show_llm_thoughts": true,

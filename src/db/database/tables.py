@@ -54,21 +54,6 @@ class User(ModelBase):
     files = relationship("File", back_populates="user")
     documents = relationship("Document", back_populates="user")
 
-    # TODO: Pull this back in when we refactor Jarvis to use this table
-    # user_settings = relationship("UserSetting", back_populates="user")
-
-    def get_setting(self, setting_name, default):
-        for setting in self.user_settings:
-            if setting.setting_name == setting_name:
-                return setting.setting_value
-
-        return default
-
-    def set_setting(self, setting_name, value):
-        for setting in self.user_settings:
-            if setting.setting_name == setting_name:
-                setting.setting_value = value
-
 
 # TODO: Refactor Jarvis so that all of the settings are contained within this table.
 # Need to do this before it can become multi-user
@@ -314,7 +299,7 @@ class DocumentCollection(ModelBase):
     id = Column(Integer, primary_key=True)
     collection_name = Column(String, nullable=False, unique=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
-    collection_type = Column(String, nullable=False)
+    embedding_name = Column(String, nullable=False)
 
     documents = relationship("Document", back_populates="collection")
 
@@ -378,6 +363,21 @@ class CodeFile(ModelBase):
     )
 
 
+class CodeFileDependencies(Base):
+    __tablename__ = "code_file_dependencies"
+    id = Column(Integer, primary_key=True)
+    code_file_id = Column(Integer, ForeignKey("code_files.id"))
+    dependency_name = Column(String, nullable=False)
+
+    # Establish a relationship with the CodeFile table
+    code_file = relationship("CodeFile", back_populates="dependencies")
+
+
+CodeFile.dependencies = relationship(
+    "CodeFileDependencies", order_by=CodeFileDependencies.id, back_populates="code_file"
+)
+
+
 # CodeKeyword model represents a keyword associated with a code file.
 class CodeKeyword(ModelBase):
     __tablename__ = "code_keywords"
@@ -422,7 +422,7 @@ class ToolCallResults(ModelBase):
     tool_arguments = Column(String, nullable=True)
     tool_results = Column(String, nullable=True)
     include_in_conversation = Column(Boolean, nullable=False, default=False)
-    record_created = Column(DateTime, nullable=False, default=datetime.now)    
+    record_created = Column(DateTime, nullable=False, default=datetime.now)
 
     # Define the relationship with Conversation
     conversation = relationship("Conversation", back_populates="tool_call_results")
@@ -434,22 +434,32 @@ Conversation.tool_call_results = relationship(
 
 
 class SupportedSourceControlProvider(ModelBase):
-    __tablename__ = 'supported_source_control_providers'
+    __tablename__ = "supported_source_control_providers"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
+
 class SourceControlProvider(ModelBase):
-    __tablename__ = 'source_control_providers'
+    __tablename__ = "source_control_providers"
 
     id = Column(Integer, primary_key=True)
-    supported_source_control_provider_id = Column(Integer, ForeignKey('supported_source_control_providers.id'), nullable=False)
+    supported_source_control_provider_id = Column(
+        Integer, ForeignKey("supported_source_control_providers.id"), nullable=False
+    )
     source_control_provider_name = Column(String, nullable=False, unique=True)
     source_control_provider_url = Column(String, nullable=False)
     requires_authentication = Column(Boolean, nullable=False)
     source_control_access_token = Column(String, nullable=True)
     last_modified = Column(DateTime, nullable=False, default=datetime.now)
 
-    supported_source_control_provider = relationship('SupportedSourceControlProvider', back_populates='source_control_providers')
+    supported_source_control_provider = relationship(
+        "SupportedSourceControlProvider", back_populates="source_control_providers"
+    )
 
-SupportedSourceControlProvider.source_control_providers = relationship('SourceControlProvider', order_by=SourceControlProvider.id, back_populates='supported_source_control_provider')
+
+SupportedSourceControlProvider.source_control_providers = relationship(
+    "SourceControlProvider",
+    order_by=SourceControlProvider.id,
+    back_populates="supported_source_control_provider",
+)

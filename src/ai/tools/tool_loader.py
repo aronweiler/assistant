@@ -46,6 +46,9 @@ def get_available_tools(configuration, conversation_manager):
     load_tool_modules()
     generic_tools = []
     for module_name, tool_info in registered_tools.items():
+        if "example_tool" in module_name:
+            continue
+        
         dependencies = {
             "configuration": configuration,
             "conversation_manager": conversation_manager,

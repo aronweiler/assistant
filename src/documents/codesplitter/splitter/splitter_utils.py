@@ -3,8 +3,8 @@ import logging
 import os
 
 from src.documents.codesplitter.splitter.splitter_base import SplitterBase
-from src.documents.codesplitter.splitter.cpp_splitter.cpp_splitter import CppSplitter
-from src.documents.codesplitter.splitter.python_splitter.python_splitter import PythonSplitter
+from src.documents.codesplitter.splitter.cpp.cpp_splitter import CppSplitter
+from src.documents.codesplitter.splitter.python.python_splitter import PythonSplitter
 
 logger = logging.getLogger(__name__)
 

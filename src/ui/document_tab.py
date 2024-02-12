@@ -4,6 +4,7 @@ from streamlit.delta_generator import DeltaGenerator
 from src.db.models.conversations import Conversations
 from src.db.models.documents import Documents
 import src.ui.streamlit_shared as streamlit_shared
+from src.utilities.configuration_utilities import get_app_configuration
 
 
 def create_documents_collection_tab(ai, tab: DeltaGenerator):
@@ -54,11 +55,14 @@ def create_documents_collection_tab(ai, tab: DeltaGenerator):
                     "New collection name",
                     key="new_collection_name",
                 )
+                
+                # get the list of embedding models
+                embedding_models = get_app_configuration()["jarvis_ai"]["embedding_models"]["available"]
 
                 st.selectbox(
                     "New collection embedding type",
-                    options=["Remote (OpenAI)", "Local (HF)"],
-                    key="new_collection_type",
+                    options=[e for e in embedding_models],
+                    key="new_embedding_name",
                 )
 
                 st.form_submit_button(
@@ -93,7 +97,7 @@ def get_available_collections():
 
     # Create a dictionary of collection id to collection name
     collections_list = [
-        f"{collection.id}:{collection.collection_name} - {collection.collection_type}"
+        f"{collection.id}:{collection.collection_name} - {collection.embedding_name}"
         for collection in collections
     ]
 
@@ -104,10 +108,10 @@ def get_available_collections():
 
 def create_collection():
     if st.session_state["new_collection_name"]:
-        collection_type = st.session_state.get("new_collection_type", "Local (HF)")
+        embedding_name = st.session_state.get("new_embedding_name", "Local (HF)")
 
         collection = Documents().create_collection(
-            st.session_state["new_collection_name"], collection_type
+            st.session_state["new_collection_name"], embedding_name
         )
 
         logging.info(

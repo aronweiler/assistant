@@ -22,6 +22,7 @@ from src.db.models.domain.code_file_model import CodeFileModel
 
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.utilities.llm_helper import get_tool_llm
+from src.db.models.user_settings import UserSettings
 
 
 @tool_class
@@ -238,7 +239,7 @@ class CodeRepositoryTool:
                 input_object = GetRelevantSnippetsInput(
                     file_id=file_info["file_id"],
                     file_name=file_info["file_name"],
-                    code=code_file["file_content"],
+                    code=code_file.code_file_content,
                     code_description=description,
                 )
 
@@ -284,6 +285,12 @@ class CodeRepositoryTool:
     ):
         """Searches the loaded repository for the given query and returns file IDs, names, and summaries."""
         try:
+            embedding_name = UserSettings().get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name="repository_embedding_name",
+                default_value="OpenAI: text-embedding-3-small",
+            ).setting_value
+
             # Perform the search using the existing _search_repository_documents method
             code_file_model_search_results: List[CodeFileModel] = (
                 self.conversation_manager.code_helper.search_code_files(
@@ -291,6 +298,7 @@ class CodeRepositoryTool:
                     similarity_query=semantic_similarity_query,
                     keywords=keywords_list,
                     top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
+                    embedding_name=embedding_name,
                 )
             )
 
@@ -434,6 +442,12 @@ class CodeRepositoryTool:
         user_query: str,
         exclude_file_names: List[str] = [],
     ):
+        embedding_name = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name="repository_embedding_name",
+            default_value="OpenAI: text-embedding-3-small",
+        ).setting_value
+
         code_file_model_search_results: List[CodeFileModel] = (
             self.conversation_manager.code_helper.search_code_files(
                 repository_id=repository_id,
@@ -441,6 +455,7 @@ class CodeRepositoryTool:
                 keywords=keywords_list,
                 top_k=self.conversation_manager.tool_kwargs.get("search_top_k", 5),
                 exclude_file_names=exclude_file_names,
+                embedding_name=embedding_name,
             )
         )
 
