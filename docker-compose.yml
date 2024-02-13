@@ -23,6 +23,16 @@ services:
     volumes:
       - ./tmp/assistant-ui-config/:/config/
 
+  rabbitmq:
+    image: 'rabbitmq:3-management'
+    container_name: rabbitmq
+    restart: always     
+    env_file:
+      - .env 
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+
   discord-bot:
     image: aronweiler/assistant:latest
     container_name: discord-bot
