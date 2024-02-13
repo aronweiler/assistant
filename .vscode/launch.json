@@ -88,28 +88,7 @@
       "program": "src/ai/voice_ai.py",      
       "console": "integratedTerminal",
       "justMyCode": true
-    },
-    {
-      "name": "Run Llama 2 Assistant Console",
-      "type": "python",
-      "request": "launch",
-      "program": "src/run.py",
-      "args": [
-        "--config=configurations/console_configs/llama2_config.json",
-        "--logging_level=DEBUG"
-      ],
-      "console": "integratedTerminal",
-      "justMyCode": false
-    },
-    {
-      "name": "Documentation Runner",
-      "type": "python",
-      "request": "launch",
-      "program": "src/runners/documentation/documentation_runner.py",
-      "args": ["/repos/assistant/src/tools/documents", ".py"],
-      "console": "integratedTerminal",
-      "justMyCode": true
-    },
+    },    
     {
       "name": "Run Gitlab Issue Creator",
       "type": "python",
