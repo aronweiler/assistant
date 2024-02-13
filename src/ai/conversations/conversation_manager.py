@@ -218,7 +218,7 @@ class ConversationManager:
                 default_value=False,
                 default_available_for_llm=True,
             )
-        )
+        ).setting_value
 
         previous_tool_calls: List[ToolCallResultsModel] = (
             self.conversations_helper.get_tool_call_results(self.conversation_id)
@@ -248,7 +248,7 @@ class ConversationManager:
             selected_repo_prompt = self.prompt_manager.get_prompt_by_template_name(
                 "SELECTED_REPO_TEMPLATE",
             ).format(
-                selected_repository=f"ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
+                selected_repository=f"Repository ID: {selected_repo.id} - {selected_repo.code_repository_address} ({selected_repo.branch_name})"
             )
         else:
             selected_repo_prompt = ""
