@@ -86,12 +86,12 @@ class CodeRetrieverTool:
     @register_tool(
         display_name="Retrieve Source Code",
         requires_documents=False,
-        description="Gets source code from a specified URL or a list of repository file IDs.",
-        additional_instructions="Use this tool to get source code from a URL, or a file in the currently loaded repository. Make sure to understand and pass the correct argument (`url`, or `repository_file_ids`) based on the user's request.  If the user specifies a URL, do not use the loaded repository, instead pass the URL in here.",
+        description="This tool gets the content of source code files, either from a specified URL, or a list of Code File IDs.",
+        additional_instructions="Make sure to understand and pass the correct arguments based on the user's request.  If the user specifies a URL, do not use the loaded repository's file IDs, instead pass the URL in here. If you are attempting to retrieve source code from a repository, ensure that you have the proper Code File IDs for the target files before calling this tool by using the File ID Search tool first!",
         category="Code",
     )
     def retrieve_source_code(
-        self, url: str = "", repository_file_ids: List[int] = None
+        self, url: str = "", code_file_ids: List[int] = None
     ) -> Union[str, List[str]]:
         if url:
             # Assuming get_retriever_instance and its dependencies are accessible
@@ -100,9 +100,9 @@ class CodeRetrieverTool:
                 return retriever_instance.retrieve_data(url=url)
             except Exception as e:
                 return f"Error retrieving source code from URL. Exception: {e}"
-        elif repository_file_ids:
+        elif code_file_ids:
             code_files = []
-            for file_id in repository_file_ids:
+            for file_id in code_file_ids:
                 code_file = self.conversation_manager.code_helper.get_code_file_by_id(
                     file_id
                 )

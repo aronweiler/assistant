@@ -52,24 +52,24 @@ class CodeRepositoryTool:
         return code_file.code_file_summary
 
     @register_tool(
-        display_name="File Name Search",
+        display_name="Search for File ID",
         requires_repository=True,
-        description="Search for files by providing a partial or full file name.",
-        additional_instructions="Input a partial or complete file name to receive a list of matching files from the repository.",
+        description="Search for a file's unique identifier by providing a partial or full file name.  This tool returns a list of matching file names, and their associated unique IDs.",
+        additional_instructions="Input a partial or complete file name (file_name) to receive a list of matching file IDs from the repository.",
         category="Code Repositories",
     )
-    def file_name_search(self, partial_file_name: str):
+    def search_for_file_id(self, file_name: str):
         """Looks up a file in the repository by partial file name."""
         code_files = (
             self.conversation_manager.code_helper.get_code_files_by_partial_name(
                 repository_id=self.conversation_manager.get_selected_repository().id,
-                partial_file_name=partial_file_name,
+                partial_file_name=file_name,
             )
         )
 
         results = ""
         for code_file in code_files:
-            results += f"\n- {code_file.code_file_name} (ID: {code_file.id})"
+            results += f"\n- {code_file.code_file_name} (Code File ID: {code_file.id})"
 
         return results
 
@@ -139,12 +139,12 @@ class CodeRepositoryTool:
     @register_tool(
         display_name="Retrieve Code Files by Folder",
         description="Retrieves all code files from the database that reside in a specified folder.",
-        additional_instructions=None,
+        additional_instructions="Get all code files from a specified folder.  The folder path should be provided as a string, and should be formatted as a relative path from the root of the repository.  If the folder path is empty, all code files in the repository will be returned.",
         requires_repository=True,
         category="Code Repositories",
     )
     def get_code_files_by_folder(
-        self, repository_id: int, folder_path: str, include_summary: bool
+        self, repository_id: int, folder_path: str = "", include_summary: bool = False
     ) -> List[CodeFileModel]:
         """Retrieves all code files from the database that reside in a specified folder."""
         try:
