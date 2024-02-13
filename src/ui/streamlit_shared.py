@@ -702,26 +702,7 @@ def ingest_files(
                             len(matching_documents) == existing_file.document_count
                             or existing_file.document_count == 0
                         ):
-                            files.append(existing_file)
-
-                            # # Save the split documents
-                            # save_split_documents(
-                            #     active_collection_id,
-                            #     status,
-                            #     create_chunk_questions,
-                            #     summarize_chunks,
-                            #     summarize_document,
-                            #     ai,
-                            #     documents_helper,
-                            #     ingest_progress_bar,
-                            #     root_temp_dir,
-                            #     files,
-                            #     documents,
-                            # )
-
-                            # # Done!
-                            # st.balloons()
-                            # return
+                            files.append(existing_file)                            
                         else:
                             st.error(
                                 f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
