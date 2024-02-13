@@ -24,6 +24,8 @@ Key Points to Remember:
 - Use only the tools provided. Do not use placeholders for tools that do not exist.
 - Resolve all co-references to make each step executable independently.
 - Confirm the syntax of the JSON structure before finalizing your response.
+
+Now... take a deep breath and relax! I have complete confidence in your abilities.
 {rephrase_answer_instructions_prompt}"""
 
 REPHRASE_ANSWER_INSTRUCTIONS_TEMPLATE = """
@@ -108,4 +110,6 @@ Make sure you look at attributes such as:
 - Correctness - Was the previous AI's response as correct as it could be?
 - Clarity - Was the previous AI's response clear and easy to understand?
 - Relevance - Was the previous AI's response relevant to the user's query?
-- Use of available tools - Did the previous AI use the available tools effectively?"""
+- Use of available tools - Did the previous AI use the available tools effectively?
+
+Now... take a deep breath and relax! I have complete confidence in your abilities."""

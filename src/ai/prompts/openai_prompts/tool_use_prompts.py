@@ -31,7 +31,9 @@ Here's the user's query for context:
 {user_query}
 --- USER QUERY ---
 
-Please take your time to consider all the information before constructing your response."""
+Please take your time to consider all the information before constructing your response.
+
+Now... take a deep breath and relax! I have complete confidence in your abilities."""
 
 TOOL_USE_RETRY_TEMPLATE = """{system_prompt}
 {loaded_documents_prompt}
@@ -90,4 +92,5 @@ IMPORTANT! When using the results from previous tool calls, make sure to CAREFUL
 --- PREVIOUS TOOL CALLS ---
 {previous_tool_calls}
 --- PREVIOUS TOOL CALLS ---
-"""
+
+Now... take a deep breath and relax! I have complete confidence in your abilities."""
