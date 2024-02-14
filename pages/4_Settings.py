@@ -1,24 +1,18 @@
 import logging
 import sys
-import threading
 import streamlit as st
 import os
 from google_auth_oauthlib.flow import InstalledAppFlow
 import json
 from src.ai.tools.tool_loader import get_available_tools
 
-from src.configuration.assistant_configuration import (
-    ApplicationConfigurationLoader,
-)
+from src.configuration.model_configuration import ModelConfiguration
 from src.db.models.code import Code
 from src.db.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
 )
 from src.db.models.user_settings import UserSettings
 
-from src.utilities.configuration_utilities import (
-    get_app_config_path,
-)
 
 from src.ai.conversations.conversation_manager import ConversationManager
 from src.ai.tools.tool_manager import ToolManager
@@ -63,22 +57,26 @@ def settings_page(user_email):
     )
     st.divider()
 
+    conversation_manager = ConversationManager(
+        conversation_id=None, user_email=user_email, prompt_manager=None
+    )
+
     # Now use an if-else block or match-case to render content based on selected tab
     if selected_tab == "General Settings":
         general_settings()
     elif selected_tab == "Jarvis AI":
-        jarvis_ai_settings()
+        jarvis_ai_settings(conversation_manager=conversation_manager)
     elif selected_tab == "Source Control":
         source_control_provider_form()
     elif selected_tab == "Tools":
-        tools_settings(user_email)
+        tools_settings(conversation_manager=conversation_manager)
     elif selected_tab == "Jama":
-        jama_settings()
+        jama_settings(conversation_manager=conversation_manager)
     # elif selected_tab == "Google Auth":
     #     google_auth_settings()
 
 
-def jama_settings():
+def jama_settings(conversation_manager: ConversationManager):
     st.subheader("Jama Configuration")
 
     if "rag_ai" not in st.session_state:
@@ -88,7 +86,7 @@ def jama_settings():
         return
 
     user_settings_helper = UserSettings()
-    user_id = st.session_state["rag_ai"].conversation_manager.user_id
+    user_id = conversation_manager.user_id
 
     jama_api_url = st.text_input(
         "Jama API URL",
@@ -110,7 +108,12 @@ def jama_settings():
     )
 
     if st.button("Save Jama Settings"):
-        save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret)
+        save_jama_settings_to_file(
+            jama_api_url,
+            jama_client_id,
+            jama_client_secret,
+            conversation_manager=conversation_manager,
+        )
 
 
 def google_auth_settings():
@@ -156,7 +159,7 @@ def save_credentials(credentials):
         json.dump(token_data, f)
 
 
-def jarvis_ai_settings():
+def jarvis_ai_settings(conversation_manager: ConversationManager):
     st.markdown(
         "This section allows you to configure the main Jarvis AI.  These settings will apply to the top-level model used for all interactions."
     )
@@ -168,11 +171,33 @@ def jarvis_ai_settings():
     # Flag to indicate if we need to save the settings
     needs_saving = False
 
-    jarvis_config = ui_shared.get_app_configuration()["jarvis_ai"]
+    jarvis_setting = json.loads(
+        UserSettings()
+        .get_user_setting(
+            conversation_manager.user_id,
+            "jarvis_ai_model_configuration",
+            default_value=ModelConfiguration.default().model_dump_json(),
+        )
+        .setting_value
+    )
+
+    jarvis_ai_model_configuration = ModelConfiguration(**jarvis_setting)
+
+    ingestion_setting = json.loads(
+        UserSettings()
+        .get_user_setting(
+            conversation_manager.user_id,
+            "file_ingestion_model_configuration",
+            default_value=ModelConfiguration.default().model_dump_json(),
+        )
+        .setting_value
+    )
+
+    file_ingestion_model_configuration = ModelConfiguration(**ingestion_setting)
 
     st.markdown("### General")
 
-    needs_saving = show_thoughts(jarvis_config, needs_saving)
+    show_thoughts(conversation_manager=conversation_manager)
 
     st.divider()
 
@@ -180,58 +205,84 @@ def jarvis_ai_settings():
 
     generate_model_settings(
         tool_name="jarvis",
-        tool_configuration=jarvis_config,
+        model_configuration=jarvis_ai_model_configuration,
         available_models=ui_shared.get_available_models(),
+        conversation_manager=conversation_manager,
     )
 
-    model_configuration, needs_saving = model_needs_saving(
+    needs_saving = model_configuration_needs_saving(
         tool_name="jarvis",
-        existing_tool_configuration=jarvis_config,
+        existing_model_configuration=jarvis_ai_model_configuration,
         needs_saving=needs_saving,
     )
 
     st.markdown("### File Ingestion Settings")
 
     generate_model_settings(
-        tool_name="jarvis-file-ingestion",
-        tool_configuration=jarvis_config["file_ingestion_configuration"],
+        tool_name="jarvis_file_ingestion",
+        model_configuration=file_ingestion_model_configuration,
         available_models=ui_shared.get_available_models(),
+        conversation_manager=conversation_manager,
     )
 
-    file_ingestion_model_configuration, needs_saving = model_needs_saving(
-        tool_name="jarvis-file-ingestion",
-        existing_tool_configuration=jarvis_config["file_ingestion_configuration"],
+    needs_saving = model_configuration_needs_saving(
+        tool_name="jarvis_file_ingestion",
+        existing_model_configuration=file_ingestion_model_configuration,
         needs_saving=needs_saving,
     )
 
     if needs_saving:
         st.toast(f"Saving Jarvis AI settings...")
         save_jarvis_settings_to_file(
-            show_llm_thoughts=st.session_state["show_llm_thoughts"],
-            model_configuration=model_configuration,
+            jarvis_ai_model_configuration=jarvis_ai_model_configuration,
             file_ingestion_model_configuration=file_ingestion_model_configuration,
+            conversation_manager=conversation_manager,
         )
 
 
-def show_thoughts(jarvis_config, needs_saving):
+def show_thoughts(conversation_manager: ConversationManager):
+
+    # Get the show thoughts setting
+    existing_show_thoughts = bool(
+        UserSettings()
+        .get_user_setting(
+            conversation_manager.user_id, "show_llm_thoughts", default_value=False
+        )
+        .setting_value
+    )
+
     st.toggle(
         label="Show LLM Thoughts",
-        value=jarvis_config.get("show_llm_thoughts", False),
+        value=existing_show_thoughts,
         key="show_llm_thoughts",
+        on_change=save_additional_setting,
+        kwargs={
+            "setting_name": "show_llm_thoughts",
+            "session_state_key": "show_llm_thoughts",
+            "conversation_manager": conversation_manager,
+        },
     )
     st.markdown(
         "When enabled, Jarvis will show the LLM's thoughts as it is generating a response."
     )
 
-    if st.session_state["show_llm_thoughts"] != jarvis_config.get(
-        "show_llm_thoughts", False
-    ):
-        needs_saving = True
 
-    return needs_saving
+def save_show_thoughts(conversation_manager: ConversationManager):
+    # Get the value of the slider from the session
+    UserSettings().add_update_user_setting(
+        user_id=conversation_manager.user_id,
+        setting_name="show_llm_thoughts",
+        setting_value=st.session_state["show_llm_thoughts"],
+        available_for_llm=True,
+    )
 
 
-def generate_model_settings(tool_name, tool_configuration, available_models):
+def generate_model_settings(
+    tool_name,
+    model_configuration: ModelConfiguration,
+    available_models,
+    conversation_manager: ConversationManager,
+):
     available_model_names = [
         {available_models[m]["model_configuration"]["model"]: m}
         for m in available_models.keys()
@@ -247,63 +298,87 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
                 i
                 for i, item in enumerate(available_models.keys())
                 if available_models[item]["model_configuration"]["model"]
-                == tool_configuration["model_configuration"]["model"]
+                == model_configuration.model
             ),
             None,
         ),
-        key=f"{tool_name}-model",
+        key=f"{tool_name}_model",
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
 
     col2.slider(
         label="Temperature",
-        key=f"{tool_name}-temperature",
+        key=f"{tool_name}_temperature",
         min_value=0.0,
         max_value=1.0,
         step=0.10,
-        value=float(tool_configuration["model_configuration"]["temperature"]),
+        value=float(model_configuration.temperature),
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
 
     col3.slider(
         label="Max Retries",
-        key=f"{tool_name}-max-retries",
+        key=f"{tool_name}_max_retries",
         min_value=0,
         max_value=5,
-        value=tool_configuration["model_configuration"]["max_retries"],
+        value=model_configuration.max_retries,
         step=1,
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
 
     max_supported_tokens = int(
-        available_models[list(st.session_state[f"{tool_name}-model"].values())[0]][
+        available_models[list(st.session_state[f"{tool_name}_model"].values())[0]][
             "model_configuration"
         ]["max_model_supported_tokens"]
     )
 
+    # Model settings get saved separately- no on_change event
     max_model_completion_tokens = int(
-        available_models[list(st.session_state[f"{tool_name}-model"].values())[0]][
+        available_models[list(st.session_state[f"{tool_name}_model"].values())[0]][
             "model_configuration"
         ].get("max_model_completion_tokens", max_supported_tokens)
     )
 
     st_sucks_col1, st_sucks_col2 = st.columns([4, 6])
 
+    # Model settings get saved separately- no on_change event
     st_sucks_col1.toggle(
         "Use Conversation History",
-        value=tool_configuration["model_configuration"]["uses_conversation_history"],
-        key=f"{tool_name}-uses-conversation-history",
+        value=model_configuration.uses_conversation_history,
+        key=f"{tool_name}_uses_conversation_history",
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
     st_sucks_col2.markdown("Turn this on to use conversation history for the model.")
     st_sucks_col2.markdown(
         "*Note: This will not give memory to the tools that do not use it.*"
     )
 
+    # Model settings get saved separately- no on_change event
     st_sucks_col1.number_input(
         "Model Seed Value",
-        value=(
-            tool_configuration["model_configuration"]["model_kwargs"].get("seed", 500)
-            if "model_kwargs" in tool_configuration["model_configuration"]
-            else 500
-        ),
-        key=f"{tool_name}-seed",
+        value=(model_configuration.model_kwargs.get("seed", 500)),
+        key=f"{tool_name}_seed",
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
     st_sucks_col2.markdown("Set this to a value to seed the model.  ")
     st_sucks_col2.markdown(
@@ -311,16 +386,22 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
     )
 
     response_format_options = ["text", "json_object"]
-    response_format_value = tool_configuration["model_configuration"]["model_kwargs"][
-        "response_format"
-    ].get("type", "text")
+    response_format_value = model_configuration.model_kwargs.get(
+        "response_format", {}
+    ).get("type", "text")
     response_format_index = response_format_options.index(response_format_value)
 
+    # Model settings get saved separately- no on_change event
     st_sucks_col1.selectbox(
         "Model Output Type",
         options=response_format_options,
         index=response_format_index,
-        key=f"{tool_name}-response_format",
+        key=f"{tool_name}_response_format",
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
     st_sucks_col2.markdown(
         "Using the `json_object` response format will return the model output as a JSON object, making tool use and other features more reliable."
@@ -345,12 +426,10 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
 
         return chat_history_tokens, completion_tokens
 
-    configured_completion_tokens = int(
-        tool_configuration["model_configuration"]["max_completion_tokens"]
-    )
+    configured_completion_tokens = int(model_configuration.max_completion_tokens)
 
     configured_max_conversation_history_tokens = int(
-        tool_configuration["model_configuration"]["max_conversation_history_tokens"]
+        model_configuration.max_conversation_history_tokens
     )
 
     history_tokens = st.slider(
@@ -358,8 +437,13 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         min_value=0,
         max_value=max_supported_tokens,
         value=configured_max_conversation_history_tokens,
-        key=f"{tool_name}-conversation-history-tokens",
-        disabled=st.session_state[f"{tool_name}-uses-conversation-history"] is False,
+        key=f"{tool_name}_conversation_history_tokens",
+        disabled=st.session_state[f"{tool_name}_uses_conversation_history"] is False,
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
 
     completion_tokens = st.slider(
@@ -367,7 +451,12 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         min_value=0,
         max_value=max_model_completion_tokens,
         value=min(configured_completion_tokens, max_model_completion_tokens),
-        key=f"{tool_name}-completion-tokens",
+        key=f"{tool_name}_completion_tokens",
+        on_change=save_model_setting,
+        kwargs={
+            "model_owner_name": tool_name,
+            "conversation_manager": conversation_manager,
+        },
     )
 
     history_tokens, completion_tokens = update_sliders(
@@ -393,9 +482,38 @@ def generate_model_settings(tool_name, tool_configuration, available_models):
         )
 
 
-def show_additional_settings(configuration, tool_name, tool_details):
+def save_slider(session_state_key, conversation_manager: ConversationManager):
+    # Get the value of the slider from the session
+    slider_value = st.session_state[session_state_key]
+
+    # Save the value to the database
+    UserSettings().add_update_user_setting(
+        conversation_manager.user_id,
+        setting_name=session_state_key,
+        setting_value=slider_value,
+        available_for_llm=True,
+    )
+
+
+def save_toggle(session_state_key, conversation_manager: ConversationManager):
+    # Get the value of the slider from the session
+    value = st.session_state[session_state_key]
+
+    # Save the value to the database
+    UserSettings().add_update_user_setting(
+        conversation_manager.user_id,
+        setting_name=session_state_key,
+        setting_value=value,
+        available_for_llm=True,
+    )
+
+
+def show_additional_settings(
+    configuration, tool_name, tool_details, conversation_manager: ConversationManager
+):
+
     if tool_name in configuration["tool_configurations"]:
-        # If there are additional settings, get the settings and show the widgets    
+        # If there are additional settings, get the settings and show the widgets
         if "additional_settings" in configuration["tool_configurations"][tool_name]:
             with st.expander(
                 label=f"🦿 {tool_details.display_name} Additional Settings",
@@ -407,27 +525,33 @@ def show_additional_settings(configuration, tool_name, tool_details):
 
                 for additional_setting_name in additional_settings:
                     additional_setting = additional_settings[additional_setting_name]
-                    session_state_key = f"{tool_name}-{additional_setting_name}"
+                    session_state_key = f"{tool_name}_{additional_setting_name}"
                     if additional_setting["type"] == "int":
                         int_setting(
                             tool_name,
                             additional_setting_name,
                             additional_setting,
                             session_state_key,
+                            conversation_manager=conversation_manager,
                         )
                     elif additional_setting["type"] == "bool":
                         bool_setting(
-                            tool_name,
-                            additional_setting_name,
-                            additional_setting,
-                            session_state_key,
+                            tool_name=tool_name,
+                            additional_setting_name=additional_setting_name,
+                            additional_setting=additional_setting,
+                            session_state_key=session_state_key,
+                            conversation_manager=conversation_manager,
                         )
 
                     st.markdown(additional_setting["description"])
 
 
 def bool_setting(
-    tool_name, additional_setting_name, additional_setting, session_state_key
+    tool_name,
+    additional_setting_name,
+    additional_setting,
+    session_state_key,
+    conversation_manager: ConversationManager,
 ):
     st.toggle(
         label=additional_setting["label"],
@@ -438,12 +562,17 @@ def bool_setting(
             "tool_name": tool_name,
             "setting_name": additional_setting_name,
             "session_state_key": session_state_key,
+            "conversation_manager": conversation_manager,
         },
     )
 
 
 def int_setting(
-    tool_name, additional_setting_name, additional_setting, session_state_key
+    tool_name,
+    additional_setting_name,
+    additional_setting,
+    session_state_key,
+    conversation_manager: ConversationManager,
 ):
     st.number_input(
         label=additional_setting["label"],
@@ -457,39 +586,48 @@ def int_setting(
             "tool_name": tool_name,
             "setting_name": additional_setting_name,
             "session_state_key": session_state_key,
+            "conversation_manager": conversation_manager,
         },
     )
 
 
-def show_model_settings(configuration, tool_name, tool_details):
-    if tool_name in configuration["tool_configurations"]:
-        if "model_configuration" in configuration["tool_configurations"][tool_name]:
-            available_models = ui_shared.get_available_models()
-            tool_configuration = configuration["tool_configurations"][tool_name]
+def show_model_settings(
+    tool_name, tool_details, conversation_manager: ConversationManager
+):
 
-            with st.expander(
-                label=f"⚙️ {tool_details.display_name} Model Settings",
-                expanded=False,
-            ):
-                generate_model_settings(
-                    tool_name=tool_name,
-                    tool_configuration=tool_configuration,
-                    available_models=available_models,
-                )
-
-
-def tools_settings(user_email):
-    configuration = ui_shared.get_app_configuration()
-    conversation_manager = ConversationManager(
-        conversation_id=None, user_email=user_email, prompt_manager=None
+    setting = UserSettings().get_user_setting(
+        conversation_manager.user_id,
+        f"{tool_name}_model_configuration",
+        default_value=ModelConfiguration.default().model_dump_json(),
     )
+
+    tool_model_configuration = ModelConfiguration(**json.loads(setting.setting_value))
+
+    available_models = ui_shared.get_available_models()
+
+    with st.expander(
+        label=f"⚙️ {tool_details.display_name} Model Settings",
+        expanded=False,
+    ):
+        generate_model_settings(
+            tool_name=tool_name,
+            model_configuration=tool_model_configuration,
+            available_models=available_models,
+            conversation_manager=conversation_manager,
+        )
+
+
+def tools_settings(conversation_manager: ConversationManager):
+    configuration = ui_shared.get_app_configuration()
+
     tools = get_available_tools(
         configuration=configuration, conversation_manager=conversation_manager
     )
-    
 
-    tool_categories = set([t.structured_tool.func._tool_metadata['category'] for t in tools])
-    
+    tool_categories = set(
+        [t.structured_tool.func._tool_metadata["category"] for t in tools]
+    )
+
     # reorder tools_categories alphabetically
     tool_categories = sorted(tool_categories)
 
@@ -503,7 +641,7 @@ def tools_settings(user_email):
 
     # Filter tools by the selected category
     for tool in tools:
-        if tool.structured_tool.func._tool_metadata['category'] == selected_category:
+        if tool.structured_tool.func._tool_metadata["category"] == selected_category:
             st.markdown(f"#### {tool.display_name}")
             st.markdown(tool.help_text)
             col1, col2, col3 = st.columns([3, 5, 5])
@@ -512,7 +650,13 @@ def tools_settings(user_email):
                 value=ToolManager.is_tool_enabled(
                     conversation_manager=conversation_manager, tool_name=tool.name
                 ),
-                key=tool.name,
+                key=tool.name + "_enabled",
+                on_change=save_additional_setting,
+                kwargs={
+                    "setting_name": tool.name + "_enabled",
+                    "session_state_key": tool.name + "_enabled",
+                    "conversation_manager": conversation_manager,
+                },
             )
             col2.toggle(
                 "Return results directly to UI",
@@ -520,7 +664,13 @@ def tools_settings(user_email):
                     tool_name=tool.name, conversation_manager=conversation_manager
                 ),
                 help="Occasionally it is useful to have the results returned directly to the UI instead of having the AI re-interpret them, such as when you want to see the raw output of a tool.\n\n*Note: If `return direct` is set, the AI will not perform any tasks after this one completes.*",
-                key=f"{tool.name}-return-direct",
+                key=f"{tool.name}_return_direct",
+                on_change=save_additional_setting,
+                kwargs={
+                    "setting_name": tool.name + "_return_direct",
+                    "session_state_key": f"{tool.name}_return_direct",
+                    "conversation_manager": conversation_manager,
+                },
             )
             col3.toggle(
                 "Include Results in Conversation",
@@ -528,20 +678,37 @@ def tools_settings(user_email):
                     tool_name=tool.name, conversation_manager=conversation_manager
                 ),
                 help="When enabled, the results of this tool will be included in the conversation history.\n\n*Turn this on when you want the LLM to always remember results returned for this tool.*",
-                key=f"{tool.name}-include-in-conversation",
+                key=f"{tool.name}_include_in_conversation",
+                on_change=save_additional_setting,
+                kwargs={
+                    "setting_name": tool.name + "_include_in_conversation",
+                    "session_state_key": f"{tool.name}_include_in_conversation",
+                    "conversation_manager": conversation_manager,
+                },
             )
 
-            show_model_settings(configuration, tool.name, tool)
-            show_additional_settings(configuration, tool.name, tool)
+            # If an LLM is required, show the model configuration settings
+            if tool.structured_tool.func._tool_metadata["requires_llm"]:
+                show_model_settings(
+                    tool_name=tool.name,
+                    tool_details=tool,
+                    conversation_manager=conversation_manager,
+                )
+            show_additional_settings(
+                configuration=configuration,
+                tool_name=tool.name,
+                tool_details=tool,
+                conversation_manager=conversation_manager,
+            )
 
             st.divider()
 
-    save_tool_settings(
-        tools=tools,
-        configuration=configuration,
-        selected_category=selected_category,
-        conversation_manager=conversation_manager,
-    )
+    # save_tool_settings(
+    #     tools=tools,
+    #     configuration=configuration,
+    #     selected_category=selected_category,
+    #     conversation_manager=conversation_manager,
+    # )
 
 
 def save_tool_settings(
@@ -553,11 +720,13 @@ def save_tool_settings(
         if tool.name not in st.session_state:
             continue
 
-        ToolManager.get_tool_category(tool_name=tool.name, conversation_manager=conversation_manager)
+        ToolManager.get_tool_category(
+            tool_name=tool.name, conversation_manager=conversation_manager
+        )
 
-        
-
-        if selected_category != (tool.structured_tool.func._tool_metadata['category'] or "Uncategorized"):
+        if selected_category != (
+            tool.structured_tool.func._tool_metadata["category"] or "Uncategorized"
+        ):
             continue
 
         # Only save if the settings are different
@@ -570,7 +739,7 @@ def save_tool_settings(
             needs_saving = True
 
         include_results_in_conversation_history = st.session_state[
-            f"{tool.name}-include-in-conversation"
+            f"{tool.name}_include_in_conversation"
         ]
         if (
             include_results_in_conversation_history
@@ -580,17 +749,19 @@ def save_tool_settings(
         ):
             needs_saving = True
 
-        return_direct = st.session_state[f"{tool.name}-return-direct"]
+        return_direct = st.session_state[f"{tool.name}_return_direct"]
         if return_direct != ToolManager.should_return_direct(
             conversation_manager=conversation_manager, tool_name=tool.name
         ):
             needs_saving = True
 
-        # see if there is any extra settings to save
+        # see if there are any extra settings to save
         if tool.name in configuration["tool_configurations"]:
-            existing_tool_configuration = configuration["tool_configurations"][tool.name]
+            existing_tool_configuration = configuration["tool_configurations"][
+                tool.name
+            ]
 
-            model_configuration, needs_saving = model_needs_saving(
+            needs_saving = model_configuration_needs_saving(
                 tool.name, existing_tool_configuration, needs_saving
             )
         else:
@@ -621,127 +792,119 @@ def save_tool_settings(
                 available_for_llm=False,
             )
 
-            # Save settings to file
-            save_tool_settings_to_file(
-                tool_name=tool.name,
-                model_configuration=model_configuration,
-            )
+            if model_configuration:
+                UserSettings().add_update_user_setting(
+                    conversation_manager.user_id,
+                    f"{tool.name}_model_configuration",
+                    model_configuration.model_dump_json(),
+                )
+
+                # Force a reload of the AI (and conversation manager)
+                if "rag_ai" in st.session_state:
+                    del st.session_state["rag_ai"]
 
 
-def model_needs_saving(tool_name, existing_tool_configuration, needs_saving):
-    model_configuration = None
-    if "model_configuration" in existing_tool_configuration:
+def model_configuration_needs_saving(
+    tool_name, existing_model_configuration: ModelConfiguration, needs_saving
+):
+
+    if existing_model_configuration:
         # Get the model configuration from the UI
 
-        model = list(st.session_state[f"{tool_name}-model"])[0]
-        model_friendly_name = st.session_state[f"{tool_name}-model"][
-            list(st.session_state[f"{tool_name}-model"])[0]
-        ]
-        max_model_supported_tokens = int(
-            ui_shared.get_available_models()[model_friendly_name][
-                "model_configuration"
-            ]["max_model_supported_tokens"]
-        )
-        llm_type = ui_shared.get_available_models()[model_friendly_name][
-            "model_configuration"
-        ]["llm_type"]
-        if model != existing_tool_configuration["model_configuration"]["model"]:
+        model = list(st.session_state[f"{tool_name}_model"])[0]
+        if model != existing_model_configuration.model:
+            existing_model_configuration.model = model
             needs_saving = True
 
         uses_conversation_history = st.session_state[
-            f"{tool_name}-uses-conversation-history"
+            f"{tool_name}_uses_conversation_history"
         ]
+
         if (
             uses_conversation_history
-            != existing_tool_configuration["model_configuration"][
-                "uses_conversation_history"
-            ]
+            != existing_model_configuration.uses_conversation_history
         ):
+            existing_model_configuration.uses_conversation_history = (
+                uses_conversation_history
+            )
             needs_saving = True
 
         max_conversation_history_tokens = st.session_state[
-            f"{tool_name}-conversation-history-tokens"
+            f"{tool_name}_conversation_history_tokens"
         ]
-        max_completion_tokens = st.session_state[f"{tool_name}-completion-tokens"]
+        max_completion_tokens = st.session_state[f"{tool_name}_completion_tokens"]
 
         if (
             max_conversation_history_tokens
-            != existing_tool_configuration["model_configuration"][
-                "max_conversation_history_tokens"
-            ]
+            != existing_model_configuration.max_conversation_history_tokens
         ):
+            existing_model_configuration.max_conversation_history_tokens = (
+                max_conversation_history_tokens
+            )
             needs_saving = True
-        if (
-            max_completion_tokens
-            != existing_tool_configuration["model_configuration"][
-                "max_completion_tokens"
-            ]
-        ):
+        if max_completion_tokens != existing_model_configuration.max_completion_tokens:
+            existing_model_configuration.max_completion_tokens = max_completion_tokens
             needs_saving = True
-        max_retries = st.session_state[f"{tool_name}-max-retries"]
-        if (
-            max_retries
-            != existing_tool_configuration["model_configuration"]["max_retries"]
-        ):
+        max_retries = st.session_state[f"{tool_name}_max_retries"]
+        if max_retries != existing_model_configuration.max_retries:
+            existing_model_configuration.max_retries = max_retries
             needs_saving = True
 
-        temperature = st.session_state[f"{tool_name}-temperature"]
-        if (
-            temperature
-            != existing_tool_configuration["model_configuration"]["temperature"]
-        ):
+        temperature = st.session_state[f"{tool_name}_temperature"]
+        if temperature != existing_model_configuration.temperature:
+            existing_model_configuration.temperature = temperature
             needs_saving = True
 
-        seed = st.session_state[f"{tool_name}-seed"]
-        if (
-            "model_kwargs" not in existing_tool_configuration["model_configuration"]
-            or seed
-            != existing_tool_configuration["model_configuration"]["model_kwargs"][
-                "seed"
-            ]
+        seed = st.session_state[f"{tool_name}_seed"]
+        existing_seed = existing_model_configuration.model_kwargs.get("seed", None)
+        if (existing_seed is None and seed) or (
+            existing_seed and seed != existing_seed
         ):
+            existing_model_configuration.model_kwargs["seed"] = seed
             needs_saving = True
 
-        response_format_type = st.session_state[f"{tool_name}-response_format"]
-        if (
-            "model_kwargs" not in existing_tool_configuration["model_configuration"]
-            or "response_format"
-            not in existing_tool_configuration["model_configuration"]["model_kwargs"]
-            or response_format_type
-            != existing_tool_configuration["model_configuration"]["model_kwargs"][
-                "response_format"
-            ].get("type", "text")
+        response_format_type = st.session_state[f"{tool_name}_response_format"]
+        existing_response_format_type = existing_model_configuration.model_kwargs.get(
+            "response_format", None
+        )
+        existing_response_format_type = (
+            existing_response_format_type.get("type", None)
+            if existing_response_format_type
+            else None
+        )
+        if (existing_response_format_type is None and response_format_type) or (
+            existing_response_format_type
+            and response_format_type != existing_response_format_type
         ):
+            existing_model_configuration.model_kwargs["response_format"] = {
+                "type": response_format_type
+            }
             needs_saving = True
 
-        model_configuration = {
-            "llm_type": llm_type,
-            "model": model,
-            "temperature": temperature,
-            "max_retries": max_retries,
-            "max_model_supported_tokens": max_model_supported_tokens,
-            "uses_conversation_history": uses_conversation_history,
-            "max_conversation_history_tokens": max_conversation_history_tokens,
-            "max_completion_tokens": max_completion_tokens,
-            "model_kwargs": {
-                "seed": seed,
-                "response_format": {"type": response_format_type},
-            },
-        }
-
-    return model_configuration, needs_saving
+    return needs_saving
 
 
-def save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret):
+def save_jama_settings_to_file(
+    jama_api_url,
+    jama_client_id,
+    jama_client_secret,
+    conversation_manager: ConversationManager,
+):
     user_settings_helper = UserSettings()
-    user_id = st.session_state["rag_ai"].conversation_manager.user_id
+    user_id = conversation_manager.user_id
 
     user_settings_helper.add_update_user_setting(
-        user_id=user_id, setting_name="jama_api_url", setting_value=jama_api_url, available_for_llm=False,
+        user_id=user_id,
+        setting_name="jama_api_url",
+        setting_value=jama_api_url,
+        available_for_llm=False,
     )
 
     user_settings_helper.add_update_user_setting(
-        user_id=user_id, setting_name="jama_client_id", setting_value=jama_client_id, available_for_llm=False,
+        user_id=user_id,
+        setting_name="jama_client_id",
+        setting_value=jama_client_id,
+        available_for_llm=False,
     )
 
     user_settings_helper.add_update_user_setting(
@@ -755,64 +918,106 @@ def save_jama_settings_to_file(jama_api_url, jama_client_id, jama_client_secret)
 
 
 def save_jarvis_settings_to_file(
-    show_llm_thoughts, model_configuration, file_ingestion_model_configuration
+    jarvis_ai_model_configuration: ModelConfiguration,
+    file_ingestion_model_configuration: ModelConfiguration,
+    conversation_manager: ConversationManager,
 ):
-    configuration = ui_shared.get_app_configuration()
+    # Save to user settings
+    user_settings_helper = UserSettings()
 
-    configuration["jarvis_ai"]["show_llm_thoughts"] = show_llm_thoughts
+    user_settings_helper.add_update_user_setting(
+        user_id=conversation_manager.user_id,
+        setting_name="jarvis_ai_model_configuration",
+        setting_value=jarvis_ai_model_configuration.model_dump_json(),
+        available_for_llm=True,
+    )
 
-    if model_configuration:
-        configuration["jarvis_ai"]["model_configuration"] = model_configuration
+    user_settings_helper.add_update_user_setting(
+        user_id=conversation_manager.user_id,
+        setting_name="file_ingestion_model_configuration",
+        setting_value=file_ingestion_model_configuration.model_dump_json(),
+        available_for_llm=True,
+    )
 
-    if file_ingestion_model_configuration:
-        configuration["jarvis_ai"]["file_ingestion_configuration"][
-            "model_configuration"
-        ] = file_ingestion_model_configuration
-
-    app_config_path = get_app_config_path()
-
-    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
-
+    # Force a reload of the AI (and conversation manager)
     if "rag_ai" in st.session_state:
         del st.session_state["rag_ai"]
 
-    st.session_state["app_config"] = configuration
 
+def save_model_setting(model_owner_name, conversation_manager: ConversationManager):
+    # Get all of the preset settings for the model (e.g. max tokens, etc.)
+    model_friendly_name = st.session_state[f"{model_owner_name}_model"][
+        list(st.session_state[f"{model_owner_name}_model"])[0]
+    ]
+    max_model_supported_tokens = int(
+        ui_shared.get_available_models()[model_friendly_name]["model_configuration"][
+            "max_model_supported_tokens"
+        ]
+    )
+    llm_type = ui_shared.get_available_models()[model_friendly_name][
+        "model_configuration"
+    ]["llm_type"]
 
-def save_tool_settings_to_file(
-    tool_name,
-    model_configuration,
-):
-    configuration = ui_shared.get_app_configuration()
-    if model_configuration:
-        configuration["tool_configurations"][tool_name][
-            "model_configuration"
-        ] = model_configuration
+    model = list(st.session_state[f"{model_owner_name}_model"])[0]
+    temperature = st.session_state[f"{model_owner_name}_temperature"]
+    max_retries = st.session_state[f"{model_owner_name}_max_retries"]
+    uses_conversation_history = st.session_state[
+        f"{model_owner_name}_uses_conversation_history"
+    ]
+    max_conversation_history_tokens = st.session_state[
+        f"{model_owner_name}_conversation_history_tokens"
+    ]
+    max_completion_tokens = st.session_state[f"{model_owner_name}_completion_tokens"]
+    model_kwargs = {
+        "seed": st.session_state[f"{model_owner_name}_seed"],
+        "response_format": {
+            "type": st.session_state[f"{model_owner_name}_response_format"]
+        },
+    }
 
-        app_config_path = get_app_config_path()
+    updated_model_config = ModelConfiguration(
+        llm_type=llm_type,
+        model=model,
+        temperature=temperature,
+        max_retries=max_retries,
+        max_model_supported_tokens=max_model_supported_tokens,
+        uses_conversation_history=uses_conversation_history,
+        max_conversation_history_tokens=max_conversation_history_tokens,
+        max_completion_tokens=max_completion_tokens,
+        model_kwargs=model_kwargs,
+    )
 
-        ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
+    UserSettings().add_update_user_setting(
+        conversation_manager.user_id,
+        setting_name=(model_owner_name + "_model_configuration"),
+        setting_value=updated_model_config.model_dump_json(),
+        available_for_llm=True,
+    )
 
-        if "rag_ai" in st.session_state:
-            del st.session_state["rag_ai"]
-
-        st.session_state["app_config"] = configuration
-
-
-def save_additional_setting(tool_name, setting_name, session_state_key):
-    configuration = ui_shared.get_app_configuration()
-    settings = configuration["tool_configurations"][tool_name]["additional_settings"]
-
-    settings[setting_name]["value"] = st.session_state[session_state_key]
-
-    app_config_path = get_app_config_path()
-
-    ApplicationConfigurationLoader.save_to_file(configuration, app_config_path)
-
+    # Force a reload of the AI (and conversation manager)
     if "rag_ai" in st.session_state:
         del st.session_state["rag_ai"]
 
-    st.session_state["app_config"] = configuration
+
+def save_additional_setting(
+    setting_name,
+    session_state_key,
+    conversation_manager: ConversationManager,
+    tool_name=None,
+):
+
+    value = st.session_state[session_state_key]
+
+    UserSettings().add_update_user_setting(
+        conversation_manager.user_id,
+        setting_name=(tool_name + "_" + setting_name) if tool_name else setting_name,
+        setting_value=value,
+        available_for_llm=True,
+    )
+
+    # Force a reload of the AI (and conversation manager)
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]
 
 
 def general_settings():

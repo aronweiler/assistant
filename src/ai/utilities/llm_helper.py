@@ -3,11 +3,12 @@ import os
 from enum import Enum
 
 from langchain_openai import ChatOpenAI
-from langchain.llms.llamacpp import LlamaCpp
+
+# from langchain.llms.llamacpp import LlamaCpp
 from langchain_core.language_models import BaseLanguageModel
 
 from src.utilities.openai_utilities import get_openai_api_key
-from src.configuration.assistant_configuration import ModelConfiguration
+from src.configuration.model_configuration import ModelConfiguration
 import src.utilities.configuration_utilities as configuration_utilities
 
 # Singleton instance of Llama2 LLM to avoid reinitialization
@@ -39,15 +40,6 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs) -> BaseLanguageMo
         raise ValueError(f"Unsupported LLM type: {llm_type}")
 
 
-def get_tool_llm(configuration: dict, func_name: str, **kwargs) -> BaseLanguageModel:
-    """Retrieves the LLM based on the tool configuration."""
-    tool_config = configuration_utilities.get_tool_configuration(
-        configuration=configuration, func_name=func_name
-    )
-
-    return get_llm(model_configuration=tool_config["model_configuration"], **kwargs)
-
-
 def _get_openai_llm(model_configuration, **kwargs):
     """Initializes and returns an OpenAI LLM instance."""
     max_tokens = model_configuration.max_completion_tokens
@@ -73,26 +65,30 @@ def _get_openai_llm(model_configuration, **kwargs):
 
 
 def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
-    """Initializes and returns a LlamaCpp LLM instance, reusing a singleton if already initialized."""
-    global llama2_llm
+    raise NotImplementedError("LLAMA2 LLM is not supported.")
 
-    if llama2_llm:
-        return llama2_llm
 
-    offload_layers = _get_offload_layers_from_env()
+# def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
+#     """Initializes and returns a LlamaCpp LLM instance, reusing a singleton if already initialized."""
+#     global llama2_llm
 
-    llama2_llm = LlamaCpp(
-        model_path=model_configuration.model,
-        n_ctx=model_configuration.max_model_supported_tokens,
-        max_tokens=model_configuration.max_completion_tokens
-        if model_configuration.max_completion_tokens > 0
-        else None,
-        temperature=model_configuration.temperature,
-        n_gpu_layers=offload_layers,
-        verbose=True,
-    )
+#     if llama2_llm:
+#         return llama2_llm
 
-    return llama2_llm
+#     offload_layers = _get_offload_layers_from_env()
+
+#     llama2_llm = LlamaCpp(
+#         model_path=model_configuration.model,
+#         n_ctx=model_configuration.max_model_supported_tokens,
+#         max_tokens=model_configuration.max_completion_tokens
+#         if model_configuration.max_completion_tokens > 0
+#         else None,
+#         temperature=model_configuration.temperature,
+#         n_gpu_layers=offload_layers,
+#         verbose=True,
+#     )
+
+#     return llama2_llm
 
 
 def _get_offload_layers_from_env():

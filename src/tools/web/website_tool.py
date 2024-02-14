@@ -8,10 +8,16 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 import sys
 from pathlib import Path
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_tool_llm
-from src.ai.prompts.prompt_models.document_summary import DocumentChunkSummaryInput, DocumentSummaryOutput, DocumentQuerySummaryRefineInput
+from src.ai.utilities.llm_helper import get_llm
+from src.ai.prompts.prompt_models.document_summary import (
+    DocumentChunkSummaryInput,
+    DocumentSummaryOutput,
+    DocumentQuerySummaryRefineInput,
+)
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.configuration.model_configuration import ModelConfiguration
+from src.db.models.user_settings import UserSettings
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
@@ -80,12 +86,21 @@ class WebsiteTool:
 
         split_text = splitter.split_text(text)
 
-        # Initialize language model for prediction.
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.get_text_from_website.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = (
+            UserSettings()
+            .get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name=f"{self.get_text_from_website.__name__}_model_configuration",
+                default_value=ModelConfiguration.default().model_dump(),
+            )
+            .setting_value
+        )
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         existing_summary = None
@@ -104,7 +119,9 @@ class WebsiteTool:
 
                 existing_summary = result.summary
             else:
-                input_object = DocumentQuerySummaryRefineInput(text=chunk, existing_answer=existing_summary, query=user_query)
+                input_object = DocumentQuerySummaryRefineInput(
+                    text=chunk, existing_answer=existing_summary, query=user_query
+                )
 
                 result = query_helper.query_llm(
                     llm=llm,
@@ -113,6 +130,6 @@ class WebsiteTool:
                     output_class_type=DocumentSummaryOutput,
                 )
 
-                existing_summary = result.summary                
+                existing_summary = result.summary
 
         return existing_summary

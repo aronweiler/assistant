@@ -21,17 +21,18 @@ def tool_class(cls):
 
 # Decorator to register a tool function along with its metadata
 def register_tool(
-    display_name,    
-    description,
-    additional_instructions=None,
-    help_text=None,
-    requires_documents=False,
-    requires_repository=False,
-    document_classes=[],
-    category = None,
-    enabled_by_default = True,
-    include_in_conversation = False,
-    return_direct = False,
+    display_name:str,    
+    description:str,
+    additional_instructions:str=None,
+    help_text:str=None,
+    requires_documents:bool=False,
+    requires_repository:bool=False,
+    document_classes:list[str]=[],
+    category:str = None,
+    enabled_by_default:bool = True,
+    include_in_conversation:bool = False,
+    return_direct:bool = False,
+    requires_llm:bool = False,
 ):
     # If no help_text is provided, use the description as help_text
     if help_text is None:
@@ -52,6 +53,7 @@ def register_tool(
             "enabled_by_default": enabled_by_default,
             "include_in_conversation": include_in_conversation,
             "return_direct": return_direct,
+            "requires_llm": requires_llm,
         }
 
         # If the module is not already in the registered_tools, initialize it

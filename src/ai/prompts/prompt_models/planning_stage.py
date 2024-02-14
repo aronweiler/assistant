@@ -22,7 +22,7 @@ class Step(BaseModel):
 
 class PlanningStageOutput(BaseModel):
     preliminary_thoughts: str = Field(description="Comprehensive outline of the initial reasoning and decision-making process used to arrive at a plan using the available tools, or to issue a direct answer.")
-    second_thoughts: str = Field(description="On second thought...  Double-check your thinking about the tools that you plan on using here.  Double check all tool calls, and their arguments such as file names, urls, and other input data, in order to ensure you are constructing correct tool calls.  Make SURE you have enough information to call the appropriate tools (such as file IDs).")
+    second_thoughts: str = Field(description="Double-check your thinking about the tools that you plan on using here.  Double check ALL tool calls, and their arguments such as file names, urls, and other input data, in order to ensure you are constructing correct tool calls.  Make SURE you have the correct information with which to call the appropriate tools (such as repository IDs, file IDs, URLs, etc.).")
     action: str = Field(description="The action to be taken. One of 'execute_steps', or 'answer'.")
     answer: Optional[str] = Field(description="The direct answer to the user query, if applicable.", default=None)
     steps: Optional[List[Step]] = Field(description="List of steps to be taken, if applicable.", default=None)

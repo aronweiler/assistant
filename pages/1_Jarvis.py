@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -13,6 +14,9 @@ from src.configuration.assistant_configuration import (
 )
 
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.configuration.model_configuration import ModelConfiguration
+from src.db.models.user_settings import UserSettings
+from src.db.models.users import Users
 
 import src.ui.streamlit_shared as ui_shared
 
@@ -22,18 +26,16 @@ from src.utilities.configuration_utilities import get_app_configuration
 
 
 class RagUI:
+
     def __init__(self, user_email: str = None):
         self.user_email = user_email
+        self.prompt_manager = None
 
     def load_configuration(self):
         """Loads the configuration from the path"""
-        
+
         if "app_config" not in st.session_state:
             st.session_state["app_config"] = get_app_configuration()
-                    
-        self.prompt_manager = PromptManager(
-            llm_type=st.session_state.app_config['jarvis_ai']['model_configuration']['llm_type']
-        )
 
     def set_page_config(self):
         """Sets the page configuration"""
@@ -48,13 +50,31 @@ class RagUI:
 
     def load_ai(self, override_conversation_id=None):
         """Loads the AI instance for the selected conversation id"""
-        
+
         if override_conversation_id:
             selected_conversation_id = override_conversation_id
         else:
             selected_conversation_id = ui_shared.get_selected_conversation_id()
 
         if "rag_ai" not in st.session_state:
+            user = Users().get_user_by_email(user_email)
+
+            jarvis_ai_model_configuration = ModelConfiguration(
+                **json.loads(
+                    UserSettings()
+                    .get_user_setting(
+                        user.id,
+                        "jarvis_ai_model_configuration",
+                        default_value=ModelConfiguration.default().model_dump_json(),
+                    )
+                    .setting_value
+                )
+            )
+
+            self.prompt_manager = PromptManager(
+                llm_type=jarvis_ai_model_configuration.llm_type
+            )
+
             # First time loading the page
             logging.debug("load_ai: no ai in session state, creating a new one")
             rag_ai_instance = RetrievalAugmentedGenerationAI(
@@ -83,7 +103,9 @@ class RagUI:
             )
             st.session_state["rag_ai"] = rag_ai_instance
         else:
-            logging.debug("load_ai: AI instance exists, no need to change conversation ID")
+            logging.debug(
+                "load_ai: AI instance exists, no need to change conversation ID"
+            )
 
     def create_collections_container(self, main_window_container):
         css_style = """{
@@ -100,10 +122,12 @@ class RagUI:
 
         with main_window_container:
             with stylable_container(key="collections_container", css_styles=css_style):
-                if "rag_ai" in st.session_state:                    
+                if "rag_ai" in st.session_state:
 
                     logging.debug("Creating collection selectbox")
-                    ui_shared.create_documents_and_code_collections(ai=st.session_state["rag_ai"])
+                    ui_shared.create_documents_and_code_collections(
+                        ai=st.session_state["rag_ai"]
+                    )
 
                     if "rag_ai" in st.session_state:
                         collection_id = ui_shared.get_selected_collection_id()
@@ -113,34 +137,53 @@ class RagUI:
                                 collection_id
                             )
 
-                            
-
                             loaded_docs_delimited = (
                                 st.session_state.rag_ai.conversation_manager.get_loaded_documents_delimited()
                             )
 
-                            
-                                    
-
                             st.divider()
                             st.markdown("#### Options")
 
-                            with st.expander("Search", expanded=False):  # , expanded=expanded):
+                            search_type = UserSettings().get_user_setting(
+                                user_id=st.session_state.user_id,
+                                setting_name="search_type",
+                                default_value="Hybrid",
+                                default_available_for_llm=True,
+                            )
+                            search_top_k = UserSettings().get_user_setting(
+                                user_id=st.session_state.user_id,
+                                setting_name="search_top_k",
+                                default_value=10,
+                                default_available_for_llm=True,
+                            )
+
+                            with st.expander(
+                                "Search", expanded=False
+                            ):  # , expanded=expanded):
                                 search_types = ["Similarity", "Keyword", "Hybrid"]
                                 st.radio(
                                     label="Text search method",
                                     help="Similarity search will find semantically similar phrases.\n\nKeyword search (think SQL LIKE statement) will find documents containing specific words.\n\nHybrid search uses both.",
                                     options=search_types,
-                                    key="search_type",                                    
-                                    index=search_types.index(st.session_state["app_config"]["jarvis_ai"].get("search_type", "Similarity")),
-                                    on_change=ui_shared.set_search_type,
+                                    key="search_type",
+                                    index=search_types.index(search_type.setting_value),
+                                    on_change=ui_shared.save_user_setting,
+                                    kwargs={
+                                        "setting_name": "search_type",
+                                        "available_for_llm": search_type.available_for_llm,
+                                    },
                                 )
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
                                     help="The number of document chunks to use in searches. Higher numbers will take longer to search, but will possibly yield better results.  Note: a higher number will use more of the model's context window.",
-                                    value=st.session_state["app_config"]["jarvis_ai"].get("search_top_k", 10),
-                                    on_change=ui_shared.set_search_top_k,
+                                    value=int(search_top_k.setting_value),
+                                    on_change=ui_shared.save_user_setting,
+                                    step=1,
+                                    kwargs={
+                                        "setting_name": "search_top_k",
+                                        "available_for_llm": search_top_k.available_for_llm,
+                                    },
                                 )
 
                             with st.expander("Advanced"):
@@ -158,13 +201,19 @@ class RagUI:
                                     format_func=lambda x: x.split(":")[1],
                                 )
                                 st.number_input(
-                                    "Timeout (seconds)", help="The amount of time to wait for a response from the AI", key="agent_timeout", value=600
+                                    "Timeout (seconds)",
+                                    help="The amount of time to wait for a response from the AI",
+                                    key="agent_timeout",
+                                    value=600,
                                 )
-                                
+
                                 st.number_input(
-                                    "Maximum AI iterations", help="The number of recursive (or other) iterations the AI will perform (usually tool calls).", key="max_iterations", value=25
+                                    "Maximum AI iterations",
+                                    help="The number of recursive (or other) iterations the AI will perform (usually tool calls).",
+                                    key="max_iterations",
+                                    value=25,
                                 )
-                                
+
                                 st.toggle(
                                     "Use Pandas for Spreadsheets",
                                     key="use_pandas",
@@ -187,9 +236,9 @@ if __name__ == "__main__":
     try:
         logging.debug("Starting Jarvis")
         # Get the user from the environment variables
-        user_email = os.environ.get("USER_EMAIL", None)        
+        user_email = os.environ.get("USER_EMAIL", None)
         logging.debug(f"User email: {user_email}")
-        
+
         # Time the operation
         start_time = time.time()
         rag_ui = RagUI(user_email=user_email)
@@ -205,7 +254,7 @@ if __name__ == "__main__":
         logging.debug("Setting page config")
         # Time the operation
         start_time = time.time()
-        rag_ui.set_page_config()        
+        rag_ui.set_page_config()
         logging.info(f"Time to set page config: {time.time() - start_time}")
 
         if not user_email:
@@ -216,14 +265,14 @@ if __name__ == "__main__":
         start_time = time.time()
         if ui_shared.ensure_user(user_email):
             logging.info(f"Time to ensure user exists: {time.time() - start_time}")
-            
+
             logging.debug("User exists")
-            
+
             # Time the operation
             start_time = time.time()
             ui_shared.set_user_id_from_email(user_email)
             logging.info(f"Time to set user id from email: {time.time() - start_time}")
-            
+
             # Time the operation
             start_time = time.time()
             ui_shared.ensure_conversation()
@@ -236,8 +285,10 @@ if __name__ == "__main__":
             # Time the operation
             start_time = time.time()
             ui_shared.load_conversation_selectbox(rag_ui.load_ai, conversations)
-            logging.info(f"Time to load conversation selectbox: {time.time() - start_time}")
-            
+            logging.info(
+                f"Time to load conversation selectbox: {time.time() - start_time}"
+            )
+
             # Set up columns for chat and collections
             col1, col2 = st.columns([0.65, 0.35])
 
@@ -245,11 +296,13 @@ if __name__ == "__main__":
             start_time = time.time()
             rag_ui.load_ai()
             logging.info(f"Time to load AI: {time.time() - start_time}")
-            
+
             # Time the operation
             start_time = time.time()
             rag_ui.create_collections_container(col2)
-            logging.info(f"Time to create collections container: {time.time() - start_time}")
+            logging.info(
+                f"Time to create collections container: {time.time() - start_time}"
+            )
 
             # Time the operation
             start_time = time.time()
@@ -260,12 +313,12 @@ if __name__ == "__main__":
 
             # Time the operation
             start_time = time.time()
-            ui_shared.handle_chat(col1, st.session_state["rag_ai"], st.session_state["app_config"])
+            ui_shared.handle_chat(col1, st.session_state["rag_ai"])
             logging.info(f"Time to handle chat: {time.time() - start_time}")
 
             # Time the operation
             start_time = time.time()
-            ui_shared.show_version()            
+            ui_shared.show_version()
             logging.info(f"Time to show version: {time.time() - start_time}")
     except:
         # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
@@ -276,7 +329,9 @@ if __name__ == "__main__":
         # Get the last exception
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        if "StopException" in str(exc_value.__class__) or "StreamlitAPIException" in str(exc_value.__class__):
+        if "StopException" in str(
+            exc_value.__class__
+        ) or "StreamlitAPIException" in str(exc_value.__class__):
             # If so, then just return
             pass
         else:

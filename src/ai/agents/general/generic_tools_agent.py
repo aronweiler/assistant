@@ -29,7 +29,7 @@ from src.ai.prompts.prompt_models.tool_use import (
 )
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_manager import ToolManager
-from src.configuration.assistant_configuration import ModelConfiguration
+from src.configuration.model_configuration import ModelConfiguration
 from src.utilities.configuration_utilities import get_app_configuration
 
 from src.utilities.parsing_utilities import parse_json
@@ -379,7 +379,7 @@ class GenericToolsAgent(BaseSingleActionAgent):
             selected_repository_prompt=self.conversation_manager.get_selected_repository_prompt(),
             loaded_documents_prompt=self.conversation_manager.get_loaded_documents_prompt(),
             previous_tool_calls_prompt=self.conversation_manager.get_previous_tool_calls_prompt(),
-            helpful_context=helpful_context,
+            helpful_context=helpful_context or "",
             tool_name=tool_name,
             tool_details=tool_details,
             tool_use_description=current_step.step_description,
@@ -470,13 +470,17 @@ class GenericToolsAgent(BaseSingleActionAgent):
         if not intermediate_steps or len(intermediate_steps) == 0:
             return "No helpful context, sorry!"
 
-        return "\n----\n".join(
-            [
-                f"You used the `{s[0].tool}` tool, which returned:\n'{s[1]}'"
-                for s in intermediate_steps
-                if s[1] is not None
-            ]
-        )
+        output = ""
+        for step in intermediate_steps:
+            if step[1] is not None:
+                tool_results = step[1]
+                # If it's a string, strip it
+                if isinstance(tool_results, str):
+                    tool_results = tool_results.strip()
+                    
+                output += f"The `{step[0].tool}` tool was used with the arguments: `{step[0].tool_input}`, which returned:\n{tool_results}\n\n"
+                
+        return output
 
     async def aplan(
         self, intermediate_steps: List[Tuple[AgentAction, str]], **kwargs: Any

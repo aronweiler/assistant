@@ -1,495 +1,185 @@
 {
-    "jarvis_ai": {
-        "embedding_models": {
-            "available": {
-                "OpenAI: text-embedding-ada-002": "text-embedding-ada-002",
-                "OpenAI: text-embedding-3-small": "text-embedding-3-small",
-                "OpenAI: text-embedding-3-large": "text-embedding-3-large",
-                "Local: instructor-xl": "hkunlp/instructor-xl"
-            },
-            "hkunlp/instructor-xl": {
-                "path": "H:\\LLM\\embeddings\\instructor-xl",
-                "max_token_length": 512,
-                "dimensions": 768
-            },
-            "text-embedding-ada-002": {
-                "max_token_length": 8191,
-                "dimensions": 1536
-            },
-            "text-embedding-3-small": {
-                "max_token_length": 8191,
-                "dimensions": 1536
-            },
-            "text-embedding-3-large": {
-                "max_token_length": 8191,
-                "dimensions": 3072
-            }
-        },
-        "show_llm_thoughts": true,
-        "use_tool_memory": true,
-        "file_ingestion_configuration": {
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "model_configuration": {
-            "llm_type": "openai",
-            "model": "gpt-4-turbo-preview",
-            "temperature": 0.0,
-            "max_retries": 3,
-            "max_model_supported_tokens": 128000,
-            "uses_conversation_history": true,
-            "max_conversation_history_tokens": 26000,
-            "max_completion_tokens": 4096,
-            "model_kwargs": {
-                "seed": 500,
-                "response_format": {
-                    "type": "json_object"
-                }
-            }
-        },
-        "search_type": "Hybrid",
-        "search_top_k": 20,
-        "frequency_penalty": 0.3,
-        "presence_penalty": 0.7,
-        "evaluate_response": false,
-        "re_planning_threshold": 0.5
+  "jarvis_ai": {
+    "embedding_models": {
+      "available": {
+        "OpenAI: text-embedding-ada-002": "text-embedding-ada-002",
+        "OpenAI: text-embedding-3-small": "text-embedding-3-small",
+        "OpenAI: text-embedding-3-large": "text-embedding-3-large",
+        "Local: instructor-xl": "hkunlp/instructor-xl"
+      },
+      "hkunlp/instructor-xl": {
+        "path": "H:\\LLM\\embeddings\\instructor-xl",
+        "max_token_length": 512,
+        "dimensions": 768
+      },
+      "text-embedding-ada-002": {
+        "max_token_length": 8191,
+        "dimensions": 1536
+      },
+      "text-embedding-3-small": {
+        "max_token_length": 8191,
+        "dimensions": 1536
+      },
+      "text-embedding-3-large": {
+        "max_token_length": 8191,
+        "dimensions": 3072
+      }
     },
-    "tool_configurations": {
-        "default": {
-            "enabled": true,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": true,
-                "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "analyze_with_llm": {
-            "category": "Analysis",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "llama2",
-                "model": "H:\\LLM\\llama-2-13b-chat.gguf.q5_1.bin",
-                "temperature": 1.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 4096,
-                "uses_conversation_history": true,
-                "max_conversation_history_tokens": 342,
-                "max_completion_tokens": 1418,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "search_loaded_documents": {
-            "category": "Documents",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "additional_settings": {
-                "split_prompt": {
-                    "label": "Split Prompt",
-                    "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
-                    "type": "int",
-                    "value": 1,
-                    "min": 1,
-                    "max": 5,
-                    "step": 1
-                }
-            },
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": true,
-                "max_conversation_history_tokens": 5341,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "search_entire_document": {
-            "category": "Documents",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": -1,
-                "max_completion_tokens": 0,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "summarize_entire_document": {
-            "category": "Documents",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "create_stubs": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "conduct_code_review": {
-            "category": "Code On the Web",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "additional_settings": {
-                "json_output": {
-                    "label": "Output the refactored code as JSON",
-                    "description": "This is useful for integrating with other tools.",
-                    "type": "bool",
-                    "value": false
-                },
-                "max_code_size_tokens": {
-                    "label": "Max Code Size Tokens",
-                    "description": "The maximum number of tokens to allow for code being reviewed.",
-                    "type": "int",
-                    "value": 8000,
-                    "min": 1,
-                    "max": 20000,
-                    "step": 25
-                },
-                "enable_code_security_examination": {
-                    "label": "Examine code for security issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_performance_examination": {
-                    "label": "Examine code for performance issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_memory_examination": {
-                    "label": "Examine code for memory issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_correctness_examination": {
-                    "label": "Examine code for correctness issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_maintainability_examination": {
-                    "label": "Examine code for maintainability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": true
-                },
-                "enable_code_reliability_examination": {
-                    "label": "Examine code for reliability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                }
-            },
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "conduct_code_refactor": {
-            "category": "Code Files",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "additional_settings": {
-                "json_output": {
-                    "label": "Output the refactored code as JSON",
-                    "description": "This is useful for integrating with other tools.",
-                    "type": "bool",
-                    "value": false
-                },
-                "max_code_size_tokens": {
-                    "label": "Max Code Size Tokens",
-                    "description": "The maximum number of tokens to allow for code being refactored.",
-                    "type": "int",
-                    "value": 3000,
-                    "min": 1,
-                    "max": 20000,
-                    "step": 25
-                },
-                "enable_code_security_examination": {
-                    "label": "Examine code for security issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_performance_examination": {
-                    "label": "Examine code for performance issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_memory_examination": {
-                    "label": "Examine code for memory issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_correctness_examination": {
-                    "label": "Examine code for correctness issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                },
-                "enable_code_maintainability_examination": {
-                    "label": "Examine code for maintainability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": true
-                },
-                "enable_code_reliability_examination": {
-                    "label": "Examine code for reliability issues",
-                    "description": "",
-                    "type": "bool",
-                    "value": false
-                }
-            },
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "codebase_functionality_search": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "comprehensive_repository_search": {
-            "category": "Code Repositories",
-            "enabled": true,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "additional_settings": {
-                "split_prompt": {
-                    "label": "Split Prompt",
-                    "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
-                    "type": "int",
-                    "value": 3,
-                    "min": 1,
-                    "max": 5,
-                    "step": 1
-                }
-            },
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            }
-        },
-        "create_cvss_evaluation": {
-            "category": "Security",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "query_spreadsheet": {
-            "category": "Spreadsheets",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-3.5-turbo-16k",
-                "temperature": 0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 16384,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 4096,
-                "max_completion_tokens": 6096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "text"
-                    }
-                }
-            }
-        },
-        "get_text_from_website": {
-            "category": "Web",
-            "enabled": false,
-            "include_in_conversation": false,
-            "return_direct": false,
-            "model_configuration": {
-                "llm_type": "openai",
-                "model": "gpt-4-turbo-preview",
-                "temperature": 0.0,
-                "max_retries": 3,
-                "max_model_supported_tokens": 128000,
-                "uses_conversation_history": false,
-                "max_conversation_history_tokens": 0,
-                "max_completion_tokens": 4096,
-                "model_kwargs": {
-                    "seed": 500,
-                    "response_format": {
-                        "type": "json_object"
-                    }
-                }
-            },
-            "additional_settings": {
-                "max_chunk_size": {
-                    "label": "Max Webpage Chunk Size",
-                    "description": "The maximum number of tokens to return before starting to split the webpage into chunks.",
-                    "type": "int",
-                    "value": 75000,
-                    "min": 1,
-                    "max": 20000000,
-                    "step": 100
-                }
-            }
+    "use_tool_memory": true,
+    "search_type": "Hybrid",
+    "search_top_k": 20
+  },
+  "tool_configurations": {
+    "search_loaded_documents": {
+      "additional_settings": {
+        "split_prompt": {
+          "label": "Split Prompt",
+          "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
+          "type": "int",
+          "value": 1,
+          "min": 1,
+          "max": 5,
+          "step": 1
         }
+      }
+    },
+    "conduct_code_review": {
+      "additional_settings": {
+        "json_output": {
+          "label": "Output the refactored code as JSON",
+          "description": "This is useful for integrating with other tools.",
+          "type": "bool",
+          "value": false
+        },
+        "max_code_size_tokens": {
+          "label": "Max Code Size Tokens",
+          "description": "The maximum number of tokens to allow for code being reviewed.",
+          "type": "int",
+          "value": 8000,
+          "min": 1,
+          "max": 20000,
+          "step": 25
+        },
+        "enable_code_security_examination": {
+          "label": "Examine code for security issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_performance_examination": {
+          "label": "Examine code for performance issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_memory_examination": {
+          "label": "Examine code for memory issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_correctness_examination": {
+          "label": "Examine code for correctness issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_maintainability_examination": {
+          "label": "Examine code for maintainability issues",
+          "description": "",
+          "type": "bool",
+          "value": true
+        },
+        "enable_code_reliability_examination": {
+          "label": "Examine code for reliability issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        }
+      }
+    },
+    "conduct_code_refactor": {
+      "additional_settings": {
+        "json_output": {
+          "label": "Output the refactored code as JSON",
+          "description": "This is useful for integrating with other tools.",
+          "type": "bool",
+          "value": false
+        },
+        "max_code_size_tokens": {
+          "label": "Max Code Size Tokens",
+          "description": "The maximum number of tokens to allow for code being refactored.",
+          "type": "int",
+          "value": 3000,
+          "min": 1,
+          "max": 20000,
+          "step": 25
+        },
+        "enable_code_security_examination": {
+          "label": "Examine code for security issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_performance_examination": {
+          "label": "Examine code for performance issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_memory_examination": {
+          "label": "Examine code for memory issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_correctness_examination": {
+          "label": "Examine code for correctness issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        },
+        "enable_code_maintainability_examination": {
+          "label": "Examine code for maintainability issues",
+          "description": "",
+          "type": "bool",
+          "value": true
+        },
+        "enable_code_reliability_examination": {
+          "label": "Examine code for reliability issues",
+          "description": "",
+          "type": "bool",
+          "value": false
+        }
+      }
+    },
+
+    "comprehensive_repository_search": {
+      "additional_settings": {
+        "split_prompt": {
+          "label": "Split Prompt",
+          "description": "This will optionally create a number of additional prompts to aid in searching any loaded documents.",
+          "type": "int",
+          "value": 3,
+          "min": 1,
+          "max": 5,
+          "step": 1
+        }
+      }
+    },
+
+    "get_text_from_website": {
+      "additional_settings": {
+        "max_chunk_size": {
+          "label": "Max Webpage Chunk Size",
+          "description": "The maximum number of tokens to return before starting to split the webpage into chunks.",
+          "type": "int",
+          "value": 75000,
+          "min": 1,
+          "max": 20000000,
+          "step": 100
+        }
+      }
     }
+  }
 }
