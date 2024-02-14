@@ -18,10 +18,11 @@ from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_loader import get_available_tools
 from src.ai.tools.tool_manager import ToolManager
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.configuration.model_configuration import ModelConfiguration
 from src.db.models.domain.code_file_model import CodeFileModel
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_llm
 from src.db.models.user_settings import UserSettings
 
 
@@ -217,9 +218,15 @@ class CodeRepositoryTool:
     def codebase_functionality_search(self, description: str, keywords_list: List[str]):
         """Locates specific functionality within the codebase."""
         try:
-            llm = get_tool_llm(
-                configuration=self.configuration,
-                func_name=self.codebase_functionality_search.__name__,
+            # Get the setting for the tool model
+            tool_model_configuration = UserSettings().get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name=f"{self.codebase_functionality_search.__name__}_model_configuration",
+                default_value=ModelConfiguration.default().model_dump(),
+            ).setting_value
+
+            llm = get_llm(
+                model_configuration=tool_model_configuration,
                 streaming=True,
                 callbacks=self.conversation_manager.agent_callbacks,
             )
@@ -343,15 +350,16 @@ class CodeRepositoryTool:
 
             # If there are more than 0 additional prompts, we need to create them
             if split_prompts > 1:
-                llm = get_tool_llm(
-                    configuration=self.configuration,
-                    func_name=self.comprehensive_repository_search.__name__,
+                # Get the setting for the tool model
+                tool_model_configuration = UserSettings().get_user_setting(
+                    user_id=self.conversation_manager.user_id,
+                    setting_name=f"{self.comprehensive_repository_search.__name__}_model_configuration",
+                    default_value=ModelConfiguration.default().model_dump(),
+                ).setting_value
+
+                llm = get_llm(
+                    model_configuration=tool_model_configuration,
                     streaming=True,
-                    # Crank up the frequency and presence penalties to make the LLM give us more variety
-                    model_kwargs={
-                        "frequency_penalty": 0.7,
-                        "presence_penalty": 0.9,
-                    },
                     callbacks=self.conversation_manager.agent_callbacks,
                 )
 
@@ -459,9 +467,15 @@ class CodeRepositoryTool:
             )
         )
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.comprehensive_repository_search.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name=f"{self.comprehensive_repository_search.__name__}_model_configuration",
+            default_value=ModelConfiguration.default().model_dump(),
+        ).setting_value
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
             callbacks=self.conversation_manager.agent_callbacks,
         )

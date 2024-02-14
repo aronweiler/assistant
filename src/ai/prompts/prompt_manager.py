@@ -16,7 +16,7 @@ class PromptManager:
         "openai": "openai_prompts",
     }
 
-    def __init__(self, llm_type: str):
+    def __init__(self, llm_type: str = "openai"):
         self.llm_type = llm_type
         self.prompt_category = {}
         self.load_prompts()

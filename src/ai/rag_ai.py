@@ -26,7 +26,7 @@ from src.ai.prompts.prompt_models.question_generation import (
 )
 from src.ai.prompts.query_helper import QueryHelper
 
-from src.configuration.assistant_configuration import (
+from src.configuration.model_configuration import (
     ModelConfiguration,
 )
 from src.ai.conversations.conversation_manager import ConversationManager
@@ -34,6 +34,8 @@ from src.ai.utilities.llm_helper import get_llm
 from src.ai.prompts.prompt_manager import PromptManager
 from src.ai.utilities.system_info import get_system_information
 from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
+from src.db.models.user_settings import UserSettings
+from src.db.models.users import Users
 from src.tools.documents.document_tool import DocumentTool
 from src.ai.tools.tool_manager import ToolManager
 
@@ -67,21 +69,33 @@ class RetrievalAugmentedGenerationAI:
         self.streaming = streaming
         self.prompt_manager = prompt_manager
 
-        # Extract conversation history settings from the configuration
-        max_conversation_history_tokens = self.configuration["jarvis_ai"][
-            "model_configuration"
-        ]["max_conversation_history_tokens"]
-        uses_conversation_history = self.configuration["jarvis_ai"][
-            "model_configuration"
-        ]["uses_conversation_history"]
+        user = Users().get_user_by_email(user_email)
+        user_settings = UserSettings()
+
+        self.jarvis_ai_model_configuration = ModelConfiguration(
+            **json.loads(user_settings.get_user_setting(
+                user.id,
+                "jarvis_ai_model_configuration",
+                default_value=ModelConfiguration.default().model_dump_json(),
+            ).setting_value)
+        )
+
+        self.file_ingestion_model_configuration = ModelConfiguration(
+            **json.loads(user_settings.get_user_setting(
+                    user.id,
+                    "file_ingestion_model_configuration",
+                    default_value=ModelConfiguration.default().model_dump_json(),
+                ).setting_value)
+            
+        )
 
         # Set up the conversation manager
         self.conversation_manager = ConversationManager(
             conversation_id=conversation_id,
             user_email=user_email,
             prompt_manager=self.prompt_manager,
-            max_conversation_history_tokens=max_conversation_history_tokens,
-            uses_conversation_history=uses_conversation_history,
+            max_conversation_history_tokens=self.jarvis_ai_model_configuration.max_conversation_history_tokens,
+            uses_conversation_history=self.jarvis_ai_model_configuration.uses_conversation_history,
             override_memory=override_memory,
         )
 
@@ -96,12 +110,8 @@ class RetrievalAugmentedGenerationAI:
     def create_agent(self, agent_timeout: int = 300, max_iterations: int = 25):
         tools = self.tool_manager.get_enabled_tools()
 
-        model_configuration = ModelConfiguration(
-            **self.configuration["jarvis_ai"]["model_configuration"]
-        )
-
         agent = GenericToolsAgent(
-            model_configuration=model_configuration,
+            model_configuration=self.jarvis_ai_model_configuration,
             conversation_manager=self.conversation_manager,
             tool_manager=self.tool_manager,
             tools=tools,
@@ -174,7 +184,7 @@ class RetrievalAugmentedGenerationAI:
 
     def run_chain(self, query: str, kwargs: dict = {}):
         llm = get_llm(
-            self.configuration["jarvis_ai"]["model_configuration"],
+            self.jarvis_ai_model_configuration,
             tags=["conversational-ai"],
             callbacks=self.conversation_manager.llm_callbacks,
             streaming=True,
@@ -248,7 +258,7 @@ class RetrievalAugmentedGenerationAI:
 
     def generate_conversation_summary(self, query: str):
         llm = get_llm(
-            self.configuration["jarvis_ai"]["model_configuration"],
+            self.jarvis_ai_model_configuration,
             tags=["conversation-summary-ai"],
             streaming=False,
         )
@@ -270,9 +280,7 @@ class RetrievalAugmentedGenerationAI:
         self, code: str
     ) -> CodeDetailsExtractionOutput:
         llm = get_llm(
-            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
-                "model_configuration"
-            ],
+            self.file_ingestion_model_configuration,
             tags=["generate_keywords_and_descriptions_from_code_file"],
             streaming=False,
         )
@@ -295,9 +303,7 @@ class RetrievalAugmentedGenerationAI:
         chunk_text: str,
     ) -> str:
         llm = get_llm(
-            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
-                "model_configuration"
-            ],
+            self.file_ingestion_model_configuration,
             tags=["generate_detailed_document_chunk_summary"],
             streaming=False,
         )
@@ -316,9 +322,7 @@ class RetrievalAugmentedGenerationAI:
     # Required by the Jarvis UI when generating questions for ingested files
     def generate_chunk_questions(self, text: str, number_of_questions: int = 5) -> List:
         llm = get_llm(
-            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
-                "model_configuration"
-            ],
+            self.file_ingestion_model_configuration,
             tags=["generate_chunk_questions"],
             streaming=False,
         )
@@ -341,9 +345,7 @@ class RetrievalAugmentedGenerationAI:
         file_id: int,
     ) -> str:
         llm = get_llm(
-            self.configuration["jarvis_ai"]["file_ingestion_configuration"][
-                "model_configuration"
-            ],
+            self.file_ingestion_model_configuration,
             tags=["retrieval-augmented-generation-ai"],
             streaming=False,
         )

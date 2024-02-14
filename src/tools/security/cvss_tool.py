@@ -1,6 +1,8 @@
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_llm
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.configuration.model_configuration import ModelConfiguration
+from src.db.models.user_settings import UserSettings
 
 
 @tool_class
@@ -28,11 +30,17 @@ class CvssTool:
             vulnerability_data (str): The vulnerability data to evaluate.
         """
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.create_cvss_evaluation.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name=f"{self.create_cvss_evaluation.__name__}_model_configuration",
+            default_value=ModelConfiguration.default().model_dump(),
+        ).setting_value
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         identify_vulnerable_component_prompt = (

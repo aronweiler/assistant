@@ -7,6 +7,9 @@ import asyncio
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 import requests
+from src.db.database.tables import UserSetting
+from src.db.models.domain.user_settings_model import UserSettingModel
+from src.db.models.user_settings import UserSettings
 
 
 import src.ui.code_tab as code_tab
@@ -702,7 +705,7 @@ def ingest_files(
                             len(matching_documents) == existing_file.document_count
                             or existing_file.document_count == 0
                         ):
-                            files.append(existing_file)                            
+                            files.append(existing_file)
                         else:
                             st.error(
                                 f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
@@ -1210,7 +1213,9 @@ def handle_chat(main_window_container, ai_instance, configuration):
 }
 """
 
-    with stylable_container(key="enabled_tools_container", css_styles=css_style):
+    with stylable_container(
+        key="additional_configuration_container", css_styles=css_style
+    ):
         col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 2, 1, 2])
 
         help_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
@@ -1243,15 +1248,29 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 unsafe_allow_html=True,
             )
 
+            evaluate_response = UserSettings().get_user_setting(
+                user_id=ai_instance.conversation_manager.user_id,
+                setting_name="evaluate_response",
+                default_value=False,
+            )
+
+            re_planning_threshold = UserSettings().get_user_setting(
+                user_id=ai_instance.conversation_manager.user_id,
+                setting_name="re_planning_threshold",
+                default_value=0.5,
+            )
+
             col4.toggle(
                 label="Evaluate Response",
                 label_visibility="collapsed",
-                value=bool(
-                    get_app_configuration()["jarvis_ai"].get("evaluate_response", False)
-                ),
+                value=bool(evaluate_response.setting_value),
                 key="evaluate_response",
                 help="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.",
-                on_change=set_evaluate_response,
+                on_change=save_user_setting,
+                kwargs={
+                    "setting_name": "evaluate_response",
+                    "available_for_llm": evaluate_response.available_for_llm,
+                },
             )
 
             col5.markdown(
@@ -1265,17 +1284,28 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 key="re_planning_threshold",
                 min_value=0.0,
                 max_value=1.0,
-                value=float(
-                    get_app_configuration()["jarvis_ai"].get(
-                        "re_planning_threshold", 0.6
-                    )
-                ),
+                value=float(re_planning_threshold.setting_value),
                 step=0.1,
                 help="Threshold at which the AI will re-enter a planning stage.",
-                on_change=set_re_planning_threshold,
+                on_change=save_user_setting,
+                kwargs={
+                    "setting_name": "re_planning_threshold",
+                    "available_for_llm": re_planning_threshold.available_for_llm,
+                },
             )
 
         else:
+            frequency_penalty = UserSettings().get_user_setting(
+                user_id=ai_instance.conversation_manager.user_id,
+                setting_name="frequency_penalty",
+                default_value=0,
+            )
+            presence_penalty = UserSettings().get_user_setting(
+                user_id=ai_instance.conversation_manager.user_id,
+                setting_name="presence_penalty",
+                default_value=0,
+            )
+
             col3.markdown(
                 f'<div align="right" title="Positive values will decrease the likelihood of the model repeating the same line verbatim by penalizing new tokens that have already been used frequently.">{help_icon} <b>Frequency Penalty:</b></div>',
                 unsafe_allow_html=True,
@@ -1287,13 +1317,17 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 key="frequency_penalty",
                 min_value=-2.0,
                 max_value=2.0,
-                value=float(
-                    get_app_configuration()["jarvis_ai"].get("frequency_penalty", 0)
-                ),
+                value=float(frequency_penalty.setting_value),
                 step=0.1,
                 help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
-                on_change=set_frequency_penalty,
-                disabled=not st.session_state.get("ai_mode", "auto").lower().startswith("conversation"),
+                disabled=not st.session_state.get("ai_mode", "auto")
+                .lower()
+                .startswith("conversation"),
+                on_change=save_user_setting,
+                kwargs={
+                    "setting_name": "frequency_penalty",
+                    "available_for_llm": frequency_penalty.available_for_llm,
+                },
             )
 
             col5.markdown(
@@ -1307,13 +1341,17 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 key="presence_penalty",
                 min_value=-2.0,
                 max_value=2.0,
-                value=float(
-                    get_app_configuration()["jarvis_ai"].get("presence_penalty", 0.6)
-                ),
+                value=float(presence_penalty.setting_value),
                 step=0.1,
                 help="The higher the penalty, the more variety of words will be introduced in the completion.",
-                on_change=set_presence_penalty,
-                disabled=not st.session_state.get("ai_mode", "auto").lower().startswith("conversation"),
+                disabled=not st.session_state.get("ai_mode", "auto")
+                .lower()
+                .startswith("conversation"),
+                on_change=save_user_setting,
+                kwargs={
+                    "setting_name": "presence_penalty",
+                    "available_for_llm": presence_penalty.available_for_llm,
+                },
             )
 
     if prompt:
@@ -1328,8 +1366,14 @@ def handle_chat(main_window_container, ai_instance, configuration):
 
                 thought_container = st.container()
                 llm_container = st.container().empty()
+                
+                show_llm_thoughts = UserSettings().get_user_setting(
+                    user_id=ai_instance.conversation_manager.user_id,
+                    setting_name="show_llm_thoughts",
+                    default_value=False,
+                ).setting_value
 
-                if configuration["jarvis_ai"].get("show_llm_thoughts", False):
+                if show_llm_thoughts:
                     llm_callback = StreamlitStreamingOnlyCallbackHandler(llm_container)
                     agent_callback = StreamlitCallbackHandler(
                         parent_container=thought_container,
@@ -1429,33 +1473,20 @@ def set_search_top_k():
     set_jarvis_ai_config_element("search_top_k", st.session_state["search_top_k"])
 
 
-def set_frequency_penalty():
-    set_jarvis_ai_config_element(
-        "frequency_penalty", st.session_state["frequency_penalty"]
-    )
+def save_user_setting(setting_name, available_for_llm=False):
+    user_id = st.session_state.user_id
+    setting_value = st.session_state[setting_name]
 
-
-def set_re_planning_threshold():
-    set_jarvis_ai_config_element(
-        "re_planning_threshold", st.session_state["re_planning_threshold"]
-    )
-
-
-def set_evaluate_response():
-    set_jarvis_ai_config_element(
-        "evaluate_response", st.session_state["evaluate_response"]
-    )
-
-
-def set_presence_penalty():
-    set_jarvis_ai_config_element(
-        "presence_penalty", st.session_state["presence_penalty"]
+    UserSettings().add_update_user_setting(
+        user_id, setting_name, setting_value, available_for_llm
     )
 
 
 def set_ai_mode():
     ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
-    ai.conversation_manager.set_user_setting("ai_mode", st.session_state.get("ai_mode", "auto"))
+    ai.conversation_manager.set_user_setting(
+        "ai_mode", st.session_state.get("ai_mode", "auto")
+    )
 
 
 def update_conversation_name():

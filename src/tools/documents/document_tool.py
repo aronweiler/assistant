@@ -29,6 +29,8 @@ from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_loader import get_available_tools
 from src.ai.tools.tool_manager import ToolManager
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.configuration.model_configuration import ModelConfiguration
+from src.db.models.user_settings import UserSettings
 from src.utilities.parsing_utilities import parse_json
 
 from src.utilities.token_helper import num_tokens_from_string
@@ -38,7 +40,7 @@ from src.db.models.documents import Documents
 from src.db.models.pgvector_retriever import PGVectorRetriever
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_llm
 import src.utilities.configuration_utilities as configuration_utilities
 
 
@@ -95,15 +97,16 @@ class DocumentTool:
 
             # If there are more than 0 additional prompts, we need to create them
             if split_prompts > 1:
-                llm = get_tool_llm(
-                    configuration=self.configuration,
-                    func_name=self.search_loaded_documents.__name__,
+                # Get the setting for the tool model
+                tool_model_configuration = UserSettings().get_user_setting(
+                    user_id=self.conversation_manager.user_id,
+                    setting_name=f"{self.search_loaded_documents.__name__}_model_configuration",
+                    default_value=ModelConfiguration.default().model_dump(),
+                ).setting_value
+
+                llm = get_llm(
+                    model_configuration=tool_model_configuration,
                     streaming=True,
-                    # Crank up the frequency and presence penalties to make the LLM give us more variety
-                    model_kwargs={
-                        "frequency_penalty": 0.7,
-                        "presence_penalty": 0.9,
-                    },
                     callbacks=self.conversation_manager.agent_callbacks,
                 )
 
@@ -250,9 +253,15 @@ class DocumentTool:
                 f"CONTENT: \n{document.document_text}\nSOURCE: file_id='{document.file_id}', file_name='{document.document_name}' {page_or_line}"
             )
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.search_loaded_documents.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name=f"{self.search_loaded_documents.__name__}_model_configuration",
+            default_value=ModelConfiguration.default().model_dump(),
+        ).setting_value
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
             callbacks=self.conversation_manager.agent_callbacks,
         )
@@ -300,11 +309,17 @@ class DocumentTool:
 
             target_file_id (int): The file_id you got from the list of loaded files"""
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.summarize_entire_document.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name=f"{self.summarize_entire_document.__name__}_model_configuration",
+            default_value=ModelConfiguration.default().model_dump(),
+        ).setting_value
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         return self.summarize_entire_document_with_llm(llm, target_file_id)
@@ -393,11 +408,17 @@ class DocumentTool:
                 )
             )
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.summarize_search_topic.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name=f"{self.summarize_search_topic.__name__}_model_configuration",
+            default_value=ModelConfiguration.default().model_dump(),
+        ).setting_value
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         summary = self.refine_summarize(llm=llm, query=query, docs=docs)

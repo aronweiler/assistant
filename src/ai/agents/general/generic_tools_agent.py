@@ -29,7 +29,7 @@ from src.ai.prompts.prompt_models.tool_use import (
 )
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_manager import ToolManager
-from src.configuration.assistant_configuration import ModelConfiguration
+from src.configuration.model_configuration import ModelConfiguration
 from src.utilities.configuration_utilities import get_app_configuration
 
 from src.utilities.parsing_utilities import parse_json

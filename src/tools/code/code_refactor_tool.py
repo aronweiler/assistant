@@ -10,13 +10,15 @@ from src.ai.prompts.prompt_models.code_refactor import (
 )
 from src.ai.prompts.query_helper import QueryHelper
 from src.ai.tools.tool_registry import register_tool, tool_class
+from src.configuration.model_configuration import ModelConfiguration
+from src.db.models.user_settings import UserSettings
 
 from src.tools.code.code_retriever_tool import CodeRetrieverTool
 
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.utilities.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_llm
 
 
 # Importing database models and utilities.
@@ -52,6 +54,7 @@ class CodeRefactorTool:
         description="Perform a code refactor on a loaded document, a URL, or a repository file.",
         additional_instructions="Use this tool for conducting a code refactor on a loaded document, a URL, or a repository file. Make sure to understand and pass the correct argument (either `loaded_document_id`, `url`, or `repository_file_id`) based on the user's request.  If the user specifies a URL, do not use the loaded repository, instead pass the URL in here.  Use the additional_instructions field to pass additional code refactor instructions from the user, if any.",
         category="Code",
+        requires_llm=True,
     )
     def conduct_code_refactor(
         self,
@@ -95,9 +98,15 @@ class CodeRefactorTool:
         if code_file_token_count > max_token_count:
             return f"File is too large to be refactored ({code_file_token_count} tokens). Adjust max code refactor tokens, or refactor this code file so that it's smaller."
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.conduct_code_refactor.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = UserSettings().get_user_setting(
+            user_id=self.conversation_manager.user_id,
+            setting_name=f"{self.conduct_code_refactor.__name__}_model_configuration",
+            default_value=ModelConfiguration.default().model_dump(),
+        ).setting_value
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
             callbacks=self.conversation_manager.agent_callbacks,
         )

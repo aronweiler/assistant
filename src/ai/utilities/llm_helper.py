@@ -3,11 +3,12 @@ import os
 from enum import Enum
 
 from langchain_openai import ChatOpenAI
+
 # from langchain.llms.llamacpp import LlamaCpp
 from langchain_core.language_models import BaseLanguageModel
 
 from src.utilities.openai_utilities import get_openai_api_key
-from src.configuration.assistant_configuration import ModelConfiguration
+from src.configuration.model_configuration import ModelConfiguration
 import src.utilities.configuration_utilities as configuration_utilities
 
 # Singleton instance of Llama2 LLM to avoid reinitialization
@@ -39,15 +40,6 @@ def get_llm(model_configuration: ModelConfiguration, **kwargs) -> BaseLanguageMo
         raise ValueError(f"Unsupported LLM type: {llm_type}")
 
 
-def get_tool_llm(configuration: dict, func_name: str, **kwargs) -> BaseLanguageModel:
-    """Retrieves the LLM based on the tool configuration."""
-    tool_config = configuration_utilities.get_tool_configuration(
-        configuration=configuration, func_name=func_name
-    )
-
-    return get_llm(model_configuration=tool_config["model_configuration"], **kwargs)
-
-
 def _get_openai_llm(model_configuration, **kwargs):
     """Initializes and returns an OpenAI LLM instance."""
     max_tokens = model_configuration.max_completion_tokens
@@ -71,8 +63,11 @@ def _get_openai_llm(model_configuration, **kwargs):
 
     return llm
 
+
 def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
     raise NotImplementedError("LLAMA2 LLM is not supported.")
+
+
 # def _get_llama2_llm(model_configuration: ModelConfiguration, **kwargs):
 #     """Initializes and returns a LlamaCpp LLM instance, reusing a singleton if already initialized."""
 #     global llama2_llm

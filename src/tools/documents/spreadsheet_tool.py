@@ -15,10 +15,12 @@ from langchain.schema.language_model import BaseLanguageModel
 
 
 from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_tool_llm
+from src.ai.utilities.llm_helper import get_llm
+from src.configuration.model_configuration import ModelConfiguration
 
 from src.db.models.domain.file_model import FileModel
 from src.db.models.documents import Documents
+from src.db.models.user_settings import UserSettings
 
 
 class SpreadsheetsTool:
@@ -55,11 +57,21 @@ class SpreadsheetsTool:
     def query_spreadsheet_pandas(self, query: str, target_file_id: int):
         file = self.document_helper.get_file(target_file_id)
 
-        llm = get_tool_llm(
-            configuration=self.configuration,
-            func_name=self.query_spreadsheet_pandas.__name__,
+        # Get the setting for the tool model
+        tool_model_configuration = (
+            UserSettings()
+            .get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name=f"{self.query_spreadsheet_pandas.__name__}_model_configuration",
+                default_value=ModelConfiguration.default().model_dump(),
+            )
+            .setting_value
+        )
+
+        llm = get_llm(
+            model_configuration=tool_model_configuration,
             streaming=True,
-            # callbacks=self.conversation_manager.agent_callbacks,
+            callbacks=self.conversation_manager.agent_callbacks,
         )
 
         agent = self.create_pandas_agent(llm=llm, files=[file])
