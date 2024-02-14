@@ -1,5 +1,16 @@
 {
   "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Debug OpenAI Jarvis and Voice Jarvis",
+      "configurations": ["OpenAI Jarvis", "Voice Jarvis"],
+      "preLaunchTask": "", // Optional: Specify a task to run before launching the debug session
+      "presentation": {
+        "group": "", // Optional: Group in the Debug viewlet
+        "order": 0 // Optional: Order within the group
+      }
+    }
+  ],
   "configurations": [
     {
       "name": "Discord RAG Bot",
@@ -48,7 +59,7 @@
       //"cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true
-    },
+    },    
     {
       "name": "OpenAI Jarvis",
       "type": "python",
