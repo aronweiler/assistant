@@ -61,11 +61,13 @@ class RagUI:
 
             jarvis_ai_model_configuration = ModelConfiguration(
                 **json.loads(
-                    UserSettings().get_user_setting(
+                    UserSettings()
+                    .get_user_setting(
                         user.id,
                         "jarvis_ai_model_configuration",
                         default_value=ModelConfiguration.default().model_dump_json(),
-                    ).setting_value
+                    )
+                    .setting_value
                 )
             )
 
@@ -142,6 +144,19 @@ class RagUI:
                             st.divider()
                             st.markdown("#### Options")
 
+                            search_type = UserSettings().get_user_setting(
+                                user_id=st.session_state.user_id,
+                                setting_name="search_type",
+                                default_value="Hybrid",
+                                default_available_for_llm=True,
+                            )
+                            search_top_k = UserSettings().get_user_setting(
+                                user_id=st.session_state.user_id,
+                                setting_name="search_top_k",
+                                default_value=10,
+                                default_available_for_llm=True,
+                            )
+
                             with st.expander(
                                 "Search", expanded=False
                             ):  # , expanded=expanded):
@@ -151,21 +166,24 @@ class RagUI:
                                     help="Similarity search will find semantically similar phrases.\n\nKeyword search (think SQL LIKE statement) will find documents containing specific words.\n\nHybrid search uses both.",
                                     options=search_types,
                                     key="search_type",
-                                    index=search_types.index(
-                                        st.session_state["app_config"]["jarvis_ai"].get(
-                                            "search_type", "Similarity"
-                                        )
-                                    ),
-                                    on_change=ui_shared.set_search_type,
+                                    index=search_types.index(search_type.setting_value),
+                                    on_change=ui_shared.save_user_setting,
+                                    kwargs={
+                                        "setting_name": "search_type",
+                                        "available_for_llm": search_type.available_for_llm,
+                                    },
                                 )
                                 st.number_input(
                                     "Top K (number of document chunks to use in searches)",
                                     key="search_top_k",
                                     help="The number of document chunks to use in searches. Higher numbers will take longer to search, but will possibly yield better results.  Note: a higher number will use more of the model's context window.",
-                                    value=st.session_state["app_config"][
-                                        "jarvis_ai"
-                                    ].get("search_top_k", 10),
-                                    on_change=ui_shared.set_search_top_k,
+                                    value=int(search_top_k.setting_value),
+                                    on_change=ui_shared.save_user_setting,
+                                    step=1,
+                                    kwargs={
+                                        "setting_name": "search_top_k",
+                                        "available_for_llm": search_top_k.available_for_llm,
+                                    },
                                 )
 
                             with st.expander("Advanced"):
@@ -295,9 +313,7 @@ if __name__ == "__main__":
 
             # Time the operation
             start_time = time.time()
-            ui_shared.handle_chat(
-                col1, st.session_state["rag_ai"], st.session_state["app_config"]
-            )
+            ui_shared.handle_chat(col1, st.session_state["rag_ai"])
             logging.info(f"Time to handle chat: {time.time() - start_time}")
 
             # Time the operation

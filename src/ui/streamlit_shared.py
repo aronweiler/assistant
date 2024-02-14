@@ -1185,7 +1185,7 @@ def show_old_messages(ai_instance):
                     )
 
 
-def handle_chat(main_window_container, ai_instance, configuration):
+def handle_chat(main_window_container, ai_instance):
     with main_window_container.container():
         # Get the AI instance from session state
         if not ai_instance:
@@ -1366,12 +1366,16 @@ def handle_chat(main_window_container, ai_instance, configuration):
 
                 thought_container = st.container()
                 llm_container = st.container().empty()
-                
-                show_llm_thoughts = UserSettings().get_user_setting(
-                    user_id=ai_instance.conversation_manager.user_id,
-                    setting_name="show_llm_thoughts",
-                    default_value=False,
-                ).setting_value
+
+                show_llm_thoughts = (
+                    UserSettings()
+                    .get_user_setting(
+                        user_id=ai_instance.conversation_manager.user_id,
+                        setting_name="show_llm_thoughts",
+                        default_value=False,
+                    )
+                    .setting_value
+                )
 
                 if show_llm_thoughts:
                     llm_callback = StreamlitStreamingOnlyCallbackHandler(llm_container)
@@ -1453,24 +1457,6 @@ def handle_chat(main_window_container, ai_instance, configuration):
                 logging.debug(f"Result: {result}")
 
                 llm_container.markdown(result)
-
-
-def set_jarvis_ai_config_element(key, value):
-    configuration = get_app_configuration()
-
-    configuration["jarvis_ai"][key] = value
-
-    ApplicationConfigurationLoader.save_to_file(configuration, get_app_config_path())
-
-    st.session_state["app_config"] = configuration
-
-
-def set_search_type():
-    set_jarvis_ai_config_element("search_type", st.session_state["search_type"])
-
-
-def set_search_top_k():
-    set_jarvis_ai_config_element("search_top_k", st.session_state["search_top_k"])
 
 
 def save_user_setting(setting_name, available_for_llm=False):
