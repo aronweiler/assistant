@@ -1260,8 +1260,6 @@ def handle_chat(main_window_container, ai_instance):
                 unsafe_allow_html=True,
             )
 
-            print(f"**** Evaluate Response: {evaluate_response.setting_value} / {bool(evaluate_response.setting_value)}")
-
             col4.toggle(
                 label="Evaluate Response",
                 label_visibility="collapsed",
@@ -1301,12 +1299,12 @@ def handle_chat(main_window_container, ai_instance):
             frequency_penalty = UserSettings().get_user_setting(
                 user_id=ai_instance.conversation_manager.user_id,
                 setting_name="frequency_penalty",
-                default_value=0,
+                default_value=0.3,
             )
             presence_penalty = UserSettings().get_user_setting(
                 user_id=ai_instance.conversation_manager.user_id,
                 setting_name="presence_penalty",
-                default_value=0,
+                default_value=0.7,
             )
 
             col3.markdown(
@@ -1375,7 +1373,7 @@ def handle_chat(main_window_container, ai_instance):
                     .get_user_setting(
                         user_id=ai_instance.conversation_manager.user_id,
                         setting_name="show_llm_thoughts",
-                        default_value=False,
+                        default_value=True,
                     )
                     .setting_value
                 )

@@ -56,24 +56,11 @@ class RagUI:
         else:
             selected_conversation_id = ui_shared.get_selected_conversation_id()
 
+        user = Users().get_user_by_email(user_email)
+
         if "rag_ai" not in st.session_state:
-            user = Users().get_user_by_email(user_email)
-
-            jarvis_ai_model_configuration = ModelConfiguration(
-                **json.loads(
-                    UserSettings()
-                    .get_user_setting(
-                        user.id,
-                        "jarvis_ai_model_configuration",
-                        default_value=ModelConfiguration.default().model_dump_json(),
-                    )
-                    .setting_value
-                )
-            )
-
-            self.prompt_manager = PromptManager(
-                llm_type=jarvis_ai_model_configuration.llm_type
-            )
+            # Reload the prompt manager
+            self.set_prompt_manager(user)
 
             # First time loading the page
             logging.debug("load_ai: no ai in session state, creating a new one")
@@ -90,6 +77,9 @@ class RagUI:
         elif selected_conversation_id and selected_conversation_id != str(
             st.session_state["rag_ai"].conversation_manager.conversation_id
         ):
+            # Reload the prompt manager
+            self.set_prompt_manager(user)
+
             logging.debug(
                 f"load_ai: AI instance exists, but need to change conversation ID from {str(st.session_state['rag_ai'].conversation_manager.conversation_id)} to {selected_conversation_id}"
             )
@@ -106,6 +96,23 @@ class RagUI:
             logging.debug(
                 "load_ai: AI instance exists, no need to change conversation ID"
             )
+
+    def set_prompt_manager(self, user):
+        jarvis_ai_model_configuration = ModelConfiguration(
+            **json.loads(
+                UserSettings()
+                .get_user_setting(
+                    user.id,
+                    "jarvis_ai_model_configuration",
+                    default_value=ModelConfiguration.default().model_dump_json(),
+                )
+                .setting_value
+            )
+        )
+
+        self.prompt_manager = PromptManager(
+            llm_type=jarvis_ai_model_configuration.llm_type
+        )
 
     def create_collections_container(self, main_window_container):
         css_style = """{
