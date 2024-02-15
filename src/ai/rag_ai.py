@@ -72,21 +72,30 @@ class RetrievalAugmentedGenerationAI:
         user = Users().get_user_by_email(user_email)
         user_settings = UserSettings()
 
+        # Special case
+        default_jarvis_model = ModelConfiguration.default()
+        # Ensure that the main model uses conversation history if its never been used before
+        default_jarvis_model.uses_conversation_history = True
+        default_jarvis_model.max_conversation_history_tokens = 16384
+
         self.jarvis_ai_model_configuration = ModelConfiguration(
-            **json.loads(user_settings.get_user_setting(
-                user.id,
-                "jarvis_ai_model_configuration",
-                default_value=ModelConfiguration.default().model_dump_json(),
-            ).setting_value)
+            **json.loads(
+                user_settings.get_user_setting(
+                    user.id,
+                    "jarvis_ai_model_configuration",
+                    default_value=default_jarvis_model.model_dump_json(),
+                ).setting_value
+            )
         )
 
         self.file_ingestion_model_configuration = ModelConfiguration(
-            **json.loads(user_settings.get_user_setting(
+            **json.loads(
+                user_settings.get_user_setting(
                     user.id,
                     "file_ingestion_model_configuration",
                     default_value=ModelConfiguration.default().model_dump_json(),
-                ).setting_value)
-            
+                ).setting_value
+            )
         )
 
         # Set up the conversation manager

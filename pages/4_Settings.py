@@ -171,12 +171,18 @@ def jarvis_ai_settings(conversation_manager: ConversationManager):
     # Flag to indicate if we need to save the settings
     needs_saving = False
 
+    # Special case
+    default_jarvis_model = ModelConfiguration.default()        
+    # Ensure that the main model uses conversation history if its never been used before
+    default_jarvis_model.uses_conversation_history = True
+    default_jarvis_model.max_conversation_history_tokens = 16384    
+
     jarvis_setting = json.loads(
         UserSettings()
         .get_user_setting(
             conversation_manager.user_id,
             "jarvis_ai_model_configuration",
-            default_value=ModelConfiguration.default().model_dump_json(),
+            default_value=default_jarvis_model.model_dump_json(),
         )
         .setting_value
     )
@@ -204,14 +210,14 @@ def jarvis_ai_settings(conversation_manager: ConversationManager):
     st.markdown("### Jarvis AI Model Settings")
 
     generate_model_settings(
-        tool_name="jarvis",
+        tool_name="jarvis_ai",
         model_configuration=jarvis_ai_model_configuration,
         available_models=ui_shared.get_available_models(),
         conversation_manager=conversation_manager,
     )
 
     needs_saving = model_configuration_needs_saving(
-        tool_name="jarvis",
+        tool_name="jarvis_ai",
         existing_model_configuration=jarvis_ai_model_configuration,
         needs_saving=needs_saving,
     )
@@ -233,7 +239,7 @@ def jarvis_ai_settings(conversation_manager: ConversationManager):
 
     if needs_saving:
         st.toast(f"Saving Jarvis AI settings...")
-        save_jarvis_settings_to_file(
+        save_jarvis_settings(
             jarvis_ai_model_configuration=jarvis_ai_model_configuration,
             file_ingestion_model_configuration=file_ingestion_model_configuration,
             conversation_manager=conversation_manager,
@@ -246,7 +252,7 @@ def show_thoughts(conversation_manager: ConversationManager):
     existing_show_thoughts = bool(
         UserSettings()
         .get_user_setting(
-            conversation_manager.user_id, "show_llm_thoughts", default_value=False
+            conversation_manager.user_id, "show_llm_thoughts", default_value=True
         )
         .setting_value
     )
@@ -917,7 +923,7 @@ def save_jama_settings_to_file(
     st.success("Jama settings saved successfully!")
 
 
-def save_jarvis_settings_to_file(
+def save_jarvis_settings(
     jarvis_ai_model_configuration: ModelConfiguration,
     file_ingestion_model_configuration: ModelConfiguration,
     conversation_manager: ConversationManager,
