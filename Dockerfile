@@ -15,13 +15,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the Python requirements file into the container at /app
-COPY requirements.txt /app
-# Install the Python dependencies defined in requirements.txt
-RUN pip3 install -r requirements.txt
+COPY requirements-ui.txt /app
+RUN pip3 install -r requirements-ui.txt
+
+# Copy the Python requirements file into the container at /app
+COPY requirements-services.txt /app
+RUN pip3 install -r requirements-services.txt
 
 # Copy the Discord requirements file into the container at /app
 COPY discord_requirements.txt /app
-# Install the Python dependencies defined in discord_requirements.txt
 RUN pip3 install -r discord_requirements.txt
 
 # Copy the local files to the image
