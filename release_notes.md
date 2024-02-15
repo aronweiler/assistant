@@ -1,3 +1,7 @@
+### February 14, 2024 -- RELEASE NOTES: Jarvis 0.78
+- Refactored the majority of settings so that they are user-specific and stored in the database.
+- Fixed various bugs introduced by this change.
+
 ### February 12, 2024 -- RELEASE NOTES: Jarvis 0.77
 - Refactored code repo ingestion, extracting code dependencies into a new database table.
 - Refactored embeddings to be more configurable (configured in `config.json`).
