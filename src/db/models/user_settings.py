@@ -19,33 +19,67 @@ class UserSettings(VectorDatabase):
                 UserSettingModel.from_database_model(db_model) for db_model in db_models
             ]
 
+    def cast_to_type(self, value, to_type):
+        if to_type == bool:
+            # If the type is already a boolean, just return it
+            if isinstance(value, bool):
+                return value
+
+            return value.lower() in ("true", "1", "t")
+        else:
+            return to_type(value)
+
     def get_user_setting(
-        self, user_id, setting_name, default_value=None, default_available_for_llm=False
+        self,
+        user_id,
+        setting_name,
+        target_type: type = None,
+        default_value=None,
+        default_available_for_llm=False,
     ):
         with self.session_context(self.Session()) as session:
             db_model = (
                 session.query(UserSetting)
                 .filter(
                     UserSetting.user_id == user_id,
-                    UserSetting.setting_name == setting_name
+                    UserSetting.setting_name == setting_name,
                 )
                 .first()
             )
 
             if db_model:
-                return UserSettingModel.from_database_model(db_model)
+                user_setting = UserSettingModel.from_database_model(db_model)
+
             elif default_value is not None:
-                return UserSettingModel(user_id, setting_name, default_value, default_available_for_llm)
+                user_setting = UserSettingModel(
+                    user_id, setting_name, default_value, default_available_for_llm
+                )
             else:
                 return None
 
-    def add_update_user_setting(self, user_id, setting_name, setting_value, available_for_llm=False):
+            # Cast it to the target type if it is not None
+            # I hate python's type system.
+            # This would be so much better in a statically typed language.
+            if target_type is not None:
+                user_setting.setting_value = self.cast_to_type(
+                    value=user_setting.setting_value, to_type=type(target_type)
+                )
+            elif default_value is not None:
+                user_setting.setting_value = self.cast_to_type(
+                    value=user_setting.setting_value, to_type=type(default_value)
+                )
+
+            return user_setting
+
+    def add_update_user_setting(
+        self, user_id, setting_name, setting_value, available_for_llm=False
+    ):
         with self.session_context(self.Session()) as session:
             existing_setting = (
                 session.query(UserSetting)
                 .filter(
                     UserSetting.user_id == user_id,
-                    UserSetting.setting_name == setting_name,                    
+                    UserSetting.setting_name == setting_name,
                 )
                 .first()
             )
