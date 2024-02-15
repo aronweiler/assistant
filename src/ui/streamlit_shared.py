@@ -1243,11 +1243,6 @@ def handle_chat(main_window_container, ai_instance):
         )
 
         if st.session_state.get("ai_mode", "auto").lower().startswith("auto"):
-            col3.markdown(
-                f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Answer:</b></div>',
-                unsafe_allow_html=True,
-            )
-
             evaluate_response = UserSettings().get_user_setting(
                 user_id=ai_instance.conversation_manager.user_id,
                 setting_name="evaluate_response",
@@ -1258,6 +1253,11 @@ def handle_chat(main_window_container, ai_instance):
                 user_id=ai_instance.conversation_manager.user_id,
                 setting_name="re_planning_threshold",
                 default_value=0.5,
+            )
+            
+            col3.markdown(
+                f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Response:</b></div>',
+                unsafe_allow_html=True,
             )
 
             col4.toggle(
@@ -1287,7 +1287,8 @@ def handle_chat(main_window_container, ai_instance):
                 value=float(re_planning_threshold.setting_value),
                 step=0.1,
                 help="Threshold at which the AI will re-enter a planning stage.",
-                on_change=save_user_setting,
+                disabled=bool(st.session_state['evaluate_response']) == False,
+                on_change=save_user_setting,                
                 kwargs={
                     "setting_name": "re_planning_threshold",
                     "available_for_llm": re_planning_threshold.available_for_llm,
@@ -1298,12 +1299,12 @@ def handle_chat(main_window_container, ai_instance):
             frequency_penalty = UserSettings().get_user_setting(
                 user_id=ai_instance.conversation_manager.user_id,
                 setting_name="frequency_penalty",
-                default_value=0,
+                default_value=0.3,
             )
             presence_penalty = UserSettings().get_user_setting(
                 user_id=ai_instance.conversation_manager.user_id,
                 setting_name="presence_penalty",
-                default_value=0,
+                default_value=0.7,
             )
 
             col3.markdown(
@@ -1372,7 +1373,7 @@ def handle_chat(main_window_container, ai_instance):
                     .get_user_setting(
                         user_id=ai_instance.conversation_manager.user_id,
                         setting_name="show_llm_thoughts",
-                        default_value=False,
+                        default_value=True,
                     )
                     .setting_value
                 )
