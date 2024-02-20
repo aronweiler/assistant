@@ -34,6 +34,21 @@ def register_tool(
     return_direct:bool = False,
     requires_llm:bool = False,
 ):
+    """Decorator to register a tool function along with its metadata.
+    
+    Args:
+        display_name (str): The display name of the tool.
+        description (str): The description of the tool.
+        additional_instructions (str, optional): Additional instructions for the tool. Defaults to None.
+        help_text (str, optional): The help text for the tool. Defaults to None.
+        requires_documents (bool, optional): Whether the tool requires documents. Defaults to False.
+        requires_repository (bool, optional): Whether the tool requires a repository. Defaults to False.
+        document_classes (list[str], optional): The list of document classes the tool can handle. Defaults to [].
+        category (str, optional): The category of the tool. Defaults to None.
+        enabled_by_default (bool, optional): Whether the tool is enabled by default. Defaults to True.
+        include_in_conversation (bool, optional): Whether the tool is included in the conversation. Defaults to False.
+        return_direct (bool, optional): Whether the tool returns directly. Defaults to False.
+        requires_llm (bool, optional): Whether the tool requires an LLM. Defaults to False."""
     # If no help_text is provided, use the description as help_text
     if help_text is None:
         help_text = description

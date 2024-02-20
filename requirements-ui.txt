@@ -14,7 +14,9 @@ sqlalchemy
 
 # AI
 openai
-langchain
+langchain==0.1.6
+langchain-community==0.0.19
+langchain-core==0.1.23
 langchain-openai
 langchain-experimental
 transformers

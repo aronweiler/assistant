@@ -889,7 +889,7 @@ def save_split_documents(
     current_chunk = 0
     for file in files:
         logging.info(
-            f"Processing {len(file_documents[file.file_name])} chunks for {file.file_name}"
+            f"Processing {len(file_documents[file.file_name]) if file.file_name in file_documents else 0} chunks for {file.file_name}"
         )
 
         if not file:
@@ -905,7 +905,7 @@ def save_split_documents(
             "current_document_count"
         ]
 
-        file_doc_chunk_len = len(file_documents[file.file_name])
+        file_doc_chunk_len = len(file_documents[file.file_name]) if file.file_name in file_documents else 0
         for index in range(current_document_count, file_doc_chunk_len):
             # TODO: Fix the progress bar
             ingest_progress_bar.progress(
@@ -1407,12 +1407,7 @@ def handle_chat(main_window_container, ai_instance):
                         st.session_state["search_type"]
                         if "search_type" in st.session_state
                         else "Similarity"
-                    ),
-                    "use_pandas": (
-                        st.session_state["use_pandas"]
-                        if "use_pandas" in st.session_state
-                        else True
-                    ),
+                    ),                    
                     "override_file": (
                         st.session_state["override_file"].split(":")[0]
                         if "override_file" in st.session_state

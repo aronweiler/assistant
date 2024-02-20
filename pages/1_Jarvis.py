@@ -220,12 +220,6 @@ class RagUI:
                                     key="max_iterations",
                                     value=25,
                                 )
-
-                                st.toggle(
-                                    "Use Pandas for Spreadsheets",
-                                    key="use_pandas",
-                                    value=True,
-                                )
                         else:
                             st.warning("No collection selected")
 
