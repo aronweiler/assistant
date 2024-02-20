@@ -1407,12 +1407,7 @@ def handle_chat(main_window_container, ai_instance):
                         st.session_state["search_type"]
                         if "search_type" in st.session_state
                         else "Similarity"
-                    ),
-                    "use_pandas": (
-                        st.session_state["use_pandas"]
-                        if "use_pandas" in st.session_state
-                        else True
-                    ),
+                    ),                    
                     "override_file": (
                         st.session_state["override_file"].split(":")[0]
                         if "override_file" in st.session_state
