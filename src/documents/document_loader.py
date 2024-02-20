@@ -106,9 +106,20 @@ class DocumentLoader:
         loader_class = self.DOCUMENT_TYPES.get(file_extension.lower())
 
         if loader_class:
-            loader = loader_class(file_path)
+            # This is where I would look to handle special cases for different file types
+            documents = None
+            if loader_class is UnstructuredExcelLoader:
+                # Speacial case for excel files
+                return []
+            else:
+                # No special case
+                loader = loader_class(file_path)
+                
             try:
-                documents = loader.load()
+                if not documents:
+                    # If we haven't loaded the documents yet, load them
+                    documents = loader.load()
+                    
                 for doc in documents:
                     doc.metadata["filename"] = os.path.basename(
                         self.converted_file_maps.get(file_path, file_path)
@@ -204,7 +215,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
     # Test loading and splitting documents
-    source = "/Repos/sample_docs/cpp/Dave/StateMachine"
+    source = "/Repos/assistant/temp/ff840ec4-9f94-49b3-b211-77a85d65c8a0"
     document_loader = DocumentLoader()
     documents = asyncio.run(
         document_loader.load_and_split_documents(
