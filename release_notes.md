@@ -1,3 +1,6 @@
+### February 20, 2024 -- RELEASE NOTES: Jarvis 0.79
+- Re-enabled the spreadsheet tool, which uses Pandas to query loaded spreadsheets.
+
 ### February 14, 2024 -- RELEASE NOTES: Jarvis 0.78
 - Refactored the majority of settings so that they are user-specific and stored in the database.
 - Fixed various bugs introduced by this change.
