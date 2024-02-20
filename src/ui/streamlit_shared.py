@@ -889,7 +889,7 @@ def save_split_documents(
     current_chunk = 0
     for file in files:
         logging.info(
-            f"Processing {len(file_documents[file.file_name])} chunks for {file.file_name}"
+            f"Processing {len(file_documents[file.file_name]) if file.file_name in file_documents else 0} chunks for {file.file_name}"
         )
 
         if not file:
@@ -905,7 +905,7 @@ def save_split_documents(
             "current_document_count"
         ]
 
-        file_doc_chunk_len = len(file_documents[file.file_name])
+        file_doc_chunk_len = len(file_documents[file.file_name]) if file.file_name in file_documents else 0
         for index in range(current_document_count, file_doc_chunk_len):
             # TODO: Fix the progress bar
             ingest_progress_bar.progress(
