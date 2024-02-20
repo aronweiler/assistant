@@ -3,6 +3,7 @@ from io import IOBase
 import os
 import logging
 import json
+import sys
 from typing import Any, List, Optional, Union
 
 import pandas as pd
@@ -13,8 +14,10 @@ from langchain.agents.agent import AgentExecutor
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain.schema.language_model import BaseLanguageModel
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.ai.conversations.conversation_manager import ConversationManager
+from src.ai.tools.tool_registry import register_tool, tool_class
 from src.ai.utilities.llm_helper import get_llm
 from src.configuration.model_configuration import ModelConfiguration
 
@@ -23,6 +26,7 @@ from src.db.models.documents import Documents
 from src.db.models.user_settings import UserSettings
 
 
+@tool_class
 class SpreadsheetsTool:
     excel_types = [".xls", ".xlsx", ".ods"]
     cached_pandas_dataframes = {}
@@ -38,34 +42,46 @@ class SpreadsheetsTool:
 
         self.document_helper = Documents()
 
-    def query_spreadsheet(self, query: str, target_file_id: int):
+    @register_tool(
+        display_name="Query Spreadsheet",
+        description="Query a spreadsheet using natural language.",
+        additional_instructions="This tool transforms your natural language query into Python code to query a spreadsheet using the pandas library.",
+        requires_documents=True,
+        document_classes=["Spreadsheet"],
+        enabled_by_default=False,
+        include_in_conversation=False,
+        requires_llm=True,
+        category="Documents",
+    )
+    def query_spreadsheet_with_pandas(self, query: str, target_file_id: int):
         """Useful for querying a specific spreadsheet.  If the target document is a 'Spreadsheet', always use this tool.
 
         Args:
             query (str): The query to use.
             target_file_id (int): The file ID to query."""
 
-        override_file = self.conversation_manager.tool_kwargs.get("override_file", None)
+        override_file = None
+        if self.conversation_manager:
+            override_file = self.conversation_manager.tool_kwargs.get(
+                "override_file", None
+            )
+
         if override_file is not None:
             target_file_id = int(override_file)
 
-        if self.conversation_manager.tool_kwargs.get("use_pandas", False):
-            return self.query_spreadsheet_pandas(query, target_file_id)
-        else:
-            return self.query_spreadsheet_text(query, target_file_id)
-
-    def query_spreadsheet_pandas(self, query: str, target_file_id: int):
         file = self.document_helper.get_file(target_file_id)
 
         # Get the setting for the tool model
-        tool_model_configuration = (
-            UserSettings()
-            .get_user_setting(
-                user_id=self.conversation_manager.user_id,
-                setting_name=f"{self.query_spreadsheet_pandas.__name__}_model_configuration",
-                default_value=ModelConfiguration.default().model_dump(),
+        tool_model_configuration = ModelConfiguration(
+            **json.loads(
+                UserSettings()
+                .get_user_setting(
+                    user_id=self.conversation_manager.user_id,
+                    setting_name=f"{self.query_spreadsheet_with_pandas.__name__}_model_configuration",
+                    default_value=ModelConfiguration.default().model_dump_json(),
+                )
+                .setting_value
             )
-            .setting_value
         )
 
         llm = get_llm(
@@ -74,10 +90,14 @@ class SpreadsheetsTool:
             callbacks=self.conversation_manager.agent_callbacks,
         )
 
-        agent = self.create_pandas_agent(llm=llm, files=[file])
+        agent_executor = self.create_pandas_agent(llm=llm, files=[file])
 
         # self.callbacks is set outside of this class
-        results = agent.run(query)
+        results = agent_executor.run(
+            input=query,
+            handle_parsing_errors=True,
+            callbacks=self.conversation_manager.agent_callbacks
+        )
 
         return results
 
@@ -100,7 +120,7 @@ class SpreadsheetsTool:
             llm=llm,
             df=dfs,
             include_df_in_prompt=True,
-            number_of_head_rows=3,
+            number_of_head_rows=5,
             verbose=True,
             # callbacks=self.callbacks,
         )
@@ -138,3 +158,18 @@ class SpreadsheetsTool:
                 )
 
         return self.cached_pandas_dataframes
+
+
+if __name__ == "__main__":
+    conversation_manager = ConversationManager(
+        conversation_id=None, user_email="aronweiler@gmail.com", prompt_manager=None
+    )
+
+    spreadsheets_tool = SpreadsheetsTool(
+        configuration=None, conversation_manager=conversation_manager
+    )
+    result = spreadsheets_tool.query_spreadsheet_with_pandas(
+        "What headers are in this file?", 6
+    )
+
+    print(result)
