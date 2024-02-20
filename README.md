@@ -2,18 +2,23 @@
 An intelligent assistant.  This is a work in progress.  Don't hate over the name... I was younger, and less creative.
 
 ### Features
-- ✅ Chat with the AI (Conversation Mode)
-- ✅ Get the News
-- ✅ Get the Weather
-- ✅ Upload your Documents, and talk about them with the AI, including:
-    - ✅ Search for information
-    - ✅ Summarize a topic or whole documents
-    - ✅ Perform multi-hop queries, such as "What is the capital of the country that has the highest population in Europe?"
-- ✅ Code Understanding
-    - ✅ Code Summarization
-    - ✅ Code Review
-    - ✅ Code Documentation
-    - ✅ Unit Test Generation
+- ✅ Chat with the AI (Conversation-Only Mode)
+- ✅ AI Assistant (Tool-Using Mode)
+    - ✅ Get the News, Weather, etc.
+    - ✅ Upload your Documents, and talk about them with the AI, including:
+        - Search for information
+        - Review and comment on documents
+        - Summarize a topic or whole documents
+        - Perform multi-hop queries, such as "What is the capital of the country that has the highest population in Europe?"
+- ✅ Software Engineering Assistant
+    - ✅ Ingest your GitHub or GitLab repositories!
+    - ✅ Code Understanding
+        - ✅ Ask the AI to perform tasks, such as:
+            - Coding work, while taking into context existing code
+            - Summarization of code functionality
+            - Code reviews
+            - Code documentation
+            - Unit test creation
 
 ![Streamlit UI](documentation/Jarvis.png)
 
