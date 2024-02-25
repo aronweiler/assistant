@@ -905,7 +905,11 @@ def save_split_documents(
             "current_document_count"
         ]
 
-        file_doc_chunk_len = len(file_documents[file.file_name]) if file.file_name in file_documents else 0
+        file_doc_chunk_len = (
+            len(file_documents[file.file_name])
+            if file.file_name in file_documents
+            else 0
+        )
         for index in range(current_document_count, file_doc_chunk_len):
             # TODO: Fix the progress bar
             ingest_progress_bar.progress(
@@ -1254,7 +1258,7 @@ def handle_chat(main_window_container, ai_instance):
                 setting_name="re_planning_threshold",
                 default_value=0.5,
             )
-            
+
             col3.markdown(
                 f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Response:</b></div>',
                 unsafe_allow_html=True,
@@ -1287,8 +1291,8 @@ def handle_chat(main_window_container, ai_instance):
                 value=float(re_planning_threshold.setting_value),
                 step=0.1,
                 help="Threshold at which the AI will re-enter a planning stage.",
-                disabled=bool(st.session_state['evaluate_response']) == False,
-                on_change=save_user_setting,                
+                disabled=bool(st.session_state["evaluate_response"]) == False,
+                on_change=save_user_setting,
                 kwargs={
                     "setting_name": "re_planning_threshold",
                     "available_for_llm": re_planning_threshold.available_for_llm,
@@ -1407,7 +1411,7 @@ def handle_chat(main_window_container, ai_instance):
                         st.session_state["search_type"]
                         if "search_type" in st.session_state
                         else "Similarity"
-                    ),                    
+                    ),
                     "override_file": (
                         st.session_state["override_file"].split(":")[0]
                         if "override_file" in st.session_state
@@ -1440,6 +1444,13 @@ def handle_chat(main_window_container, ai_instance):
                 try:
                     ai_instance.conversation_manager.agent_callbacks = agent_callbacks
                     ai_instance.conversation_manager.llm_callbacks = llm_callbacks
+
+                    kwargs["rephrase_answer_instructions"] = (
+                        ai_instance.conversation_manager.get_user_setting(
+                            setting_name="streamlit_assistant_rephrase_answer_instructions",
+                            default_value="Write everything in Markdown, as it will be displayed in a streamlit application.  Make sure to format your response beautifully, using appropriate line and paragraph breaks, as well as bullet lists and font formatting.",
+                        ).setting_value
+                    )
 
                     result = ai_instance.query(
                         query=prompt,
