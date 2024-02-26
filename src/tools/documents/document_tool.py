@@ -55,6 +55,36 @@ class DocumentTool:
         self.conversation_manager = conversation_manager
 
     @register_tool(
+        display_name="Get Entire Document",
+        description="Pulls the entire content of a loaded document into the LLM's context window.",
+        additional_instructions="Only use this tool if the user requests it by asking you to look at the entire document.",
+        help_text="Allows the LLM to bring the entire document into its context window for processing.",
+        requires_documents=True,
+        document_classes=["Document"],
+        category="Documents",
+    )
+    def get_entire_document(
+        self,
+        target_file_id: int,
+    ):
+        # Do we override the file ID?
+        target_file_id = (
+            self.conversation_manager.tool_kwargs.get("override_file", None)
+            or target_file_id
+        )
+
+        # Read in the text for each document chunk and assemble it into a single string
+        documents = Documents()
+        document_chunks = documents.get_document_chunks_by_file_id(
+            target_file_id=target_file_id
+        )
+        document_text = ""
+        for chunk in document_chunks:
+            document_text += chunk.document_text + " "
+
+        return document_text
+
+    @register_tool(
         display_name="Search Loaded Documents",
         description="Searches the loaded documents for a query.",
         additional_instructions="Searches the loaded files (or the specified file when target_file_id is set).  The user's input should be reworded to be both a keyword search (keywords_list: list of important keywords) and a semantic similarity search query (semantic_similarity_query: a meaningful phrase).  user_query should be a succinctly phrased version of the original user input (phrased as the ultimate question to answer). The target_file_id argument is optional, and can be used to search a specific file if the user has specified one.  Note: This tool only looks at a small subset of the document content in its search, it is not good for getting large chunks of content.",
@@ -98,11 +128,15 @@ class DocumentTool:
             # If there are more than 0 additional prompts, we need to create them
             if split_prompts > 1:
                 # Get the setting for the tool model
-                tool_model_configuration = UserSettings().get_user_setting(
-                    user_id=self.conversation_manager.user_id,
-                    setting_name=f"{self.search_loaded_documents.__name__}_model_configuration",
-                    default_value=ModelConfiguration.default().model_dump(),
-                ).setting_value
+                tool_model_configuration = (
+                    UserSettings()
+                    .get_user_setting(
+                        user_id=self.conversation_manager.user_id,
+                        setting_name=f"{self.search_loaded_documents.__name__}_model_configuration",
+                        default_value=ModelConfiguration.default().model_dump(),
+                    )
+                    .setting_value
+                )
 
                 llm = get_llm(
                     model_configuration=tool_model_configuration,
@@ -254,11 +288,15 @@ class DocumentTool:
             )
 
         # Get the setting for the tool model
-        tool_model_configuration = UserSettings().get_user_setting(
-            user_id=self.conversation_manager.user_id,
-            setting_name=f"{self.search_loaded_documents.__name__}_model_configuration",
-            default_value=ModelConfiguration.default().model_dump(),
-        ).setting_value
+        tool_model_configuration = (
+            UserSettings()
+            .get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name=f"{self.search_loaded_documents.__name__}_model_configuration",
+                default_value=ModelConfiguration.default().model_dump(),
+            )
+            .setting_value
+        )
 
         llm = get_llm(
             model_configuration=tool_model_configuration,
@@ -310,11 +348,15 @@ class DocumentTool:
             target_file_id (int): The file_id you got from the list of loaded files"""
 
         # Get the setting for the tool model
-        tool_model_configuration = UserSettings().get_user_setting(
-            user_id=self.conversation_manager.user_id,
-            setting_name=f"{self.summarize_entire_document.__name__}_model_configuration",
-            default_value=ModelConfiguration.default().model_dump(),
-        ).setting_value
+        tool_model_configuration = (
+            UserSettings()
+            .get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name=f"{self.summarize_entire_document.__name__}_model_configuration",
+                default_value=ModelConfiguration.default().model_dump(),
+            )
+            .setting_value
+        )
 
         llm = get_llm(
             model_configuration=tool_model_configuration,
@@ -409,11 +451,15 @@ class DocumentTool:
             )
 
         # Get the setting for the tool model
-        tool_model_configuration = UserSettings().get_user_setting(
-            user_id=self.conversation_manager.user_id,
-            setting_name=f"{self.summarize_search_topic.__name__}_model_configuration",
-            default_value=ModelConfiguration.default().model_dump(),
-        ).setting_value
+        tool_model_configuration = (
+            UserSettings()
+            .get_user_setting(
+                user_id=self.conversation_manager.user_id,
+                setting_name=f"{self.summarize_search_topic.__name__}_model_configuration",
+                default_value=ModelConfiguration.default().model_dump(),
+            )
+            .setting_value
+        )
 
         llm = get_llm(
             model_configuration=tool_model_configuration,

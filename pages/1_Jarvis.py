@@ -62,6 +62,9 @@ class RagUI:
             # Reload the prompt manager
             self.set_prompt_manager(user)
 
+            if "app_config" not in st.session_state:
+                st.session_state["app_config"] = get_app_configuration()
+
             # First time loading the page
             logging.debug("load_ai: no ai in session state, creating a new one")
             rag_ai_instance = RetrievalAugmentedGenerationAI(
