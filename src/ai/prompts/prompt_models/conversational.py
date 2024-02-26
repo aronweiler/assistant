@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, Field
 
 from src.ai.prompts.query_helper import output_type_example
@@ -17,9 +18,14 @@ class ConversationalOutput(BaseModel):
         description="Complete and comprehensive answer to the user's query"
     )
 
+    disclaimer: Optional[str] = Field(
+        description="Place your disclaimer here any time you have a disclaimer to be shown to the user about this answer."
+    )
+
 
 ConversationalOutput = output_type_example(
     ConversationalOutput(
         answer="Example answer to the user's query",
+        disclaimer="Any disclaimer to be shown to the user about this answer.",
     )
 )(ConversationalOutput)
