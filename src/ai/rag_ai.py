@@ -329,7 +329,7 @@ class RetrievalAugmentedGenerationAI:
         return result.summary
 
     # Required by the Jarvis UI when generating questions for ingested files
-    def generate_chunk_questions(self, text: str, number_of_questions: int = 5) -> List:
+    def create_summary_and_chunk_questions(self, text: str, number_of_questions: int = 5) -> List:
         llm = get_llm(
             self.file_ingestion_model_configuration,
             tags=["generate_chunk_questions"],
