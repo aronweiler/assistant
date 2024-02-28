@@ -10,10 +10,12 @@ class QuestionGenerationInput(BaseModel):
 
 
 class QuestionGenerationOutput(BaseModel):
-    questions: List[str] = Field(description="List of questions")
+    summary: str = Field(description="Summary of the document chunk")
+    questions: List[str] = Field(description="List of questions that could be answered using the document chunk")
 
 QuestionGenerationOutput = output_type_example(
     QuestionGenerationOutput(
+        summary="Detailed summary",
         questions=["question1", "question2"],
     )
 )(QuestionGenerationOutput)

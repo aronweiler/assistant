@@ -87,7 +87,7 @@ class IngestionSettings:
         self.chunk_overlap = 50
         self.split_documents = True
         self.file_type = "Document"
-        self.create_chunk_questions = False
+        self.create_summary_and_chunk_questions = False
         self.summarize_chunks = False
         self.summarize_document = False
 
@@ -420,7 +420,7 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 50
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Spreadsheet"
-        st.session_state.ingestion_settings.create_chunk_questions = False
+        st.session_state.ingestion_settings.create_summary_and_chunk_questions = False
         st.session_state.ingestion_settings.summarize_chunks = False
         st.session_state.ingestion_settings.summarize_document = False
     elif "Code" in file_type:
@@ -428,7 +428,7 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 0
         st.session_state.ingestion_settings.split_documents = False
         st.session_state.ingestion_settings.file_type = "Code"
-        st.session_state.ingestion_settings.create_chunk_questions = False
+        st.session_state.ingestion_settings.create_summary_and_chunk_questions = False
         st.session_state.ingestion_settings.summarize_chunks = True
         st.session_state.ingestion_settings.summarize_document = True
     else:  # Document
@@ -436,7 +436,7 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.chunk_overlap = 50
         st.session_state.ingestion_settings.split_documents = True
         st.session_state.ingestion_settings.file_type = "Document"
-        st.session_state.ingestion_settings.create_chunk_questions = True
+        st.session_state.ingestion_settings.create_summary_and_chunk_questions = True
         st.session_state.ingestion_settings.summarize_chunks = False
         st.session_state.ingestion_settings.summarize_document = False
 
@@ -476,17 +476,10 @@ def select_documents(tab, ai=None):
             )
 
             st.toggle(
-                "Create Chunk Questions",
-                help="This will create hypothetical questions for each chunk of text in the document, which will GREATLY aid in later retrievals.",
-                key="create_chunk_questions",
-                value=st.session_state.ingestion_settings.create_chunk_questions,
-            )
-
-            st.toggle(
-                "Summarize Chunks",
-                key="summarize_chunks",
-                help="Summarize each document chunk.  This will aid in later retrievals, and document summaries.",
-                value=st.session_state.ingestion_settings.summarize_chunks,
+                "Create Chunk Summary and Questions",
+                help="This will create a summary, and hypothetical questions for each chunk of text in the document, which will GREATLY aid in later retrievals.",
+                key="create_summary_and_chunk_questions",
+                value=st.session_state.ingestion_settings.create_summary_and_chunk_questions,
             )
 
             st.toggle(
@@ -570,11 +563,8 @@ def select_documents(tab, ai=None):
                             split_documents=st.session_state.get(
                                 "split_documents", True
                             ),
-                            create_chunk_questions=st.session_state.get(
-                                "create_chunk_questions", False
-                            ),
-                            summarize_chunks=st.session_state.get(
-                                "summarize_chunks", False
+                            create_summary_and_chunk_questions=st.session_state.get(
+                                "create_summary_and_chunk_questions", False
                             ),
                             summarize_document=st.session_state.get(
                                 "summarize_document", False
@@ -595,8 +585,7 @@ def ingest_files(
     status,
     overwrite_existing_files,
     split_documents,
-    create_chunk_questions,
-    summarize_chunks,
+    create_summary_and_chunk_questions,
     summarize_document,
     chunk_size,
     chunk_overlap,
@@ -812,8 +801,7 @@ def ingest_files(
             save_split_documents(
                 active_collection_id,
                 status,
-                create_chunk_questions,
-                summarize_chunks,
+                create_summary_and_chunk_questions,
                 summarize_document,
                 ai,
                 documents_helper,
@@ -830,8 +818,7 @@ def ingest_files(
 def save_split_documents(
     active_collection_id,
     status,
-    create_chunk_questions,
-    summarize_chunks,
+    create_summary_and_chunk_questions,
     summarize_document,
     ai,
     documents_helper,
@@ -919,24 +906,17 @@ def save_split_documents(
 
             document = file_documents[file.file_name][index]
 
-            chunk_questions = None
-            if create_chunk_questions and hasattr(ai, "generate_chunk_questions"):
+            summary_and_chunk_questions = None
+            if create_summary_and_chunk_questions and hasattr(
+                ai, "create_summary_and_chunk_questions"
+            ):
                 try:
-                    logging.info("Creating questions for chunk...")
-                    chunk_questions = ai.generate_chunk_questions(
+                    logging.info("Creating summary and questions for chunk...")
+                    summary_and_chunk_questions = ai.create_summary_and_chunk_questions(
                         text=document.page_content
                     )
                 except Exception as e:
                     logging.error(f"Error creating questions for chunk: {e}")
-
-            summary = ""
-            if summarize_chunks and hasattr(
-                ai, "generate_detailed_document_chunk_summary"
-            ):
-                logging.info("Summarizing chunk...")
-                summary = ai.generate_detailed_document_chunk_summary(
-                    chunk_text=document.page_content
-                )
 
                 # Create the document chunks
             logging.info(f"Inserting document chunk for file '{file_name}'...")
@@ -946,40 +926,44 @@ def save_split_documents(
                     file_id=file.id,
                     user_id=st.session_state.user_id,
                     document_text=document.page_content,
-                    document_text_summary=summary,
-                    document_text_has_summary=summary != "",
+                    document_text_summary=summary_and_chunk_questions.summary if summary_and_chunk_questions else "",
+                    document_text_has_summary=summary_and_chunk_questions.summary != "" if summary_and_chunk_questions else False,
                     additional_metadata=document.metadata,
                     document_name=document.metadata["filename"],
                     embedding_model_name=get_selected_collection_embedding_model_name(),
                     question_1=(
-                        chunk_questions.questions[0]
-                        if chunk_questions and len(chunk_questions.questions) > 0
+                        summary_and_chunk_questions.questions[0]
+                        if summary_and_chunk_questions
+                        and len(summary_and_chunk_questions.questions) > 0
                         else ""
                     ),
                     question_2=(
-                        chunk_questions.questions[1]
-                        if chunk_questions and len(chunk_questions.questions) > 1
+                        summary_and_chunk_questions.questions[1]
+                        if summary_and_chunk_questions
+                        and len(summary_and_chunk_questions.questions) > 1
                         else ""
                     ),
                     question_3=(
-                        chunk_questions.questions[2]
-                        if chunk_questions and len(chunk_questions.questions) > 2
+                        summary_and_chunk_questions.questions[2]
+                        if summary_and_chunk_questions
+                        and len(summary_and_chunk_questions.questions) > 2
                         else ""
                     ),
                     question_4=(
-                        chunk_questions.questions[3]
-                        if chunk_questions and len(chunk_questions.questions) > 3
+                        summary_and_chunk_questions.questions[3]
+                        if summary_and_chunk_questions
+                        and len(summary_and_chunk_questions.questions) > 3
                         else ""
                     ),
                     question_5=(
-                        chunk_questions.questions[4]
-                        if chunk_questions and len(chunk_questions.questions) > 4
+                        summary_and_chunk_questions.questions[4]
+                        if summary_and_chunk_questions
+                        and len(summary_and_chunk_questions.questions) > 4
                         else ""
                     ),
                 )
             )
 
-    summary = ""
     if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
         for file in files:
             # Note: this generates a summary and also puts it into the DB

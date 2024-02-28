@@ -8,7 +8,10 @@ class AnswerInput(BaseModel):
     user_query: str = Field(description="The user query to be analyzed")
     chat_history: str = Field(description="The chat history")
     helpful_context: str = Field(description="The helpful context")
-    rephrase_answer_instructions_prompt: Optional[str] = Field(description="Use this prompt to rephrase the answer, if necessary.")
+    rephrase_answer_instructions_prompt: Optional[str] = Field(
+        description="Use this prompt to rephrase the answer, if necessary."
+    )
+
 
 class AnswerOutput(BaseModel):
     status: str = Field(
@@ -17,6 +20,9 @@ class AnswerOutput(BaseModel):
     answer: str = Field(
         description="The answer to the user query, or explanation of why the answer could not be found."
     )
+    disclaimer: Optional[str] = Field(
+        description="Place your disclaimer here any time you have a disclaimer to be shown to the user about this answer."
+    )
     # suggestions: List[str] = Field(description="List of suggestions on how to resolve the query.")
 
 
@@ -24,5 +30,6 @@ AnswerOutput = output_type_example(
     AnswerOutput(
         status="success",
         answer="The answer to the user query, or explanation of why the answer could not be found.",
+        disclaimer="Any disclaimer to be shown to the user about this answer.",
     )
 )(AnswerOutput)

@@ -121,7 +121,7 @@ class Code(VectorDatabase):
                     code_repository_files_association,
                     CodeFile.id == code_repository_files_association.c.code_file_id,
                 )
-                .filter(CodeFile.code_file_name == code_file_name)
+                .filter(func.lower(CodeFile.code_file_name) == code_file_name.lower())
                 .filter(CodeFile.code_file_sha == file_sha)
                 .count()
                 > 0
@@ -154,7 +154,7 @@ class Code(VectorDatabase):
             # Check if the code file already exists regardless of repository
             existing_code_file = (
                 session.query(CodeFile)
-                .filter(CodeFile.code_file_name == file_name)
+                .filter(func.lower(CodeFile.code_file_name) == file_name.lower())
                 .filter(CodeFile.code_file_sha == file_sha)
                 .one_or_none()
             )
@@ -316,7 +316,12 @@ class Code(VectorDatabase):
                     code_repository_files_association.c.code_repository_id
                     == repository_id
                 )
-                .filter(CodeFile.code_file_name.contains(partial_file_name))
+                # Filter on the file name containing the partial file name (case insensitive)
+                .filter(
+                    func.lower(CodeFile.code_file_name).contains(
+                        partial_file_name.lower()
+                    )
+                )
                 .all()
             )
 
@@ -372,7 +377,7 @@ class Code(VectorDatabase):
                     code_repository_files_association.c.code_repository_id
                     == code_repo_id
                 )
-                .filter(CodeFile.code_file_name == code_file_name)
+                .filter(func.lower(CodeFile.code_file_name) == code_file_name.lower())
                 .one_or_none()
             )
 
@@ -384,7 +389,7 @@ class Code(VectorDatabase):
                 session.query(
                     CodeFile.id,
                 )
-                .filter(CodeFile.code_file_name == code_file_name)
+                .filter(func.lower(CodeFile.code_file_name) == code_file_name.lower())
                 .filter(CodeFile.code_file_sha == file_sha)
                 .one_or_none()
             )

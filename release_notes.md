@@ -1,3 +1,10 @@
+### February 28, 2024 -- RELEASE NOTES: Jarvis 0.80
+- Introduced a disclaimer field to answers so it doesn't clutter up responses.
+- Combined summary and question generation for document ingestion, streamlining the process.
+- Updated formatting instructions and removed unused code for better maintainability.
+- Refactored code for case-insensitive file name comparison, improving system robustness.
+- Fixed a bug related to saving split documents, enhancing data integrity.
+
 ### February 20, 2024 -- RELEASE NOTES: Jarvis 0.79
 - Re-enabled the spreadsheet tool, which uses Pandas to query loaded spreadsheets.
 

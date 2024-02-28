@@ -177,9 +177,9 @@ class RetrievalAugmentedGenerationAI:
 
             output = results["output"]
 
-        # if results is a list, collapse it into a single string
+        # if output is a list, collapse it into a single string
         if isinstance(output, list):
-            output = "\n".join(output)
+            output = "\n".join([str(o) for o in output])
 
         # Adding this after the run so that the agent can't see it in the history
         self.conversation_manager.conversation_token_buffer_memory.save_context(
@@ -329,7 +329,9 @@ class RetrievalAugmentedGenerationAI:
         return result.summary
 
     # Required by the Jarvis UI when generating questions for ingested files
-    def generate_chunk_questions(self, text: str, number_of_questions: int = 5) -> List:
+    def create_summary_and_chunk_questions(
+        self, text: str, number_of_questions: int = 5
+    ) -> List:
         llm = get_llm(
             self.file_ingestion_model_configuration,
             tags=["generate_chunk_questions"],
