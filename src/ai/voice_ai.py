@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import platform
 import sys
@@ -13,13 +14,13 @@ import uuid
 # Append the path to the tools directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
+from src.configuration.model_configuration import ModelConfiguration
 from src.ai.callbacks.streaming_only_callback import VoiceToolUsingCallbackHandler
 from src.db.models.user_settings import UserSettings
 from src.ai.prompts.prompt_manager import PromptManager
 from src.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.ai.voice.player import play_wav_file
 from src.ai.voice.sound import Sound
-from src.ai.voice.prompts import FINAL_REPHRASE_PROMPT
 from src.ai.voice.audio_transcriber import AudioTranscriber
 from src.ai.voice.wake_word import WakeWord
 from src.ai.voice.text_to_speech import TextToSpeech
@@ -42,7 +43,7 @@ CHUNK = 1280
 SILENCE_LIMIT_IN_SECONDS = 2
 
 
-class VoiceRunner:
+class VoiceAI:
     def __init__(self):
         # Get the configurations
         self.voice_configuration = get_voice_configuration()
@@ -73,16 +74,34 @@ class VoiceRunner:
         users = Users()
         self.user = users.get_user_by_email(self.voice_configuration.user_email)
 
-        self.prompt_manager = PromptManager(
-            self.app_configuration["jarvis_ai"]["model_configuration"]["llm_type"]
+        voice_ai_model_configuration = ModelConfiguration(
+            **json.loads(
+                UserSettings()
+                .get_user_setting(
+                    self.user.id,
+                    "voice_ai_model_configuration",
+                    default_value=ModelConfiguration.default().model_dump_json(),
+                )
+                .setting_value
+            )
         )
+
+        voice_ai_conversation_id = uuid.UUID(
+            UserSettings()
+            .get_user_setting(
+                self.user.id,
+                "voice_ai_conversation_id",
+                default_value="123e4567-e89b-12d3-a456-426614174000",
+            )
+            .setting_value
+        )
+
+        self.prompt_manager = PromptManager(voice_ai_model_configuration.llm_type)
 
         # Initialize RAG AI
         self.rag_ai = RetrievalAugmentedGenerationAI(
             configuration=self.app_configuration,
-            conversation_id=uuid.UUID(
-                "123e4567-e89b-12d3-a456-426614174000"
-            ),  # probably should be in settings or something
+            conversation_id=voice_ai_conversation_id,  # probably should be in settings or something
             user_email=self.user.email,
             prompt_manager=self.prompt_manager,
             streaming=True,  # Look at changing this later
@@ -264,7 +283,7 @@ class VoiceRunner:
                 return
 
             ai_query_start_time = time.time()
-            
+
             voice_ai_mode = self.rag_ai.conversation_manager.get_user_setting(
                 setting_name="voice_ai_mode", default_value="Conversation Only"
             ).setting_value
@@ -278,7 +297,7 @@ class VoiceRunner:
                         default_value="Act like you're writing copy for a news broadcaster who needs to deliver their information with alacrity and grace- you are writing to get the details across, but you keep things very short and concise. Rephrase your response so that it can be spoken aloud without any modifications.  Re-word and write out any symbols or codes phonetically; including variable names, abbreviations, and other language that would not usually be spoken aloud.",
                     ).setting_value
                 },
-                ai_mode=voice_ai_mode
+                ai_mode=voice_ai_mode,
             )
 
             ai_query_end_time = time.time()
@@ -327,5 +346,5 @@ class VoiceRunner:
 
 
 if __name__ == "__main__":
-    voice_runner = VoiceRunner()
+    voice_runner = VoiceAI()
     voice_runner.run()
