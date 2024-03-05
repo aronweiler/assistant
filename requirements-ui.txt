@@ -56,6 +56,7 @@ bs4
 pdfplumber
 unstructured
 openpyxl
+xlrd
 
 # Code parsing
 libclang==16.0.6
