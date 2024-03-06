@@ -1,3 +1,6 @@
+### March 6, 2024 -- RELEASE NOTES: Jarvis 0.81
+- Bug fixes in spreadsheets and document ingestion
+
 ### February 28, 2024 -- RELEASE NOTES: Jarvis 0.80
 - Introduced a disclaimer field to answers so it doesn't clutter up responses.
 - Combined summary and question generation for document ingestion, streamlining the process.
