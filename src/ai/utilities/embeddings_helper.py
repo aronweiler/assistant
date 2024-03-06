@@ -68,7 +68,7 @@ def get_embedding_by_model(text: str, model_name: str, instruction: str = None):
         embedding = openai.embeddings.create(
             input=text,
             model=model_name,
-            dimensions=embedding_config["dimensions"],
+            #dimensions=embedding_config["dimensions"], Not all models support this
         )
 
         return embedding.data[0].embedding
