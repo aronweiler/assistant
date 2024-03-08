@@ -382,6 +382,8 @@ class Documents(VectorDatabase):
             document.embedding_question_5 = (
                 question_embeddings[4] if question_embeddings[4] is not None else None
             )
+            
+            document.document_text = document.document_text.replace('\00', '')
 
             session.add(document)
             session.commit()
