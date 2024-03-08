@@ -105,6 +105,7 @@ class VoiceAI:
             user_email=self.user.email,
             prompt_manager=self.prompt_manager,
             streaming=True,  # Look at changing this later
+            model_configuration_name="jarvis_voice_ai_model_configuration"
         )
 
         # TODO: Remove

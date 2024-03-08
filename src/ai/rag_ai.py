@@ -61,6 +61,7 @@ class RetrievalAugmentedGenerationAI:
         prompt_manager: PromptManager,
         streaming: bool = False,
         override_memory=None,
+        model_configuration_name: str = "jarvis_ai_model_configuration",
     ):
         if conversation_id is None or user_email is None:
             raise ValueError("conversation_id and user_email cannot be None")
@@ -82,7 +83,7 @@ class RetrievalAugmentedGenerationAI:
             **json.loads(
                 user_settings.get_user_setting(
                     user.id,
-                    "jarvis_ai_model_configuration",
+                    model_configuration_name,
                     default_value=default_jarvis_model.model_dump_json(),
                 ).setting_value
             )

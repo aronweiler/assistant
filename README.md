@@ -33,7 +33,7 @@ In order to install the assistant using Docker, you'll need the following:
 ## Pre-requisites for running in Docker 
 - Docker ([Docker Desktop](https://www.docker.com/products/docker-desktop/) is what I use) installed and running on your computer
 - Git (Optional- you can just grab the [docker-compose.yml](docker-compose.yml) and [.env.template](.env.template) from the GitHub UI here)
-- An OpenAI Account and API key (or local models)
+- An OpenAI Account and API key
 
 The steps to run the docker version is as follows:
 
@@ -45,9 +45,6 @@ The steps to run the docker version is as follows:
    - `OPENAI_API_KEY` - This is your Open AI API key (required for interacting with OpenAI models- the primary model for this application).
    - `POSTGRES_`* entries can be pretty much anything you want, all of this will be local to your machine.
    - `USER_EMAIL` - Put your email in here (required for a user on the system- some features will use this)
-   - `SOURCE_CONTROL_PROVIDER` - This is the provider you want to use if you are code reviewing files from URLs.  Can be either `GitHub` or `GitLab`
-   - `SOURCE_CONTROL_URL` - Currently this only supports github or gitlab (`https://gitlab.com` or `https://github.com`)
-   - `SOURCE_CONTROL_PAT` - This is a personal access token that is used to authenticate with the chosen source code provider, if you're using one.
 3. Rename the `.env.template` to `.env`
 4. Using a command line, navigate to the directory where you cloned the code, and run `docker-compose up -d`
 5. Browse to http://localhost:8500
@@ -66,7 +63,6 @@ Run the following commands in a terminal window in the same directory as the Jar
 - Navigate to http://localhost:8500
   
 *Note: After updating you will need to re-enable/disable any tools that you previously changed on the Settings page.*
-
 
 ## ⚠️ DATABASE CONTAINER WARNING ⚠️
 The docker container that has the database in it is currently used primarily by me for development, so it does **not** mount a volume for the database.  
