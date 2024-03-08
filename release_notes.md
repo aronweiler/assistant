@@ -1,3 +1,7 @@
+### March 7, 2024 -- RELEASE NOTES: Jarvis 0.82
+- Bug for null characters in document ingestion
+- Added settings tab for the underlying voice model configuration
+
 ### March 6, 2024 -- RELEASE NOTES: Jarvis 0.81
 - Bug fixes in spreadsheets and document ingestion
 
