@@ -37,7 +37,7 @@ def settings_page(user_email):
         st.session_state["current_tab"] = 0
 
     # Define your tabs and store them in a list
-    tabs = ["General Settings", "Jarvis AI", "Source Control", "Tools", "Jama"]
+    tabs = ["General Settings", "Jarvis Web AI", "Jarvis Voice AI", "Source Control", "Tools", "Jama"]
 
     # Set callback function for on_change event of tabs
     def on_tab_change():
@@ -64,8 +64,10 @@ def settings_page(user_email):
     # Now use an if-else block or match-case to render content based on selected tab
     if selected_tab == "General Settings":
         general_settings()
-    elif selected_tab == "Jarvis AI":
+    elif selected_tab == "Jarvis Web AI":    
         jarvis_ai_settings(conversation_manager=conversation_manager)
+    elif selected_tab == "Jarvis Voice AI":
+        jarvis_voice_ai_settings(conversation_manager=conversation_manager)
     elif selected_tab == "Source Control":
         source_control_provider_form()
     elif selected_tab == "Tools":
@@ -245,6 +247,63 @@ def jarvis_ai_settings(conversation_manager: ConversationManager):
             conversation_manager=conversation_manager,
         )
 
+def jarvis_voice_ai_settings(conversation_manager: ConversationManager):
+    st.markdown(
+        "This section allows you to configure the Jarvis Voice AI.  These settings will apply to the top-level model used for all interactions."
+    )
+    st.markdown(
+        "Note: To some extent, the settings here will filter down- for instance, since the chat memory of the underlying tool models inherits from the top-level model, the chat memory will be limited to the number of tokens set here."
+    )
+    st.divider()
+
+    # Flag to indicate if we need to save the settings
+    needs_saving = False
+
+    # Special case
+    default_jarvis_voice_model = ModelConfiguration.default()        
+    # Ensure that the main model uses conversation history if its never been used before
+    default_jarvis_voice_model.uses_conversation_history = True
+    default_jarvis_voice_model.max_conversation_history_tokens = 16384    
+
+    jarvis_setting = json.loads(
+        UserSettings()
+        .get_user_setting(
+            conversation_manager.user_id,
+            "jarvis_voice_ai_model_configuration",
+            default_value=default_jarvis_voice_model.model_dump_json(),
+        )
+        .setting_value
+    )
+
+    jarvis_voice_ai_model_configuration = ModelConfiguration(**jarvis_setting)    
+
+    st.markdown("### General")
+
+    show_thoughts(conversation_manager=conversation_manager)
+
+    st.divider()
+
+    st.markdown("### Jarvis AI Model Settings")
+
+    generate_model_settings(
+        tool_name="jarvis_voice_ai",
+        model_configuration=jarvis_voice_ai_model_configuration,
+        available_models=ui_shared.get_available_models(),
+        conversation_manager=conversation_manager,
+    )
+
+    needs_saving = model_configuration_needs_saving(
+        tool_name="jarvis_voice_ai",
+        existing_model_configuration=jarvis_voice_ai_model_configuration,
+        needs_saving=needs_saving,
+    )
+
+    if needs_saving:
+        st.toast(f"Saving Jarvis Voice AI settings...")
+        save_jarvis_voice_settings(
+            jarvis_ai_model_configuration=jarvis_voice_ai_model_configuration,
+            conversation_manager=conversation_manager,
+        )
 
 def show_thoughts(conversation_manager: ConversationManager):
 
@@ -948,6 +1007,25 @@ def save_jarvis_settings(
     # Force a reload of the AI (and conversation manager)
     if "rag_ai" in st.session_state:
         del st.session_state["rag_ai"]
+        
+
+def save_jarvis_voice_settings(
+    jarvis_ai_model_configuration: ModelConfiguration,
+    conversation_manager: ConversationManager,
+):
+    # Save to user settings
+    user_settings_helper = UserSettings()
+
+    user_settings_helper.add_update_user_setting(
+        user_id=conversation_manager.user_id,
+        setting_name="jarvis_ai_model_configuration",
+        setting_value=jarvis_ai_model_configuration.model_dump_json(),
+        available_for_llm=True,
+    )    
+
+    # Force a reload of the AI (and conversation manager)
+    if "rag_ai" in st.session_state:
+        del st.session_state["rag_ai"]        
 
 
 def save_model_setting(model_owner_name, conversation_manager: ConversationManager):
