@@ -20,8 +20,6 @@ services:
       - POSTGRES_HOST=host.docker.internal
     ports:
       - 8500:8500
-    volumes:
-      - ./tmp/assistant-ui-config/:/config/
 
   rabbitmq:
     image: 'rabbitmq:3-management'
