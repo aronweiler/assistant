@@ -1,8 +1,7 @@
 from celery import Celery
 import os
-from src.documents.document_loader import DocumentLoader
-from src.db.models.documents import Documents, FileModel, DocumentModel
-from src.utilities.hash_utilities import calculate_sha256
+from .document_loader import DocumentLoader
+
 import asyncio
 
 # Initialize Celery
