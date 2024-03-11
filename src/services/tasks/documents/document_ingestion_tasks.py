@@ -15,16 +15,17 @@ celery_app = Celery(
 
 @celery_app.task(bind=True)
 def process_document_task(
-    file_path: str, collection_id: int, user_id: int, ingestion_settings: dict
+    file_path:str,
+    active_collection_id:int,
+    overwrite_existing_files:bool,
+    split_documents:bool,
+    create_summary_and_chunk_questions:bool,
+    summarize_document:bool,
+    chunk_size:int,
+    chunk_overlap:int,
+    user_id:int,
 ):
-    """Process (split, vectorize, etc.) a single document and store it in the database
-
-    Args:
-        file_path (str): Path to the file to be processed
-        active_collection_id (int): The collection that this file will be associated with
-        user_id (int): The user that uploaded the file
-        ingestion_settings (dict): A dictionary of settings to use for processing the file
-    """
+    """Process (split, vectorize, etc.) a single document and store it in the database"""
     
     return "Document processing completed"
 
