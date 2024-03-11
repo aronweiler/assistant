@@ -110,6 +110,21 @@
       "justMyCode": true
     },
     {
+      "name": "Document Ingestion Service",
+      "type": "python",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "document_ingestion:router",
+        "--reload",
+        "--host=0.0.0.0",
+        "--port=8000"
+      ],
+      "jinja": false,
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/src/services"
+    },
+    {
       "name": "Run Gitlab File Retriever",
       "type": "python",
       "request": "launch",

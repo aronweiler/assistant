@@ -1,0 +1,20 @@
+# Service / API
+fastapi
+python-multipart
+uvicorn
+celery
+
+# AI
+tiktoken
+langchain
+langchain-community
+
+# Document parsing
+pypdf
+docx2txt
+pdfminer.six
+bs4
+pdfplumber
+unstructured
+openpyxl
+xlrd
