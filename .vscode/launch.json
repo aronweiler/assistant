@@ -9,12 +9,24 @@
         "group": "", // Optional: Group in the Debug viewlet
         "order": 0 // Optional: Order within the group
       }
+    },
+    {
+      "name": "Services",
+      "configurations": [
+        "Document Ingestion API",
+        "Celery Worker"
+      ],
+      "preLaunchTask": "", // Optional: Specify a task to run before launching the debug session
+      "presentation": {
+        "group": "", // Optional: Group in the Debug viewlet
+        "order": 0 // Optional: Order within the group
+      }
     }
   ],
   "configurations": [
     {
       "name": "Discord RAG Bot",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/discord/bot.py",
       "args": ["--logging_level=DEBUG"],
@@ -31,7 +43,7 @@
     },
     {
       "name": "Discord Llava Bot",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/discord/bot.py",
       "args": ["--logging_level=DEBUG"],
@@ -47,7 +59,7 @@
     },
     {
       "name": "Discord Conversation Bot",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/discord/bot.py",
       "args": ["--logging_level=DEBUG"],
@@ -59,10 +71,10 @@
       //"cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": true
-    },    
+    },
     {
       "name": "OpenAI Jarvis",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
       "args": ["run", "About.py", "--server.port=${input:randomPort}"],
@@ -77,7 +89,7 @@
     },
     {
       "name": "Susan's Jarvis",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
       "args": ["run", "About.py", "--server.port=${input:randomPort}"],
@@ -94,15 +106,15 @@
     },
     {
       "name": "Voice Jarvis",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
-      "program": "src/ai/voice_ai.py",      
+      "program": "src/ai/voice_ai.py",
       "console": "integratedTerminal",
       "justMyCode": true
-    },    
+    },
     {
       "name": "Run Gitlab Issue Creator",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/integrations/gitlab/gitlab_issue_creator.py",
       "args": [],
@@ -110,8 +122,8 @@
       "justMyCode": true
     },
     {
-      "name": "Document Ingestion Service",
-      "type": "python",
+      "name": "Document Ingestion API",
+      "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
       "args": [
@@ -125,8 +137,23 @@
       "cwd": "${workspaceFolder}/src/services"
     },
     {
+      "name": "Celery Worker",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "celery",
+      "args": [
+        "-A",
+        "document_ingestion_tasks",
+        "worker",
+        "--loglevel=info"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}/src/services/tasks"
+    },
+    {
       "name": "Run Gitlab File Retriever",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/integrations/gitlab/gitlab_file_retriever.py",
       "args": [],
@@ -135,7 +162,7 @@
     },
     {
       "name": "Run Gitlab Issue Retriever",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/integrations/gitlab/gitlab_issue_retriever.py",
       "args": [],
@@ -144,7 +171,7 @@
     },
     {
       "name": "Run Gitlab Merge Request Retriever",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "src/integrations/gitlab/gitlab_merge_request_retriever.py",
       "args": [],
