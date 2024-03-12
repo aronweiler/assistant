@@ -1,32 +1,40 @@
-from celery import Celery
-import os
-from .document_loader import DocumentLoader
-
 import asyncio
+import os
 
-# Initialize Celery
+# Add the path to the root of the project to the system path
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from tasks.document_loader import DocumentLoader
+from celery import Celery
+
+
 broker_user = os.environ.get("RABBITMQ_DEFAULT_USER")
 broker_password = os.environ.get("RABBITMQ_DEFAULT_PASS")
 broker_host = os.environ.get("RABBITMQ_HOST")
+
 celery_app = Celery(
-    "document_ingestion", broker=f"amqp://{broker_user}:{broker_password}@{broker_host}"
+    "document_ingestion",
+    broker=f"amqp://{broker_user}:{broker_password}@{broker_host}",
+    include=["document_ingestion_tasks"],
 )
 
 
-@celery_app.task(bind=True)
+@celery_app.task() # bind=True
 def process_document_task(
-    file_path:str,
-    active_collection_id:int,
-    overwrite_existing_files:bool,
-    split_documents:bool,
-    create_summary_and_chunk_questions:bool,
-    summarize_document:bool,
-    chunk_size:int,
-    chunk_overlap:int,
-    user_id:int,
+    active_collection_id: int,
+    overwrite_existing_files: bool,
+    split_documents: bool,
+    create_summary_and_chunk_questions: bool,
+    summarize_document: bool,
+    chunk_size: int,
+    chunk_overlap: int,
+    user_id: int,
+    file_path: str,
 ):
     """Process (split, vectorize, etc.) a single document and store it in the database"""
-    
+
     return "Document processing completed"
 
     # document_loader = DocumentLoader()
@@ -84,8 +92,6 @@ def process_document_task(
     #             question_5="",
     #         )
     #     )
-
-    
 
 
 # def ingest_files(
@@ -204,7 +210,7 @@ def process_document_task(
 #                             len(matching_documents) == existing_file.document_count
 #                             or existing_file.document_count == 0
 #                         ):
-#                             files.append(existing_file)                            
+#                             files.append(existing_file)
 #                         else:
 #                             st.error(
 #                                 f"File '{file_name}' already exists, and the hash matches, but the number of documents in the file has changed.  Please delete the file and try again."
