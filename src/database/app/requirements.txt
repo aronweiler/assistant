@@ -1,0 +1,6 @@
+# Database
+psycopg2-binary
+alembic
+pgvector
+plotly
+sqlalchemy

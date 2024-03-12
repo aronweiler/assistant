@@ -1,9 +1,11 @@
 
 
 
-from src.db.database.tables import ConversationRoleType, SourceControlProvider, SupportedSourceControlProvider
-from src.db.models.vector_database import VectorDatabase
-from src.integrations.shared import SUPPORTED_SOURCE_CONTROL_PROVIDERS
+
+from tables import ConversationRoleType, SupportedSourceControlProvider
+from vector_database import VectorDatabase
+
+SUPPORTED_SOURCE_CONTROL_PROVIDERS = ["GitHub", "GitLab"]
 
 
 def ensure_conversation_role_types():

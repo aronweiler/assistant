@@ -2,13 +2,16 @@ version: "3.9"
 
 services:
   jarvis-database:
-    image: ankane/pgvector
+    build: ./src/database
     container_name: jarvis-database
     restart: always
     env_file:
       - .env
+    environment:
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=localhost
     ports:
-      - 5433:5433
+      - 5433:5432
 
   jarvis-ui:
     build: ./src/ui
