@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from typing import List
 
-from tasks.documents.document_ingestion_tasks import process_document_task
+from tasks.document_ingestion_tasks import process_document_task
 
 router = APIRouter()
 
@@ -27,10 +27,9 @@ async def ingest_documents(
         file_location = f"/tmp/{file.filename}"
         with open(file_location, "wb+") as file_object:
             file_object.write(file.file.read())
-            
+
         # Hand off to Celery for processing each file separately
         process_document_task.delay(
-            file_path=file_location,
             active_collection_id=active_collection_id,
             overwrite_existing_files=overwrite_existing_files,
             split_documents=split_documents,
@@ -39,6 +38,7 @@ async def ingest_documents(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             user_id=user_id,
+            file_path=file_location,
         )
 
     return {"message": "Documents are being processed"}
