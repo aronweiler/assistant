@@ -1,0 +1,13 @@
+version: '3.9'
+
+services:
+  discord-bot:
+    image: aronweiler/assistant:latest
+    container_name: discord-bot
+    restart: always
+    entrypoint: >
+      sh -c 'if [ "$ENABLE_DISCORD_BOT" = "true" ]; then python src/discord/bot.py; else sleep infinity; fi'
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=host.docker.internal

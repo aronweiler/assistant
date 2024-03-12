@@ -1,43 +1,96 @@
-version: '3.9'
+version: "3.9"
 
 services:
-  assistant-db:
+  jarvis-database:
     image: ankane/pgvector
-    container_name: assistant-db
+    container_name: jarvis-database
     restart: always
     env_file:
       - .env
     ports:
-      - 5432:5432
+      - 5433:5433
 
-  assistant-ui:
-    image: aronweiler/assistant:latest
-    container_name: assistant-ui
+  jarvis-ui:
+    build: ./src/ui
+    container_name: jarvis-ui
     restart: always
     env_file:
       - .env
     environment:
-      - POSTGRES_HOST=host.docker.internal
+      - API_DOCUMENT_HOST=jarvis-api-documents
+      - API_USER_HOST=jarvis-api-user
+      - API_CODE_HOST=jarvis-api-code
+      - API_CONVERSATION_HOST=jarvis-api-conversation
     ports:
-      - 8500:8500
+      - 8600:8600
 
-  rabbitmq:
-    image: 'rabbitmq:3-management'
-    container_name: rabbitmq
-    restart: always     
-    env_file:
-      - .env 
-    ports:
-      - '5672:5672'
-      - '15672:15672'
-
-  discord-bot:
-    image: aronweiler/assistant:latest
-    container_name: discord-bot
+  jarvis-api-user:
+    build: ./src/api/user
+    container_name: jarvis-api-user
     restart: always
-    entrypoint: >
-      sh -c 'if [ "$ENABLE_DISCORD_BOT" = "true" ]; then python src/discord/bot.py; else sleep infinity; fi'
     env_file:
       - .env
     environment:
-      - POSTGRES_HOST=host.docker.internal
+      - POSTGRES_HOST=jarvis-database
+      - RABBITMQ_HOST=jarvis-rabbitmq
+    ports:
+      - 8101:8101
+
+  jarvis-api-document:
+    build: ./src/api/document
+    container_name: jarvis-api-document
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=jarvis-database
+      - RABBITMQ_HOST=jarvis-rabbitmq
+    ports:
+      - 8102:8102
+
+  jarvis-api-code:
+    build: ./src/api/code
+    container_name: jarvis-api-code
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=jarvis-database
+      - RABBITMQ_HOST=jarvis-rabbitmq
+    ports:
+      - 8103:8103
+
+  jarvis-api-conversation:
+    build: ./src/api/conversation
+    container_name: jarvis-api-conversation
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=jarvis-database
+      - RABBITMQ_HOST=jarvis-rabbitmq
+    ports:
+      - 8104:8104
+
+  jarvis-worker-document-processing:
+    build: ./src/workers/document_processing
+    container_name: jarvis-worker-document-processing
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_HOST=jarvis-database
+      - RABBITMQ_HOST=jarvis-rabbitmq
+
+  jarvis-rabbitmq:
+    image: "rabbitmq:3-management"
+    container_name: jarvis-rabbitmq
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+volumes:
+  shared_data:

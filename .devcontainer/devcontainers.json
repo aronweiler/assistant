@@ -1,0 +1,6 @@
+{
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "assistant-ui",
+    "workspaceFolder": "/workspace",
+    "shutdownAction": "stopCompose"
+  }

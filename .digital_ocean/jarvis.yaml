@@ -1,0 +1,65 @@
+envs:
+- key: POSTGRES_DB
+  scope: RUN_AND_BUILD_TIME
+  value: assistant
+- key: POSTGRES_USER
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:eBcliD+0QTBILcu18nIkXkEKEnygU42f:NhvbZv6b/jem3Lo3ZWC4jhrOwopuvw==]
+- key: POSTGRES_PASSWORD
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:mEYht25lt9sh97fUE97i88RpgGcNwVzz:CmMm7jhVeSEZ/IJbwYHMuMTSJ5NpE9vqU2oB]
+- key: POSTGRES_PORT
+  scope: RUN_AND_BUILD_TIME
+  value: "5432"
+ingress:
+  rules:
+  - component:
+      name: streamlit-app
+    match:
+      path:
+        prefix: /jarvis
+  - component:
+      name: assistant-db
+    match:
+      path:
+        prefix: /
+name: jarvis
+region: nyc
+services:
+- envs:
+  - key: OPENAI_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:EDvKSb8ehJapZtViMzjZmAISzGaS3U1l:awusaxlxEoJoyy4b/dEd8uDLFTS0vvn0jyFn6zlTY5F/vNFm9h1bHGV3N/mMMbHuyhKhX8utQQlPip9R7ia3umddAA==]
+  - key: POSTGRES_HOST
+    scope: RUN_AND_BUILD_TIME
+    value: assistant-db
+  - key: LIBRE_OFFICE_PATH
+    scope: RUN_AND_BUILD_TIME
+    value: /usr/bin/soffice
+  - key: YELP_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: k4Uus36kxYvKtIE--CIBOCGbrjhxJ8h249_rWXI08t5n_BLNrDVg68futHY0KELgTbJ67YlRlmCKqKIiwljgoeFy_mBYbznVtVkqEjCtuaeuGSSfxEaswIob4U3HZHYx
+  - key: USER_EMAIL
+    scope: RUN_AND_BUILD_TIME
+    value: aronweiler@gmail.com
+  http_port: 8500
+  image:
+    registry: aronweiler
+    registry_type: DOCKER_HUB
+    repository: assistant
+    tag: latest
+  instance_count: 1
+  instance_size_slug: professional-s
+  name: streamlit-app
+- http_port: 5432
+  image:
+    registry: ankane
+    registry_type: DOCKER_HUB
+    repository: pgvector
+    tag: latest
+  instance_count: 1
+  instance_size_slug: professional-s
+  name: assistant-db
