@@ -1024,47 +1024,7 @@ def upload_files(uploaded_files, status, ingest_progress_bar):
     return uploaded_file_paths, root_temp_dir
 
 
-def show_version():
-    # Read the version from the version file
-    version = ""
-    with open("version.txt", "r") as f:
-        version = f.read().strip()
 
-    # Try to get the main version from my github repo, and if it's different, show an update message
-    try:
-        response = requests.get(
-            "https://raw.githubusercontent.com/aronweiler/assistant/main/version.txt"
-        )
-        if response.status_code == 200:
-            latest_version = response.text.strip()
-            if latest_version != version:
-                st.sidebar.warning(
-                    f"⚠️ You are running a version of Jarvis that is not the release version."
-                )
-                st.sidebar.markdown(
-                    f"You are running **{version}**, and the release version is **{latest_version}**."
-                )
-                st.sidebar.markdown(
-                    "[Update Instructions](https://github.com/aronweiler/assistant#updating-jarvis-docker)"
-                )
-                st.sidebar.markdown(
-                    "[Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
-                )
-            else:
-                try:
-                    st.sidebar.info(
-                        f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
-                    )
-                except:
-                    pass
-        else:
-            st.sidebar.info(
-                f"Version: {version} [Release Notes](https://github.com/aronweiler/assistant/blob/main/release_notes.md)"
-            )
-
-    except Exception as e:
-        logging.error(f"Error checking for latest version: {e}")
-        st.sidebar.info(f"Version: {version}")
 
 
 def create_documents_and_code_collections(ai):

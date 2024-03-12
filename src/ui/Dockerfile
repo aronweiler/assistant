@@ -6,9 +6,11 @@ FROM python:3.11
 # Set the working directory to /app inside the container
 WORKDIR /app
 
-COPY ./app ./
-
+# Pulling requirements in first so that we can cache the layer
+COPY ./app/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./app ./
 
 # Inform Docker that the container listens on port 8500 at runtime
 EXPOSE 8600

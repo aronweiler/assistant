@@ -319,7 +319,7 @@ if __name__ == "__main__":
             start_time = time.time()
             ui_shared.handle_chat(col1, st.session_state["rag_ai"])
             logging.info(f"Time to handle chat: {time.time() - start_time}")
-
+ 
             # Time the operation
             start_time = time.time()
             ui_shared.show_version()
