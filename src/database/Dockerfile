@@ -22,17 +22,15 @@ WORKDIR /app
 
 # Install Python dependencies within the virtual environment
 # Pulling requirements in first so that we can cache the layer
-COPY ./app/requirements.txt ./requirements.txt
+COPY ./src/database/app/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app ./
+# Copy the application code and DB schema into the container
+COPY ./src/database/app ./src/database/app
+COPY ./src/shared/database/schema ./src/shared/database/schema
 
 # Make the entrypoint script executable
-RUN chmod +x /app/entrypoint.sh
+RUN chmod +x src/database/app/entrypoint.sh
 
-#CMD ["python3", "creation_utilities.py"]
-#CMD python3 creation_utilities.py && tail -f /dev/null
-#CMD pg_isready -h localhost -p 5433 && python3 creation_utilities.py && tail -f /dev/null
-# Set the entrypoint script to be executed
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["src/database/app/entrypoint.sh"]
 CMD ["postgres"]

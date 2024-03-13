@@ -1,4 +1,9 @@
-# # AI
+# Basic stuff
+pydantic
+
+# AI
+tiktoken
+openai
 langchain
 langchain-community
 transformers
@@ -17,5 +22,20 @@ streamlit-extras
 #streamlit-authenticator
 #streamlit-oauth
 
-# General
+# Time-related
 tzlocal
+pytz
+
+# Data access
+sqlalchemy
+pgvector
+psycopg2-binary
+
+# External services
+wikipedia
+gnews
+
+# Source control related
+python-gitlab
+PyGithub
+Jinja2

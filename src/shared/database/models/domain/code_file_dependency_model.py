@@ -1,4 +1,4 @@
-from src.db.database.tables import CodeFileDependencies
+from src.shared.database.schema.tables import CodeFileDependencies
 
 
 class CodeFileDependencyModel:

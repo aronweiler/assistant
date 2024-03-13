@@ -2,7 +2,9 @@ version: "3.9"
 
 services:
   jarvis-database:
-    build: ./src/database
+    build: 
+      context: .
+      dockerfile: src/database/Dockerfile
     container_name: jarvis-database
     restart: always
     env_file:

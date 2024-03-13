@@ -6,7 +6,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-from tasks.document_loader import DocumentLoader
+from document_loader import DocumentLoader
 from celery import Celery
 
 

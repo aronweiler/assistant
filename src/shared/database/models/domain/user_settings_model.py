@@ -1,4 +1,4 @@
-from src.db.database.tables import UserSetting
+from src.shared.database.schema.tables import UserSetting
 
 
 class UserSettingModel:

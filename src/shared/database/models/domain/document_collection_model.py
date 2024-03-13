@@ -1,4 +1,4 @@
-from src.db.database.tables import DocumentCollection
+from src.shared.database.schema.tables import DocumentCollection
 
 class DocumentCollectionModel:
     def __init__(self, id, collection_name, embedding_name, record_created=None):

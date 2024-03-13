@@ -1,4 +1,4 @@
-from src.db.database.tables import File
+from src.shared.database.schema.tables import File
 
 
 class FileModel:

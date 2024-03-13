@@ -1,4 +1,4 @@
-from src.db.database.tables import User
+from src.shared.database.schema.tables import User
 
 
 class UserModel:

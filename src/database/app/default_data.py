@@ -1,14 +1,20 @@
 
 
+import os
+import sys
+import logging
 
 
-from tables import ConversationRoleType, SupportedSourceControlProvider
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+from src.shared.database.schema.tables import ConversationRoleType, SupportedSourceControlProvider
 from vector_database import VectorDatabase
 
 SUPPORTED_SOURCE_CONTROL_PROVIDERS = ["GitHub", "GitLab"]
 
 
 def ensure_conversation_role_types():
+    logging.info("Ensuring conversation role types exist in the database")
     vector_database = VectorDatabase()
     with vector_database.session_context(vector_database.Session()) as session:
         role_types = ["system", "assistant", "user", "function", "error"]
@@ -27,7 +33,11 @@ def ensure_conversation_role_types():
 
         session.commit()
         
+    logging.info("Conversation role types exist in the database")
+        
 def ensure_supported_source_control_providers():
+    logging.info("Ensuring supported source control providers exist in the database")
+    
     vector_database = VectorDatabase()
     with vector_database.session_context(vector_database.Session()) as session:       
 
@@ -44,3 +54,5 @@ def ensure_supported_source_control_providers():
                 session.add(SupportedSourceControlProvider(name=provider))
 
         session.commit()
+        
+    logging.info("Supported source control providers exist in the database")

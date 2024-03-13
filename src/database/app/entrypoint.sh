@@ -9,7 +9,7 @@ while ! pg_isready -h localhost; do
 done
 
 # Run your Python script
-python3 /app/creation_utilities.py
+python3 src/database/app/creation_utilities.py
 
 # Now, instead of calling `exec docker-entrypoint.sh postgres` again at the end,
 # which would attempt to start another instance of the server,

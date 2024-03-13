@@ -1,4 +1,4 @@
-from src.db.database.tables import CodeFile
+from src.shared.database.schema.tables import CodeFile
 
 
 class CodeFileModel:

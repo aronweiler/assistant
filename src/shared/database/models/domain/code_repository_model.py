@@ -1,4 +1,4 @@
-from src.db.database.tables import CodeRepository
+from src.shared.database.schema.tables import CodeRepository
 
 
 class CodeRepositoryModel:

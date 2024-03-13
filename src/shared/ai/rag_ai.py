@@ -4,6 +4,11 @@ from uuid import UUID
 from typing import List
 
 from langchain.agents import AgentExecutor
+
+from src.shared.configuration.model_configuration import (
+    ModelConfiguration,
+)
+
 from src.shared.ai.prompts.prompt_models.code_details_extraction import (
     CodeDetailsExtractionInput,
     CodeDetailsExtractionOutput,
@@ -25,10 +30,6 @@ from src.shared.ai.prompts.prompt_models.question_generation import (
     QuestionGenerationOutput,
 )
 from src.shared.ai.prompts.query_helper import QueryHelper
-
-from src.shared.configuration.model_configuration import (
-    ModelConfiguration,
-)
 from src.shared.ai.conversations.conversation_manager import ConversationManager
 from src.shared.ai.utilities.llm_helper import get_llm
 from src.shared.ai.prompts.prompt_manager import PromptManager

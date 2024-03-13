@@ -1,4 +1,4 @@
-from src.db.database.tables import ToolCallResults
+from src.shared.database.schema.tables import ToolCallResults
 
 class ToolCallResultsModel:
     def __init__(self, conversation_id, tool_name, tool_results, include_in_conversation = False, tool_arguments=None, id=None, record_created=None):

@@ -1,4 +1,4 @@
-from src.db.database.tables import Conversation
+from src.shared.database.schema.tables import Conversation
 
 
 class ConversationModel:

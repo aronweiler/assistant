@@ -10,7 +10,7 @@ import pgvector.sqlalchemy
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.db.database.tables import (
+from src.shared.database.schema.tables import (
     Document,
     DocumentCollection,
     File,

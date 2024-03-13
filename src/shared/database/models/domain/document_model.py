@@ -1,6 +1,6 @@
 import json
 
-from src.db.database.tables import Document
+from src.shared.database.schema.tables import Document
 
 
 class DocumentModel:

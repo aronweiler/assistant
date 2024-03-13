@@ -1,4 +1,4 @@
-from src.db.database.tables import SupportedSourceControlProvider, SourceControlProvider
+from src.shared.database.schema.tables import SupportedSourceControlProvider, SourceControlProvider
 
 class SupportedSourceControlProviderModel:
     def __init__(self, name, id=None):

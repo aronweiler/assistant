@@ -26,7 +26,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from src.shared.database.models.domain.code_repository_model import CodeRepositoryModel
 from src.shared.database.models.domain.code_file_model import CodeFileModel
 
-from src.db.database.tables import (
+from src.shared.database.schema.tables import (
     CodeDescription,
     CodeFileDependencies,
     CodeKeyword,

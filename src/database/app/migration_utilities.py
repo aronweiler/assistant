@@ -22,7 +22,7 @@ def create_migration(connection_string, migrations_dir="src/database/app/migrati
     command.revision(alembic_cfg, autogenerate=True, message=migration_msg)
 
 
-def run_migration(connection_string, migrations_dir="migrations"):
+def run_migration(connection_string, migrations_dir="src/database/app/migrations"):
     # Initialize the Alembic configuration
     alembic_cfg = Config()
 
