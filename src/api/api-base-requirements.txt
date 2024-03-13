@@ -1,4 +1,0 @@
-# Service / API
-fastapi
-python-multipart
-uvicorn

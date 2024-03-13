@@ -1,9 +1,15 @@
+# Basic stuff
+pydantic
 celery
 
 # AI
 tiktoken
+openai
+langchain_openai
 langchain
 langchain-community
+transformers
+langchain-experimental
 
 # Document parsing
 pypdf
@@ -14,3 +20,8 @@ pdfplumber
 unstructured
 openpyxl
 xlrd
+
+# Data access
+sqlalchemy
+pgvector
+psycopg2-binary

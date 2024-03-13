@@ -1,27 +1,14 @@
 import asyncio
+import logging
 import os
-
-# Add the path to the root of the project to the system path
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
-from document_loader import DocumentLoader
-from celery import Celery
-
-
-broker_user = os.environ.get("RABBITMQ_DEFAULT_USER")
-broker_password = os.environ.get("RABBITMQ_DEFAULT_PASS")
-broker_host = os.environ.get("RABBITMQ_HOST")
-
-celery_app = Celery(
-    "document_ingestion",
-    broker=f"amqp://{broker_user}:{broker_password}@{broker_host}",
-    include=["document_ingestion_tasks"],
-)
+from src.workers.document_processing.app.celery_worker import celery_app
 
 
-@celery_app.task() # bind=True
+@celery_app.task(name="process_document_task")  # bind=True
 def process_document_task(
     active_collection_id: int,
     overwrite_existing_files: bool,
@@ -34,64 +21,73 @@ def process_document_task(
     file_path: str,
 ):
     """Process (split, vectorize, etc.) a single document and store it in the database"""
+    logging.info(f"Worker processing document '{file_path}'...")
 
-    return "Document processing completed"
+    # Imports are within the function because we don't want to load them unless we're using them
+    from src.shared.database.models.documents import Documents
+    from src.shared.database.models.domain.file_model import FileModel
+    from src.shared.utilities.hash_utilities import calculate_sha256
+    from src.workers.document_processing.app.document_loader import (
+        file_needs_converting,
+        convert_file_to_pdf,
+        load_and_split_document,
+    )
 
-    # document_loader = DocumentLoader()
-    # documents_helper = Documents()
+    documents_helper = Documents()
 
-    # with open(file_path, "rb") as file:
-    #     file_data = file.read()
+    original_file_name = os.path.basename(file_path)
 
-    # documents = asyncio.run(
-    #     document_loader.load_and_split_documents(
-    #         document_directory=file_path,
-    #         split_documents=ingestion_settings["split_documents"],
-    #         is_code=False,  # Don't use "Code" type anymore here until it's refactored
-    #         chunk_size=ingestion_settings["chunk_size"],
-    #         chunk_overlap=ingestion_settings["chunk_overlap"],
-    #     )
-    # )
+    # Do we already have this file in the database?
+    existing_file = documents_helper.get_file_by_name(
+        original_file_name, active_collection_id
+    )
 
-    # for document in documents:
-    #     file_name = document.metadata["filename"].replace(file_path, "").strip("/")
-    #     file_hash = calculate_sha256(document.metadata["filepath"])
-    #     file_model = documents_helper.create_file(
-    #         FileModel(
-    #             user_id=user_id,
-    #             collection_id=collection_id,
-    #             file_name=file_name,
-    #             file_hash=file_hash,
-    #             file_classification=ingestion_settings["file_type"],
-    #             chunk_size=ingestion_settings["chunk_size"],
-    #             chunk_overlap=ingestion_settings["chunk_overlap"],
-    #         ),
-    #         file_data, # Binary file data
-    #     )
+    if existing_file and not overwrite_existing_files:
+        raise ValueError(
+            f"File '{original_file_name}' already exists, and overwrite is not enabled"
+        )
 
-    #     summary = ""
-    #     if ingestion_settings["summarize_chunks"]:
-    #         # TODO: Get summary from AI
-    #         summary = "Summarized content"
+    # Does the file need to be converted to a different format?
+    if file_needs_converting(file_path):
+        logging.info(f"Converting file '{file_path}' to PDF...")
+        # Convert the file, and reset the file_path
+        file_path = convert_file_to_pdf(file_path)
 
-    #     documents_helper.store_document(
-    #         DocumentModel(
-    #             collection_id=collection_id,
-    #             file_id=file_model.id,
-    #             user_id=user_id,
-    #             document_text=document.page_content,
-    #             document_text_summary=summary,
-    #             document_text_has_summary=summary != "",
-    #             additional_metadata=document.metadata,
-    #             document_name=file_name,
-    #             embedding_model_name="YourEmbeddingModelName",
-    #             question_1="",  # TODO: Get these from the AI
-    #             question_2="",
-    #             question_3="",
-    #             question_4="",
-    #             question_5="",
-    #         )
-    #     )
+    # Load and split the document
+    documents = load_and_split_document(
+        target_file=file_path,
+        split_document=split_documents,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
+    
+    logging.info(f"After loading and splitting, we are processing {len(documents)} documents...")
+
+    # Get the full file data for the database
+    with open(file_path, "rb") as file:
+        file_data = file.read()
+
+    # Get the hash of the file
+    file_hash = calculate_sha256(file_path)
+
+    logging.info(f"Storing full document '{original_file_name}'...")
+
+    file_classification = documents[0].metadata["classification"]
+
+    file_model = documents_helper.create_file(
+        FileModel(
+            user_id=user_id,
+            collection_id=active_collection_id,
+            file_name=original_file_name,
+            file_hash=file_hash,
+            file_classification=file_classification,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        ),
+        file_data,  # Binary file data for later retrieval
+    )
+    
+    # TODO: Iterate through the document chunks and store them
 
 
 # def ingest_files(

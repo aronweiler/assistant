@@ -24,7 +24,8 @@ services:
     env_file:
       - .env
     environment:
-      - POSTGRES_PORT=5433
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=jarvis-database
       - API_DOCUMENT_HOST=jarvis-api-documents
       - API_USER_HOST=jarvis-api-user
       - API_CODE_HOST=jarvis-api-code
@@ -39,22 +40,28 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
       - RABBITMQ_HOST=jarvis-rabbitmq
     ports:
       - 8101:8101
 
   jarvis-api-document:
-    build: ./src/api/document
+    build: 
+      context: .
+      dockerfile: ./src/api/document/Dockerfile
     container_name: jarvis-api-document
     restart: always
     env_file:
       - .env
     environment:
+      - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
       - RABBITMQ_HOST=jarvis-rabbitmq
     ports:
       - 8102:8102
+    volumes:
+      - shared_data:/app/shared
 
   jarvis-api-code:
     build: ./src/api/code
@@ -63,6 +70,7 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
       - RABBITMQ_HOST=jarvis-rabbitmq
     ports:
@@ -75,20 +83,26 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
       - RABBITMQ_HOST=jarvis-rabbitmq
     ports:
       - 8104:8104
 
   jarvis-worker-document-processing:
-    build: ./src/workers/document_processing
+    build: 
+      context: .
+      dockerfile: ./src/workers/document_processing/Dockerfile
     container_name: jarvis-worker-document-processing
     restart: always
     env_file:
       - .env
     environment:
+      - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
       - RABBITMQ_HOST=jarvis-rabbitmq
+    volumes:
+      - shared_data:/app/shared
 
   jarvis-rabbitmq:
     image: "rabbitmq:3-management"

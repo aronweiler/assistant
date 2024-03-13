@@ -1,5 +1,5 @@
 # User API Dockerfile
-FROM assistant-api-base-image:latest
+FROM python:3.11-slim
 
 WORKDIR /app
 

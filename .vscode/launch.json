@@ -144,13 +144,13 @@
       "module": "celery",
       "args": [
         "-A",
-        "document_ingestion_tasks",
+        "celery_worker",
         "worker",
         "--loglevel=info"
       ],
       "console": "integratedTerminal",
       "justMyCode": true,
-      "cwd": "${workspaceFolder}/src/services/tasks"
+      "cwd": "${workspaceFolder}/src/workers/document_processing/app"
     },
     {
       "name": "Run Gitlab File Retriever",
