@@ -36,6 +36,7 @@ psycopg2-binary
 # External services
 wikipedia
 gnews
+python_weather
 
 # Source control related
 python-gitlab

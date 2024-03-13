@@ -1,6 +1,7 @@
 # Import necessary modules with clear names
 from datetime import datetime, timedelta
 import logging
+import os
 import sys
 
 from passlib.hash import pbkdf2_sha256 as hasher
@@ -8,6 +9,7 @@ from passlib.hash import pbkdf2_sha256 as hasher
 import requests
 import streamlit as st
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.shared.database.models.users import Users
 import streamlit_shared as ui_shared
@@ -26,10 +28,20 @@ def setup_streamlit_interface():
     """
     Configures the Streamlit page and displays the UI components for the application.
     """
+
     try:
         # Set Streamlit page configuration
         try:
-
+            st.set_page_config(
+                page_title="Jarvis",
+                page_icon="🤖",
+                layout="centered",
+                initial_sidebar_state="expanded",
+                menu_items={
+                    "About": "https://github.com/aronweiler/assistant",
+                    "Report a bug": "https://github.com/aronweiler/assistant/issues",
+                },
+            )
             # Display the header for the About section
             st.write(ABOUT_JARVIS_HEADER)
         except:

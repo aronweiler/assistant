@@ -2,10 +2,13 @@ import logging
 import sys
 import streamlit as st
 import os
-#from google_auth_oauthlib.flow import InstalledAppFlow
+
+# from google_auth_oauthlib.flow import InstalledAppFlow
 import json
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
+)
 
 from utilities import ensure_authenticated
 
@@ -43,7 +46,14 @@ def settings_page(user_email):
         st.session_state["current_tab"] = 0
 
     # Define your tabs and store them in a list
-    tabs = ["General Settings", "Jarvis Web AI", "Jarvis Voice AI", "Source Control", "Tools", "Jama"]
+    tabs = [
+        "General Settings",
+        "Jarvis Web AI",
+        "Jarvis Voice AI",
+        "Source Control",
+        "Tools",
+        "Jama",
+    ]
 
     # Set callback function for on_change event of tabs
     def on_tab_change():
@@ -70,7 +80,7 @@ def settings_page(user_email):
     # Now use an if-else block or match-case to render content based on selected tab
     if selected_tab == "General Settings":
         general_settings()
-    elif selected_tab == "Jarvis Web AI":    
+    elif selected_tab == "Jarvis Web AI":
         jarvis_ai_settings(conversation_manager=conversation_manager)
     elif selected_tab == "Jarvis Voice AI":
         jarvis_voice_ai_settings(conversation_manager=conversation_manager)
@@ -180,10 +190,10 @@ def jarvis_ai_settings(conversation_manager: ConversationManager):
     needs_saving = False
 
     # Special case
-    default_jarvis_model = ModelConfiguration.default()        
+    default_jarvis_model = ModelConfiguration.default()
     # Ensure that the main model uses conversation history if its never been used before
     default_jarvis_model.uses_conversation_history = True
-    default_jarvis_model.max_conversation_history_tokens = 16384    
+    default_jarvis_model.max_conversation_history_tokens = 16384
 
     jarvis_setting = json.loads(
         UserSettings()
@@ -253,6 +263,7 @@ def jarvis_ai_settings(conversation_manager: ConversationManager):
             conversation_manager=conversation_manager,
         )
 
+
 def jarvis_voice_ai_settings(conversation_manager: ConversationManager):
     st.markdown(
         "This section allows you to configure the Jarvis Voice AI.  These settings will apply to the top-level model used for all interactions."
@@ -266,10 +277,10 @@ def jarvis_voice_ai_settings(conversation_manager: ConversationManager):
     needs_saving = False
 
     # Special case
-    default_jarvis_voice_model = ModelConfiguration.default()        
+    default_jarvis_voice_model = ModelConfiguration.default()
     # Ensure that the main model uses conversation history if its never been used before
     default_jarvis_voice_model.uses_conversation_history = True
-    default_jarvis_voice_model.max_conversation_history_tokens = 16384    
+    default_jarvis_voice_model.max_conversation_history_tokens = 16384
 
     jarvis_setting = json.loads(
         UserSettings()
@@ -281,7 +292,7 @@ def jarvis_voice_ai_settings(conversation_manager: ConversationManager):
         .setting_value
     )
 
-    jarvis_voice_ai_model_configuration = ModelConfiguration(**jarvis_setting)    
+    jarvis_voice_ai_model_configuration = ModelConfiguration(**jarvis_setting)
 
     st.markdown("### General")
 
@@ -310,6 +321,7 @@ def jarvis_voice_ai_settings(conversation_manager: ConversationManager):
             jarvis_ai_model_configuration=jarvis_voice_ai_model_configuration,
             conversation_manager=conversation_manager,
         )
+
 
 def show_thoughts(conversation_manager: ConversationManager):
 
@@ -1013,7 +1025,7 @@ def save_jarvis_settings(
     # Force a reload of the AI (and conversation manager)
     if "rag_ai" in st.session_state:
         del st.session_state["rag_ai"]
-        
+
 
 def save_jarvis_voice_settings(
     jarvis_ai_model_configuration: ModelConfiguration,
@@ -1027,11 +1039,11 @@ def save_jarvis_voice_settings(
         setting_name="jarvis_ai_model_configuration",
         setting_value=jarvis_ai_model_configuration.model_dump_json(),
         available_for_llm=True,
-    )    
+    )
 
     # Force a reload of the AI (and conversation manager)
     if "rag_ai" in st.session_state:
-        del st.session_state["rag_ai"]        
+        del st.session_state["rag_ai"]
 
 
 def save_model_setting(model_owner_name, conversation_manager: ConversationManager):
@@ -1348,11 +1360,20 @@ def edit_provider_form(
 # Run the settings page
 if __name__ == "__main__":
     try:
+        st.set_page_config(
+            page_title="Jarvis",
+            page_icon="🤖",
+            layout="centered",
+            initial_sidebar_state="expanded",
+            menu_items={
+                "About": "https://github.com/aronweiler/assistant",
+                "Report a bug": "https://github.com/aronweiler/assistant/issues",
+            },
+        )
+
         ensure_authenticated()
-        
-        user_email = os.environ.get("USER_EMAIL", None)
-        if ui_shared.ensure_user(user_email):
-            settings_page(user_email)
+
+        settings_page(st.session_state.user_email)
     except:
         # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
         # Check to see if the type of exception is a "StopException",

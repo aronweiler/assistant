@@ -224,6 +224,17 @@ class RagUI:
 def set_page_config():
     """Sets the page configuration"""
 
+    st.set_page_config(
+        page_title="Jarvis",
+        page_icon="🤖",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            "About": "https://github.com/aronweiler/assistant",
+            "Report a bug": "https://github.com/aronweiler/assistant/issues",
+        },
+    )
+
     st.title("Hey Jarvis 🤖...")
 
 

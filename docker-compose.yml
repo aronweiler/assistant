@@ -24,6 +24,7 @@ services:
     env_file:
       - .env
     environment:
+      - POSTGRES_PORT=5433
       - API_DOCUMENT_HOST=jarvis-api-documents
       - API_USER_HOST=jarvis-api-user
       - API_CODE_HOST=jarvis-api-code

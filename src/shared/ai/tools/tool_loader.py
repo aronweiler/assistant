@@ -13,7 +13,7 @@ from src.shared.utilities.configuration_utilities import get_app_configuration
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 # Constants
-PACKAGE = "src.tools"
+PACKAGE = "src.shared.ai.tools"
 PACKAGE_PATH = PACKAGE.replace(".", "/")
 
 

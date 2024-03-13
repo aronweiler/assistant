@@ -15,11 +15,7 @@ def get_cookie_manager():
     return stx.CookieManager()
 
 
-st.set_page_config(
-    page_title="Jarvis", page_icon="🤖", layout="wide", initial_sidebar_state="expanded"
-)
-
-cookie_manager = get_cookie_manager()
+cookie_manager = None
 
 
 def ensure_authenticated():
@@ -31,6 +27,8 @@ def ensure_authenticated():
 
 def is_user_authenticated():
     # Get the authentication cookie
+    global cookie_manager
+    cookie_manager = get_cookie_manager()
 
     session_id = cookie_manager.get(cookie="session_id")
 
