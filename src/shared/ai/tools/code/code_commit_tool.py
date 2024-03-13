@@ -8,22 +8,22 @@ from langchain.base_language import BaseLanguageModel
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.utilities.llm_helper import get_llm
+from src.shared.ai.utilities.llm_helper import get_llm
 from src.integrations.github import github_issue_creator
-from src.tools.code.issue_tool import IssueTool
+from src.shared.ai.tools.code.issue_tool import IssueTool
 
 
 # Importing database models and utilities.
-from src.db.models.documents import Documents
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.utilities.token_helper import num_tokens_from_string
-from src.utilities.parsing_utilities import parse_json
+from src.shared.database.models.documents import Documents
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.utilities.token_helper import num_tokens_from_string
+from src.shared.utilities.parsing_utilities import parse_json
 
 # Importing integration modules for GitLab and GitHub.
 from src.integrations.gitlab.gitlab_committer import GitlabCommitter
 from src.integrations.github.github_committer import GitHubCommitter
 
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 
 
 @tool_class

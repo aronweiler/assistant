@@ -4,11 +4,11 @@ import importlib
 import inspect
 import sys
 import os
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.db.models.user_settings import UserSettings
-from src.ai.tools.tool_registry import registered_tools
-from src.ai.agents.general.generic_tool import GenericTool
-from src.utilities.configuration_utilities import get_app_configuration
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.ai.tools.tool_registry import registered_tools
+from src.shared.ai.agents.general.generic_tool import GenericTool
+from src.shared.utilities.configuration_utilities import get_app_configuration
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 

@@ -5,16 +5,16 @@ import json
 from typing import List
 
 from langchain.base_language import BaseLanguageModel
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.integrations.github import github_issue_creator
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.db.models.documents import Documents
-from src.ai.conversations.conversation_manager import ConversationManager
+from src.shared.database.models.documents import Documents
+from src.shared.ai.conversations.conversation_manager import ConversationManager
 
-from src.utilities.token_helper import num_tokens_from_string
-from src.utilities.parsing_utilities import parse_json
+from src.shared.utilities.token_helper import num_tokens_from_string
+from src.shared.utilities.parsing_utilities import parse_json
 
 
 from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator

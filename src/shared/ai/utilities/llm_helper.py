@@ -7,9 +7,9 @@ from langchain_openai import ChatOpenAI
 # from langchain.llms.llamacpp import LlamaCpp
 from langchain_core.language_models import BaseLanguageModel
 
-from src.utilities.openai_utilities import get_openai_api_key
+from src.shared.utilities.openai_utilities import get_openai_api_key
 from src.configuration.model_configuration import ModelConfiguration
-import src.utilities.configuration_utilities as configuration_utilities
+import src.shared.utilities.configuration_utilities as configuration_utilities
 
 # Singleton instance of Llama2 LLM to avoid reinitialization
 llama2_llm = None

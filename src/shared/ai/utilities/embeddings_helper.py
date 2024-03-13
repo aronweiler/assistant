@@ -1,7 +1,7 @@
 import openai
-import src.utilities.configuration_utilities as configuration_utilities
+import src.shared.utilities.configuration_utilities as configuration_utilities
 
-from src.utilities.configuration_utilities import get_app_configuration
+from src.shared.utilities.configuration_utilities import get_app_configuration
 
 local_embeddings_model = None
 

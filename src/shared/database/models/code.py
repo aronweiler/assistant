@@ -10,21 +10,21 @@ from requests import Session
 from sqlalchemy import and_, func, select, column, cast, or_
 
 import pgvector.sqlalchemy
-from src.ai.prompts.prompt_models.code_details_extraction import (
+from src.shared.ai.prompts.prompt_models.code_details_extraction import (
     CodeDetailsExtractionOutput,
 )
-from src.db.models.domain.code_file_dependency_model import CodeFileDependencyModel
+from src.shared.database.models.domain.code_file_dependency_model import CodeFileDependencyModel
 
-from src.db.models.domain.source_control_provider_model import (
+from src.shared.database.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
     SupportedSourceControlProviderModel,
 )
-from src.db.models.user_settings import UserSettings
+from src.shared.database.models.user_settings import UserSettings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.db.models.domain.code_repository_model import CodeRepositoryModel
-from src.db.models.domain.code_file_model import CodeFileModel
+from src.shared.database.models.domain.code_repository_model import CodeRepositoryModel
+from src.shared.database.models.domain.code_file_model import CodeFileModel
 
 from src.db.database.tables import (
     CodeDescription,
@@ -37,8 +37,8 @@ from src.db.database.tables import (
     code_repository_files_association,
 )
 
-from src.db.models.vector_database import VectorDatabase
-from src.ai.utilities.embeddings_helper import (
+from src.shared.database.models.vector_database import VectorDatabase
+from src.shared.ai.utilities.embeddings_helper import (
     get_embedding_by_name,
     get_embedding_by_model,
 )

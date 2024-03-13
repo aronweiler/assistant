@@ -47,6 +47,7 @@ class User(ModelBase):
     age = Column(Integer, nullable=True)
     location = Column(String, nullable=True)
     email = Column(String, nullable=False, unique=True)
+    password_hash = Column(String, nullable=False)
 
     # Define a one-to-many relationship with other tables
     conversation_messages = relationship("ConversationMessage", back_populates="user")

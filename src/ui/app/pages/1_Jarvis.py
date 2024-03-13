@@ -8,21 +8,17 @@ import uuid
 import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../")))
 
-from src.configuration.assistant_configuration import (
-    ApplicationConfigurationLoader,
-)
+from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.shared.configuration.model_configuration import ModelConfiguration
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.database.models.users import Users
+from src.shared.ai.prompts.prompt_manager import PromptManager
+from src.shared.utilities.configuration_utilities import get_app_configuration
 
-from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.user_settings import UserSettings
-from src.db.models.users import Users
-
-import src.ui.streamlit_shared as ui_shared
-
-from src.ai.prompts.prompt_manager import PromptManager
-
-from src.utilities.configuration_utilities import get_app_configuration
+from utilities import ensure_authenticated
+import streamlit_shared as ui_shared
 
 
 class RagUI:
@@ -237,6 +233,8 @@ class RagUI:
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
+    ensure_authenticated()
+
     try:
         logging.debug("Starting Jarvis")
         # Get the user from the environment variables
@@ -319,7 +317,7 @@ if __name__ == "__main__":
             start_time = time.time()
             ui_shared.handle_chat(col1, st.session_state["rag_ai"])
             logging.info(f"Time to handle chat: {time.time() - start_time}")
- 
+
             # Time the operation
             start_time = time.time()
             ui_shared.show_version()

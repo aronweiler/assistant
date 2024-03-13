@@ -2,15 +2,22 @@ import datetime
 import logging
 import os
 import shutil
+import sys
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
-from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-from src.db.models.code import Code
-from src.db.models.conversations import Conversations
-from src.db.models.user_settings import UserSettings
-from src.documents.codesplitter.splitter.dependency_analyzer import DependencyAnalyzer
-from src.tools.code.code_retriever_tool import CodeRetrieverTool
-import src.ui.streamlit_shared as streamlit_shared
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+import streamlit_shared as streamlit_shared
+
+from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.shared.database.models.code import Code
+from src.shared.database.models.conversations import Conversations
+from src.shared.database.models.user_settings import UserSettings
+
+#from src.documents.codesplitter.splitter.dependency_analyzer import DependencyAnalyzer
+# from src.shared.ai.tools.code.code_retriever_tool import CodeRetrieverTool
+
 
 
 def get_available_code_repositories():
@@ -110,43 +117,44 @@ def add_repository():
 
 def show_branches(tab: DeltaGenerator):
     """Refreshes the branches for the specified repo address"""
-    repo_address = st.session_state.get("new_repo_address", "")
-    adding_repo = st.session_state.get("adding_repo", False)
+    raise NotImplementedError("Move this to the API / backend")
+    # repo_address = st.session_state.get("new_repo_address", "")
+    # adding_repo = st.session_state.get("adding_repo", False)
 
-    if adding_repo:
-        with tab:
-            if repo_address != "":
-                try:
-                    retriever = CodeRetrieverTool(
-                        conversation_manager=st.session_state.rag_ai.conversation_manager,
-                        configuration=None,
-                    )
-                    branches = retriever.get_branches(repo_address)
-                except Exception as e:
-                    st.error(f"Could not retrieve branches: {e}")
-                    return
+    # if adding_repo:
+    #     with tab:
+    #         if repo_address != "":
+    #             try:
+    #                 retriever = CodeRetrieverTool(
+    #                     conversation_manager=st.session_state.rag_ai.conversation_manager,
+    #                     configuration=None,
+    #                 )
+    #                 branches = retriever.get_branches(repo_address)
+    #             except Exception as e:
+    #                 st.error(f"Could not retrieve branches: {e}")
+    #                 return
 
-                if branches:
-                    st.selectbox("Branch name", options=branches, key="new_branch_name")
+    #             if branches:
+    #                 st.selectbox("Branch name", options=branches, key="new_branch_name")
 
-                    col1, col2 = st.columns(2)
-                    col1.button(
-                        "Add Repository",
-                        type="primary",
-                        on_click=add_repository,
-                    )
+    #                 col1, col2 = st.columns(2)
+    #                 col1.button(
+    #                     "Add Repository",
+    #                     type="primary",
+    #                     on_click=add_repository,
+    #                 )
 
-                    col2.button(
-                        "Cancel",
-                        type="secondary",
-                        on_click=lambda: st.session_state.update(
-                            {"adding_repo": False}
-                        ),
-                    )
-                else:
-                    st.error("Could not find any branches for this repo")
-            else:
-                st.info("Please enter a repo address")
+    #                 col2.button(
+    #                     "Cancel",
+    #                     type="secondary",
+    #                     on_click=lambda: st.session_state.update(
+    #                         {"adding_repo": False}
+    #                     ),
+    #                 )
+    #             else:
+    #                 st.error("Could not find any branches for this repo")
+    #         else:
+    #             st.info("Please enter a repo address")
 
 
 def on_change_code_repo():
@@ -161,79 +169,80 @@ def on_change_code_repo():
 
 def scan_repo(tab: DeltaGenerator, ai: RetrievalAugmentedGenerationAI):
     """Scans the selected repo"""
-    code_repo_id = streamlit_shared.get_selected_code_repo_id()
-    code_repo = Code().get_repository(code_repo_id)
-    retriever = CodeRetrieverTool(
-        conversation_manager=st.session_state.rag_ai.conversation_manager,
-        configuration=None,
-    )
+    raise NotImplementedError("Move this to the API / backend")
+    # code_repo_id = streamlit_shared.get_selected_code_repo_id()
+    # code_repo = Code().get_repository(code_repo_id)
+    # retriever = CodeRetrieverTool(
+    #     conversation_manager=st.session_state.rag_ai.conversation_manager,
+    #     configuration=None,
+    # )
 
-    files = retriever.scan_repo(
-        code_repo.code_repository_address, code_repo.branch_name
-    )
+    # files = retriever.scan_repo(
+    #     code_repo.code_repository_address, code_repo.branch_name
+    # )
 
-    # Unlink all of the previously scanned files, if any, from this repo
-    Code().unlink_code_files(code_repo_id)
+    # # Unlink all of the previously scanned files, if any, from this repo
+    # Code().unlink_code_files(code_repo_id)
 
-    with tab:
-        st.info(f"Found {len(files)} files")
+    # with tab:
+    #     st.info(f"Found {len(files)} files")
 
-        unprocessed_files = []
+    #     unprocessed_files = []
 
-        if len(files) > 0:
-            progress_bar = st.progress(0)
-            progress_text = st.empty()
+    #     if len(files) > 0:
+    #         progress_bar = st.progress(0)
+    #         progress_text = st.empty()
 
-            # Create a unique temp directory to store the files
-            temp_dir = f"/tmp/code/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
-            files = filter_and_save_files(
-                files=files,
-                temp_dir=temp_dir,
-                code_repo_id=code_repo_id,
-                repo_address=code_repo.code_repository_address,
-                branch_name=code_repo.branch_name,
-                progress_bar=progress_bar,
-                progress_text=progress_text,
-            )
+    #         # Create a unique temp directory to store the files
+    #         temp_dir = f"/tmp/code/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    #         files = filter_and_save_files(
+    #             files=files,
+    #             temp_dir=temp_dir,
+    #             code_repo_id=code_repo_id,
+    #             repo_address=code_repo.code_repository_address,
+    #             branch_name=code_repo.branch_name,
+    #             progress_bar=progress_bar,
+    #             progress_text=progress_text,
+    #         )
 
-            # Reset the progress bar
-            progress_bar.progress(0)
+    #         # Reset the progress bar
+    #         progress_bar.progress(0)
 
-            for i, file in enumerate(files):
-                progress_text.text(f"Processing changed file:\n'{file.path}'")
-                if not process_code_file(
-                    temp_dir=temp_dir,
-                    file=file,
-                    ai=ai,
-                    code_repo_id=code_repo_id,
-                ):
-                    unprocessed_files.append(file.path)
+    #         for i, file in enumerate(files):
+    #             progress_text.text(f"Processing changed file:\n'{file.path}'")
+    #             if not process_code_file(
+    #                 temp_dir=temp_dir,
+    #                 file=file,
+    #                 ai=ai,
+    #                 code_repo_id=code_repo_id,
+    #             ):
+    #                 unprocessed_files.append(file.path)
 
-                progress_bar.progress((i + 1) / len(files))
+    #             progress_bar.progress((i + 1) / len(files))
 
-            try:
-                # if the temp directory exists, remove it
-                if os.path.exists(temp_dir):
-                    # Remove the temp directory, including all files and subdirectories
-                    shutil.rmtree(temp_dir)
-            except Exception as e:
-                logging.error(f"Could not remove temp directory {temp_dir}: {e}")
+    #         try:
+    #             # if the temp directory exists, remove it
+    #             if os.path.exists(temp_dir):
+    #                 # Remove the temp directory, including all files and subdirectories
+    #                 shutil.rmtree(temp_dir)
+    #         except Exception as e:
+    #             logging.error(f"Could not remove temp directory {temp_dir}: {e}")
 
-            process_dependencies(
-                repo_id=code_repo_id,
-                progress_bar=progress_bar,
-                progress_text=progress_text,
-            )
+    #         process_dependencies(
+    #             repo_id=code_repo_id,
+    #             progress_bar=progress_bar,
+    #             progress_text=progress_text,
+    #         )
 
-            progress_bar.empty()
+    #         progress_bar.empty()
 
-            Code().update_last_scanned(code_repo_id, datetime.datetime.now())
+    #         Code().update_last_scanned(code_repo_id, datetime.datetime.now())
 
-            st.success(f"Done processing {len(files)} new or changed files")
+    #         st.success(f"Done processing {len(files)} new or changed files")
 
-            if len(unprocessed_files) > 0:
-                st.warning(f"Could not process {len(unprocessed_files)} files:")
-                st.write(unprocessed_files)
+    #         if len(unprocessed_files) > 0:
+    #             st.warning(f"Could not process {len(unprocessed_files)} files:")
+    #             st.write(unprocessed_files)
 
 
 def filter_and_save_files(
@@ -245,65 +254,67 @@ def filter_and_save_files(
     progress_bar,
     progress_text,
 ):
-    import os
-    from src.db.models.code import Code
+    raise NotImplementedError("Move this to the API / backend")
+    
+    # import os
+    # from src.shared.database.models.code import Code
 
-    code_helper = Code()
-    count = 0
+    # code_helper = Code()
+    # count = 0
 
-    files_to_process = []
+    # files_to_process = []
 
-    for i, file in enumerate(files):
-        progress_text.text(f"Inspecting:\n{file.path}")
-        progress_bar.progress((i + 1) / len(files))
+    # for i, file in enumerate(files):
+    #     progress_text.text(f"Inspecting:\n{file.path}")
+    #     progress_bar.progress((i + 1) / len(files))
 
-        # Skip the file if the same file (sha) has already been processed
-        existing_code_file_id = code_helper.get_code_file_id(
-            code_file_name=file.path, file_sha=file.sha
-        )
-        if existing_code_file_id:
-            # Skip saving the file, but link the code file with the code repo
-            code_helper.link_code_file_to_repo(
-                code_file_id=existing_code_file_id, code_repo_id=code_repo_id
-            )
+    #     # Skip the file if the same file (sha) has already been processed
+    #     existing_code_file_id = code_helper.get_code_file_id(
+    #         code_file_name=file.path, file_sha=file.sha
+    #     )
+    #     if existing_code_file_id:
+    #         # Skip saving the file, but link the code file with the code repo
+    #         code_helper.link_code_file_to_repo(
+    #             code_file_id=existing_code_file_id, code_repo_id=code_repo_id
+    #         )
 
-            progress_text.text(f"{file.path} unchanged")
-            logging.info(
-                f"The file `{file.path}` has already been processed- linking it to this repo."
-            )
+    #         progress_text.text(f"{file.path} unchanged")
+    #         logging.info(
+    #             f"The file `{file.path}` has already been processed- linking it to this repo."
+    #         )
 
-        else:
-            # File does not exist, so prepare to write it out
-            retriever = CodeRetrieverTool(
-                conversation_manager=st.session_state.rag_ai.conversation_manager,
-                configuration=None,
-            )
+    #     else:
+    #         # File does not exist, so prepare to write it out
+    #         retriever = CodeRetrieverTool(
+    #             conversation_manager=st.session_state.rag_ai.conversation_manager,
+    #             configuration=None,
+    #         )
 
-            # Retrieve the code from the repo
-            code_data = retriever.get_code_from_repo_and_branch(
-                file.path, repo_address, branch_name
-            )
+    #         # Retrieve the code from the repo
+    #         code_data = retriever.get_code_from_repo_and_branch(
+    #             file.path, repo_address, branch_name
+    #         )
 
-            code = code_data["file_content"]
+    #         code = code_data["file_content"]
 
-            file_path = os.path.join(temp_dir, file.path)
-            # replace any backslashes with forward slashes
-            file_path = file_path.replace("\\", "/")
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    #         file_path = os.path.join(temp_dir, file.path)
+    #         # replace any backslashes with forward slashes
+    #         file_path = file_path.replace("\\", "/")
+    #         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            # Create the file at the file_path location
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(code)
+    #         # Create the file at the file_path location
+    #         with open(file_path, "w", encoding="utf-8") as f:
+    #             f.write(code)
 
-            files_to_process.append(file)
+    #         files_to_process.append(file)
 
-            count += 1
+    #         count += 1
 
-    logging.info(
-        f"{count} files were different/new, and have been saved to {temp_dir}."
-    )
+    # logging.info(
+    #     f"{count} files were different/new, and have been saved to {temp_dir}."
+    # )
 
-    return files_to_process
+    # return files_to_process
 
 
 def process_code_file(
@@ -368,62 +379,63 @@ def process_code_file(
 
 def process_dependencies(repo_id: int, progress_bar, progress_text):
     # This is a final step when ingesting a repo, where we process the dependencies of the files we've stored
-    code_helper = Code()
-    dependency_analyzer = DependencyAnalyzer()
-    progress_text.text(f"Processing dependencies for repo")
-    progress_bar.progress(0)
+    raise NotImplementedError("Move this to the API / backend")
+    # code_helper = Code()
+    # dependency_analyzer = DependencyAnalyzer()
+    # progress_text.text(f"Processing dependencies for repo")
+    # progress_bar.progress(0)
 
-    # Write out the repo contents (from the database) to a temp directory
-    repo_files = code_helper.get_code_files(repo_id)
+    # # Write out the repo contents (from the database) to a temp directory
+    # repo_files = code_helper.get_code_files(repo_id)
 
-    temp_dir = f"/tmp/code-deps/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    # temp_dir = f"/tmp/code-deps/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-    # Make sure the temp directory exists and is empty
+    # # Make sure the temp directory exists and is empty
 
-    for i, file in enumerate(repo_files):
-        progress_text.text(
-            f"Preparing to scan for dependencies:\n'{file.code_file_name}'"
-        )
-        # Get the file content
-        file_content = file.code_file_content
-        file_path = f"{temp_dir}/{file.code_file_name}"
+    # for i, file in enumerate(repo_files):
+    #     progress_text.text(
+    #         f"Preparing to scan for dependencies:\n'{file.code_file_name}'"
+    #     )
+    #     # Get the file content
+    #     file_content = file.code_file_content
+    #     file_path = f"{temp_dir}/{file.code_file_name}"
 
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    #     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        # Write the file content to a temp directory
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(file_content)
+    #     # Write the file content to a temp directory
+    #     with open(file_path, "w", encoding="utf-8") as f:
+    #         f.write(file_content)
 
-        progress_bar.progress((i + 1) / len(repo_files))
+    #     progress_bar.progress((i + 1) / len(repo_files))
 
-    progress_bar.progress(0)
+    # progress_bar.progress(0)
 
-    # Once all of the files are written, process the dependencies
-    for i, file in enumerate(repo_files):
-        progress_text.text(f"Scanning for dependencies:\n'{file.code_file_name}'")
-        # Remove any existing dependencies for this file
-        code_helper.delete_code_file_dependencies(file.id)
+    # # Once all of the files are written, process the dependencies
+    # for i, file in enumerate(repo_files):
+    #     progress_text.text(f"Scanning for dependencies:\n'{file.code_file_name}'")
+    #     # Remove any existing dependencies for this file
+    #     code_helper.delete_code_file_dependencies(file.id)
 
-        # Process the dependencies
-        dependencies = dependency_analyzer.process_code_file(
-            f"{temp_dir}/{file.code_file_name}", temp_dir
-        )
+    #     # Process the dependencies
+    #     dependencies = dependency_analyzer.process_code_file(
+    #         f"{temp_dir}/{file.code_file_name}", temp_dir
+    #     )
 
-        if dependencies:
-            # Add the dependencies to the database
-            for dependency in dependencies["dependencies"]:
-                code_helper.add_code_file_dependency(
-                    code_file_id=file.id,
-                    dependency_name=dependency,
-                )
+    #     if dependencies:
+    #         # Add the dependencies to the database
+    #         for dependency in dependencies["dependencies"]:
+    #             code_helper.add_code_file_dependency(
+    #                 code_file_id=file.id,
+    #                 dependency_name=dependency,
+    #             )
 
-        progress_bar.progress((i + 1) / len(repo_files))
+    #     progress_bar.progress((i + 1) / len(repo_files))
 
-    # Remove the temp directory
-    try:
-        # if the temp directory exists, remove it
-        if os.path.exists(temp_dir):
-            # Remove the temp directory, including all files and subdirectories
-            shutil.rmtree(temp_dir)
-    except Exception as e:
-        logging.error(f"Could not remove temp directory {temp_dir}: {e}")
+    # # Remove the temp directory
+    # try:
+    #     # if the temp directory exists, remove it
+    #     if os.path.exists(temp_dir):
+    #         # Remove the temp directory, including all files and subdirectories
+    #         shutil.rmtree(temp_dir)
+    # except Exception as e:
+    #     logging.error(f"Could not remove temp directory {temp_dir}: {e}")

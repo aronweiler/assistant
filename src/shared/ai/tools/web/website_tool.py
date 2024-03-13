@@ -7,21 +7,21 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 # Add the project root to the python path at runtime
 import sys
 from pathlib import Path
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_llm
-from src.ai.prompts.prompt_models.document_summary import (
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.utilities.llm_helper import get_llm
+from src.shared.ai.prompts.prompt_models.document_summary import (
     DocumentChunkSummaryInput,
     DocumentSummaryOutput,
     DocumentQuerySummaryRefineInput,
 )
-from src.ai.prompts.query_helper import QueryHelper
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.user_settings import UserSettings
+from src.shared.database.models.user_settings import UserSettings
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.utilities.token_helper import num_tokens_from_string
+from src.shared.utilities.token_helper import num_tokens_from_string
 
 
 @tool_class

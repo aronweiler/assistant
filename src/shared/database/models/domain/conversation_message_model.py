@@ -1,5 +1,5 @@
 from src.db.database.tables import ConversationMessage
-from src.db.models.domain.conversation_role_type import ConversationRoleType
+from src.shared.database.models.domain.conversation_role_type import ConversationRoleType
 
 
 class ConversationMessageModel:

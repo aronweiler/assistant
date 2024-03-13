@@ -2,26 +2,26 @@ import logging
 from typing import List, Union
 from uuid import UUID
 
-from src.ai.agents.general.generic_tool import GenericTool
-from src.ai.utilities.system_info import get_system_information
-from src.db.models.code import Code
+from src.shared.ai.agents.general.generic_tool import GenericTool
+from src.shared.ai.utilities.system_info import get_system_information
+from src.shared.database.models.code import Code
 
-from src.db.models.conversation_messages import (
+from src.shared.database.models.conversation_messages import (
     ConversationMessages,
 )
-from src.db.models.domain.code_repository_model import CodeRepositoryModel
-from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
-from src.db.models.domain.user_settings_model import UserSettingModel
-from src.db.models.user_settings import UserSettings
-from src.db.models.users import Users
-from src.db.models.documents import Documents
-from src.db.models.conversations import Conversations
+from src.shared.database.models.domain.code_repository_model import CodeRepositoryModel
+from src.shared.database.models.domain.tool_call_results_model import ToolCallResultsModel
+from src.shared.database.models.domain.user_settings_model import UserSettingModel
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.database.models.users import Users
+from src.shared.database.models.documents import Documents
+from src.shared.database.models.conversations import Conversations
 
 from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
 from src.memory.token_buffer import ConversationTokenBufferMemory
 
-from src.ai.prompts.prompt_manager import PromptManager
-from src.tools.tool_results.tool_results import get_previous_tool_call_results
+from src.shared.ai.prompts.prompt_manager import PromptManager
+from src.shared.ai.tools.tool_results.tool_results import get_previous_tool_call_results
 
 
 class ConversationManager:

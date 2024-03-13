@@ -12,27 +12,27 @@ from langchain.base_language import BaseLanguageModel
 
 from langchain_core.callbacks.base import BaseCallbackHandler, BaseCallbackManager
 
-from src.ai.agents.general.generic_tool import GenericTool
+from src.shared.ai.agents.general.generic_tool import GenericTool
 
-from src.ai.utilities.llm_helper import get_llm
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.prompts.prompt_models.answer import AnswerInput, AnswerOutput
-from src.ai.prompts.prompt_models.evaluation import EvaluationInput, EvaluationOutput
-from src.ai.prompts.prompt_models.planning_stage import (
+from src.shared.ai.utilities.llm_helper import get_llm
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.prompts.prompt_models.answer import AnswerInput, AnswerOutput
+from src.shared.ai.prompts.prompt_models.evaluation import EvaluationInput, EvaluationOutput
+from src.shared.ai.prompts.prompt_models.planning_stage import (
     PlanningStageInput,
     PlanningStageOutput,
 )
-from src.ai.prompts.prompt_models.tool_use import (
+from src.shared.ai.prompts.prompt_models.tool_use import (
     ToolUseInput,
     ToolUseOutput,
     ToolUseRetryInput,
 )
-from src.ai.prompts.query_helper import QueryHelper
-from src.ai.tools.tool_manager import ToolManager
+from src.shared.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.tools.tool_manager import ToolManager
 from src.configuration.model_configuration import ModelConfiguration
-from src.utilities.configuration_utilities import get_app_configuration
+from src.shared.utilities.configuration_utilities import get_app_configuration
 
-from src.utilities.parsing_utilities import parse_json
+from src.shared.utilities.parsing_utilities import parse_json
 
 
 class GenericToolsAgent(BaseSingleActionAgent):

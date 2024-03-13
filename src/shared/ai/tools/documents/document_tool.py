@@ -12,36 +12,36 @@ from langchain.chains import (
 )
 from langchain.schema import Document
 from langchain.chains.summarize import load_summarize_chain
-from src.ai.prompts.prompt_models.document_summary import (
+from src.shared.ai.prompts.prompt_models.document_summary import (
     DocumentChunkSummaryInput,
     DocumentSummaryOutput,
     DocumentSummaryRefineInput,
 )
-from src.ai.prompts.prompt_models.document_search import (
+from src.shared.ai.prompts.prompt_models.document_search import (
     DocumentSearchInput,
     DocumentSearchOutput,
 )
-from src.ai.prompts.prompt_models.tool_use import (
+from src.shared.ai.prompts.prompt_models.tool_use import (
     AdditionalToolUseInput,
     AdditionalToolUseOutput,
 )
-from src.ai.prompts.query_helper import QueryHelper
-from src.ai.tools.tool_loader import get_available_tools
-from src.ai.tools.tool_manager import ToolManager
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.tools.tool_loader import get_available_tools
+from src.shared.ai.tools.tool_manager import ToolManager
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.user_settings import UserSettings
-from src.utilities.parsing_utilities import parse_json
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.utilities.parsing_utilities import parse_json
 
-from src.utilities.token_helper import num_tokens_from_string
+from src.shared.utilities.token_helper import num_tokens_from_string
 
-from src.db.models.conversation_messages import SearchType
-from src.db.models.documents import Documents
-from src.db.models.pgvector_retriever import PGVectorRetriever
+from src.shared.database.models.conversation_messages import SearchType
+from src.shared.database.models.documents import Documents
+from src.shared.database.models.pgvector_retriever import PGVectorRetriever
 
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_llm
-import src.utilities.configuration_utilities as configuration_utilities
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.utilities.llm_helper import get_llm
+import src.shared.utilities.configuration_utilities as configuration_utilities
 
 
 @tool_class

@@ -5,20 +5,20 @@ from typing import Any, List, Tuple, Union
 from langchain.agents import Tool, AgentExecutor, BaseMultiActionAgent
 from langchain.schema import AgentAction, AgentFinish
 from langchain.tools import StructuredTool
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 
 sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
 )
 
-from src.tools.code.code_tool import CodeTool
-from src.tools.documents.document_tool import DocumentTool
-from src.tools.code.code_dependency import CodeDependency
+from src.shared.ai.tools.code.code_tool import CodeTool
+from src.shared.ai.tools.documents.document_tool import DocumentTool
+from src.shared.ai.tools.code.code_dependency import CodeDependency
 
-from src.db.models.documents import Documents
+from src.shared.database.models.documents import Documents
 
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.db.models.domain.file_model import FileModel
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.database.models.domain.file_model import FileModel
 
 # Create an basic agent that takes a single input, runs it through a tool, and returns the output
 

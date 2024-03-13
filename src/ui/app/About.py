@@ -2,6 +2,8 @@
 import logging
 import sys
 
+from passlib.hash import pbkdf2_sha256 as hasher
+
 import requests
 import streamlit as st
 
@@ -48,6 +50,29 @@ def setup_streamlit_interface():
             - ✅ Unit Test Generation
         """
         )
+
+        # Placeholder for database session creation
+        # session = Session()
+
+        email = st.text_input("Email")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Login"):
+            # Placeholder for fetching user from the database
+            # user = session.query(User).filter_by(email=email).first()
+            # if user and
+            if hasher.verify(password, "fake hash"):
+                st.session_state["authenticated"] = True
+                st.success("You are successfully logged in!")
+            else:
+                st.error("Invalid email or password")
+
+        # # Protecting another page
+        # if 'authenticated' in st.session_state and st.session_state['authenticated']:
+        #     st.write('Welcome to the protected page!')
+        # else:
+        #     st.write('Please login to see this page.')
+
     except:
         # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
         # Check to see if the type of exception is a "StopException",
@@ -66,10 +91,11 @@ def setup_streamlit_interface():
             # Otherwise, raise the exception
             raise
 
+
 def show_version():
     # Read the version from the version file
     version = ""
-    with open("version.txt", "r") as f:
+    with open("src/ui/app/version.txt", "r") as f:
         version = f.read().strip()
 
     # Try to get the main version from my github repo, and if it's different, show an update message
@@ -106,7 +132,8 @@ def show_version():
 
     except Exception as e:
         logging.error(f"Error checking for latest version: {e}")
-        st.sidebar.info(f"Version: {version}")            
+        st.sidebar.info(f"Version: {version}")
+
 
 # Main execution
 if __name__ == "__main__":

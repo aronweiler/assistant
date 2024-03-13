@@ -4,8 +4,8 @@ import queue
 import logging
 import threading
 
-from src.ai.voice.speech_to_text import SpeechToText
-from src.ai.voice.player import play_wav_file
+from src.shared.ai.voice.speech_to_text import SpeechToText
+from src.shared.ai.voice.player import play_wav_file
 
 class AudioTranscriber:
     def __init__(self, transcription_model_name = "base"):

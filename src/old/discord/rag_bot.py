@@ -12,13 +12,13 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.discord.memory_manager import get_conversation_memory
-from src.ai.utilities.llm_helper import get_llm
+from src.shared.ai.utilities.llm_helper import get_llm
 
-from src.db.models.documents import Documents, FileModel, DocumentModel
-from src.db.models.users import Users
-from src.utilities.hash_utilities import calculate_sha256
+from src.shared.database.models.documents import Documents, FileModel, DocumentModel
+from src.shared.database.models.users import Users
+from src.shared.utilities.hash_utilities import calculate_sha256
 
 
 class RagBot(discord.Client):

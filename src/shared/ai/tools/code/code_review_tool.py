@@ -1,13 +1,13 @@
 from typing import List
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.prompts.prompt_models.code_review import CodeReviewInput, CodeReviewOutput
-from src.ai.utilities.llm_helper import get_llm
-from src.ai.prompts.query_helper import QueryHelper
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.prompts.prompt_models.code_review import CodeReviewInput, CodeReviewOutput
+from src.shared.ai.utilities.llm_helper import get_llm
+from src.shared.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.documents import Documents
-from src.db.models.user_settings import UserSettings
-from src.tools.code.code_retriever_tool import CodeRetrieverTool
+from src.shared.database.models.documents import Documents
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.ai.tools.code.code_retriever_tool import CodeRetrieverTool
 
 
 @tool_class

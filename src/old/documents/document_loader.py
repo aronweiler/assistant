@@ -23,7 +23,7 @@ from langchain_community.document_loaders import (
     UnstructuredExcelLoader,
 )
 
-from src.utilities.token_helper import num_tokens_from_string
+from src.shared.utilities.token_helper import num_tokens_from_string
 
 # TODO: Add loaders for PPT, and other document types
 

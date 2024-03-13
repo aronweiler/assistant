@@ -1,6 +1,6 @@
 from gnews import GNews
 
-from src.ai.tools.tool_registry import register_tool
+from src.shared.ai.tools.tool_registry import register_tool
 
 
 @register_tool(

@@ -4,20 +4,26 @@ import streamlit as st
 import os
 from google_auth_oauthlib.flow import InstalledAppFlow
 import json
-from src.ai.tools.tool_loader import get_available_tools
 
-from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.code import Code
-from src.db.models.domain.source_control_provider_model import (
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../")))
+
+from utilities import ensure_authenticated
+
+from src.shared.ai.tools.tool_loader import get_available_tools
+
+from src.shared.configuration.model_configuration import ModelConfiguration
+from src.shared.database.models.code import Code
+from src.shared.database.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
 )
-from src.db.models.user_settings import UserSettings
+from src.shared.database.models.user_settings import UserSettings
 
 
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.tools.tool_manager import ToolManager
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.tools.tool_manager import ToolManager
 
-import src.ui.streamlit_shared as ui_shared
+import streamlit_shared as ui_shared
+from utilities import ensure_authenticated
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
@@ -1342,6 +1348,8 @@ def edit_provider_form(
 # Run the settings page
 if __name__ == "__main__":
     try:
+        ensure_authenticated()
+        
         user_email = os.environ.get("USER_EMAIL", None)
         if ui_shared.ensure_user(user_email):
             settings_page(user_email)

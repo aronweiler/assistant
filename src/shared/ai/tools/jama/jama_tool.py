@@ -1,8 +1,8 @@
 from typing import Union
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.tools.tool_manager import ToolManager
-from src.ai.tools.tool_registry import register_tool, tool_class
-from src.db.models.user_settings import UserSettings
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.tools.tool_manager import ToolManager
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.database.models.user_settings import UserSettings
 from src.integrations.jama.jama_session import JamaSession
 
 

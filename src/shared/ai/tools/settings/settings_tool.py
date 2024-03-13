@@ -1,7 +1,7 @@
 import logging
-from src.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.conversations.conversation_manager import ConversationManager
 
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 
 
 @tool_class

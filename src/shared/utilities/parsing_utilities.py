@@ -4,7 +4,7 @@ import os
 import logging
 
 from langchain.schema.language_model import BaseLanguageModel
-from src.utilities.json_repair import JsonRepair
+from src.shared.utilities.json_repair import JsonRepair
 
 logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)

@@ -14,7 +14,9 @@ services:
       - 5433:5432
 
   jarvis-ui:
-    build: ./src/ui
+    build: 
+      context: .
+      dockerfile: src/ui/Dockerfile
     container_name: jarvis-ui
     restart: always
     env_file:

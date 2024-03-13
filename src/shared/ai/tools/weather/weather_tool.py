@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 import logging
 
-from src.ai.tools.tool_registry import register_tool
+from src.shared.ai.tools.tool_registry import register_tool
 
 
 @register_tool(

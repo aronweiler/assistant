@@ -7,18 +7,18 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.utilities.configuration_utilities import (
+from src.shared.utilities.configuration_utilities import (
     get_app_configuration,
     get_app_config_path,
 )
 
-from src.ai.utilities.llm_helper import get_llm
-from src.ai.prompts.prompt_manager import PromptManager
+from src.shared.ai.utilities.llm_helper import get_llm
+from src.shared.ai.prompts.prompt_manager import PromptManager
 
 from src.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
 )
-from src.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
 
 from src.discord.conversational_bot import ConversationalBot
 from src.discord.rag_bot import RagBot

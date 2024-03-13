@@ -4,27 +4,27 @@ from typing import List
 
 # Importing necessary modules and classes for the tool.
 from langchain.base_language import BaseLanguageModel
-from src.ai.prompts.prompt_models.code_refactor import (
+from src.shared.ai.prompts.prompt_models.code_refactor import (
     CodeRefactorInput,
     CodeRefactorOutput,
 )
-from src.ai.prompts.query_helper import QueryHelper
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.user_settings import UserSettings
+from src.shared.database.models.user_settings import UserSettings
 
-from src.tools.code.code_retriever_tool import CodeRetrieverTool
+from src.shared.ai.tools.code.code_retriever_tool import CodeRetrieverTool
 
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.utilities.llm_helper import get_llm
+from src.shared.ai.utilities.llm_helper import get_llm
 
 
 # Importing database models and utilities.
-from src.db.models.documents import Documents
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.utilities.token_helper import num_tokens_from_string
+from src.shared.database.models.documents import Documents
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.utilities.token_helper import num_tokens_from_string
 
 
 @tool_class

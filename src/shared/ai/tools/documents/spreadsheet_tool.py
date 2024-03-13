@@ -16,14 +16,14 @@ from langchain.schema.language_model import BaseLanguageModel
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.tools.tool_registry import register_tool, tool_class
-from src.ai.utilities.llm_helper import get_llm
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.utilities.llm_helper import get_llm
 from src.configuration.model_configuration import ModelConfiguration
 
-from src.db.models.domain.file_model import FileModel
-from src.db.models.documents import Documents
-from src.db.models.user_settings import UserSettings
+from src.shared.database.models.domain.file_model import FileModel
+from src.shared.database.models.documents import Documents
+from src.shared.database.models.user_settings import UserSettings
 
 
 @tool_class

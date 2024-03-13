@@ -3,14 +3,14 @@ import os
 from typing import List, Union
 
 # Importing necessary modules and classes for the tool.
-from src.ai.tools.tool_registry import register_tool, tool_class
-from src.db.models.code import Code
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.database.models.code import Code
 
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 # Importing database models and utilities.
-from src.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.conversations.conversation_manager import ConversationManager
 
 # Importing integration modules for GitLab and GitHub.
 from src.integrations.gitlab.gitlab_retriever import GitlabRetriever

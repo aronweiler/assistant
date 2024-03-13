@@ -1,6 +1,6 @@
 from typing import List
-from src.ai.tools.tool_registry import register_tool
-from src.db.models.conversations import Conversations
+from src.shared.ai.tools.tool_registry import register_tool
+from src.shared.database.models.conversations import Conversations
 
 
 @register_tool(

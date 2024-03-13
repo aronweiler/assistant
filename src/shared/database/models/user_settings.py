@@ -1,6 +1,6 @@
 from src.db.database.tables import UserSetting
-from src.db.models.domain.user_settings_model import UserSettingModel
-from src.db.models.vector_database import VectorDatabase
+from src.shared.database.models.domain.user_settings_model import UserSettingModel
+from src.shared.database.models.vector_database import VectorDatabase
 
 
 class UserSettings(VectorDatabase):

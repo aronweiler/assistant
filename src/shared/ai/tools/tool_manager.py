@@ -2,11 +2,11 @@ import os
 import logging
 from typing import List
 
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.tools.tool_loader import get_available_tools, get_tool_setting
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.tools.tool_loader import get_available_tools, get_tool_setting
 
-from src.ai.agents.general.generic_tool import GenericTool
-from src.utilities.configuration_utilities import (
+from src.shared.ai.agents.general.generic_tool import GenericTool
+from src.shared.utilities.configuration_utilities import (
     get_app_configuration,
     get_tool_configuration,
 )

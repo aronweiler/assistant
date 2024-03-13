@@ -1,7 +1,7 @@
 from typing import List
 from pydantic import BaseModel, Field
 
-from src.ai.prompts.query_helper import output_type_example
+from src.shared.ai.prompts.query_helper import output_type_example
 
 
 class CodeDetailsExtractionInput(BaseModel):

@@ -1,7 +1,7 @@
 import pytz
 from datetime import datetime
 
-from src.ai.tools.tool_registry import register_tool
+from src.shared.ai.tools.tool_registry import register_tool
 
 
 @register_tool(

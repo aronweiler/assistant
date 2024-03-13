@@ -1,6 +1,6 @@
 
 
-from src.db.models.code import Code
+from src.shared.database.models.code import Code
 
 
 def get_provider_from_url(url:str):

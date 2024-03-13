@@ -13,9 +13,9 @@ from langchain.memory.chat_memory import ChatMessageHistory
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.utilities.token_helper import num_tokens_from_string
+from src.shared.utilities.token_helper import num_tokens_from_string
 
-from src.ai.prompts.prompt_manager import PromptManager
+from src.shared.ai.prompts.prompt_manager import PromptManager
 
 memory_map: dict = {}
 lock = threading.Lock()

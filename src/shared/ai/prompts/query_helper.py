@@ -7,13 +7,13 @@ from langchain_core.language_models import BaseLanguageModel
 from pydantic import BaseModel
 from typing import Type, Dict
 
-from src.utilities.parsing_utilities import parse_json
+from src.shared.utilities.parsing_utilities import parse_json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.ai.prompts.prompt_manager import PromptManager
+from src.shared.ai.prompts.prompt_manager import PromptManager
 
-from src.ai.prompts.openai_prompts.formatting_instructions import (
+from src.shared.ai.prompts.openai_prompts.formatting_instructions import (
     EXAMPLE_PROMPT,
     FORMATTING_INSTRUCTIONS,
 )

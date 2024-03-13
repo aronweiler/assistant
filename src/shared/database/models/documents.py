@@ -16,12 +16,12 @@ from src.db.database.tables import (
     File,
 )
 
-from src.db.models.vector_database import VectorDatabase, SearchType
-from src.db.models.domain.document_collection_model import DocumentCollectionModel
-from src.db.models.domain.document_model import DocumentModel
-from src.db.models.domain.file_model import FileModel
+from src.shared.database.models.vector_database import VectorDatabase, SearchType
+from src.shared.database.models.domain.document_collection_model import DocumentCollectionModel
+from src.shared.database.models.domain.document_model import DocumentModel
+from src.shared.database.models.domain.file_model import FileModel
 
-from src.ai.utilities.embeddings_helper import get_embedding_by_name, get_embedding_by_model
+from src.shared.ai.utilities.embeddings_helper import get_embedding_by_name, get_embedding_by_model
 
 
 class Documents(VectorDatabase):

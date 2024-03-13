@@ -10,8 +10,8 @@ from langchain.schema.messages import (
     FunctionMessage,
 )
 
-from src.db.models.conversation_messages import ConversationMessages, ConversationMessageModel
-from src.db.models.domain.conversation_role_type import ConversationRoleType
+from src.shared.database.models.conversation_messages import ConversationMessages, ConversationMessageModel
+from src.shared.database.models.domain.conversation_role_type import ConversationRoleType
 
 
 class PostgresChatMessageHistory(BaseChatMessageHistory):

@@ -15,20 +15,20 @@ import uuid
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
 from src.configuration.model_configuration import ModelConfiguration
-from src.ai.callbacks.streaming_only_callback import VoiceToolUsingCallbackHandler
-from src.db.models.user_settings import UserSettings
-from src.ai.prompts.prompt_manager import PromptManager
-from src.ai.rag_ai import RetrievalAugmentedGenerationAI
-from src.ai.voice.player import play_wav_file
-from src.ai.voice.sound import Sound
-from src.ai.voice.audio_transcriber import AudioTranscriber
-from src.ai.voice.wake_word import WakeWord
-from src.ai.voice.text_to_speech import TextToSpeech
+from src.shared.ai.callbacks.streaming_only_callback import VoiceToolUsingCallbackHandler
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.ai.prompts.prompt_manager import PromptManager
+from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
+from src.shared.ai.voice.player import play_wav_file
+from src.shared.ai.voice.sound import Sound
+from src.shared.ai.voice.audio_transcriber import AudioTranscriber
+from src.shared.ai.voice.wake_word import WakeWord
+from src.shared.ai.voice.text_to_speech import TextToSpeech
 
-from src.db.models.users import Users
+from src.shared.database.models.users import Users
 
 
-from src.utilities.configuration_utilities import (
+from src.shared.utilities.configuration_utilities import (
     get_voice_configuration,
     get_app_configuration,
 )

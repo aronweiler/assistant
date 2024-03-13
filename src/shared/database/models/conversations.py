@@ -3,9 +3,9 @@ from uuid import UUID
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from src.db.database.tables import Conversation, ToolCallResults
-from src.db.models.domain.tool_call_results_model import ToolCallResultsModel
-from src.db.models.vector_database import VectorDatabase
-from src.db.models.domain.conversation_model import ConversationModel
+from src.shared.database.models.domain.tool_call_results_model import ToolCallResultsModel
+from src.shared.database.models.vector_database import VectorDatabase
+from src.shared.database.models.domain.conversation_model import ConversationModel
 
 
 class Conversations(VectorDatabase):

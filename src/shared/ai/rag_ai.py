@@ -4,40 +4,40 @@ from uuid import UUID
 from typing import List
 
 from langchain.agents import AgentExecutor
-from src.ai.prompts.prompt_models.code_details_extraction import (
+from src.shared.ai.prompts.prompt_models.code_details_extraction import (
     CodeDetailsExtractionInput,
     CodeDetailsExtractionOutput,
 )
-from src.ai.prompts.prompt_models.conversation_summary import (
+from src.shared.ai.prompts.prompt_models.conversation_summary import (
     ConversationSummaryInput,
     ConversationSummaryOutput,
 )
-from src.ai.prompts.prompt_models.conversational import (
+from src.shared.ai.prompts.prompt_models.conversational import (
     ConversationalInput,
     ConversationalOutput,
 )
-from src.ai.prompts.prompt_models.document_summary import (
+from src.shared.ai.prompts.prompt_models.document_summary import (
     DocumentChunkSummaryInput,
     DocumentSummaryOutput,
 )
-from src.ai.prompts.prompt_models.question_generation import (
+from src.shared.ai.prompts.prompt_models.question_generation import (
     QuestionGenerationInput,
     QuestionGenerationOutput,
 )
-from src.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.prompts.query_helper import QueryHelper
 
-from src.configuration.model_configuration import (
+from src.shared.configuration.model_configuration import (
     ModelConfiguration,
 )
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_llm
-from src.ai.prompts.prompt_manager import PromptManager
-from src.ai.utilities.system_info import get_system_information
-from src.ai.agents.general.generic_tools_agent import GenericToolsAgent
-from src.db.models.user_settings import UserSettings
-from src.db.models.users import Users
-from src.tools.documents.document_tool import DocumentTool
-from src.ai.tools.tool_manager import ToolManager
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.utilities.llm_helper import get_llm
+from src.shared.ai.prompts.prompt_manager import PromptManager
+from src.shared.ai.utilities.system_info import get_system_information
+from src.shared.ai.agents.general.generic_tools_agent import GenericToolsAgent
+from src.shared.database.models.user_settings import UserSettings
+from src.shared.database.models.users import Users
+from src.shared.ai.tools.documents.document_tool import DocumentTool
+from src.shared.ai.tools.tool_manager import ToolManager
 
 
 # Constants for default penalties

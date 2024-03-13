@@ -1,10 +1,10 @@
 import logging
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
-from src.db.models.conversations import Conversations
-from src.db.models.documents import Documents
+from src.shared.database.models.conversations import Conversations
+from src.shared.database.models.documents import Documents
 import src.ui.streamlit_shared as streamlit_shared
-from src.utilities.configuration_utilities import get_app_configuration
+from src.shared.utilities.configuration_utilities import get_app_configuration
 
 
 def create_documents_collection_tab(ai, tab: DeltaGenerator):

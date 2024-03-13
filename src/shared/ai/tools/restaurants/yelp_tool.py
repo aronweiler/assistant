@@ -1,7 +1,7 @@
 from typing import Optional, Union
 import requests
 
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 
 
 def get_yelp_api_key():

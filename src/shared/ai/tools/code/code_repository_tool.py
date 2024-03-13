@@ -2,7 +2,7 @@ from typing import List
 
 import json
 
-from src.ai.prompts.prompt_models.code_examination import (
+from src.shared.ai.prompts.prompt_models.code_examination import (
     AnswerQueryInput,
     AnswerQueryOutput,
     GetRelevantSnippetsInput,
@@ -10,20 +10,20 @@ from src.ai.prompts.prompt_models.code_examination import (
     IdentifyLikelyFilesInput,
     IdentifyLikelyFilesOutput,
 )
-from src.ai.prompts.prompt_models.tool_use import (
+from src.shared.ai.prompts.prompt_models.tool_use import (
     AdditionalToolUseInput,
     AdditionalToolUseOutput,
 )
-from src.ai.prompts.query_helper import QueryHelper
-from src.ai.tools.tool_loader import get_available_tools
-from src.ai.tools.tool_manager import ToolManager
-from src.ai.tools.tool_registry import register_tool, tool_class
+from src.shared.ai.prompts.query_helper import QueryHelper
+from src.shared.ai.tools.tool_loader import get_available_tools
+from src.shared.ai.tools.tool_manager import ToolManager
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.configuration.model_configuration import ModelConfiguration
-from src.db.models.domain.code_file_model import CodeFileModel
+from src.shared.database.models.domain.code_file_model import CodeFileModel
 
-from src.ai.conversations.conversation_manager import ConversationManager
-from src.ai.utilities.llm_helper import get_llm
-from src.db.models.user_settings import UserSettings
+from src.shared.ai.conversations.conversation_manager import ConversationManager
+from src.shared.ai.utilities.llm_helper import get_llm
+from src.shared.database.models.user_settings import UserSettings
 
 
 @tool_class

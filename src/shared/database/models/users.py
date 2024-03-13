@@ -1,7 +1,7 @@
 from typing import Union
-from src.db.models.vector_database import VectorDatabase
+from src.shared.database.models.vector_database import VectorDatabase
 from src.db.database.tables import User
-from src.db.models.domain.user_model import UserModel
+from src.shared.database.models.domain.user_model import UserModel
 
 
 class Users(VectorDatabase):

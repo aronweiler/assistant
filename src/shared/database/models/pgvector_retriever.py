@@ -6,7 +6,7 @@ from pydantic import Field
 from langchain.schema import BaseRetriever, Document
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 
-from src.db.models.documents import Documents, SearchType
+from src.shared.database.models.documents import Documents, SearchType
 
 
 class PGVectorRetriever(BaseRetriever):
