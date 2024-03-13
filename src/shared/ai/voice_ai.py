@@ -14,7 +14,7 @@ import uuid
 # Append the path to the tools directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 from src.shared.ai.callbacks.streaming_only_callback import VoiceToolUsingCallbackHandler
 from src.shared.database.models.user_settings import UserSettings
 from src.shared.ai.prompts.prompt_manager import PromptManager

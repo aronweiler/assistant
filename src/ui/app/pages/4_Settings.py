@@ -2,7 +2,7 @@ import logging
 import sys
 import streamlit as st
 import os
-from google_auth_oauthlib.flow import InstalledAppFlow
+#from google_auth_oauthlib.flow import InstalledAppFlow
 import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../")))
@@ -29,12 +29,12 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
 def settings_page(user_email):
-    st.set_page_config(
-        page_title="Jarvis - Settings",
-        page_icon="⚙️",
-        layout="centered",
-        initial_sidebar_state="expanded",
-    )
+    # st.set_page_config(
+    #     page_title="Jarvis - Settings",
+    #     page_icon="⚙️",
+    #     layout="centered",
+    #     initial_sidebar_state="expanded",
+    # )
 
     st.title("Settings")
 
@@ -124,30 +124,30 @@ def jama_settings(conversation_manager: ConversationManager):
         )
 
 
-def google_auth_settings():
-    if st.button("Register Client"):
-        register_client()
+# def google_auth_settings():
+#     if st.button("Register Client"):
+#         register_client()
 
 
-def register_client():
-    flow = InstalledAppFlow.from_client_secrets_file(
-        "client_secrets.json", SCOPES, redirect_uri="urn:ietf:wg:oauth:2.0:oob"
-    )
+# def register_client():
+#     flow = InstalledAppFlow.from_client_secrets_file(
+#         "client_secrets.json", SCOPES, redirect_uri="urn:ietf:wg:oauth:2.0:oob"
+#     )
 
-    authorization_url, _ = flow.authorization_url(prompt="consent")
+#     authorization_url, _ = flow.authorization_url(prompt="consent")
 
-    st.write("Please visit the following URL to authorize your application:")
-    st.write(authorization_url)
+#     st.write("Please visit the following URL to authorize your application:")
+#     st.write(authorization_url)
 
-    authorization_code = st.text_input("Enter the authorization code:")
+#     authorization_code = st.text_input("Enter the authorization code:")
 
-    if authorization_code:
-        flow.fetch_token(authorization_response=authorization_code)
+#     if authorization_code:
+#         flow.fetch_token(authorization_response=authorization_code)
 
-        credentials = flow.credentials
-        save_credentials(credentials)
+#         credentials = flow.credentials
+#         save_credentials(credentials)
 
-        st.success("Client registration successful!")
+#         st.success("Client registration successful!")
 
 
 def save_credentials(credentials):

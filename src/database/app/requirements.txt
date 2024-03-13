@@ -4,3 +4,4 @@ alembic
 pgvector
 plotly
 sqlalchemy
+passlib

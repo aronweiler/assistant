@@ -5,7 +5,7 @@ from typing import List
 
 from langchain.base_language import BaseLanguageModel
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 from src.shared.database.models.user_settings import UserSettings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))

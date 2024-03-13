@@ -2,7 +2,7 @@ import os
 import logging
 from typing import List
 from github import InputGitTreeElement
-import src.integrations.github.github_shared as github_shared
+import src.shared.integrations.github.github_shared as github_shared
 
 REGULAR_FILE = "100644"
 

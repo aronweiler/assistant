@@ -77,12 +77,13 @@
       "type": "debugpy",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": ["run", "About.py", "--server.port=${input:randomPort}"],
+      "args": ["run", "src/ui/app/About.py", "--server.port=${input:randomPort}"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
         "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5433",
         "LIBRE_OFFICE_PATH": "/Program Files/LibreOffice/program/soffice.exe"
       },
       "justMyCode": true

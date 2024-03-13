@@ -18,7 +18,7 @@ from src.shared.ai.prompts.query_helper import QueryHelper
 from src.shared.ai.tools.tool_loader import get_available_tools
 from src.shared.ai.tools.tool_manager import ToolManager
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 from src.shared.database.models.domain.code_file_model import CodeFileModel
 
 from src.shared.ai.conversations.conversation_manager import ConversationManager

@@ -13,9 +13,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from src.shared.ai.conversations.conversation_manager import ConversationManager
 
 # Importing integration modules for GitLab and GitHub.
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
+from src.shared.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
-from src.integrations.github.github_retriever import GitHubRetriever
+from src.shared.integrations.github.github_retriever import GitHubRetriever
 
 
 @tool_class

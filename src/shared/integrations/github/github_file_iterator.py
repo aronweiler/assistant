@@ -6,12 +6,12 @@ from github import Github
 
 from github.ContentFile import ContentFile
 
-from src.integrations.shared import TEXT_BASED_EXTENSIONS, is_text_based_extension
+from src.shared.integrations.shared import TEXT_BASED_EXTENSIONS, is_text_based_extension
 
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.integrations.github import github_shared
+from src.shared.integrations.github import github_shared
 
 
 def get_text_based_files_from_repo(

@@ -8,7 +8,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseLanguageModel
 
 from src.shared.utilities.openai_utilities import get_openai_api_key
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 import src.shared.utilities.configuration_utilities as configuration_utilities
 
 # Singleton instance of Llama2 LLM to avoid reinitialization

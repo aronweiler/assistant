@@ -11,7 +11,7 @@ import jinja2
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 # Assuming you have a similar shared module for GitHub as you did for GitLab.
-import src.integrations.github.github_shared as github_shared
+import src.shared.integrations.github.github_shared as github_shared
 
 
 logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))

@@ -9,7 +9,7 @@ from langchain.base_language import BaseLanguageModel
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from src.shared.ai.utilities.llm_helper import get_llm
-from src.integrations.github import github_issue_creator
+from src.shared.integrations.github import github_issue_creator
 from src.shared.ai.tools.code.issue_tool import IssueTool
 
 
@@ -20,8 +20,8 @@ from src.shared.utilities.token_helper import num_tokens_from_string
 from src.shared.utilities.parsing_utilities import parse_json
 
 # Importing integration modules for GitLab and GitHub.
-from src.integrations.gitlab.gitlab_committer import GitlabCommitter
-from src.integrations.github.github_committer import GitHubCommitter
+from src.shared.integrations.gitlab.gitlab_committer import GitlabCommitter
+from src.shared.integrations.github.github_committer import GitHubCommitter
 
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
 

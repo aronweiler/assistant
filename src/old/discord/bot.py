@@ -15,7 +15,7 @@ from src.shared.utilities.configuration_utilities import (
 from src.shared.ai.utilities.llm_helper import get_llm
 from src.shared.ai.prompts.prompt_manager import PromptManager
 
-from src.configuration.assistant_configuration import (
+from src.shared.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
 )
 from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI

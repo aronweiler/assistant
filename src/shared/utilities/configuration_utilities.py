@@ -1,6 +1,6 @@
 import os
-from src.configuration.assistant_configuration import ApplicationConfigurationLoader
-from src.configuration.voice_configuration import VoiceConfiguration
+from src.shared.configuration.assistant_configuration import ApplicationConfigurationLoader
+from src.shared.configuration.voice_configuration import VoiceConfiguration
 
 
 def get_tool_configuration(configuration: dict, func_name: str) -> dict:

@@ -8,8 +8,8 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 # Import shared GitHub integration utilities.
-from src.integrations.github import github_file_iterator
-import src.integrations.github.github_shared as github_shared
+from src.shared.integrations.github import github_file_iterator
+import src.shared.integrations.github.github_shared as github_shared
 
 
 class GitHubRetriever:

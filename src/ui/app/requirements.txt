@@ -4,6 +4,7 @@ pydantic
 # AI
 tiktoken
 openai
+langchain_openai
 langchain
 langchain-community
 transformers
@@ -18,6 +19,7 @@ passlib
 # UI
 streamlit
 streamlit-extras
+extra-streamlit-components
 # Maybe one day
 #streamlit-authenticator
 #streamlit-oauth

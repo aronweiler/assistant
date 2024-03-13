@@ -6,7 +6,7 @@ from typing import List
 
 from langchain.base_language import BaseLanguageModel
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
-from src.integrations.github import github_issue_creator
+from src.shared.integrations.github import github_issue_creator
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
@@ -17,11 +17,11 @@ from src.shared.utilities.token_helper import num_tokens_from_string
 from src.shared.utilities.parsing_utilities import parse_json
 
 
-from src.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
-from src.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
+from src.shared.integrations.gitlab.gitlab_issue_creator import GitlabIssueCreator
+from src.shared.integrations.gitlab.gitlab_issue_retriever import GitlabIssueRetriever
+from src.shared.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
-from src.integrations.github.github_issue_creator import GitHubIssueCreator
+from src.shared.integrations.github.github_issue_creator import GitHubIssueCreator
 
 @tool_class
 class IssueTool:

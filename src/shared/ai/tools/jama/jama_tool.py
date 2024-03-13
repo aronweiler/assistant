@@ -3,7 +3,7 @@ from src.shared.ai.conversations.conversation_manager import ConversationManager
 from src.shared.ai.tools.tool_manager import ToolManager
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.shared.database.models.user_settings import UserSettings
-from src.integrations.jama.jama_session import JamaSession
+from src.shared.integrations.jama.jama_session import JamaSession
 
 
 @tool_class

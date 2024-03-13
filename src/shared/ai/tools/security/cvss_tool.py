@@ -1,7 +1,7 @@
 from src.shared.ai.conversations.conversation_manager import ConversationManager
 from src.shared.ai.utilities.llm_helper import get_llm
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 from src.shared.database.models.user_settings import UserSettings
 
 

@@ -1,9 +1,9 @@
 import logging
 from typing import List
 import gitlab
-import src.integrations.gitlab.gitlab_shared as gitlab_shared
+import src.shared.integrations.gitlab.gitlab_shared as gitlab_shared
 
-from src.integrations.gitlab.gitlab_retriever import GitlabRetriever
+from src.shared.integrations.gitlab.gitlab_retriever import GitlabRetriever
 
 
 class GitlabCommitter:

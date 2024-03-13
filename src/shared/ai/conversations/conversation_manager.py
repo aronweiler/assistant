@@ -17,8 +17,8 @@ from src.shared.database.models.users import Users
 from src.shared.database.models.documents import Documents
 from src.shared.database.models.conversations import Conversations
 
-from src.memory.postgres_chat_message_history import PostgresChatMessageHistory
-from src.memory.token_buffer import ConversationTokenBufferMemory
+from src.shared.ai.memory.postgres_chat_message_history import PostgresChatMessageHistory
+from src.shared.ai.memory.token_buffer import ConversationTokenBufferMemory
 
 from src.shared.ai.prompts.prompt_manager import PromptManager
 from src.shared.ai.tools.tool_results.tool_results import get_previous_tool_call_results

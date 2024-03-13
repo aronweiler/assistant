@@ -3,7 +3,7 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from src.shared.database.models.conversations import Conversations
 from src.shared.database.models.documents import Documents
-import src.ui.streamlit_shared as streamlit_shared
+import streamlit_shared as streamlit_shared
 from src.shared.utilities.configuration_utilities import get_app_configuration
 
 

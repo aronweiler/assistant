@@ -10,7 +10,7 @@ import jinja2
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-import src.integrations.gitlab.gitlab_shared as gitlab_shared
+import src.shared.integrations.gitlab.gitlab_shared as gitlab_shared
 
 
 logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))

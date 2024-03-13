@@ -10,7 +10,7 @@ from src.shared.ai.prompts.prompt_models.code_refactor import (
 )
 from src.shared.ai.prompts.query_helper import QueryHelper
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 from src.shared.database.models.user_settings import UserSettings
 
 from src.shared.ai.tools.code.code_retriever_tool import CodeRetrieverTool

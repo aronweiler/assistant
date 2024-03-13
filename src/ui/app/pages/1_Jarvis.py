@@ -8,7 +8,9 @@ import uuid
 import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../")))
+sys.path.append(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
+)
 
 from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.shared.configuration.model_configuration import ModelConfiguration
@@ -32,17 +34,6 @@ class RagUI:
 
         if "app_config" not in st.session_state:
             st.session_state["app_config"] = get_app_configuration()
-
-    def set_page_config(self):
-        """Sets the page configuration"""
-        st.set_page_config(
-            page_title="Jarvis - Retrieval Augmented Generation AI",
-            page_icon="📖",
-            layout="wide",
-            initial_sidebar_state="expanded",
-        )
-
-        st.title("Hey Jarvis 🤖...")
 
     def load_ai(self, override_conversation_id=None):
         """Loads the AI instance for the selected conversation id"""
@@ -230,16 +221,23 @@ class RagUI:
             st.write("")
 
 
+def set_page_config():
+    """Sets the page configuration"""
+
+    st.title("Hey Jarvis 🤖...")
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
+
+    set_page_config()
 
     ensure_authenticated()
 
     try:
         logging.debug("Starting Jarvis")
         # Get the user from the environment variables
-        user_email = os.environ.get("USER_EMAIL", None)
-        logging.debug(f"User email: {user_email}")
+        user_email = st.session_state.user_email
 
         # Time the operation
         start_time = time.time()
@@ -252,12 +250,6 @@ if __name__ == "__main__":
         start_time = time.time()
         rag_ui.load_configuration()
         logging.info(f"Time to load configuration: {time.time() - start_time}")
-
-        logging.debug("Setting page config")
-        # Time the operation
-        start_time = time.time()
-        rag_ui.set_page_config()
-        logging.info(f"Time to set page config: {time.time() - start_time}")
 
         if not user_email:
             raise ValueError("USER_EMAIL environment variable not set")

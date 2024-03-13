@@ -2,11 +2,11 @@ import os
 import sys
 import gitlab
 
-from src.integrations.shared import TEXT_BASED_EXTENSIONS, is_text_based_extension
+from src.shared.integrations.shared import TEXT_BASED_EXTENSIONS, is_text_based_extension
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.integrations.gitlab import gitlab_shared
+from src.shared.integrations.gitlab import gitlab_shared
 
 
 class GitlabFileIterator:

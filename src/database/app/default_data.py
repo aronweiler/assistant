@@ -1,5 +1,3 @@
-
-
 import os
 import sys
 import logging
@@ -7,10 +5,40 @@ import logging
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from src.shared.database.schema.tables import ConversationRoleType, SupportedSourceControlProvider
+from passlib.hash import pbkdf2_sha256 as hasher
+from src.shared.database.schema.tables import (
+    ConversationRoleType,
+    SupportedSourceControlProvider,
+    User,
+)
 from vector_database import VectorDatabase
 
 SUPPORTED_SOURCE_CONTROL_PROVIDERS = ["GitHub", "GitLab"]
+
+
+def create_admin_user():
+    logging.info("Creating admin user")
+    vector_database = VectorDatabase()
+    with vector_database.session_context(vector_database.Session()) as session:
+
+        email = "admin"
+        password = "admin"
+        name = "admin"
+        location = "the moon"
+        age = 999
+        password_hash = hasher.hash(password)
+
+        session.add(
+            User(
+                email=email,
+                name=name,
+                location=location,
+                age=age,
+                password_hash=password_hash,
+                session_id=None,
+                session_created=None,
+            )
+        )
 
 
 def ensure_conversation_role_types():
@@ -32,14 +60,15 @@ def ensure_conversation_role_types():
                 session.add(ConversationRoleType(role_type=role_type))
 
         session.commit()
-        
+
     logging.info("Conversation role types exist in the database")
-        
+
+
 def ensure_supported_source_control_providers():
     logging.info("Ensuring supported source control providers exist in the database")
-    
+
     vector_database = VectorDatabase()
-    with vector_database.session_context(vector_database.Session()) as session:       
+    with vector_database.session_context(vector_database.Session()) as session:
 
         existing_provider = None
         for provider in SUPPORTED_SOURCE_CONTROL_PROVIDERS:
@@ -54,5 +83,5 @@ def ensure_supported_source_control_providers():
                 session.add(SupportedSourceControlProvider(name=provider))
 
         session.commit()
-        
+
     logging.info("Supported source control providers exist in the database")

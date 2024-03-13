@@ -3,12 +3,13 @@ import logging
 from sqlalchemy import create_engine, text
 
 from migration_utilities import run_migration
-from default_data import ensure_conversation_role_types, ensure_supported_source_control_providers
+from default_data import create_admin_user, ensure_conversation_role_types, ensure_supported_source_control_providers
 from connection_utilities import get_connection_string
 
 
 ERROR_MSG_ROLE_TYPES = "Error ensuring conversation role types are in the database: {}. You probably didn't run the `migration_utilities.create_migration()`"
 ERROR_MSG_SOURCE_CONTROL = "Error ensuring supported source control providers are in the database: {}. You probably didn't run the `migration_utilities.create_migration()`"
+ERROR_MSG_ADMIN_USER = "Error creating admin user: {}. You probably didn't run the `migration_utilities.create_migration()`"
 
 
 
@@ -51,3 +52,8 @@ if __name__ == "__main__":
         ensure_supported_source_control_providers()
     except Exception as e:
         print(ERROR_MSG_SOURCE_CONTROL.format(e))
+        
+    try:
+        create_admin_user()
+    except Exception as e:
+        logging.error(ERROR_MSG_ADMIN_USER.format(e))

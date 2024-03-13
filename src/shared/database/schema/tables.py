@@ -48,6 +48,8 @@ class User(ModelBase):
     location = Column(String, nullable=True)
     email = Column(String, nullable=False, unique=True)
     password_hash = Column(String, nullable=False)
+    session_id = Column(String, nullable=True)
+    session_created = Column(DateTime, nullable=True)    
 
     # Define a one-to-many relationship with other tables
     conversation_messages = relationship("ConversationMessage", back_populates="user")

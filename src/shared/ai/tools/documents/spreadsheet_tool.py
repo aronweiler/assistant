@@ -19,7 +19,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.
 from src.shared.ai.conversations.conversation_manager import ConversationManager
 from src.shared.ai.tools.tool_registry import register_tool, tool_class
 from src.shared.ai.utilities.llm_helper import get_llm
-from src.configuration.model_configuration import ModelConfiguration
+from src.shared.configuration.model_configuration import ModelConfiguration
 
 from src.shared.database.models.domain.file_model import FileModel
 from src.shared.database.models.documents import Documents
