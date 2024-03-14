@@ -629,8 +629,10 @@ def ingest_files(
     # Upload the file to the API
 
     # Get the API_DOCUMENT_HOST from the environment
-    api_document_host = os.environ.get("API_DOCUMENT_HOST", "http://localhost:8102")
+    api_document_host = os.environ.get("API_DOCUMENT_HOST", "localhost")
     api_document_port = os.environ.get("API_DOCUMENT_PORT", "8102")
+
+    url = f"http://{api_document_host}:{api_document_port}/ingest"
 
     files = {}
     params = {
@@ -644,20 +646,17 @@ def ingest_files(
         "user_id": st.session_state.user_id,
     }
 
-    url = f"http://{api_document_host}:{api_document_port}/ingest"
-
     for file in uploaded_files:
         files[file.name] = (file.name, file.getbuffer())
 
     response = requests.post(url, params=params, files=files)
     logging.info(f"Request content-type: {response.request.headers['Content-Type']}")
-    
+
     if response.status_code == 200:
         st.success("Files are being processed")
     else:
         st.error("Error processing files")
-        st.error(response.text)       
-        
+        st.error(response.text)
 
     # documents_helper = Documents()
     # document_loader = DocumentLoader()

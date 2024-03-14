@@ -1,10 +1,15 @@
 from fastapi import APIRouter, UploadFile, File
 from typing import List
+import logging
 
 import src.workers.document_processing.app.document_ingestion_tasks as document_ingestion_tasks
 
 
 router = APIRouter()
+
+# TODO: Remove this 
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 @router.get("/test")
