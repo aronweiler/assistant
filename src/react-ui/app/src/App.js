@@ -7,14 +7,12 @@ import {
 } from "react-router-dom";
 import LoginForm from "./components/LoginForm";
 import JarvisPage from "./components/JarvisPage";
-import AuthContext from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./PrivateRoute";
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
-
   return (
-    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn }}>
+    <AuthProvider>
       <Router>
         <Switch>
           <Route path="/login" component={LoginForm} />
@@ -22,7 +20,7 @@ function App() {
           <Redirect from="/" to="/login" />
         </Switch>
       </Router>
-    </AuthContext.Provider>
+    </AuthProvider>
   );
 }
 
