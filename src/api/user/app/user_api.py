@@ -23,6 +23,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 # TODO: Get this from the environment? DB?
 origins = [
     "http://localhost:3000",  # development
+    "http://localhost:3000/",  # development
+    "http://localhost",  # development
     "https://blahhh.com",  # production??
 ]
 

@@ -9,7 +9,9 @@ function LoginForm() {
 
   const login = async (email, password) => {
     try {
+      // ${process.env.REACT_APP_API_USER_HOST}
       const apiUrl = `http://${process.env.REACT_APP_API_USER_HOST}:${process.env.REACT_APP_API_USER_PORT}`;
+      console.log('API URL:', apiUrl);
       const response = await fetch(`${apiUrl}/token`, {
         method: 'POST',
         headers: {
