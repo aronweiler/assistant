@@ -4,7 +4,7 @@ import time
 import streamlit as st
 import extra_streamlit_components as stx
 
-from shared.database.models.users import Users
+from src.shared.database.models.users import Users
 
 DEFAULT_COOKIE_EXPIRY = 3
 SESSION_EXPIRY = 3

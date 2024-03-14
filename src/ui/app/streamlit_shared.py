@@ -9,6 +9,8 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from streamlit_extras.stylable_container import stylable_container
 
+from celery.result import AsyncResult
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
 from utilities import calculate_progress
@@ -16,6 +18,7 @@ from file_upload import ingest_files
 import code_tab as code_tab
 import document_tab as document_tab
 
+from src.workers.document_processing.app.celery_worker import celery_app
 from src.shared.database.models.user_settings import UserSettings
 from src.shared.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
@@ -564,6 +567,7 @@ def select_documents(tab, ai=None):
                 f"*Embedding model: **{get_selected_embedding_name()}**, max chunk size: **{max_chunk_size}***"
             )
 
+        task_results = None
         with tab.form(key="upload_files_form", clear_on_submit=True):
             uploaded_files = st.file_uploader(
                 "Choose your files",
@@ -587,7 +591,7 @@ def select_documents(tab, ai=None):
             if uploaded_files and active_collection_id:
                 if active_collection_id:
                     if submit_button:
-                        ingest_files(
+                        task_results = ingest_files(
                             uploaded_files=uploaded_files,
                             active_collection_id=active_collection_id,
                             status=status,
@@ -612,6 +616,26 @@ def select_documents(tab, ai=None):
                             ai=ai,
                         )
 
+        if task_results and len(task_results) > 0:
+            for result in task_results:
+                file_name = os.path.basename(result[0])
+                col1, col2 = st.columns(2)
+                col1.info(f"{file_name} - {result[1].id} - {result[1].state}")
+
+                st.button(
+                    "Refresh",
+                    key=f"{result[0]}_refresh",
+                    on_click=display_progress,
+                    args=(result[1].id,),
+                )
+
+
+def display_progress(task_id):
+    result = AsyncResult(task_id, app=celery_app)
+    if result.state == "PROGRESS":
+        st.write("Progress:", result.info.get("status", "..."))
+    else:
+        st.write("Current State:", result.state)
     # def ingest_files(
     #     uploaded_files,
     #     active_collection_id,
@@ -901,185 +925,6 @@ def select_documents(tab, ai=None):
     #         )
 
     # Done!
-    st.balloons()
-
-
-def save_split_documents(
-    active_collection_id,
-    status,
-    create_summary_and_chunk_questions,
-    summarize_document,
-    ai,
-    documents_helper,
-    ingest_progress_bar,
-    root_temp_dir,
-    files: List[FileModel],
-    documents,
-):
-    document_chunk_length = len(documents)
-    st.info(f"Saving {document_chunk_length} document chunks...")
-    logging.info(f"Saving {document_chunk_length} document chunks...")
-
-    # Update the document counts on the files- this will help if we have to resume
-    file_to_chunk_count = {}
-    for file in files:
-        if file.document_count == 0:
-            # Get the count of documents matching the file name
-            document_count = len(
-                [
-                    d
-                    for d in documents
-                    if d.metadata["filename"].replace(root_temp_dir, "").strip("/")
-                    == file.file_name
-                ]
-            )
-            file.document_count = document_count
-            documents_helper.update_document_count(file.id, document_count)
-
-        # Get the number of documents already in the DB for this file
-        current_document_count = documents_helper.get_document_chunk_count_by_file_id(
-            file.id
-        )
-
-        file_to_chunk_count[file.file_name] = {
-            "current_document_count": current_document_count,
-            "total_document_count": file.document_count,
-        }
-
-    # Since this is all fucked up, and the documents are all in one list (multiple files in the same list)
-    # I need to split this out into multiple lists, each associated with a single file
-    file_documents = {}
-    for document in documents:
-        # Get the file name without the root_temp_dir (preserving any subdirectories)
-        file_name = document.metadata["filename"].replace(root_temp_dir, "").strip("/")
-
-        if file_name in file_documents:
-            doc_list = file_documents[file_name]
-        else:
-            doc_list = []
-
-        doc_list.append(document)
-        file_documents[file_name] = doc_list
-
-    # For each file, loop through the documents
-    current_chunk = 0
-    for file in files:
-        logging.info(
-            f"Processing {len(file_documents[file.file_name]) if file.file_name in file_documents else 0} chunks for {file.file_name}"
-        )
-
-        if not file:
-            st.error(
-                f"Could not find file '{file_name}' in the database after uploading"
-            )
-            logging.error(
-                f"Could not find file '{file_name}' in the database after uploading"
-            )
-            break
-
-        current_document_count = file_to_chunk_count[file.file_name][
-            "current_document_count"
-        ]
-
-        file_doc_chunk_len = (
-            len(file_documents[file.file_name])
-            if file.file_name in file_documents
-            else 0
-        )
-        for index in range(current_document_count, file_doc_chunk_len):
-            # TODO: Fix the progress bar
-            ingest_progress_bar.progress(
-                calculate_progress(file_doc_chunk_len, index + 1),
-                text=f"Processing {file.file_name} chunk {index + 1} of {file_doc_chunk_len}",
-            )
-
-            document = file_documents[file.file_name][index]
-
-            summary_and_chunk_questions = None
-            if create_summary_and_chunk_questions and hasattr(
-                ai, "create_summary_and_chunk_questions"
-            ):
-                try:
-                    logging.info("Creating summary and questions for chunk...")
-                    summary_and_chunk_questions = ai.create_summary_and_chunk_questions(
-                        text=document.page_content
-                    )
-                except Exception as e:
-                    logging.error(f"Error creating questions for chunk: {e}")
-
-                # Create the document chunks
-            logging.info(f"Inserting document chunk for file '{file_name}'...")
-            documents_helper.store_document(
-                DocumentModel(
-                    collection_id=active_collection_id,
-                    file_id=file.id,
-                    user_id=st.session_state.user_id,
-                    document_text=document.page_content,
-                    document_text_summary=(
-                        summary_and_chunk_questions.summary
-                        if summary_and_chunk_questions
-                        else ""
-                    ),
-                    document_text_has_summary=(
-                        summary_and_chunk_questions.summary != ""
-                        if summary_and_chunk_questions
-                        else False
-                    ),
-                    additional_metadata=document.metadata,
-                    document_name=document.metadata["filename"],
-                    embedding_model_name=get_selected_collection_embedding_model_name(),
-                    question_1=(
-                        summary_and_chunk_questions.questions[0]
-                        if summary_and_chunk_questions
-                        and len(summary_and_chunk_questions.questions) > 0
-                        else ""
-                    ),
-                    question_2=(
-                        summary_and_chunk_questions.questions[1]
-                        if summary_and_chunk_questions
-                        and len(summary_and_chunk_questions.questions) > 1
-                        else ""
-                    ),
-                    question_3=(
-                        summary_and_chunk_questions.questions[2]
-                        if summary_and_chunk_questions
-                        and len(summary_and_chunk_questions.questions) > 2
-                        else ""
-                    ),
-                    question_4=(
-                        summary_and_chunk_questions.questions[3]
-                        if summary_and_chunk_questions
-                        and len(summary_and_chunk_questions.questions) > 3
-                        else ""
-                    ),
-                    question_5=(
-                        summary_and_chunk_questions.questions[4]
-                        if summary_and_chunk_questions
-                        and len(summary_and_chunk_questions.questions) > 4
-                        else ""
-                    ),
-                )
-            )
-
-    if summarize_document and hasattr(ai, "generate_detailed_document_summary"):
-        for file in files:
-            # Note: this generates a summary and also puts it into the DB
-            ai.generate_detailed_document_summary(file_id=file.id)
-
-            logging.info(f"Created a summary of file: '{file.file_name}'")
-
-    st.success(
-        f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
-    )
-    logging.info(
-        f"Successfully ingested {len(documents)} document chunks from {len(files)} files"
-    )
-    status.update(
-        label=f"✅ Ingestion complete",
-        state="complete",
-    )
-
-    ingest_progress_bar.empty()
 
 
 

@@ -21,29 +21,47 @@ def ingest_files(
     """Ingests the uploaded files into the specified collection"""
     # Write out the files to the shared volume in a unique directory for this batch
     ingest_progress_bar = st.progress(text="Uploading files...", value=0)
+
     uploaded_file_paths, root_temp_dir = upload_files(
         uploaded_files, status, ingest_progress_bar
     )
 
+    ingest_progress_bar.empty()
+
+    task_results = []
     for file_path in uploaded_file_paths:
         # Hand off to Celery for processing each file separately
-        document_ingestion_tasks.process_document_task.delay(
-            active_collection_id=active_collection_id,
-            overwrite_existing_files=overwrite_existing_files,
-            split_documents=split_documents,
-            create_summary_and_chunk_questions=create_summary_and_chunk_questions,
-            summarize_document=summarize_document,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            user_id=st.session_state.user_id,
-            file_path=file_path,
+        task_results.append(
+            (
+                file_path,
+                document_ingestion_tasks.process_document_task.apply_async(
+                    args=[
+                        active_collection_id,
+                        overwrite_existing_files,
+                        split_documents,
+                        create_summary_and_chunk_questions,
+                        summarize_document,
+                        chunk_size,
+                        chunk_overlap,
+                        st.session_state.user_id,
+                        file_path,
+                    ],
+                    track_started=True,
+                ),
+            )
         )
 
     status.update(
         label=f"✅ Ingestion queued",
         state="complete",
     )
+
     ingest_progress_bar.empty()
+
+    # TODO: Save the IDs of the tasks to the database so we can track their progress
+    # Then have a streamlit page where we can display the progress of each task
+
+    return task_results
 
 
 def upload_files(uploaded_files, status, ingest_progress_bar, root_dir="/app/shared"):
