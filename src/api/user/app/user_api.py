@@ -1,8 +1,10 @@
 import datetime
+import logging
 import os
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import JWTError, jwt
+
+import jwt
 from passlib.hash import pbkdf2_sha256 as hasher
 
 from src.shared.database.models.users import Users
@@ -18,6 +20,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 @router.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    logging.info(f"User {form_data.username} is attempting to log in")
+    
     email = form_data.username
     password = form_data.password
 

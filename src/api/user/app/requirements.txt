@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+python-multipart
 
 # Database
 psycopg2-binary
