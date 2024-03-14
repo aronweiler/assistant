@@ -40,8 +40,23 @@ services:
     volumes:
       - shared_data:/app/shared
 
+  jarvis-ui-react:
+    build: ./src/react-ui
+    container_name: jarvis-ui-react
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src/react-ui/app:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_USER_HOST=jarvis-api-user
+      - REACT_APP_API_USER_PORT=8101
+
   jarvis-api-user:
-    build: ./src/api/user
+    build: 
+      context: .
+      dockerfile: ./src/api/user/Dockerfile
     container_name: jarvis-api-user
     restart: always
     env_file:

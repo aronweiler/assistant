@@ -1,6 +1,16 @@
+fastapi
+uvicorn
+
 # Database
 psycopg2-binary
 alembic
 pgvector
 plotly
 sqlalchemy
+
+# Authentication
+Flask-JWT-Extended
+jose
+
+# Passwords
+passlib 
