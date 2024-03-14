@@ -34,8 +34,11 @@ services:
       - API_CODE_PORT=8103
       - API_CONVERSATION_HOST=jarvis-api-conversation
       - API_CONVERSATION_PORT=8104
+      - RABBITMQ_HOST=jarvis-rabbitmq
     ports:
       - 8600:8600
+    volumes:
+      - shared_data:/app/shared
 
   jarvis-api-user:
     build: ./src/api/user

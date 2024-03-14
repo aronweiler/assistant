@@ -42,10 +42,15 @@ def process_document_task(
         original_file_name, active_collection_id
     )
 
-    if existing_file and not overwrite_existing_files:
-        raise ValueError(
-            f"File '{original_file_name}' already exists, and overwrite is not enabled"
-        )
+    if existing_file:
+        if not overwrite_existing_files:
+            raise ValueError(
+                f"File '{original_file_name}' already exists, and overwrite is not enabled"
+            )
+
+        # Delete the old file and its chunks
+        documents_helper.delete_document_chunks_by_file_id(existing_file.id)
+        documents_helper.delete_file(existing_file.id)
 
     # Does the file need to be converted to a different format?
     if file_needs_converting(file_path):
@@ -60,8 +65,10 @@ def process_document_task(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
     )
-    
-    logging.info(f"After loading and splitting, we are processing {len(documents)} documents...")
+
+    logging.info(
+        f"After loading and splitting, we are processing {len(documents)} documents..."
+    )
 
     # Get the full file data for the database
     with open(file_path, "rb") as file:
@@ -86,7 +93,7 @@ def process_document_task(
         ),
         file_data,  # Binary file data for later retrieval
     )
-    
+
     # TODO: Iterate through the document chunks and store them
 
 

@@ -135,10 +135,6 @@ def get_documents_from_file(target_file: str) -> List[Document]:
 
     documents = load_single_document(target_file)
     logging.info(f"Loaded {len(documents)} documents from {target_file}")
-    # documents = [
-    #     doc for doc_list in documents if isinstance(doc_list, list) for doc in doc_list
-    # ]
-    # logging.info(f"After filtering, there are {len(documents)} documents we loaded from {target_file}")
     return documents
 
 
@@ -168,7 +164,7 @@ def load_and_split_document(
         texts = documents
 
     logging.info(
-        f"Loaded {len(documents)} documents with {len(texts)} splits of from {target_file}"
+        f"Loaded {len(documents)} pages split into {len(texts)} chunks from {target_file}"
     )
 
     return texts
