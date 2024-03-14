@@ -26,10 +26,14 @@ services:
     environment:
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
-      - API_DOCUMENT_HOST=jarvis-api-documents
       - API_USER_HOST=jarvis-api-user
+      - API_USER_PORT=8101
+      - API_DOCUMENT_HOST=jarvis-api-document
+      - API_DOCUMENT_PORT=8102      
       - API_CODE_HOST=jarvis-api-code
+      - API_CODE_PORT=8103
       - API_CONVERSATION_HOST=jarvis-api-conversation
+      - API_CONVERSATION_PORT=8104
     ports:
       - 8600:8600
 
