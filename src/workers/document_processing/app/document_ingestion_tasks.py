@@ -3,6 +3,8 @@ import logging
 import os
 import sys
 
+from celery import current_task
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
 from src.workers.document_processing.app.celery_worker import celery_app
@@ -22,6 +24,9 @@ def process_document_task(
 ):
     """Process (split, vectorize, etc.) a single document and store it in the database"""
     logging.info(f"Worker processing document '{file_path}'...")
+    current_task.update_state(
+        state="STARTED", meta={"status": f"Worker processing document '{file_path}'..."}
+    )
 
     # Imports are within the function because we don't want to load them unless we're using them
     from src.shared.database.models.documents import Documents
@@ -37,6 +42,9 @@ def process_document_task(
 
     original_file_name = os.path.basename(file_path)
 
+    current_task.update_state(
+        state="PROGRESS", meta={"status": "Checking for existing files..."}
+    )
     # Do we already have this file in the database?
     existing_file = documents_helper.get_file_by_name(
         original_file_name, active_collection_id
@@ -44,10 +52,21 @@ def process_document_task(
 
     if existing_file:
         if not overwrite_existing_files:
-            raise ValueError(
+            logging.warning(
                 f"File '{original_file_name}' already exists, and overwrite is not enabled"
             )
+            current_task.update_state(
+                state="FAILURE",
+                meta={
+                    "status": f"File '{original_file_name}' already exists, and overwrite is not enabled"
+                },
+            )
 
+            return
+
+        current_task.update_state(
+            state="PROGRESS", meta={"status": "Overwriting existing file..."}
+        )
         # Delete the old file and its chunks
         documents_helper.delete_document_chunks_by_file_id(existing_file.id)
         documents_helper.delete_file(existing_file.id)
@@ -55,10 +74,18 @@ def process_document_task(
     # Does the file need to be converted to a different format?
     if file_needs_converting(file_path):
         logging.info(f"Converting file '{file_path}' to PDF...")
+        current_task.update_state(
+            state="PROGRESS",
+            meta={"status": f"Converting file '{file_path}' to PDF..."},
+        )
         # Convert the file, and reset the file_path
         file_path = convert_file_to_pdf(file_path)
 
     # Load and split the document
+    current_task.update_state(
+        state="PROGRESS",
+        meta={"status": f"Loading and splitting '{file_path}'..."},
+    )
     documents = load_and_split_document(
         target_file=file_path,
         split_document=split_documents,
@@ -78,6 +105,10 @@ def process_document_task(
     file_hash = calculate_sha256(file_path)
 
     logging.info(f"Storing full document '{original_file_name}'...")
+    current_task.update_state(
+        state="PROGRESS",
+        meta={"status": f"Storing full document '{original_file_name}'..."},
+    )
 
     file_classification = documents[0].metadata["classification"]
 
@@ -95,7 +126,7 @@ def process_document_task(
     )
 
     # TODO: Iterate through the document chunks and store them
-
+   
 
 # def ingest_files(
 #     uploaded_files,

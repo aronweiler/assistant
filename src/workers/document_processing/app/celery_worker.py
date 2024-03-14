@@ -9,5 +9,6 @@ broker_host = os.environ.get("RABBITMQ_HOST")
 celery_app = Celery(
     "document_ingestion",
     broker=f"amqp://{broker_user}:{broker_password}@{broker_host}",
+    backend='rpc://',
     include=["document_ingestion_tasks"],
 )
