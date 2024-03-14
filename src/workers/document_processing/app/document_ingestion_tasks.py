@@ -126,7 +126,153 @@ def process_document_task(
     )
 
     # TODO: Iterate through the document chunks and store them
-   
+    save_split_documents(
+        active_collection_id=active_collection_id,
+        create_summary_and_chunk_questions=create_summary_and_chunk_questions,
+        summarize_document=summarize_document,
+        file=file_model,
+        file_name=original_file_name,
+        documents=documents,
+        user_id=user_id,
+    )
+
+
+def save_split_documents(
+    active_collection_id,
+    create_summary_and_chunk_questions,
+    summarize_document,
+    file,
+    file_name,
+    documents,
+    user_id,
+):
+
+    from src.shared.database.models.documents import Documents
+    from src.shared.database.models.domain.document_model import DocumentModel
+    from src.workers.document_processing.app.utilities import (
+        get_selected_collection_embedding_model_name,
+    )
+    import src.workers.document_processing.app.ai_file_processing as ai
+
+    documents_helper = Documents()
+
+    logging.info(f"Saving {len(documents)} document chunks...")
+
+    if not file:
+        logging.error(
+            f"Could not find file '{file_name}' in the database after uploading"
+        )
+        current_task.update_state(
+            state="FAILURE",
+            meta={
+                "status": f"Could not find file '{file_name}' in the database after uploading"
+            },
+        )
+        return
+
+    for document in documents:
+        summary_and_chunk_questions = None
+        if create_summary_and_chunk_questions:
+            logging.info(
+                f"Creating summary and questions for chunk... '{document.metadata['filename']}'..."
+            )
+            current_task.update_state(
+                state="PROGRESS",
+                meta={
+                    "status": f"Creating summary and questions for chunk of file: '{document.metadata['filename']}'..."
+                },
+            )
+            try:
+                summary_and_chunk_questions = ai.create_summary_and_chunk_questions(
+                    user_id=user_id,
+                    text=document.page_content,
+                    number_of_questions=5,  # All we support for now
+                )
+            except Exception as e:
+                logging.error(f"Error creating questions for chunk: {e}")
+
+            # Create the document chunks
+        logging.info(f"Inserting document chunk for file '{file_name}'...")
+        documents_helper.store_document(
+            DocumentModel(
+                collection_id=active_collection_id,
+                file_id=file.id,
+                user_id=user_id,
+                document_text=document.page_content,
+                document_text_summary=(
+                    summary_and_chunk_questions.summary
+                    if summary_and_chunk_questions
+                    else ""
+                ),
+                document_text_has_summary=(
+                    summary_and_chunk_questions.summary != ""
+                    if summary_and_chunk_questions
+                    else False
+                ),
+                additional_metadata=document.metadata,
+                document_name=document.metadata["filename"],
+                embedding_model_name=get_selected_collection_embedding_model_name(
+                    active_collection_id
+                ),
+                question_1=(
+                    summary_and_chunk_questions.questions[0]
+                    if summary_and_chunk_questions
+                    and len(summary_and_chunk_questions.questions) > 0
+                    else ""
+                ),
+                question_2=(
+                    summary_and_chunk_questions.questions[1]
+                    if summary_and_chunk_questions
+                    and len(summary_and_chunk_questions.questions) > 1
+                    else ""
+                ),
+                question_3=(
+                    summary_and_chunk_questions.questions[2]
+                    if summary_and_chunk_questions
+                    and len(summary_and_chunk_questions.questions) > 2
+                    else ""
+                ),
+                question_4=(
+                    summary_and_chunk_questions.questions[3]
+                    if summary_and_chunk_questions
+                    and len(summary_and_chunk_questions.questions) > 3
+                    else ""
+                ),
+                question_5=(
+                    summary_and_chunk_questions.questions[4]
+                    if summary_and_chunk_questions
+                    and len(summary_and_chunk_questions.questions) > 4
+                    else ""
+                ),
+            )
+        )
+
+    if summarize_document:
+        # Note: this generates a summary and also puts it into the DB
+        current_task.update_state(
+            state="PROGRESS",
+            meta={"status": f"Generating a summary of file: '{file.file_name}'..."},
+        )
+        try:
+            ai.generate_detailed_document_summary(
+                user_id=user_id,
+                target_file_id=file.id,
+                collection_id=active_collection_id,
+            )
+            logging.info(f"Created a summary of file: '{file.file_name}'")
+        except Exception as e:
+            logging.error(f"Error creating summary of file: '{file.file_name}': {e}")
+
+    current_task.update_state(
+        state="SUCCESS",
+        meta={
+            "status": f"Successfully ingested {len(documents)} document chunks from {file_name} files"
+        },
+    )
+    logging.info(
+        f"Successfully ingested {len(documents)} document chunks from {file_name} files"
+    )
+
 
 # def ingest_files(
 #     uploaded_files,

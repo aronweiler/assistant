@@ -1,6 +1,8 @@
+celery
+
 # Basic stuff
 pydantic
-celery
+tzlocal
 
 # AI
 tiktoken

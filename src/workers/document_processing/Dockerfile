@@ -12,4 +12,7 @@ COPY ./src/shared ./src/shared
 
 WORKDIR /app/src/workers/document_processing/app
 
+# TODO: Remove this after moving these settings to the database
+COPY ./configurations ./configurations
+
 CMD ["celery", "-A", "celery_worker", "worker", "--loglevel=info"]
