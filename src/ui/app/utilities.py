@@ -50,3 +50,11 @@ def is_user_authenticated():
             cookie_manager.delete(cookie="session_id")
 
     return False
+
+
+def calculate_progress(total_size, current_position):
+    """
+    Calculate progress as a percentage within the range of 0-100.
+    """
+    progress = (current_position / total_size) * 100
+    return int(min(progress, 100))

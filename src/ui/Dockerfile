@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./src/ui/app ./src/ui/app
 COPY ./src/shared ./src/shared
-COPY ./src/api/shared ./src/api/shared
+COPY ./src/workers/document_processing/app ./src/workers/document_processing/app
 COPY ./configurations ./configurations
 
 # Inform Docker that the container listens on port 8500 at runtime

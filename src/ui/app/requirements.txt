@@ -1,5 +1,6 @@
 # Basic stuff
 pydantic
+celery
 
 # AI
 tiktoken

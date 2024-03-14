@@ -9,14 +9,13 @@ import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from streamlit_extras.stylable_container import stylable_container
 
-
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-
+from utilities import calculate_progress
+from file_upload import ingest_files
 import code_tab as code_tab
 import document_tab as document_tab
 
-from src.api.shared.models.document_ingestion_model import DocumentIngestionModel
 from src.shared.database.models.user_settings import UserSettings
 from src.shared.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
@@ -613,51 +612,75 @@ def select_documents(tab, ai=None):
                             ai=ai,
                         )
 
+    # def ingest_files(
+    #     uploaded_files,
+    #     active_collection_id,
+    #     status,
+    #     overwrite_existing_files,
+    #     split_documents,
+    #     create_summary_and_chunk_questions,
+    #     summarize_document,
+    #     chunk_size,
+    #     chunk_overlap,
+    #     ai=None,
+    # ):
+    #     """Ingests the uploaded files into the specified collection"""
+    #     # Write out the files to the shared volume in a unique directory for this batch
+    #     ingest_progress_bar = st.progress(text="Uploading files...", value=0)
+    #     uploaded_file_paths, root_temp_dir = upload_files(
+    #         uploaded_files, status, ingest_progress_bar
+    #     )
 
-def ingest_files(
-    uploaded_files,
-    active_collection_id,
-    status,
-    overwrite_existing_files,
-    split_documents,
-    create_summary_and_chunk_questions,
-    summarize_document,
-    chunk_size,
-    chunk_overlap,
-    ai=None,
-):
-    """Ingests the uploaded files into the specified collection"""
+    #     for file_path in uploaded_file_paths:
+    #         # Hand off to Celery for processing each file separately
+    #         document_ingestion_tasks.process_document_task.delay(
+    #             active_collection_id=active_collection_id,
+    #             overwrite_existing_files=overwrite_existing_files,
+    #             split_documents=split_documents,
+    #             create_summary_and_chunk_questions=create_summary_and_chunk_questions,
+    #             summarize_document=summarize_document,
+    #             chunk_size=chunk_size,
+    #             chunk_overlap=chunk_overlap,
+    #             user_id=st.session_state.user_id,
+    #             file_path=file_path,
+    #         )
+
+    #     status.update(
+    #         label=f"✅ Ingestion queued",
+    #         state="complete",
+    #     )
+    #     ingest_progress_bar.empty()
 
     # Upload the file to the API
-
     # Get the API_DOCUMENT_HOST from the environment
-    api_document_host = os.environ.get("API_DOCUMENT_HOST", "localhost")
-    api_document_port = os.environ.get("API_DOCUMENT_PORT", "8102")
+    # api_document_host = os.environ.get("API_DOCUMENT_HOST", "localhost")
+    # api_document_port = os.environ.get("API_DOCUMENT_PORT", "8102")
 
-    url = f"http://{api_document_host}:{api_document_port}/ingest"
+    # url = f"http://{api_document_host}:{api_document_port}/ingest"
 
-    files = {}
-    for file in uploaded_files:
-        files[file.name] = (file.name, file.getbuffer())
+    # files = {}
+    # for file in uploaded_files:
+    #     files[file.name] = (file.name, file.getbuffer())
 
-    ingestion_model_dict = {
-        "active_collection_id": active_collection_id,
-        "overwrite_existing_files": overwrite_existing_files,
-        "split_documents": split_documents,
-        "create_summary_and_chunk_questions": create_summary_and_chunk_questions,
-        "summarize_document": summarize_document,
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-        "user_id": st.session_state.user_id
-    }
+    # ingestion_model_dict = {
+    #     "active_collection_id": active_collection_id,
+    #     "overwrite_existing_files": overwrite_existing_files,
+    #     "split_documents": split_documents,
+    #     "create_summary_and_chunk_questions": create_summary_and_chunk_questions,
+    #     "summarize_document": summarize_document,
+    #     "chunk_size": chunk_size,
+    #     "chunk_overlap": chunk_overlap,
+    #     "user_id": st.session_state.user_id
+    # }
 
-    response = requests.post(url, json=ingestion_model_dict, files=files)
+    # # Remember to set the Content-Type header
+    # response = requests.post(url, params=ingestion_model_dict, files=files)
 
-    if response.status_code == 200:
-        st.success("Files are being processed")
-    else:
-        st.error("Error processing files")
-        st.error(response.text)
+    # if response.status_code == 200:
+    #     st.success("Files are being processed")
+    # else:
+    #     st.error("Error processing files")
+    #     st.error(response.text)
 
     # documents_helper = Documents()
     # document_loader = DocumentLoader()
@@ -1059,43 +1082,7 @@ def save_split_documents(
     ingest_progress_bar.empty()
 
 
-def calculate_progress(total_size, current_position):
-    """
-    Calculate progress as a percentage within the range of 0-100.
-    """
-    progress = (current_position / total_size) * 100
-    return int(min(progress, 100))
 
-
-def upload_files(uploaded_files, status, ingest_progress_bar):
-    root_temp_dir = "temp/" + str(uuid.uuid4())
-
-    # First upload all of the files- this needs to be done before we process them, in case there are inter-dependencies
-    uploaded_file_paths = []
-    with status.empty():
-        for uploaded_file in uploaded_files:
-            ingest_progress_bar.progress(
-                calculate_progress(
-                    len(uploaded_files), uploaded_files.index(uploaded_file) + 1
-                ),
-                text=f"Uploading file {uploaded_files.index(uploaded_file) + 1} of {len(uploaded_files)}",
-            )
-            st.info(f"Uploading file: {uploaded_file.name}")
-
-            # Make sure there are no folder separators in the file name
-            file_name = uploaded_file.name.replace("/", "-").replace("\\", "-")
-
-            file_path = os.path.join(root_temp_dir, file_name)
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-
-            uploaded_file_paths.append(file_path)
-
-        st.success(f"Uploaded {len(uploaded_file_paths)} files")
-
-    return uploaded_file_paths, root_temp_dir
 
 
 def create_documents_and_code_collections(ai):
