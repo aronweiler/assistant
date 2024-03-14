@@ -1,31 +1,37 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const login = async (email, password) => {
     try {
       const apiUrl = `http://${process.env.REACT_APP_API_USER_HOST}:${process.env.REACT_APP_API_USER_PORT}`;
       const response = await fetch(`${apiUrl}/token`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username: email, password }),
       });
-      if (!response.ok) throw new Error("Login failed");
+      if (!response.ok) throw new Error('Login failed');
       const data = await response.json();
-      localStorage.setItem("token", data.access_token);
-      // Redirect or update UI as logged in
+      localStorage.setItem('token', data.access_token);
+      navigate('/'); // Redirect to the calling page or home page
     } catch (error) {
-      console.error("Login error:", error);
+      console.error('Login error:', error);
+      setError(error.message);
     }
   };
 
   const handleSubmit = async (e) => {
+    console.log('Login form submitted');
+
     e.preventDefault();
-    login(email, password);
+    await login(email, password);
   };
 
   return (
@@ -33,7 +39,7 @@ function LoginForm() {
       <label>
         Email:
         <input
-          type="email"
+          type='email'
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -41,12 +47,13 @@ function LoginForm() {
       <label>
         Password:
         <input
-          type="password"
+          type='password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
       </label>
-      <button type="submit">Login</button>
+      {error && <div style={{ color: 'red' }}>{error}</div>}
+      <button type='submit'>Login</button>
     </form>
   );
 }
