@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy in what I need for the API
 COPY ./src/api/document/app ./
+COPY ./src/api/shared ./src/api/shared
 COPY ./src/workers/document_processing/app ./src/workers/document_processing/app
 
 

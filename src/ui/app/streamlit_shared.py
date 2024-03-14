@@ -12,9 +12,11 @@ from streamlit_extras.stylable_container import stylable_container
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
+
 import code_tab as code_tab
 import document_tab as document_tab
 
+from src.api.shared.models.document_ingestion_model import DocumentIngestionModel
 from src.shared.database.models.user_settings import UserSettings
 from src.shared.configuration.assistant_configuration import (
     ApplicationConfigurationLoader,
@@ -635,7 +637,10 @@ def ingest_files(
     url = f"http://{api_document_host}:{api_document_port}/ingest"
 
     files = {}
-    params = {
+    for file in uploaded_files:
+        files[file.name] = (file.name, file.getbuffer())
+
+    ingestion_model_dict = {
         "active_collection_id": active_collection_id,
         "overwrite_existing_files": overwrite_existing_files,
         "split_documents": split_documents,
@@ -643,14 +648,10 @@ def ingest_files(
         "summarize_document": summarize_document,
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,
-        "user_id": st.session_state.user_id,
+        "user_id": st.session_state.user_id
     }
 
-    for file in uploaded_files:
-        files[file.name] = (file.name, file.getbuffer())
-
-    response = requests.post(url, params=params, files=files)
-    logging.info(f"Request content-type: {response.request.headers['Content-Type']}")
+    response = requests.post(url, json=ingestion_model_dict, files=files)
 
     if response.status_code == 200:
         st.success("Files are being processed")
