@@ -6,11 +6,14 @@ function JarvisPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('Checking for token...');
+
     const token = localStorage.getItem('token');
 
     console.log('Token:', token);
 
     if (!token) {
+      console.log('No token found, redirecting to login');
       navigate('/login');
     }
   }, [navigate]);

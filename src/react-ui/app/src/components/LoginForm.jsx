@@ -29,10 +29,15 @@ function LoginForm() {
 
       console.log("Login successful, token set in local storage");
 
+      const token_test = localStorage.getItem('token');
+      console.log('Token from storage:', token_test);
+
       // Redirect to the calling page (or the home page if no calling page is set)
       if (localStorage.getItem("callingPage")) {
+        console.log("Redirecting to calling page:", localStorage.getItem("callingPage"));
         navigate(localStorage.getItem("callingPage"));
       } else {
+        console.log("Redirecting to home page");
         navigate("/");
       }
     } catch (error) {
