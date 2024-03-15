@@ -18,15 +18,9 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginForm />} />
-          <Route
-            path="/jarvis"
-            element={
-              <PrivateRoute>
-                <JarvisPage />
-              </PrivateRoute>
-            }
-          />
-          <Route path="*" element={<Navigate replace to="/login" />} />
+          <Route path="/jarvis" element={<JarvisPage />} />
+          {/* <Route path="/jarvis" element={<PrivateRoute><JarvisPage /></PrivateRoute>}/> */}
+          <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </Router>
     </AuthProvider>
