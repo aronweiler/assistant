@@ -6,7 +6,7 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const navigate = useNavigate();  
 
   const login = async (email, password) => {
     try {
@@ -30,16 +30,12 @@ function LoginForm() {
       console.log("Login successful, token set in local storage");
 
       const token_test = localStorage.getItem('token');
-      console.log('Token from storage:', token_test);
+      console.log('Token from storage:', token_test);      
 
-      // Redirect to the calling page (or the home page if no calling page is set)
-      if (localStorage.getItem("callingPage")) {
-        console.log("Redirecting to calling page:", localStorage.getItem("callingPage"));
-        navigate(localStorage.getItem("callingPage"));
-      } else {
-        console.log("Redirecting to home page");
-        navigate("/");
-      }
+      console.log('Calling page:', localStorage.getItem('callingPage'));
+      // After setting the token in localStorage
+      navigate(localStorage.getItem('callingPage') || '/');
+
     } catch (error) {
       console.error("Login error:", error);
       setError(error.message);

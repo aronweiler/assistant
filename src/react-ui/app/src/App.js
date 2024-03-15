@@ -5,6 +5,7 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
+import LandingPage from "./components/LandingPage";
 import LoginForm from "./components/LoginForm";
 import JarvisPage from "./components/JarvisPage";
 import PrivateRoute from "./PrivateRoute";
@@ -15,6 +16,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginForm />} />
           <Route
             path="/jarvis"
