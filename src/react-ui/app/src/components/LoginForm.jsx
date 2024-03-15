@@ -1,5 +1,7 @@
+import styles from './LoginForm.module.css';
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -48,27 +50,28 @@ function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <label>
-        User Name:
-        <input
-          type="text"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </label>
-      <label>
-        Password:
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </label>
-      {error && <div style={{ color: "red" }}>{error}</div>}
-      <button type="submit">Login</button>
-    </form>
+    <div className={styles['form-container']}>
+      <form onSubmit={handleSubmit}>
+        <label>
+          User Name:
+          <input
+            type="text"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label>
+          Password:
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        {error && <div style={{ color: "red" }}>{error}</div>}
+        <button type="submit">Login</button>
+      </form>
+    </div>
   );
-}
 
 export default LoginForm;
