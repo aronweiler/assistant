@@ -18,6 +18,7 @@ function JarvisPage() {
     }
   }, [navigate]);
 
+  console.log('Rendering JarvisPage...');
   return (
     <div>
       <h1>Hey Jarvis...</h1>
