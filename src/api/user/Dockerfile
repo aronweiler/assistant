@@ -14,4 +14,4 @@ COPY ./src/api/shared ./src/api/shared
 COPY ./src/shared/database ./src/shared/database
 
 
-CMD ["uvicorn", "user_api:router", "--host", "0.0.0.0", "--port", "8101"]
+CMD ["uvicorn", "user_api:app", "--host", "0.0.0.0", "--port", "8101"]

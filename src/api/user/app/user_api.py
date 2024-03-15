@@ -14,7 +14,6 @@ from src.shared.database.models.users import Users
 SECRET_KEY = os.environ.get("USER_API_SECRET_KEY")
 ALGORITHM = "HS256"
 
-router = APIRouter()
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -34,11 +33,8 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
-# Include your router
-app.include_router(router)
 
-
-@router.post("/token")
+@app.post("/token")
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     logging.info(f"User {form_data.username} is attempting to log in")
 

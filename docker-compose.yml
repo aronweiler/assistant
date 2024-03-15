@@ -50,7 +50,7 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_USER_HOST=jarvis-api-user
+      - REACT_APP_API_USER_HOST=localhost # What the fuck?? why??  no idea
       - REACT_APP_API_USER_PORT=8101
 
   jarvis-api-user:
