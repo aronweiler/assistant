@@ -1,35 +1,39 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function LoginForm() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const login = async (email, password) => {
     try {
       const apiUrl = `http://${process.env.REACT_APP_API_USER_HOST}:${process.env.REACT_APP_API_USER_PORT}`;
-      console.log('API URL:', apiUrl);
+      console.log("API URL:", apiUrl);
+      const formData = new URLSearchParams();
+      formData.append("username", email);
+      formData.append("password", password);
+
       const response = await fetch(`${apiUrl}/token`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({ username: email, password: password }),
+        body: formData,
       });
-      if (!response.ok) throw new Error('Login failed');
+      if (!response.ok) throw new Error("Login failed");
       const data = await response.json();
-      localStorage.setItem('token', data.access_token);
-      navigate('/'); // Redirect to the calling page or home page
+      localStorage.setItem("token", data.access_token);
+      navigate("/"); // Redirect to the calling page or home page
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       setError(error.message);
     }
   };
 
   const handleSubmit = async (e) => {
-    console.log('Login form submitted');
+    console.log("Login form submitted");
 
     e.preventDefault();
     await login(email, password);
@@ -38,9 +42,9 @@ function LoginForm() {
   return (
     <form onSubmit={handleSubmit}>
       <label>
-        Email:
+        User Name:
         <input
-          type='email'
+          type="text"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -48,13 +52,13 @@ function LoginForm() {
       <label>
         Password:
         <input
-          type='password'
+          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
       </label>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <button type='submit'>Login</button>
+      {error && <div style={{ color: "red" }}>{error}</div>}
+      <button type="submit">Login</button>
     </form>
   );
 }
