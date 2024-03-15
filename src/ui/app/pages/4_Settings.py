@@ -10,7 +10,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
 )
 
-from utilities import ensure_authenticated
+from utilities import ensure_authenticated, set_page_config
 
 from src.shared.ai.tools.tool_loader import get_available_tools
 
@@ -32,12 +32,6 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
 
 def settings_page(user_email):
-    # st.set_page_config(
-    #     page_title="Jarvis - Settings",
-    #     page_icon="⚙️",
-    #     layout="centered",
-    #     initial_sidebar_state="expanded",
-    # )
 
     st.title("Settings")
 
@@ -1360,17 +1354,10 @@ def edit_provider_form(
 # Run the settings page
 if __name__ == "__main__":
     try:
-        st.set_page_config(
-            page_title="Jarvis",
-            page_icon="🤖",
+        set_page_config(
+            page_name="Settings",
             layout="centered",
-            initial_sidebar_state="expanded",
-            menu_items={
-                "About": "https://github.com/aronweiler/assistant",
-                "Report a bug": "https://github.com/aronweiler/assistant/issues",
-            },
         )
-
         ensure_authenticated()
 
         settings_page(st.session_state.user_email)

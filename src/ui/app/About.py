@@ -18,6 +18,7 @@ from utilities import (
     get_cookie_manager,
     is_user_authenticated,
     cookie_manager,
+    set_page_config,
 )
 
 # Constants
@@ -30,18 +31,8 @@ def setup_streamlit_interface():
     """
 
     try:
-        # Set Streamlit page configuration
         try:
-            st.set_page_config(
-                page_title="Jarvis",
-                page_icon="🤖",
-                layout="centered",
-                initial_sidebar_state="expanded",
-                menu_items={
-                    "About": "https://github.com/aronweiler/assistant",
-                    "Report a bug": "https://github.com/aronweiler/assistant/issues",
-                },
-            )
+            set_page_config(page_name="About", layout="centered")
             # Display the header for the About section
             st.write(ABOUT_JARVIS_HEADER)
         except:

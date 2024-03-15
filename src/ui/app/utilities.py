@@ -20,8 +20,7 @@ cookie_manager = None
 
 def ensure_authenticated():
     if not is_user_authenticated():
-        st.write("Please login to see this page.")
-        st.page_link("About.py", label="Login", icon="🔐")
+        st.markdown("# Uh oh! 🤔\nIt looks like you're not logged in.  Please <a href='/' target='_self'>log in here</a>.", unsafe_allow_html=True)         
         st.stop()
 
 
@@ -43,6 +42,7 @@ def is_user_authenticated():
         ):
             # Make sure their email is in the session
             st.session_state.user_email = user.email
+            st.session_state.user_id = user.id
             return True
         elif user:
             # Their session has expired, update the session in the database, and clear the cookie
@@ -58,3 +58,18 @@ def calculate_progress(total_size, current_position):
     """
     progress = (current_position / total_size) * 100
     return int(min(progress, 100))
+
+
+def set_page_config(page_name, layout="wide", initial_sidebar_state="expanded"):
+    """Sets the page configuration"""
+
+    st.set_page_config(
+        page_title=f"Jarvis - {page_name}",
+        page_icon="🤖",
+        layout=layout,
+        initial_sidebar_state=initial_sidebar_state,
+        menu_items={
+            "About": "https://github.com/aronweiler/assistant",
+            "Report a bug": "https://github.com/aronweiler/assistant/issues",
+        },
+    )

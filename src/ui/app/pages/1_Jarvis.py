@@ -19,7 +19,7 @@ from src.shared.database.models.users import Users
 from src.shared.ai.prompts.prompt_manager import PromptManager
 from src.shared.utilities.configuration_utilities import get_app_configuration
 
-from utilities import ensure_authenticated
+from utilities import ensure_authenticated, set_page_config
 import streamlit_shared as ui_shared
 
 
@@ -221,29 +221,17 @@ class RagUI:
             st.write("")
 
 
-def set_page_config():
-    """Sets the page configuration"""
-
-    st.set_page_config(
-        page_title="Jarvis",
-        page_icon="🤖",
-        layout="wide",
-        initial_sidebar_state="expanded",
-        menu_items={
-            "About": "https://github.com/aronweiler/assistant",
-            "Report a bug": "https://github.com/aronweiler/assistant/issues",
-        },
-    )
-
-    st.title("Hey Jarvis 🤖...")
-
-
 if __name__ == "__main__":
     logging.basicConfig(level=os.getenv("LOGGING_LEVEL", "INFO"))
 
-    set_page_config()
+    set_page_config(page_name="Chat")
 
     ensure_authenticated()
+
+    st.title("Hey Jarvis 🤖...")
+    st.markdown(
+        "### I'm here to help you with whatever you need.  Please begin the chat below!"
+    )
 
     try:
         logging.debug("Starting Jarvis")
