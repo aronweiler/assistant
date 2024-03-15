@@ -1,5 +1,8 @@
 import styles from "./LoginForm.module.css";
 import React, { useState } from "react";
+//import { useContext } from 'react';
+//import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 import { useNavigate } from "react-router-dom";
 
 function LoginForm() {
@@ -7,6 +10,9 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();  
+
+  //const { setIsLoggedIn } = useContext(AuthContext);
+  const { setIsLoggedIn } = useAuth();
 
   const login = async (email, password) => {
     try {
@@ -25,9 +31,11 @@ function LoginForm() {
       });
       if (!response.ok) throw new Error("Login failed");
       const data = await response.json();
-      localStorage.setItem("token", data.access_token);
-
+      localStorage.setItem("token", data.access_token);      
       console.log("Login successful, token set in local storage");
+
+      setIsLoggedIn(true);
+      console.log("Calling setIsLoggedIn:", true);
 
       const token_test = localStorage.getItem('token');
       console.log('Token from storage:', token_test);      

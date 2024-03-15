@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 function JarvisPage() {
   const navigate = useNavigate();
 
+  // Set the calling page in local storage
+  localStorage.setItem("callingPage", "/jarvis");
+
   useEffect(() => {
     console.log('Checking for token...');
 
