@@ -25,7 +25,15 @@ function LoginForm() {
       if (!response.ok) throw new Error("Login failed");
       const data = await response.json();
       localStorage.setItem("token", data.access_token);
-      navigate("/"); // Redirect to the calling page or home page
+      
+      console.log("Login successful, token set in local storage");
+
+      // Redirect to the calling page (or the home page if no calling page is set)
+      if (localStorage.getItem("callingPage")) {
+        navigate(localStorage.getItem("callingPage"));
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       console.error("Login error:", error);
       setError(error.message);
