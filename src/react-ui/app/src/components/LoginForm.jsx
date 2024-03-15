@@ -1,7 +1,6 @@
-import styles from './LoginForm.module.css';
+import styles from "./LoginForm.module.css";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -27,7 +26,7 @@ function LoginForm() {
       if (!response.ok) throw new Error("Login failed");
       const data = await response.json();
       localStorage.setItem("token", data.access_token);
-      
+
       console.log("Login successful, token set in local storage");
 
       // Redirect to the calling page (or the home page if no calling page is set)
@@ -50,7 +49,7 @@ function LoginForm() {
   };
 
   return (
-    <div className={styles['form-container']}>
+    <div className={styles["form-container"]}>
       <form onSubmit={handleSubmit}>
         <label>
           User Name:
@@ -73,5 +72,6 @@ function LoginForm() {
       </form>
     </div>
   );
+}
 
 export default LoginForm;
