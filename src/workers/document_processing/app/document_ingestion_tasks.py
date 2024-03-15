@@ -7,6 +7,7 @@ from celery import current_task
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
+
 from src.workers.document_processing.app.celery_worker import celery_app
 
 
@@ -23,12 +24,9 @@ def process_document_task(
     file_path: str,
 ):
     """Process (split, vectorize, etc.) a single document and store it in the database"""
-    logging.info(f"Worker processing document '{file_path}'...")
-    current_task.update_state(
-        state="STARTED", meta={"status": f"Worker processing document '{file_path}'..."}
-    )
 
     # Imports are within the function because we don't want to load them unless we're using them
+    from src.shared.database.models.task_operations import TaskOperations
     from src.shared.database.models.documents import Documents
     from src.shared.database.models.domain.file_model import FileModel
     from src.shared.utilities.hash_utilities import calculate_sha256
@@ -39,53 +37,52 @@ def process_document_task(
     )
 
     documents_helper = Documents()
+    task_operations = TaskOperations()
+
+    logging.info(f"Worker processing document '{file_path}'...")
+    current_task.update_state(
+        state="STARTED", meta={"status": f"Worker processing document '{file_path}'..."}
+    )
+    task_operations.create_task(
+        name="Process Document",
+        description=f"Processing document '{file_path}'",
+        current_state="STARTED",
+        associated_user_id=user_id,
+        external_task_id=current_task.request.id,
+    )
 
     original_file_name = os.path.basename(file_path)
 
-    current_task.update_state(
-        state="PROGRESS", meta={"status": "Checking for existing files..."}
-    )
+    write_status(status="Checking for existing files...")
+
     # Do we already have this file in the database?
     existing_file = documents_helper.get_file_by_name(
         original_file_name, active_collection_id
     )
 
     if existing_file:
-        if not overwrite_existing_files:
-            logging.warning(
-                f"File '{original_file_name}' already exists, and overwrite is not enabled"
-            )
-            current_task.update_state(
+        if not overwrite_existing_files:            
+            write_status(
+                status=f"File '{original_file_name}' already exists and overwrite is not enabled, aborting task.",
                 state="FAILURE",
-                meta={
-                    "status": f"File '{original_file_name}' already exists, and overwrite is not enabled"
-                },
+                log_level="warning",
             )
 
             return
 
-        current_task.update_state(
-            state="PROGRESS", meta={"status": "Overwriting existing file..."}
-        )
+        write_status(f"Overwriting existing '{original_file_name}' file...")
         # Delete the old file and its chunks
         documents_helper.delete_document_chunks_by_file_id(existing_file.id)
         documents_helper.delete_file(existing_file.id)
 
     # Does the file need to be converted to a different format?
     if file_needs_converting(file_path):
-        logging.info(f"Converting file '{file_path}' to PDF...")
-        current_task.update_state(
-            state="PROGRESS",
-            meta={"status": f"Converting file '{file_path}' to PDF..."},
-        )
+        write_status(f"Converting file '{file_path}' to PDF...")
         # Convert the file, and reset the file_path
         file_path = convert_file_to_pdf(file_path)
 
     # Load and split the document
-    current_task.update_state(
-        state="PROGRESS",
-        meta={"status": f"Loading and splitting '{file_path}'..."},
-    )
+    write_status(f"Loading and splitting '{file_path}'...")
     documents = load_and_split_document(
         target_file=file_path,
         split_document=split_documents,
@@ -104,11 +101,7 @@ def process_document_task(
     # Get the hash of the file
     file_hash = calculate_sha256(file_path)
 
-    logging.info(f"Storing full document '{original_file_name}'...")
-    current_task.update_state(
-        state="PROGRESS",
-        meta={"status": f"Storing full document '{original_file_name}'..."},
-    )
+    write_status(f"Storing full document '{original_file_name}'...")
 
     file_classification = documents[0].metadata["classification"]
 
@@ -159,28 +152,18 @@ def save_split_documents(
     logging.info(f"Saving {len(documents)} document chunks...")
 
     if not file:
-        logging.error(
-            f"Could not find file '{file_name}' in the database after uploading"
-        )
-        current_task.update_state(
+        write_status(
+            f"Could not find file '{file_name}' in the database after uploading",
             state="FAILURE",
-            meta={
-                "status": f"Could not find file '{file_name}' in the database after uploading"
-            },
+            log_level="error",
         )
         return
 
-    for document in documents:
+    for index, document in enumerate(documents):
         summary_and_chunk_questions = None
         if create_summary_and_chunk_questions:
-            logging.info(
-                f"Creating summary and questions for chunk... '{document.metadata['filename']}'..."
-            )
-            current_task.update_state(
-                state="PROGRESS",
-                meta={
-                    "status": f"Creating summary and questions for chunk of file: '{document.metadata['filename']}'..."
-                },
+            write_status(
+                status=f"Creating summary and questions for chunk {index + 1} of {len(documents)} for file: '{document.metadata['filename']}'..."
             )
             try:
                 summary_and_chunk_questions = ai.create_summary_and_chunk_questions(
@@ -249,28 +232,39 @@ def save_split_documents(
 
     if summarize_document:
         # Note: this generates a summary and also puts it into the DB
-        current_task.update_state(
-            state="PROGRESS",
-            meta={"status": f"Generating a summary of file: '{file.file_name}'..."},
-        )
+        write_status(status=f"Generating a summary of file: '{file.file_name}'...")
         try:
             ai.generate_detailed_document_summary(
                 user_id=user_id,
                 target_file_id=file.id,
                 collection_id=active_collection_id,
             )
-            logging.info(f"Created a summary of file: '{file.file_name}'")
         except Exception as e:
             logging.error(f"Error creating summary of file: '{file.file_name}': {e}")
 
-    current_task.update_state(
+    write_status(
+        status=f"Successfully ingested {len(documents)} document chunks from {file_name} files",
         state="SUCCESS",
-        meta={
-            "status": f"Successfully ingested {len(documents)} document chunks from {file_name} files"
-        },
     )
-    logging.info(
-        f"Successfully ingested {len(documents)} document chunks from {file_name} files"
+
+
+def write_status(status: str, state="PROGRESS", log_level: str = "info"):
+    from src.shared.database.models.task_operations import TaskOperations
+
+    task_operations = TaskOperations()
+
+    current_task.update_state(
+        state="PROGRESS",
+        meta={"status": status},
+    )
+    # Get the log level from the argument and log the message
+    log_level = getattr(logging, log_level)
+    log_level(status)
+
+    task_operations.update_task_state(
+        external_task_id=current_task.request.id,
+        current_state=state,
+        description=status,
     )
 
 

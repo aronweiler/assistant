@@ -49,7 +49,7 @@ class User(ModelBase):
     email = Column(String, nullable=False, unique=True)
     password_hash = Column(String, nullable=False)
     session_id = Column(String, nullable=True)
-    session_created = Column(DateTime, nullable=True)    
+    session_created = Column(DateTime, nullable=True)
 
     # Define a one-to-many relationship with other tables
     conversation_messages = relationship("ConversationMessage", back_populates="user")
@@ -459,6 +459,40 @@ class SourceControlProvider(ModelBase):
     supported_source_control_provider = relationship(
         "SupportedSourceControlProvider", back_populates="source_control_providers"
     )
+
+
+class Task(ModelBase):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True)
+    external_task_id = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    current_state = Column(String, nullable=False)
+    associated_user_id = Column(Integer, ForeignKey("users.id"))    
+    record_updated = Column(DateTime, nullable=False, default=datetime.now)
+
+    user = relationship("User", back_populates="tasks")
+
+
+User.tasks = relationship("Task", order_by=Task.id, back_populates="user")
+
+
+class TaskHistory(ModelBase):
+    __tablename__ = "task_history"
+
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("tasks.id"))
+    state = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    record_updated = Column(DateTime, nullable=False, default=datetime.now)
+
+    task = relationship("Task", back_populates="history")
+
+
+Task.history = relationship(
+    "TaskHistory", order_by=TaskHistory.id, back_populates="task"
+)
 
 
 SupportedSourceControlProvider.source_control_providers = relationship(

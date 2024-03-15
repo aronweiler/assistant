@@ -68,22 +68,22 @@ services:
     ports:
       - 8101:8101
 
-  jarvis-api-document:
-    build: 
-      context: .
-      dockerfile: ./src/api/document/Dockerfile
-    container_name: jarvis-api-document
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=jarvis-database
-      - RABBITMQ_HOST=jarvis-rabbitmq
-    ports:
-      - 8102:8102
-    volumes:
-      - shared_data:/app/shared
+  # jarvis-api-document:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./src/api/document/Dockerfile
+  #   container_name: jarvis-api-document
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_HOST=jarvis-database
+  #     - RABBITMQ_HOST=jarvis-rabbitmq
+  #   ports:
+  #     - 8102:8102
+  #   volumes:
+  #     - shared_data:/app/shared
 
   jarvis-api-code:
     build: ./src/api/code
