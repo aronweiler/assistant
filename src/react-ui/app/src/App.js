@@ -7,8 +7,8 @@ import {
 } from "react-router-dom";
 import LoginForm from "./components/LoginForm";
 import JarvisPage from "./components/JarvisPage";
-import { AuthProvider } from "./context/AuthContext";
 import PrivateRoute from "./PrivateRoute";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
