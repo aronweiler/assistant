@@ -229,8 +229,8 @@ if __name__ == "__main__":
     ensure_authenticated()
 
     st.title("Hey Jarvis 🤖...")
-    st.markdown(
-        "### I'm here to help you with whatever you need.  Please begin the chat below!"
+    st.caption(
+        "I'm here to help you with whatever you need.  Please begin the chat below!"
     )
 
     try:
