@@ -29,8 +29,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./src/database/app ./src/database/app
 COPY ./src/shared/database/schema ./src/shared/database/schema
 
+#COPY ./src/database/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
 # Make the entrypoint script executable
 RUN chmod +x src/database/app/entrypoint.sh
+
+# Hack for an issue with the entrypoint script
+# RUN rm -rf /docker-entrypoint-initdb.d/ && \
+#     mkdir -p /docker-entrypoint-initdb.d/ && \
+#     chmod -R 777 /docker-entrypoint-initdb.d/
 
 ENTRYPOINT ["src/database/app/entrypoint.sh"]
 CMD ["postgres"]
