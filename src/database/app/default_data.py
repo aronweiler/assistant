@@ -21,12 +21,16 @@ def create_admin_user():
     vector_database = VectorDatabase()
     with vector_database.session_context(vector_database.Session()) as session:
 
-        email = "admin"
-        password = "admin"
-        name = "admin"
-        location = "the moon"
+        email = os.getenv("ADMIN_EMAIL")
+        password = os.getenv("ADMIN_PASSWORD")
+        name = os.getenv("ADMIN_NAME")
+        location = os.getenv("ADMIN_LOCATION")
         age = 999
         password_hash = hasher.hash(password)
+
+        # If the user already exists, don't create it again
+        if session.query(User).filter_by(email=email).count() > 0:
+            return
 
         session.add(
             User(
