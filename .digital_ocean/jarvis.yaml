@@ -1,3 +1,6 @@
+alerts:
+- rule: DEPLOYMENT_FAILED
+- rule: DOMAIN_FAILED
 envs:
 - key: POSTGRES_DB
   scope: RUN_AND_BUILD_TIME
@@ -5,61 +8,99 @@ envs:
 - key: POSTGRES_USER
   scope: RUN_AND_BUILD_TIME
   type: SECRET
-  value: EV[1:eBcliD+0QTBILcu18nIkXkEKEnygU42f:NhvbZv6b/jem3Lo3ZWC4jhrOwopuvw==]
+  value: EV[1:iVUK6g9qAyk/TpRAyIn687KdIrbsYKbS:MjfFRK/wzjS8yCRmF/z52HoGMZcbSg==]
 - key: POSTGRES_PASSWORD
   scope: RUN_AND_BUILD_TIME
   type: SECRET
-  value: EV[1:mEYht25lt9sh97fUE97i88RpgGcNwVzz:CmMm7jhVeSEZ/IJbwYHMuMTSJ5NpE9vqU2oB]
+  value: EV[1:YokrtuO3NBhrwS1Z0DkoIPxfJfhsipxe:JocUUl2wJmnBBlM6EiI8rHBA2UdC0GyUZ954]
+- key: POSTGRES_HOST
+  scope: RUN_AND_BUILD_TIME
+  value: jarvis-database
 - key: POSTGRES_PORT
   scope: RUN_AND_BUILD_TIME
   value: "5432"
+- key: RABBITMQ_DEFAULT_USER
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:EtXOxTwJz70dAX5VEtHSPkUjYiVoZt0F:0LSFlSVM6zI3h0mTxo5Kx3EXhFY=]
+- key: RABBITMQ_DEFAULT_PASS
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:UwZMvtJMVcVwMiujcLN7X+VmBXMq5my6:XwKgHhnRvtE8IOFMGfwOJYmFOvzMlEii]
+- key: RABBITMQ_HOST
+  scope: RUN_AND_BUILD_TIME
+  value: jarvis-rabbitmq
+- key: OPENAI_API_KEY
+  scope: RUN_AND_BUILD_TIME
+  type: SECRET
+  value: EV[1:aF7h/tIrJGSiTECGeQ6qWqkDCpf+mSxb:JF4QTrAJ3TsL6HNq2OOwWr+uqMKxdk5tZFXK8rqXOJszj5cZWBwcPSgaNnjirM4nqahjc37YLeCIEO+PoBMIVaKFvQ==]
+features:
+- buildpack-stack=ubuntu-22
 ingress:
   rules:
   - component:
-      name: streamlit-app
-    match:
-      path:
-        prefix: /jarvis
-  - component:
-      name: assistant-db
+      name: jarvis-ui
     match:
       path:
         prefix: /
-name: jarvis
+  - component:
+      name: jarvis-rabbitmq
+    match:
+      path:
+        prefix: /rabbitmq
+name: jarvis-experimental
 region: nyc
 services:
-- envs:
-  - key: OPENAI_API_KEY
-    scope: RUN_AND_BUILD_TIME
-    type: SECRET
-    value: EV[1:EDvKSb8ehJapZtViMzjZmAISzGaS3U1l:awusaxlxEoJoyy4b/dEd8uDLFTS0vvn0jyFn6zlTY5F/vNFm9h1bHGV3N/mMMbHuyhKhX8utQQlPip9R7ia3umddAA==]
-  - key: POSTGRES_HOST
-    scope: RUN_AND_BUILD_TIME
-    value: assistant-db
-  - key: LIBRE_OFFICE_PATH
-    scope: RUN_AND_BUILD_TIME
-    value: /usr/bin/soffice
-  - key: YELP_API_KEY
-    scope: RUN_AND_BUILD_TIME
-    value: k4Uus36kxYvKtIE--CIBOCGbrjhxJ8h249_rWXI08t5n_BLNrDVg68futHY0KELgTbJ67YlRlmCKqKIiwljgoeFy_mBYbznVtVkqEjCtuaeuGSSfxEaswIob4U3HZHYx
-  - key: USER_EMAIL
-    scope: RUN_AND_BUILD_TIME
-    value: aronweiler@gmail.com
-  http_port: 8500
+- http_port: 8600
   image:
     registry: aronweiler
     registry_type: DOCKER_HUB
     repository: assistant
-    tag: latest
-  instance_count: 1
-  instance_size_slug: professional-s
-  name: streamlit-app
-- http_port: 5432
+    tag: latest-jarvis-ui
+  instance_count: 2
+  instance_size_slug: professional-xs
+  name: jarvis-ui
+- http_port: 15672
   image:
-    registry: ankane
+    registry: library
     registry_type: DOCKER_HUB
-    repository: pgvector
-    tag: latest
-  instance_count: 1
-  instance_size_slug: professional-s
-  name: assistant-db
+    repository: rabbitmq
+    tag: 3-management
+  instance_count: 2
+  instance_size_slug: professional-xs
+  internal_ports:
+  - 5672
+  name: jarvis-rabbitmq
+- envs:
+  - key: ADMIN_NAME
+    scope: RUN_AND_BUILD_TIME
+    value: Rene Smith
+  - key: ADMIN_EMAIL
+    scope: RUN_AND_BUILD_TIME
+    value: rene@renesmithinc.com
+  - key: ADMIN_PASSWORD
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:nUGScpTfLsNAObzwxxXCUoVbl5x/WPWA:S5KYONN4OALOL2ZQ8ybVkHRyvJRtXTVO13nHFgEGFgg=]
+  - key: ADMIN_LOCATION
+    scope: RUN_AND_BUILD_TIME
+    value: San Diego, CA
+  image:
+    registry: aronweiler
+    registry_type: DOCKER_HUB
+    repository: assistant
+    tag: latest-jarvis-database
+  instance_count: 2
+  instance_size_slug: professional-xs
+  internal_ports:
+  - 5432
+  name: jarvis-database
+workers:
+- image:
+    registry: aronweiler
+    registry_type: DOCKER_HUB
+    repository: assistant
+    tag: latest-jarvis-worker-document-processing
+  instance_count: 2
+  instance_size_slug: professional-xs
+  name: jarvis-document-processing
