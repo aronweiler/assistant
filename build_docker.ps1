@@ -1,6 +1,25 @@
+## Example:
+# .\build_docker.ps1 -serviceName 'jarvis-worker-document-processing' -overrideVersion '1.1'
+
 param (
+    [string]$serviceName,
     [string]$overrideVersion
 )
+
+# Define build contexts and Dockerfiles for each service
+$services = @{
+    'jarvis-database'                   = @{ Context = '.'; Dockerfile = 'src/database/Dockerfile' }
+    'jarvis-ui'                         = @{ Context = '.'; Dockerfile = 'src/ui/Dockerfile' }
+    'jarvis-ui-react'                   = @{ Context = './src/react-ui'; Dockerfile = 'Dockerfile' }
+    'jarvis-api-user'                   = @{ Context = '.'; Dockerfile = './src/api/user/Dockerfile' }
+    'jarvis-worker-document-processing' = @{ Context = '.'; Dockerfile = './src/workers/document_processing/Dockerfile' }
+}
+
+if (-not $services.ContainsKey($serviceName)) {
+    Write-Host "Service name '
+$serviceName' is not recognized."
+    exit
+}
 
 # Read the current version from version.txt
 $currentVersion = Get-Content -Path version.txt
@@ -22,38 +41,19 @@ else {
     $newVersion | Set-Content -Path version.txt
 }
 
-# Update the Docker tags
-Write-Host "Updating Docker tags to $newVersion"
-$latestTag = "aronweiler/assistant:latest"
-$newTag = "aronweiler/assistant:$newVersion"
+$context = $services[$serviceName].Context
+$dockerfile = $services[$serviceName].Dockerfile
+$tagVersioned = "aronweiler/assistant:$newVersion-$serviceName"
+$tagLatest = "aronweiler/assistant:latest-$serviceName"
 
-# Configuration for retry
-$maxRetries = 5 # Default number of retries
-$retryDelaySeconds = 2 # Delay between retries
-
-# Attempt to build the Docker image with retries
-$retryCount = 0
-$buildSucceeded = $false
-while ($retryCount -lt $maxRetries -and -not $buildSucceeded) {
-    docker build -t $latestTag .
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Docker build succeeded after $($retryCount + 1) attempt(s)"
-        $buildSucceeded = $true
-    }
-    else {
-        Write-Host "Docker build failed, attempt #$($retryCount + 1) of $maxRetries"
-        Start-Sleep -Seconds $retryDelaySeconds
-        $retryCount++
-    }
-}
-
-if (-not $buildSucceeded) {
-    Write-Host "Docker build failed after $maxRetries attempts, skipping tagging and pushing."
+Write-Host "Building $serviceName with tags $tagVersioned and $tagLatest"
+docker build -t $tagVersioned -t $tagLatest -f $dockerfile $context
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "$serviceName build succeeded"
+    # Push the Docker images -- uncomment for production
+    docker push $tagVersioned
+    docker push $tagLatest
 }
 else {
-    Write-Host "Proceeding with tagging and pushing."
-    docker tag $latestTag $newTag
-    # Push the Docker images -- uncomment for production
-    docker push $latestTag
-    docker push $newTag
+    Write-Host "$serviceName build failed"
 }

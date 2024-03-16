@@ -85,31 +85,31 @@ services:
   #   volumes:
   #     - shared_data:/app/shared
 
-  jarvis-api-code:
-    build: ./src/api/code
-    container_name: jarvis-api-code
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=jarvis-database
-      - RABBITMQ_HOST=jarvis-rabbitmq
-    ports:
-      - 8103:8103
+  # jarvis-api-code:
+  #   build: ./src/api/code
+  #   container_name: jarvis-api-code
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_HOST=jarvis-database
+  #     - RABBITMQ_HOST=jarvis-rabbitmq
+  #   ports:
+  #     - 8103:8103
 
-  jarvis-api-conversation:
-    build: ./src/api/conversation
-    container_name: jarvis-api-conversation
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=jarvis-database
-      - RABBITMQ_HOST=jarvis-rabbitmq
-    ports:
-      - 8104:8104
+  # jarvis-api-conversation:
+  #   build: ./src/api/conversation
+  #   container_name: jarvis-api-conversation
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_HOST=jarvis-database
+  #     - RABBITMQ_HOST=jarvis-rabbitmq
+  #   ports:
+  #     - 8104:8104
 
   jarvis-worker-document-processing:
     build: 
