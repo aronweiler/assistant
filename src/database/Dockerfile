@@ -1,4 +1,4 @@
-FROM ankane/pgvector
+FROM pgvector/pgvector:pg16
 
 # Install locales package and generate en_US.UTF-8
 RUN apt-get update && apt-get install -y locales && \
