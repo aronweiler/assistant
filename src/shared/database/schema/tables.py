@@ -302,6 +302,7 @@ class DocumentCollection(ModelBase):
     __tablename__ = "document_collections"
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
     collection_name = Column(String, nullable=False, unique=True)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
     embedding_name = Column(String, nullable=False)
