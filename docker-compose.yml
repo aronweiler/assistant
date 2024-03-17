@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   jarvis-database:
-    build: 
+    build:
       context: .
       dockerfile: src/database/Dockerfile
     container_name: jarvis-database
@@ -16,7 +16,7 @@ services:
       - 5433:5432
 
   jarvis-ui:
-    build: 
+    build:
       context: .
       dockerfile: src/ui/Dockerfile
     container_name: jarvis-ui
@@ -29,7 +29,7 @@ services:
       - API_USER_HOST=jarvis-api-user
       - API_USER_PORT=8101
       - API_DOCUMENT_HOST=jarvis-api-document
-      - API_DOCUMENT_PORT=8102      
+      - API_DOCUMENT_PORT=8102
       - API_CODE_HOST=jarvis-api-code
       - API_CODE_PORT=8103
       - API_CONVERSATION_HOST=jarvis-api-conversation
@@ -37,8 +37,6 @@ services:
       - RABBITMQ_HOST=jarvis-rabbitmq
     ports:
       - 8600:8600
-    volumes:
-      - shared_data:/app/shared
 
   jarvis-ui-react:
     build: ./src/react-ui
@@ -54,7 +52,7 @@ services:
       - REACT_APP_API_USER_PORT=8101
 
   jarvis-api-user:
-    build: 
+    build:
       context: .
       dockerfile: ./src/api/user/Dockerfile
     container_name: jarvis-api-user
@@ -69,7 +67,7 @@ services:
       - 8101:8101
 
   # jarvis-api-document:
-  #   build: 
+  #   build:
   #     context: .
   #     dockerfile: ./src/api/document/Dockerfile
   #   container_name: jarvis-api-document
@@ -112,7 +110,7 @@ services:
   #     - 8104:8104
 
   jarvis-worker-document-processing:
-    build: 
+    build:
       context: .
       dockerfile: ./src/workers/document_processing/Dockerfile
     container_name: jarvis-worker-document-processing
@@ -123,8 +121,6 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
       - RABBITMQ_HOST=jarvis-rabbitmq
-    volumes:
-      - shared_data:/app/shared
 
   jarvis-rabbitmq:
     image: "rabbitmq:3-management"
@@ -135,6 +131,3 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-
-volumes:
-  shared_data:
