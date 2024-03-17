@@ -22,6 +22,7 @@ def process_document_task(
     chunk_overlap: int,
     user_id: int,
     file_path: str,
+    file_data: bytes,
 ):
     """Process (split, vectorize, etc.) a single document and store it in the database"""
 
@@ -51,83 +52,95 @@ def process_document_task(
         external_task_id=current_task.request.id,
     )
 
-    original_file_name = os.path.basename(file_path)
+    try:
+        # Write out the file_data to the file_path
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, "wb") as f:
+            f.write(file_data)
 
-    write_status(status="Checking for existing files...")
+        original_file_name = os.path.basename(file_path)
 
-    # Do we already have this file in the database?
-    existing_file = documents_helper.get_file_by_name(
-        original_file_name, active_collection_id
-    )
+        write_status(status="Checking for existing files...")
 
-    if existing_file:
-        if not overwrite_existing_files:            
-            write_status(
-                status=f"File '{original_file_name}' already exists and overwrite is not enabled, aborting task.",
-                state="FAILURE",
-                log_level="warning",
-            )
+        # Do we already have this file in the database?
+        existing_file = documents_helper.get_file_by_name(
+            original_file_name, active_collection_id
+        )
 
-            return
+        if existing_file:
+            if not overwrite_existing_files:
+                write_status(
+                    status=f"File '{original_file_name}' already exists and overwrite is not enabled, aborting task.",
+                    state="FAILURE",
+                    log_level="warning",
+                )
 
-        write_status(f"Overwriting existing '{original_file_name}' file...")
-        # Delete the old file and its chunks
-        documents_helper.delete_document_chunks_by_file_id(existing_file.id)
-        documents_helper.delete_file(existing_file.id)
+                return
 
-    # Does the file need to be converted to a different format?
-    if file_needs_converting(file_path):
-        write_status(f"Converting file '{file_path}' to PDF...")
-        # Convert the file, and reset the file_path
-        file_path = convert_file_to_pdf(file_path)
+            write_status(f"Overwriting existing '{original_file_name}' file...")
+            # Delete the old file and its chunks
+            documents_helper.delete_document_chunks_by_file_id(existing_file.id)
+            documents_helper.delete_file(existing_file.id)
 
-    # Load and split the document
-    write_status(f"Loading and splitting '{file_path}'...")
-    documents = load_and_split_document(
-        target_file=file_path,
-        split_document=split_documents,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
+        # Does the file need to be converted to a different format?
+        if file_needs_converting(file_path):
+            write_status(f"Converting file '{file_path}' to PDF...")
+            # Convert the file, and reset the file_path
+            file_path = convert_file_to_pdf(file_path)
 
-    logging.info(
-        f"After loading and splitting, we are processing {len(documents)} documents..."
-    )
-
-    # Get the full file data for the database
-    with open(file_path, "rb") as file:
-        file_data = file.read()
-
-    # Get the hash of the file
-    file_hash = calculate_sha256(file_path)
-
-    write_status(f"Storing full document '{original_file_name}'...")
-
-    file_classification = documents[0].metadata["classification"]
-
-    file_model = documents_helper.create_file(
-        FileModel(
-            user_id=user_id,
-            collection_id=active_collection_id,
-            file_name=original_file_name,
-            file_hash=file_hash,
-            file_classification=file_classification,
+        # Load and split the document
+        write_status(f"Loading and splitting '{file_path}'...")
+        documents = load_and_split_document(
+            target_file=file_path,
+            split_document=split_documents,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-        ),
-        file_data,  # Binary file data for later retrieval
-    )
+        )
 
-    # TODO: Iterate through the document chunks and store them
-    save_split_documents(
-        active_collection_id=active_collection_id,
-        create_summary_and_chunk_questions=create_summary_and_chunk_questions,
-        summarize_document=summarize_document,
-        file=file_model,
-        file_name=original_file_name,
-        documents=documents,
-        user_id=user_id,
-    )
+        logging.info(
+            f"After loading and splitting, we are processing {len(documents)} documents..."
+        )
+
+        # Get the full file data for the database
+        with open(file_path, "rb") as file:
+            file_data = file.read()
+
+        # Get the hash of the file
+        file_hash = calculate_sha256(file_path)
+
+        write_status(f"Storing full document '{original_file_name}'...")
+
+        file_classification = documents[0].metadata["classification"]
+
+        file_model = documents_helper.create_file(
+            FileModel(
+                user_id=user_id,
+                collection_id=active_collection_id,
+                file_name=original_file_name,
+                file_hash=file_hash,
+                file_classification=file_classification,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            ),
+            file_data,  # Binary file data for later retrieval
+        )
+
+        # TODO: Iterate through the document chunks and store them
+        save_split_documents(
+            active_collection_id=active_collection_id,
+            create_summary_and_chunk_questions=create_summary_and_chunk_questions,
+            summarize_document=summarize_document,
+            file=file_model,
+            file_name=original_file_name,
+            documents=documents,
+            user_id=user_id,
+        )
+    except Exception as e:
+        write_status(
+            status=f"Error processing document '{file_path}': {e}",
+            state="FAILURE",
+            log_level="error",
+        )
 
 
 def save_split_documents(

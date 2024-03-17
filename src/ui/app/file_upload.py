@@ -30,6 +30,9 @@ def ingest_files(
 
     task_results = []
     for file_path in uploaded_file_paths:
+        # Read the file into memory
+        file_data = open(file_path, "rb").read()
+
         # Hand off to Celery for processing each file separately
         task_results.append(
             (
@@ -45,6 +48,7 @@ def ingest_files(
                         chunk_overlap,
                         st.session_state.user_id,
                         file_path,
+                        file_data,
                     ],
                     track_started=True,
                 ),

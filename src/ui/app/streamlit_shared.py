@@ -617,17 +617,24 @@ def select_documents(tab, ai=None):
                         )
 
         if task_results and len(task_results) > 0:
-            for result in task_results:
-                file_name = os.path.basename(result[0])
-                col1, col2 = st.columns(2)
-                col1.info(f"{file_name} - {result[1].id} - {result[1].state}")
+            st.markdown(                
+                f"🚀 Ingesting {len(uploaded_files)} files into '{get_selected_collection_name()}'..."
+            )
+            # Link to the tasks page
+            st.markdown(
+                f"[View the tasks page](/Tasks)"
+            )
+            # for result in task_results:
+            #     file_name = os.path.basename(result[0])
+            #     col1, col2 = st.columns(2)
+            #     col1.info(f"{file_name} - {result[1].id} - {result[1].state}")
 
-                st.button(
-                    "Refresh",
-                    key=f"{result[0]}_refresh",
-                    on_click=display_progress,
-                    args=(result[1].id,),
-                )
+            #     st.button(
+            #         "Refresh",
+            #         key=f"{result[0]}_refresh",
+            #         on_click=display_progress,
+            #         args=(result[1].id,),
+            #     )
 
 
 def display_progress(task_id):
