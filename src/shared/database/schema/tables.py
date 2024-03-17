@@ -50,6 +50,8 @@ class User(ModelBase):
     password_hash = Column(String, nullable=False)
     session_id = Column(String, nullable=True)
     session_created = Column(DateTime, nullable=True)
+    is_admin = Column(Boolean, nullable=False, default=False)
+    enabled = Column(Boolean, nullable=False, default=True)
 
     # Define a one-to-many relationship with other tables
     conversation_messages = relationship("ConversationMessage", back_populates="user")

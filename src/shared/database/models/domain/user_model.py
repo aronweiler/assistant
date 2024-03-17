@@ -2,7 +2,7 @@ from src.shared.database.schema.tables import User
 
 
 class UserModel:
-    def __init__(self, id, name, age, location, email, password_hash, session_id, session_created):
+    def __init__(self, id, name, age, location, email, password_hash, session_id, session_created, is_admin, enabled):
         self.id = id
         self.name = name
         self.age = age
@@ -11,6 +11,8 @@ class UserModel:
         self.password_hash = password_hash
         self.session_id = session_id
         self.session_created = session_created
+        self.is_admin = is_admin
+        self.enabled = enabled
 
     def to_database_model(self):
         return User(
@@ -21,7 +23,9 @@ class UserModel:
             email=self.email,
             password_hash=self.password_hash,
             session_id=self.session_id,
-            session_created=self.session_created
+            session_created=self.session_created,
+            is_admin=self.is_admin,
+            enabled=self.enabled
         )
 
     @classmethod
@@ -37,5 +41,7 @@ class UserModel:
             email=db_user.email,
             password_hash=db_user.password_hash,
             session_id=db_user.session_id,
-            session_created=db_user.session_created
+            session_created=db_user.session_created,
+            is_admin=db_user.is_admin,
+            enabled=db_user.enabled
         )
