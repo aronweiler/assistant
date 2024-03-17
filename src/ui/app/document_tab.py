@@ -93,7 +93,7 @@ def create_documents_collection_tab(ai, tab: DeltaGenerator):
 
 def get_available_collections():
     # Time the operation:
-    collections = Documents().get_collections()
+    collections = Documents().get_collections(user_id=st.session_state.user_id)
 
     # Create a dictionary of collection id to collection name
     collections_list = [

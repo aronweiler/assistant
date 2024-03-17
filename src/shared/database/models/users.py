@@ -81,7 +81,9 @@ class Users(VectorDatabase):
             user.session_created = None
             session.commit()
 
-    def create_user(self, email, name, location, age, password_hash, is_admin=False, enabled=True):
+    def create_user(
+        self, email, name, location, age, password_hash, is_admin=False, enabled=True
+    ):
         if self.get_user_by_email(email):
             raise Exception(f"User with email {email} already exists")
 
@@ -107,7 +109,10 @@ class Users(VectorDatabase):
             user.age = user_model.age
             user.location = user_model.location
             user.email = user_model.email
-            user.password_hash = user_model.password_hash
+
+            if user_model.password_hash:
+                user.password_hash = user_model.password_hash
+
             user.is_admin = user_model.is_admin
             user.enabled = user_model.enabled
             session.commit()

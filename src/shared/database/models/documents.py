@@ -63,32 +63,22 @@ class Documents(VectorDatabase):
             )
 
             return DocumentCollectionModel.from_database_model(collection)
+    
 
-    def get_collection_by_name(self, collection_name) -> DocumentCollectionModel:
+    def get_collections(self, user_id:int) -> List[DocumentCollectionModel]:
         with self.session_context(self.Session()) as session:
-            collection = (
+            collections = (
                 session.query(
                     DocumentCollection.id,
                     DocumentCollection.collection_name,
                     DocumentCollection.record_created,
                     DocumentCollection.embedding_name,
                 )
-                .filter(DocumentCollection.collection_name == collection_name)
-                .first()
+                .filter(DocumentCollection.user_id == user_id)
+                .all()
             )
 
-            return DocumentCollectionModel.from_database_model(collection)
-
-    def get_collections(self) -> List[DocumentCollectionModel]:
-        with self.session_context(self.Session()) as session:
-            collections = session.query(
-                DocumentCollection.id,
-                DocumentCollection.collection_name,
-                DocumentCollection.record_created,
-                DocumentCollection.embedding_name,
-            ).all()
-
-            return [DocumentCollectionModel.from_database_model(c) for c in collections]
+            return [DocumentCollectionModel.from_database_model(c) for c in collections]        
 
     def create_file(self, file: FileModel, file_data) -> FileModel:
         with self.session_context(self.Session()) as session:
