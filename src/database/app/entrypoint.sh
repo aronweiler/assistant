@@ -3,7 +3,9 @@
 if [ -d "/docker-entrypoint-initdb.d/" ] && [ -r "/docker-entrypoint-initdb.d/" ] && [ -x "/docker-entrypoint-initdb.d/" ]; then
     echo "/docker-entrypoint-initdb.d/ exists and is accessible. Proceeding with original entrypoint script."
     # Start the PostgreSQL server in the background using the original entrypoint script
-docker-entrypoint.sh postgres &
+    docker-entrypoint.sh postgres &
+
+    echo "postgres start command issued"
 else
     echo "/docker-entrypoint-initdb.d/ does not exist or is not accessible. Attempting to fix or bypass."
     # Here you can add commands to attempt to fix the issue or bypass it
@@ -17,7 +19,9 @@ POSTGRES_USER=${POSTGRES_USER:-postgres}
 # Wait for PostgreSQL to become available
 while ! pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d "postgres"; do
     echo "Waiting for PostgreSQL to become available..."
-    sleep 10    
+    echo "Host: $POSTGRES_HOST"
+    echo "pg_isready = $(pg_isready)"
+    sleep 10
 done
 
 # Run the creation_utilities.py script to create the database, tables, and default data

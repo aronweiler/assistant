@@ -41,6 +41,8 @@ def create_admin_user():
                 password_hash=password_hash,
                 session_id=None,
                 session_created=None,
+                is_admin=True,
+                enabled=True,
             )
         )
 
