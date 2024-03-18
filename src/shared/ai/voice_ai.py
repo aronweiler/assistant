@@ -286,7 +286,7 @@ class VoiceAI:
             ai_query_start_time = time.time()
 
             voice_ai_mode = self.rag_ai.conversation_manager.get_user_setting(
-                setting_name="voice_ai_mode", default_value="Conversation Only"
+                setting_name="tool_using_voice_ai", default_value=False
             ).setting_value
 
             ai_response = self.rag_ai.query(
@@ -298,7 +298,7 @@ class VoiceAI:
                         default_value="Act like you're writing copy for a news broadcaster who needs to deliver their information with alacrity and grace- you are writing to get the details across, but you keep things very short and concise. Rephrase your response so that it can be spoken aloud without any modifications.  Re-word and write out any symbols or codes phonetically; including variable names, abbreviations, and other language that would not usually be spoken aloud.",
                     ).setting_value
                 },
-                ai_mode=voice_ai_mode,
+                tool_using_ai=voice_ai_mode,
             )
 
             ai_query_end_time = time.time()
