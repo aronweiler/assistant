@@ -10,26 +10,56 @@ DEFAULT_COOKIE_EXPIRY = 3
 SESSION_EXPIRY = 3
 
 
-@st.cache_resource(experimental_allow_widgets=True)
 def get_cookie_manager():
-    return stx.CookieManager()
+    if not st.session_state.get("cookie_manager"):
+        logging.info("Creating a new cookie manager")
+        st.session_state.cookie_manager = stx.CookieManager(
+            key="cookie_manager_" + str(time.time())
+        )
+
+    return st.session_state.cookie_manager
 
 
-cookie_manager = None
+# cookie_manager = None
 
 
-def ensure_authenticated():
-    if not is_user_authenticated():
-        st.markdown("# Uh oh! 🤔\nIt looks like you're not logged in.  Please <a href='/' target='_self'>log in here</a>.", unsafe_allow_html=True)         
-        st.stop()
+def logout():
+    # global cookie_manager
+    get_cookie_manager().delete(
+        cookie="session_id", key="cookie_manager_delete_" + str(time.time())
+    )
+    st.session_state.user_email = None
+    st.session_state.user_id = None
+    st.session_state.is_admin = False
+    st.session_state.authenticated = False
+    st.info("Logged out successfully!")
+    time.sleep(0.5)
+    st.rerun()
 
 
 def is_user_authenticated():
     # Get the authentication cookie
-    global cookie_manager
-    cookie_manager = get_cookie_manager()
+    # global cookie_manager
+    # if not cookie_manager:
+    #     cookie_manager = get_cookie_manager()
 
-    session_id = cookie_manager.get(cookie="session_id")
+    # while True:
+    #     cookies = get_cookie_manager().get_all(
+    #         key="cookie_manager_get_all_" + str(time.time())
+    #     )
+    #     if len(cookies) == 0:
+    #         logging.info("Waiting for cookies to be available")
+    #         time.sleep(1)
+    #     else:
+    #         break
+
+    # logging.info(
+    #     f"Cookie Manager Cookies: {[cookie for cookie in get_cookie_manager().get_all(key='cookie_manager_get_all_' + str(time.time()))]}"
+    # )
+
+    session_id = get_cookie_manager().get(
+        cookie="session_id"
+    )  # , key="cookie_manager_get_" + str(time.time())
 
     if session_id:
         # Check the session in the database
@@ -41,14 +71,22 @@ def is_user_authenticated():
             and user.session_created + timedelta(days=SESSION_EXPIRY) > datetime.now()
         ):
             # Make sure their email is in the session
+            st.session_state.authenticated = True
             st.session_state.user_email = user.email
             st.session_state.user_id = user.id
+            st.session_state.is_admin = user.is_admin
+
             return True
         elif user:
             # Their session has expired, update the session in the database, and clear the cookie
+            # This will force them to login again, as we'll return false
             Users().update_user_session(user.id, None)
-            cookie_manager.delete(cookie="session_id")
+            get_cookie_manager().delete(
+                cookie="session_id", key="cookie_manager_delete_" + str(time.time())
+            )
 
+    user_email = st.session_state.get("user_email", "N/A")
+    logging.info(f"User '{user_email}' is not authenticated")
     return False
 
 

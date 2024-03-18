@@ -10,7 +10,7 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
 )
 
-from utilities import ensure_authenticated, set_page_config
+from utilities import set_page_config
 
 from src.shared.ai.tools.tool_loader import get_available_tools
 
@@ -26,7 +26,7 @@ from src.shared.ai.conversations.conversation_manager import ConversationManager
 from src.shared.ai.tools.tool_manager import ToolManager
 
 import streamlit_shared as ui_shared
-from utilities import ensure_authenticated
+from navigation import make_sidebar
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 
@@ -1358,7 +1358,8 @@ if __name__ == "__main__":
             page_name="Settings",
             layout="centered",
         )
-        ensure_authenticated()
+        
+        make_sidebar()
 
         settings_page(st.session_state.user_email)
     except:

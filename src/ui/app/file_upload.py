@@ -55,10 +55,12 @@ def ingest_files(
             )
         )
 
-    status.update(
-        label=f"✅ Ingestion queued",
-        state="complete",
-    )
+    status.update(label=f"✅ Ingestion queued", state="complete", expanded=True)
+
+    with status.empty():
+        st.markdown(f"🚀 Ingesting {len(uploaded_files)} files...")
+        # Link to the tasks page
+        st.page_link(page="pages/tasks.py", label="View the tasks page")
 
     ingest_progress_bar.empty()
 

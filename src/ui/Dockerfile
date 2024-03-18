@@ -10,6 +10,7 @@ WORKDIR /app
 COPY ./src/ui/app/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY ./.streamlit ./.streamlit
 COPY ./src/ui/app ./src/ui/app
 COPY ./src/shared ./src/shared
 COPY ./src/workers/document_processing/app ./src/workers/document_processing/app

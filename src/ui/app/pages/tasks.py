@@ -1,13 +1,15 @@
 from typing import List
 import pandas as pd
 import streamlit as st
+
+from navigation import make_sidebar
 from src.shared.database.models.task_operations import TaskOperations
 from src.shared.database.models.domain.task_model import TaskModel
-from src.ui.app.utilities import ensure_authenticated, set_page_config
+from src.ui.app.utilities import set_page_config
 
 
 set_page_config(page_name="Tasks")
-ensure_authenticated()
+make_sidebar()
 
 
 def load_tasks(user_id, current_state=None) -> List[TaskModel]:

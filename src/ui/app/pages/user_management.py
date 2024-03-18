@@ -3,11 +3,12 @@ from passlib.hash import pbkdf2_sha256 as hasher
 
 from src.shared.database.models.domain.user_model import UserModel
 from src.shared.database.models.users import Users
-from src.ui.app.utilities import ensure_authenticated, set_page_config
+from navigation import make_sidebar
+from src.ui.app.utilities import set_page_config
 
 set_page_config(page_name="Chat")
 
-ensure_authenticated()
+make_sidebar()
 
 users_db = Users()
 

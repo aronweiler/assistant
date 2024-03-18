@@ -1,19 +1,19 @@
 import logging
 import os
 import sys
+import time
 from typing import List
 import uuid
 import asyncio
 import requests
 import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
-from streamlit_extras.stylable_container import stylable_container
+
 
 from celery.result import AsyncResult
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
-from utilities import calculate_progress
 from file_upload import ingest_files
 import code_tab as code_tab
 import document_tab as document_tab
@@ -26,7 +26,7 @@ from src.shared.configuration.assistant_configuration import (
 from src.shared.ai.rag_ai import RetrievalAugmentedGenerationAI
 from src.shared.utilities.configuration_utilities import get_app_configuration
 from src.shared.database.models.users import Users
-from src.shared.database.models.documents import FileModel, DocumentModel, Documents
+from src.shared.database.models.documents import Documents
 from src.shared.database.models.conversations import Conversations
 from src.shared.database.models.conversation_messages import ConversationMessages
 from langchain.callbacks.streamlit import StreamlitCallbackHandler
@@ -155,6 +155,11 @@ def load_conversation_selectbox(load_ai_callback, tab: DeltaGenerator):
     """Loads the conversation selectbox"""
     with tab:
         try:
+            # Time the operation
+            start_time = time.time()
+            ensure_conversation()
+            logging.info(f"Time to ensure conversation: {time.time() - start_time}")
+
             conversation_pairs = get_conversation_pairs()
             if conversation_pairs is None:
                 return
@@ -190,7 +195,6 @@ def load_conversation_selectbox(load_ai_callback, tab: DeltaGenerator):
                 },
             )
 
-            # col3
             if col4.button(
                 "✏️",
                 key="edit_conversation",
@@ -243,6 +247,25 @@ def load_conversation_selectbox(load_ai_callback, tab: DeltaGenerator):
                     kwargs={"val": False},
                     key=str(uuid.uuid4()),
                 )
+
+            # Get the AI mode setting
+            tool_using_ai = UserSettings().get_user_setting(
+                user_id=st.session_state.user_id,
+                setting_name="tool_using_ai",
+                default_value=True,
+                default_available_for_llm=True,
+            )
+            st.toggle(
+                label="Allow AI to use tools",
+                value=tool_using_ai.setting_value,
+                key="tool_using_ai",
+                help="If this setting is enabled, the AI will be allowed to use tools.",
+                on_change=save_user_setting,
+                kwargs={
+                    "setting_name": "tool_using_ai",
+                    "available_for_llm": tool_using_ai.available_for_llm,
+                },
+            )
 
         except Exception as e:
             logging.error(f"Error loading conversation selectbox: {e}")
@@ -309,33 +332,6 @@ def ensure_conversation():
         st.session_state["conversation_ensured"] = True
 
 
-def ensure_user(user_email):
-    users_helper = Users()
-
-    user = users_helper.get_user_by_email(user_email)
-
-    if not user:
-        st.markdown(f"Welcome to Jarvis, {user_email}! Let's get you set up.")
-
-        # Create the user by showing them a prompt to enter their name, location, age
-        name = st.text_input("Enter your name")
-        location = st.text_input("Enter your location")
-
-        if name and location:  # Check if both name and location inputs are not empty
-            # Display a confirmation button for the user to create their account
-            if st.button("Create User", type="primary"):
-                user = users_helper.create_user(
-                    email=user_email, name=name, location=location, age=999
-                )
-                st.rerun()
-            else:
-                return False
-        else:
-            return False
-    else:
-        return True
-
-
 def get_selected_conversation_id():
     """Gets the selected conversation id from the selectbox"""
     selected_conversation_pair = st.session_state.get("conversation_summary_selectbox")
@@ -366,9 +362,9 @@ def delete_conversation(conversation_id):
     set_confirm_conversation_delete(False)
 
 
-def get_selected_collection_id():
+def get_selected_collection_id(widget_key="select_documents_collection_selectbox"):
     """Gets the selected collection id from the selectbox"""
-    selected_collection_pair = st.session_state.get("active_collection")
+    selected_collection_pair = st.session_state.get(widget_key)
 
     if not selected_collection_pair:
         return None
@@ -434,9 +430,9 @@ def get_selected_collection_configuration():
     return get_app_configuration()["jarvis_ai"]["embedding_models"][key]
 
 
-def get_selected_collection_name():
+def get_selected_collection_name(widget_key="select_documents_collection_selectbox"):
     """Gets the selected collection name from the selectbox"""
-    selected_collection_pair = st.session_state.get("active_collection")
+    selected_collection_pair = st.session_state.get(widget_key)
 
     if not selected_collection_pair:
         return None
@@ -460,14 +456,6 @@ def set_ingestion_settings():
         st.session_state.ingestion_settings.create_summary_and_chunk_questions = False
         st.session_state.ingestion_settings.summarize_chunks = False
         st.session_state.ingestion_settings.summarize_document = False
-    elif "Code" in file_type:
-        st.session_state.ingestion_settings.chunk_size = 0
-        st.session_state.ingestion_settings.chunk_overlap = 0
-        st.session_state.ingestion_settings.split_documents = False
-        st.session_state.ingestion_settings.file_type = "Code"
-        st.session_state.ingestion_settings.create_summary_and_chunk_questions = False
-        st.session_state.ingestion_settings.summarize_chunks = True
-        st.session_state.ingestion_settings.summarize_document = True
     else:  # Document
         st.session_state.ingestion_settings.chunk_size = 450
         st.session_state.ingestion_settings.chunk_overlap = 50
@@ -483,19 +471,104 @@ def select_documents(tab, ai=None):
     if not "ingestion_settings" in st.session_state:
         st.session_state.ingestion_settings = IngestionSettings()
 
+    document_tab.create_documents_collection_tab(
+        ai, tab, widget_key="select_documents_collection_selectbox"
+    )
+
     with tab.container():
         active_collection_id = get_selected_collection_id()
         if not active_collection_id:
             st.error("No document collection selected")
             return
 
-        with st.expander("Ingestion Settings", expanded=True):
+        show_documents_in_selected_collection()
+
+        search_type = UserSettings().get_user_setting(
+            user_id=st.session_state.user_id,
+            setting_name="search_type",
+            default_value="Hybrid",
+            default_available_for_llm=True,
+        )
+        search_top_k = UserSettings().get_user_setting(
+            user_id=st.session_state.user_id,
+            setting_name="search_top_k",
+            default_value=10,
+            default_available_for_llm=True,
+        )
+
+        with st.expander("Search Settings", expanded=False):  # , expanded=expanded):
+            search_types = ["Similarity", "Keyword", "Hybrid"]
+            st.radio(
+                label="Text search method",
+                help="Similarity search will find semantically similar phrases.\n\nKeyword search (think SQL LIKE statement) will find documents containing specific words.\n\nHybrid search uses both.",
+                options=search_types,
+                key="search_type",
+                index=search_types.index(search_type.setting_value),
+                on_change=save_user_setting,
+                kwargs={
+                    "setting_name": "search_type",
+                    "available_for_llm": search_type.available_for_llm,
+                },
+            )
+            st.number_input(
+                "Top K (number of document chunks to use in searches)",
+                key="search_top_k",
+                help="The number of document chunks to use in searches. Higher numbers will take longer to search, but will possibly yield better results.  Note: a higher number will use more of the model's context window.",
+                value=int(search_top_k.setting_value),
+                on_change=save_user_setting,
+                step=1,
+                kwargs={
+                    "setting_name": "search_top_k",
+                    "available_for_llm": search_top_k.available_for_llm,
+                },
+            )
+
+def show_documents_in_selected_collection():
+    selected_collection_id = get_selected_collection_id()
+    if "rag_ai" in st.session_state and selected_collection_id != "-1":
+        st.session_state.rag_ai.conversation_manager.collection_id = (
+                selected_collection_id
+            )
+
+        loaded_docs = (
+                st.session_state.rag_ai.conversation_manager.get_loaded_documents_for_display()
+            )
+
+        if not loaded_docs:
+            loaded_docs = []
+
+        with st.expander(
+                label=f"({len(loaded_docs)}) documents in {get_selected_collection_name()}",
+                expanded=False,
+            ):
+                # TODO: Add capabilities to edit the collection (delete documents)
+            for doc in loaded_docs:
+                st.write(doc)
+
+
+def file_uploads(tab, ai=None):
+    # Handle the first time
+    if not "ingestion_settings" in st.session_state:
+        st.session_state.ingestion_settings = IngestionSettings()
+
+    document_tab.create_documents_collection_tab(
+        ai, tab, widget_key="file_upload_collection_selectbox", show_new_button=True
+    )
+
+    with tab.container():
+        active_collection_id = get_selected_collection_id()
+        if not active_collection_id:
+            st.error("No document collection selected")
+            return
+        
+        show_documents_in_selected_collection()
+
+        with st.expander("Ingestion Settings", expanded=False):
             st.radio(
                 "File type",
                 [
                     "Document (Word, PDF, TXT)",
                     "Spreadsheet (XLS, CSV)",
-                    "Code (Python, C++)",
                 ],
                 key="file_type",
                 on_change=set_ingestion_settings,
@@ -567,7 +640,6 @@ def select_documents(tab, ai=None):
                 f"*Embedding model: **{get_selected_embedding_name()}**, max chunk size: **{max_chunk_size}***"
             )
 
-        task_results = None
         with tab.form(key="upload_files_form", clear_on_submit=True):
             uploaded_files = st.file_uploader(
                 "Choose your files",
@@ -582,16 +654,12 @@ def select_documents(tab, ai=None):
                 disabled=(active_collection_id == None or active_collection_id == "-1"),
             )
 
-            st.markdown(
-                "*⚠️ Currently there is no async/queued file ingestion. Do not navigate away from this page, or click on anything else, while the files are being ingested.*"
-            )
-
             status = st.status(f"Ready to ingest", expanded=False, state="complete")
 
             if uploaded_files and active_collection_id:
                 if active_collection_id:
                     if submit_button:
-                        task_results = ingest_files(
+                        ingest_files(
                             uploaded_files=uploaded_files,
                             active_collection_id=active_collection_id,
                             status=status,
@@ -616,14 +684,6 @@ def select_documents(tab, ai=None):
                             ai=ai,
                         )
 
-        if task_results and len(task_results) > 0:
-            st.markdown(                
-                f"🚀 Ingesting {len(uploaded_files)} files into '{get_selected_collection_name()}'..."
-            )
-            # Link to the tasks page
-            st.markdown(
-                f"[View the tasks page](/Tasks)"
-            )
             # for result in task_results:
             #     file_name = os.path.basename(result[0])
             #     col1, col2 = st.columns(2)
@@ -934,14 +994,11 @@ def display_progress(task_id):
     # Done!
 
 
+# def create_documents_and_code_collections(ai):
+#     documents_tab, code = st.tabs(["Documents", "Code"])
 
 
-
-def create_documents_and_code_collections(ai):
-    documents_tab, code = st.tabs(["Documents", "Code"])
-
-    document_tab.create_documents_collection_tab(ai, documents_tab)
-    code_tab.create_code_collection_tab(ai, code)
+#     code_tab.create_code_collection_tab(ai, code)
 
 
 def refresh_messages_session_state(ai_instance):
@@ -1043,281 +1100,85 @@ def show_old_messages(ai_instance):
                     )
 
 
-def handle_chat(main_window_container, ai_instance):
-    with main_window_container.container():
-        # Get the AI instance from session state
-        if not ai_instance:
-            st.warning("No AI instance")
-            st.stop()
+def handle_chat(ai_instance:RetrievalAugmentedGenerationAI):
+    # with main_window_container.container():
+    # Get the AI instance from session state
+    if not ai_instance:
+        st.warning("No AI instance")
+        st.stop()
 
-        show_old_messages(ai_instance)
-
-        st.write("")
-        st.write("")
-        st.write("")
-        st.write("")
-        st.write("")
+    show_old_messages(ai_instance)
 
     # Get user input (must be outside of the container)
     prompt = st.chat_input("Enter your message here", key="chat_input")
 
-    # Write some css out to make the list of tools appear below the chat input
-    css_style = """{
-    position: fixed;
-    bottom: 10px;
-    right: 80px; 
-    z-index: 9999;
-    max-width: none;
-}
-"""
-
-    with stylable_container(
-        key="additional_configuration_container", css_styles=css_style
-    ):
-        col1, col2, col3, col4, col5, col6 = st.columns([1, 2, 1, 2, 1, 2])
-
-        help_icon = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>'
-
-        col1.markdown(
-            f'<div align="right" title="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.">{help_icon} <b>AI Mode:</b></div>',
-            unsafe_allow_html=True,
-        )
-
-        ai_modes = ["Auto", "Conversation Only"]
-
-        # Get the AI mode setting
-        ai_mode = ai_instance.conversation_manager.get_user_setting(
-            setting_name="ai_mode", default_value="Auto"
-        ).setting_value
-
-        col2.selectbox(
-            label="Mode",
-            label_visibility="collapsed",
-            options=ai_modes,
-            index=ai_modes.index(ai_mode),
-            key="ai_mode",
-            help="Select the mode to use.\nAuto will automatically switch between a Conversation Only and Tool Using AI based on the users input.\nCode is a code-based AI specialist that will use the loaded repository.",
-            on_change=set_ai_mode,
-        )
-
-        if st.session_state.get("ai_mode", "auto").lower().startswith("auto"):
-            evaluate_response = UserSettings().get_user_setting(
-                user_id=ai_instance.conversation_manager.user_id,
-                setting_name="evaluate_response",
-                default_value=False,
-            )
-
-            re_planning_threshold = UserSettings().get_user_setting(
-                user_id=ai_instance.conversation_manager.user_id,
-                setting_name="re_planning_threshold",
-                default_value=0.5,
-            )
-
-            col3.markdown(
-                f'<div align="right" title="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.">{help_icon} <b>Evaluate Response:</b></div>',
-                unsafe_allow_html=True,
-            )
-
-            col4.toggle(
-                label="Evaluate Response",
-                label_visibility="collapsed",
-                value=bool(evaluate_response.setting_value),
-                key="evaluate_response",
-                help="Turning this on will add an extra step to each request to the AI, where it will evaluate the tool usage and results, possibly triggering another planning stage.",
-                on_change=save_user_setting,
-                kwargs={
-                    "setting_name": "evaluate_response",
-                    "available_for_llm": evaluate_response.available_for_llm,
-                },
-            )
-
-            col5.markdown(
-                f'<div align="right" title="Threshold at which the AI will re-enter a planning stage.">{help_icon} <b>Re-Planning Threshold:</b></div>',
-                unsafe_allow_html=True,
-            )
-
-            col6.slider(
-                label="Re-Planning Threshold",
-                label_visibility="collapsed",
-                key="re_planning_threshold",
-                min_value=0.0,
-                max_value=1.0,
-                value=float(re_planning_threshold.setting_value),
-                step=0.1,
-                help="Threshold at which the AI will re-enter a planning stage.",
-                disabled=bool(st.session_state["evaluate_response"]) == False,
-                on_change=save_user_setting,
-                kwargs={
-                    "setting_name": "re_planning_threshold",
-                    "available_for_llm": re_planning_threshold.available_for_llm,
-                },
-            )
-
-        else:
-            frequency_penalty = UserSettings().get_user_setting(
-                user_id=ai_instance.conversation_manager.user_id,
-                setting_name="frequency_penalty",
-                default_value=0.3,
-            )
-            presence_penalty = UserSettings().get_user_setting(
-                user_id=ai_instance.conversation_manager.user_id,
-                setting_name="presence_penalty",
-                default_value=0.7,
-            )
-
-            col3.markdown(
-                f'<div align="right" title="Positive values will decrease the likelihood of the model repeating the same line verbatim by penalizing new tokens that have already been used frequently.">{help_icon} <b>Frequency Penalty:</b></div>',
-                unsafe_allow_html=True,
-            )
-
-            col4.slider(
-                label="Frequency Penalty",
-                label_visibility="collapsed",
-                key="frequency_penalty",
-                min_value=-2.0,
-                max_value=2.0,
-                value=float(frequency_penalty.setting_value),
-                step=0.1,
-                help="The higher the penalty, the less likely the AI will repeat itself in the completion.",
-                disabled=not st.session_state.get("ai_mode", "auto")
-                .lower()
-                .startswith("conversation"),
-                on_change=save_user_setting,
-                kwargs={
-                    "setting_name": "frequency_penalty",
-                    "available_for_llm": frequency_penalty.available_for_llm,
-                },
-            )
-
-            col5.markdown(
-                f'<div align="right" title="Positive values will increase the likelihood of the model talking about new topics by penalizing new tokens that have already been used.">{help_icon} <b>Presence Penalty:</b></div>',
-                unsafe_allow_html=True,
-            )
-
-            col6.slider(
-                label="Presence Penalty",
-                label_visibility="collapsed",
-                key="presence_penalty",
-                min_value=-2.0,
-                max_value=2.0,
-                value=float(presence_penalty.setting_value),
-                step=0.1,
-                help="The higher the penalty, the more variety of words will be introduced in the completion.",
-                disabled=not st.session_state.get("ai_mode", "auto")
-                .lower()
-                .startswith("conversation"),
-                on_change=save_user_setting,
-                kwargs={
-                    "setting_name": "presence_penalty",
-                    "available_for_llm": presence_penalty.available_for_llm,
-                },
-            )
-
     if prompt:
         logging.debug(f"User input: {prompt}")
 
-        with main_window_container.container():
-            st.chat_message("user", avatar="👤").markdown(prompt)
+        # with main_window_container.container():
+        st.chat_message("user", avatar="👤").markdown(prompt)
 
-            with st.chat_message("assistant", avatar="🤖"):
-                agent_callbacks = []
-                llm_callbacks = []
+        with st.chat_message("assistant", avatar="🤖"):
+            agent_callbacks = []
+            llm_callbacks = []
 
-                thought_container = st.container()
-                llm_container = st.container().empty()
+            thought_container = st.container()
+            llm_container = st.container().empty()
 
-                show_llm_thoughts = (
-                    UserSettings()
-                    .get_user_setting(
-                        user_id=ai_instance.conversation_manager.user_id,
-                        setting_name="show_llm_thoughts",
-                        default_value=True,
-                    )
-                    .setting_value
+            show_llm_thoughts = (
+                UserSettings()
+                .get_user_setting(
+                    user_id=ai_instance.conversation_manager.user_id,
+                    setting_name="show_llm_thoughts",
+                    default_value=True,
+                )
+                .setting_value
+            )
+
+            if show_llm_thoughts:
+                llm_callback = StreamlitStreamingOnlyCallbackHandler(llm_container)
+                agent_callback = StreamlitCallbackHandler(
+                    parent_container=thought_container,
+                    max_thought_containers=10,
+                    expand_new_thoughts=True,
+                    collapse_completed_thoughts=True,
                 )
 
-                if show_llm_thoughts:
-                    llm_callback = StreamlitStreamingOnlyCallbackHandler(llm_container)
-                    agent_callback = StreamlitCallbackHandler(
-                        parent_container=thought_container,
-                        max_thought_containers=10,
-                        expand_new_thoughts=True,
-                        collapse_completed_thoughts=True,
-                    )
+                agent_callbacks.append(agent_callback)
+                llm_callbacks.append(llm_callback)
+            else:
+                # Show some kind of indicator that the AI is thinking
+                llm_container.info(icon="🤖", body="Thinking...")
 
-                    agent_callbacks.append(agent_callback)
-                    llm_callbacks.append(llm_callback)
-                else:
-                    # Show some kind of indicator that the AI is thinking
-                    llm_container.info(icon="🤖", body="Thinking...")
+            collection_id = get_selected_collection_id()
 
-                collection_id = get_selected_collection_id()
+            logging.debug(f"Collection ID: {collection_id}")
 
-                logging.debug(f"Collection ID: {collection_id}")
+            
 
-                kwargs = {
-                    "search_top_k": (
-                        int(st.session_state["search_top_k"])
-                        if "search_top_k" in st.session_state
-                        else 5
-                    ),
-                    "search_type": (
-                        st.session_state["search_type"]
-                        if "search_type" in st.session_state
-                        else "Similarity"
-                    ),
-                    "override_file": (
-                        st.session_state["override_file"].split(":")[0]
-                        if "override_file" in st.session_state
-                        and st.session_state["override_file"].split(":")[0] != "0"
-                        else None
-                    ),
-                    "agent_timeout": (
-                        int(st.session_state["agent_timeout"])
-                        if "agent_timeout" in st.session_state
-                        else 300
-                    ),
-                    "max_iterations": (
-                        int(st.session_state["max_iterations"])
-                        if "max_iterations" in st.session_state
-                        else 25
-                    ),
-                    "evaluate_response": (
-                        st.session_state["evaluate_response"]
-                        if "evaluate_response" in st.session_state
-                        else False
-                    ),
-                    "re_planning_threshold": (
-                        float(st.session_state["re_planning_threshold"])
-                        if "re_planning_threshold" in st.session_state
-                        else 0.5
-                    ),
-                }
-                logging.debug(f"kwargs: {kwargs}")
+            try:
+                ai_instance.conversation_manager.agent_callbacks = agent_callbacks
+                ai_instance.conversation_manager.llm_callbacks = llm_callbacks
+                kwargs = {}
+                kwargs["rephrase_answer_instructions"] = (
+                    ai_instance.conversation_manager.get_user_setting(
+                        setting_name="streamlit_assistant_rephrase_answer_instructions",
+                        default_value="Write everything in Markdown, as it will be displayed in a streamlit application.  Make sure to format your response beautifully, using appropriate line and paragraph breaks, as well as bullet lists and font formatting.",
+                    ).setting_value
+                )
 
-                try:
-                    ai_instance.conversation_manager.agent_callbacks = agent_callbacks
-                    ai_instance.conversation_manager.llm_callbacks = llm_callbacks
+                result = ai_instance.query(
+                    query=prompt,
+                    collection_id=collection_id if collection_id != -1 else None,
+                    kwargs=kwargs,
+                )
+            except Exception as e:
+                logging.error(f"Error querying AI: {str(e)}")
+                result = f"An error occurred when attempting to fulfill your request.\n\n```console\n{str(e)}\n```"
 
-                    kwargs["rephrase_answer_instructions"] = (
-                        ai_instance.conversation_manager.get_user_setting(
-                            setting_name="streamlit_assistant_rephrase_answer_instructions",
-                            default_value="Write everything in Markdown, as it will be displayed in a streamlit application.  Make sure to format your response beautifully, using appropriate line and paragraph breaks, as well as bullet lists and font formatting.",
-                        ).setting_value
-                    )
+            logging.debug(f"Result: {result}")
 
-                    result = ai_instance.query(
-                        query=prompt,
-                        collection_id=collection_id if collection_id != -1 else None,
-                        kwargs=kwargs,
-                    )
-                except Exception as e:
-                    logging.error(f"Error querying AI: {str(e)}")
-                    result = f"An error occurred when attempting to fulfill your request.\n\n```console\n{str(e)}\n```"
-
-                logging.debug(f"Result: {result}")
-
-                llm_container.markdown(result)
+            llm_container.markdown(result)
 
 
 def save_user_setting(setting_name, available_for_llm=False):
@@ -1326,13 +1187,6 @@ def save_user_setting(setting_name, available_for_llm=False):
 
     UserSettings().add_update_user_setting(
         user_id, setting_name, setting_value, available_for_llm
-    )
-
-
-def set_ai_mode():
-    ai: RetrievalAugmentedGenerationAI = st.session_state["rag_ai"]
-    ai.conversation_manager.set_user_setting(
-        "ai_mode", st.session_state.get("ai_mode", "auto")
     )
 
 
