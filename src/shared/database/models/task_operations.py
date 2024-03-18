@@ -43,19 +43,37 @@ class TaskOperations(VectorDatabase):
         self, name, description, current_state, associated_user_id, external_task_id
     ):
         with self.session_context(self.Session()) as session:
-            new_task = Task(
-                name=name,
-                description=description,
-                current_state=current_state,
-                associated_user_id=associated_user_id,
-                external_task_id=external_task_id,
-                record_updated=datetime.now(),
+            # If the external_task_id already exists, then we should just update that one
+            task = (
+                session.query(Task)
+                .filter(Task.external_task_id == external_task_id)
+                .first()
             )
-            session.add(new_task)
-            session.commit()
-            
+            if task:
+                task.name = name
+                task.description = description
+                task.current_state = current_state
+                task.associated_user_id = associated_user_id
+                task.external_task_id = external_task_id
+                task.record_updated = datetime.now()
+                
+                session.commit()
+                task_id = task.id
+            else:
+                new_task = Task(
+                    name=name,
+                    description=description,
+                    current_state=current_state,
+                    associated_user_id=associated_user_id,
+                    external_task_id=external_task_id,
+                    record_updated=datetime.now(),
+                )
+                session.add(new_task)
+                session.commit()
+                task_id = new_task.id
+
             # Additionally, add the task history
-            self._create_task_history(session, new_task.id, current_state, description)
+            self._create_task_history(session, task_id, current_state, description)
 
     def update_task_state(
         self, external_task_id: int, current_state: str, description: str
@@ -71,12 +89,13 @@ class TaskOperations(VectorDatabase):
                 task.description = description
                 task.record_updated = datetime.now()
                 session.commit()
-                
+
             # Additionally, add the task history
             self._create_task_history(session, task.id, current_state, description)
-            
 
-    def _create_task_history(self,session, task_id: int, state: str, description: str) -> None:        
+    def _create_task_history(
+        self, session, task_id: int, state: str, description: str
+    ) -> None:
         new_task_history = TaskHistory(
             task_id=task_id,
             state=state,

@@ -5,9 +5,10 @@ import sys
 
 from celery import current_task
 
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../../"))
 
-
+from src.workers.document_processing.app.utilities import write_status
 from src.workers.document_processing.app.celery_worker import celery_app
 
 
@@ -108,10 +109,18 @@ def process_document_task(
         # Get the hash of the file
         file_hash = calculate_sha256(file_path)
 
-        write_status(f"Storing full document '{original_file_name}'...")
+        if not documents or len(documents) > 0:
+            write_status(
+                status=f"No documents could be extracted from '{file_path}'.  Possible images detected...  Please double check the contents of the file.",
+                state="FAILURE",
+                log_level="warning",
+            )
+            return
 
+        # Get the classification from the first document
         file_classification = documents[0].metadata["classification"]
 
+        write_status(f"Storing full document '{original_file_name}'...")
         file_model = documents_helper.create_file(
             FileModel(
                 user_id=user_id,
@@ -258,26 +267,6 @@ def save_split_documents(
     write_status(
         status=f"Successfully ingested {len(documents)} document chunks from {file_name} files",
         state="SUCCESS",
-    )
-
-
-def write_status(status: str, state="PROGRESS", log_level: str = "info"):
-    from src.shared.database.models.task_operations import TaskOperations
-
-    task_operations = TaskOperations()
-
-    current_task.update_state(
-        state="PROGRESS",
-        meta={"status": status},
-    )
-    # Get the log level from the argument and log the message
-    log_level = getattr(logging, log_level)
-    log_level(status)
-
-    task_operations.update_task_state(
-        external_task_id=current_task.request.id,
-        current_state=state,
-        description=status,
     )
 
 

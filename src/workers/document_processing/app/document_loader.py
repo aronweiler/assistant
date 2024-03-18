@@ -9,6 +9,8 @@ import tiktoken
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from src.workers.document_processing.app.utilities import write_status
+
 
 # TODO: Add loaders for PPT, and other document types
 from langchain_community.document_loaders import (
@@ -149,22 +151,25 @@ def load_and_split_document(
 
     documents = get_documents_from_file(target_file)
 
+    
     if documents and split_document:        
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             length_function=num_tokens_from_string,
         )
-        texts = text_splitter.split_documents(documents)
-        logging.info(
-            f"Split into {len(texts)} chunks of text (chunk_size: {chunk_size}, chunk_overlap: {chunk_overlap})"
-        )
-    else:
-        logging.info(f"Splitting is disabled, returning full documents")
+        
+        try:
+            texts = text_splitter.split_documents(documents)
+            write_status(f"Split into {len(texts)} chunks of text (chunk_size: {chunk_size}, chunk_overlap: {chunk_overlap})")
+        except Exception as e:
+            write_status(f"Error splitting documents (perhaps it does not contain any text?): {e}", log_level="error")
+            texts = documents
+        
+    else:        
+        write_status(f"Splitting is disabled, returning full documents")
         texts = documents
 
-    logging.info(
-        f"Loaded {len(documents)} pages split into {len(texts)} chunks from {target_file}"
-    )
+    write_status(f"Loaded {len(documents)} pages split into {len(texts)} chunks from {target_file}")
 
     return texts
