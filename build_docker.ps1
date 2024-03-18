@@ -45,14 +45,18 @@ $context = $services[$serviceName].Context
 $dockerfile = $services[$serviceName].Dockerfile
 $tagVersioned = "aronweiler/assistant:$newVersion-$serviceName"
 $tagLatest = "aronweiler/assistant:latest-$serviceName"
+$digital_ocean_version_tag = "registry.digitalocean.com/jarvis-registry/assistant:$newVersion-$serviceName"
+$digital_ocean_latest_tag = "registry.digitalocean.com/jarvis-registry/assistant:latest-$serviceName"
 
 Write-Host "Building $serviceName with tags $tagVersioned and $tagLatest"
-docker build -t $tagVersioned -t $tagLatest -f $dockerfile $context
+docker build -t $tagVersioned -t $tagLatest -t $digital_ocean_version_tag -t $digital_ocean_latest_tag -f $dockerfile $context
 if ($LASTEXITCODE -eq 0) {
     Write-Host "$serviceName build succeeded"
     # Push the Docker images -- uncomment for production
     docker push $tagVersioned
     docker push $tagLatest
+    docker push $digital_ocean_version_tag
+    docker push $digital_ocean_latest_tag
 }
 else {
     Write-Host "$serviceName build failed"
