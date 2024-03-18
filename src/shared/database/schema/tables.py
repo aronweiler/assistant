@@ -303,9 +303,12 @@ class DocumentCollection(ModelBase):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
-    collection_name = Column(String, nullable=False, unique=True)
+    collection_name = Column(String, nullable=False)
     record_created = Column(DateTime, nullable=False, default=datetime.now)
     embedding_name = Column(String, nullable=False)
+
+    # Add a unique constraint on the user_id and collection_name
+    __table_args__ = (UniqueConstraint("user_id", "collection_name"),)
 
     documents = relationship("Document", back_populates="collection")
 
@@ -472,7 +475,7 @@ class Task(ModelBase):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     current_state = Column(String, nullable=False)
-    associated_user_id = Column(Integer, ForeignKey("users.id"))    
+    associated_user_id = Column(Integer, ForeignKey("users.id"))
     record_updated = Column(DateTime, nullable=False, default=datetime.now)
 
     user = relationship("User", back_populates="tasks")

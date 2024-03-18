@@ -26,11 +26,11 @@ from src.shared.ai.utilities.embeddings_helper import get_embedding_by_name, get
 
 class Documents(VectorDatabase):
     def create_collection(
-        self, collection_name, embedding_name
+        self, collection_name, embedding_name, user_id
     ) -> DocumentCollectionModel:
         with self.session_context(self.Session()) as session:
             collection = DocumentCollection(
-                collection_name=collection_name, embedding_name=embedding_name
+                collection_name=collection_name, embedding_name=embedding_name, user_id=user_id
             )
 
             session.add(collection)
