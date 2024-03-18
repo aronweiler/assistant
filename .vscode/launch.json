@@ -12,10 +12,7 @@
     },
     {
       "name": "Services",
-      "configurations": [
-        "Document Ingestion API",
-        "Celery Worker"
-      ],
+      "configurations": ["Document Ingestion API", "Celery Worker"],
       "preLaunchTask": "", // Optional: Specify a task to run before launching the debug session
       "presentation": {
         "group": "", // Optional: Group in the Debug viewlet
@@ -77,7 +74,11 @@
       "type": "debugpy",
       "request": "launch",
       "program": "assistant_venv/Scripts/streamlit.exe",
-      "args": ["run", "src/ui/app/About.py", "--server.port=${input:randomPort}"],
+      "args": [
+        "run",
+        "src/ui/app/About.py",
+        "--server.port=${input:randomPort}"
+      ],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "env": {
@@ -146,8 +147,15 @@
         "-A",
         "celery_worker",
         "worker",
-        "--loglevel=info"
+        "--loglevel=info",
+        "-P",
+        "solo"
       ],
+      "env": {
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5433",
+      },
+      "pythonArgs": ["-Xfrozen_modules=off"],
       "console": "integratedTerminal",
       "justMyCode": true,
       "cwd": "${workspaceFolder}/src/workers/document_processing/app"
