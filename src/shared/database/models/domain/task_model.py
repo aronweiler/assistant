@@ -2,14 +2,15 @@ from src.shared.database.schema.tables import Task
 
 
 class TaskModel:
-    def __init__(self, id, name, description, current_state, associated_user_id, external_task_id, record_updated):
+    def __init__(self, id, name, description, current_state, associated_user_id, external_task_id, record_updated, is_deleted=False):
         self.id = id
         self.name = name
         self.description = description
         self.current_state = current_state
         self.associated_user_id = associated_user_id
         self.external_task_id = external_task_id
-        self.record_updated = record_updated
+        self.record_updated = record_updated,
+        self.is_deleted = is_deleted
 
     def to_database_model(self):
         return Task(
@@ -19,7 +20,8 @@ class TaskModel:
             current_state=self.current_state,
             associated_user_id=self.associated_user_id,
             external_task_id=self.external_task_id,
-            record_updated=self.record_updated
+            record_updated=self.record_updated,
+            is_deleted=self.is_deleted
         )
 
     @classmethod
@@ -34,7 +36,8 @@ class TaskModel:
             current_state=db_task.current_state,
             associated_user_id=db_task.associated_user_id,
             external_task_id=db_task.external_task_id,
-            record_updated=db_task.record_updated
+            record_updated=db_task.record_updated,
+            is_deleted=db_task.is_deleted
         )
 
 

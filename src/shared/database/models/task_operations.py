@@ -8,16 +8,23 @@ from src.shared.database.models.domain.task_model import TaskModel
 
 
 class TaskOperations(VectorDatabase):
-    def get_tasks_by_user_id(self, associated_user_id: int) -> List[TaskModel]:
+    def get_tasks_by_user_id(
+        self, associated_user_id: int, is_deleted: bool = False
+    ) -> List[TaskModel]:
         with self.session_context(self.Session()) as session:
             query = session.query(Task).filter(
-                Task.associated_user_id == associated_user_id
+                Task.associated_user_id == associated_user_id,
+                Task.is_deleted == is_deleted,
             )
             return [TaskModel.from_database_model(task) for task in query.all()]
 
-    def get_task_by_id(self, id: int) -> TaskModel:
+    def get_task_by_id(self, id: int, is_deleted: bool = False) -> TaskModel:
         with self.session_context(self.Session()) as session:
-            task = session.query(Task).filter(Task.id == id).first()
+            task = (
+                session.query(Task)
+                .filter(Task.id == id, Task.is_deleted == is_deleted)
+                .first()
+            )
             return TaskModel.from_database_model(task)
 
     def get_task_by_external_id(self, external_task_id: str) -> TaskModel:
@@ -30,12 +37,13 @@ class TaskOperations(VectorDatabase):
             return TaskModel.from_database_model(task)
 
     def get_tasks_by_user_id_and_state(
-        self, associated_user_id: int, current_state: str
+        self, associated_user_id: int, current_state: str, is_deleted: bool = False
     ) -> List[TaskModel]:
         with self.session_context(self.Session()) as session:
             query = session.query(Task).filter(
                 Task.associated_user_id == associated_user_id,
                 Task.current_state == current_state,
+                Task.is_deleted == is_deleted,
             )
             return [TaskModel.from_database_model(task) for task in query.all()]
 
@@ -56,7 +64,8 @@ class TaskOperations(VectorDatabase):
                 task.associated_user_id = associated_user_id
                 task.external_task_id = external_task_id
                 task.record_updated = datetime.now()
-                
+                task.is_deleted = False  # Reset this flag if it was previously deleted
+
                 session.commit()
                 task_id = task.id
             else:
@@ -88,10 +97,20 @@ class TaskOperations(VectorDatabase):
                 task.current_state = current_state
                 task.description = description
                 task.record_updated = datetime.now()
+                task.is_deleted = False  # Reset this flag if it was previously deleted
                 session.commit()
 
             # Additionally, add the task history
             self._create_task_history(session, task.id, current_state, description)
+
+    def delete_tasks_by_user_id(self, associated_user_id: int) -> None:
+        with self.session_context(self.Session()) as session:
+            tasks = session.query(Task).filter(
+                Task.associated_user_id == associated_user_id
+            )
+            for task in tasks:
+                task.is_deleted = True
+                session.commit()
 
     def _create_task_history(
         self, session, task_id: int, state: str, description: str

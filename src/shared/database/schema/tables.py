@@ -477,6 +477,7 @@ class Task(ModelBase):
     current_state = Column(String, nullable=False)
     associated_user_id = Column(Integer, ForeignKey("users.id"))
     record_updated = Column(DateTime, nullable=False, default=datetime.now)
+    is_deleted = Column(Boolean, nullable=False, default=False)
 
     user = relationship("User", back_populates="tasks")
 

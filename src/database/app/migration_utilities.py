@@ -37,10 +37,11 @@ def run_migration(connection_string, migrations_dir="src/database/app/migrations
 if __name__ == "__main__":
     connection_string = get_connection_string()
     # Port setting (based on where I'm hosting this thing)
-    connection_string = connection_string.replace("5432", "5433")
+    #connection_string = connection_string.replace("5432", "5433")
+    connection_string = connection_string.replace("jarvis-database", "localhost")
     
     # Uncomment to create migration
-    # create_migration(connection_string)
+    create_migration(connection_string)
     
     # Uncomment to run migration
     # run_migration(connection_string, "src/database/app/migrations")
