@@ -8,14 +8,11 @@ services:
     container_name: jarvis-database
     restart: always
     env_file:
-      - .env.do
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=localhost
+      - .env
     ports:
-      - 5433:5432
+      - 5432:5432
     volumes:
-      - jarvis-db-data:/var/lib/postgresql/data      
+      - jarvis-db-data:/var/lib/postgresql/data
 
   jarvis-ui:
     build:
@@ -24,7 +21,7 @@ services:
     container_name: jarvis-ui
     restart: always
     env_file:
-      - .env.do
+      - .env
     ports:
       - 8600:8600
 
@@ -106,18 +103,14 @@ services:
     container_name: jarvis-worker-document-processing
     restart: always
     env_file:
-      - .env.do
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=jarvis-database
-      - RABBITMQ_HOST=jarvis-rabbitmq
+      - .env      
 
   jarvis-rabbitmq:
     image: "rabbitmq:3-management"
     container_name: jarvis-rabbitmq
     restart: always
     env_file:
-      - .env.do
+      - .env
     ports:
       - "5672:5672"
       - "15672:15672"
