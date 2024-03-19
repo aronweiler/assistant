@@ -22,10 +22,17 @@ def create_admin_user():
     with vector_database.session_context(vector_database.Session()) as session:
 
         email = os.getenv("ADMIN_EMAIL")
-        password = os.getenv("ADMIN_PASSWORD")
+        password = os.getenv("ADMIN_PASSWORD", None)
         name = os.getenv("ADMIN_NAME")
         location = os.getenv("ADMIN_LOCATION")
-        age = 999
+        age = 999        
+        
+        logging.info(f"Creating admin user with email: {email}, name: {name}, location: {location}, age: {age}, password not None: {password is not None}")
+        
+        if password is None:
+            logging.error("No admin password was provided, so the admin user will not be created")
+            return
+        
         password_hash = hasher.hash(password)
 
         # If the user already exists, don't create it again

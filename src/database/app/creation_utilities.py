@@ -3,7 +3,11 @@ import logging
 from sqlalchemy import create_engine, text
 
 from migration_utilities import run_migration
-from default_data import create_admin_user, ensure_conversation_role_types, ensure_supported_source_control_providers
+from default_data import (
+    create_admin_user,
+    ensure_conversation_role_types,
+    ensure_supported_source_control_providers,
+)
 from connection_utilities import get_connection_string
 
 
@@ -12,9 +16,9 @@ ERROR_MSG_SOURCE_CONTROL = "Error ensuring supported source control providers ar
 ERROR_MSG_ADMIN_USER = "Error creating admin user: {}. You probably didn't run the `migration_utilities.create_migration()`"
 
 
-
 def run_migration_scripts():
     run_migration(get_connection_string())
+
 
 def create_pgvector_extension():
     # Create a new connection engine to the newly created database
@@ -36,6 +40,9 @@ def create_pgvector_extension():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+
+    logging.info("Creating the PGVector extension and running migration scripts...")
     # Enable pgvector extension
     create_pgvector_extension()
 
@@ -44,16 +51,21 @@ if __name__ == "__main__":
 
     # Populate default conversation role types
     try:
+        logging.info("Ensuring conversation role types exist in the database")
         ensure_conversation_role_types()
     except Exception as e:
         logging.error(ERROR_MSG_ROLE_TYPES.format(e))
 
     try:
+        logging.info(
+            "Ensuring supported source control providers exist in the database"
+        )
         ensure_supported_source_control_providers()
     except Exception as e:
         print(ERROR_MSG_SOURCE_CONTROL.format(e))
-        
+
     try:
+        logging.info("Creating admin user")
         create_admin_user()
     except Exception as e:
         logging.error(ERROR_MSG_ADMIN_USER.format(e))
