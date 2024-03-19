@@ -109,7 +109,7 @@ def process_document_task(
         # Get the hash of the file
         file_hash = calculate_sha256(file_path)
 
-        if not documents or len(documents) > 0:
+        if not documents or len(documents) <= 0:
             write_status(
                 status=f"No documents could be extracted from '{file_path}'.  Possible images detected...  Please double check the contents of the file.",
                 state="FAILURE",

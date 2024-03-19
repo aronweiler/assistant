@@ -12,6 +12,15 @@ set_page_config(page_name="Tasks")
 make_sidebar()
 
 
+def highlight_row(s):
+    if s["Current State"] == "SUCCESS":
+        return ["background-color: #006600"] * len(s)
+    elif s["Current State"] == "FAILURE":
+        return ["background-color: #990000"] * len(s)
+    else:
+        return ["background-color: #ffebcc"] * len(s)
+
+
 def load_tasks(user_id, current_state=None) -> List[TaskModel]:
     task_ops = TaskOperations()
     if current_state and current_state != "---":
@@ -29,10 +38,19 @@ def load_task_history(task_id):
 st.title("User Tasks")
 
 col1, col2 = st.columns([0.25, 0.75])
+col1a, col1b, crap = st.columns([0.1, 0.2, 0.7])
 
 user_id = st.session_state.user_id
 state_filter = col1.selectbox("Filter By", ["---", "PROGRESS", "SUCCESS", "FAILURE"])
 tasks = load_tasks(user_id, state_filter)
+
+if col1a.button("Refresh"):
+    tasks = load_tasks(user_id, state_filter)
+
+if col1b.button("Clear Task History"):
+    task_ops = TaskOperations()
+    task_ops.delete_tasks_by_user_id(user_id)
+    tasks = load_tasks(user_id, state_filter)
 
 task_table = [
     [task.name, task.current_state, task.description, task.record_updated]
@@ -43,7 +61,12 @@ df = pd.DataFrame(
     task_table, columns=["Name", "Current State", "Description", "Last Modified"]
 )
 
-st.dataframe(df, hide_index=True, use_container_width=True)
+df = df.sort_values(by="Last Modified", ascending=False)
+
+# Apply the styling function to the DataFrame
+df_styled = df.style.apply(highlight_row, axis=1)
+
+st.dataframe(df_styled, hide_index=True, use_container_width=True)
 
 # Look at this when I want to start displaying the task history
 # for task in tasks:
