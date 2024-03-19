@@ -37,7 +37,7 @@ def load_task_history(task_id):
 
 st.title("User Tasks")
 
-col1, col2 = st.columns([0.25, 0.75])
+col1, col2, c3 = st.columns([0.25, 0.15, 0.6])
 col1a, col1b, crap = st.columns([0.1, 0.2, 0.7])
 
 user_id = st.session_state.user_id
@@ -52,9 +52,16 @@ if col1b.button("Clear Task History"):
     task_ops.delete_tasks_by_user_id(user_id)
     tasks = load_tasks(user_id, state_filter)
 
+items_per_page = 10
+page_number = col2.selectbox("Page", range(1, (len(tasks) // items_per_page) + 2))
+
+start_index = (page_number - 1) * items_per_page
+end_index = start_index + items_per_page
+tasks_to_display = tasks[start_index:end_index]
+
 task_table = [
     [task.name, task.current_state, task.description, task.record_updated]
-    for task in tasks
+    for task in tasks_to_display
 ]
 
 df = pd.DataFrame(
