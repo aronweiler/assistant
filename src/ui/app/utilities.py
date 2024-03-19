@@ -38,30 +38,10 @@ def logout():
 
 
 def is_user_authenticated():
-    # Get the authentication cookie
-    # global cookie_manager
-    # if not cookie_manager:
-    #     cookie_manager = get_cookie_manager()
-
-    # while True:
-    #     cookies = get_cookie_manager().get_all(
-    #         key="cookie_manager_get_all_" + str(time.time())
-    #     )
-    #     if len(cookies) == 0:
-    #         logging.info("Waiting for cookies to be available")
-    #         time.sleep(1)
-    #     else:
-    #         break
-
-    # logging.info(
-    #     f"Cookie Manager Cookies: {[cookie for cookie in get_cookie_manager().get_all(key='cookie_manager_get_all_' + str(time.time()))]}"
-    # )
-
-    session_id = get_cookie_manager().get(
-        cookie="session_id"
-    )  # , key="cookie_manager_get_" + str(time.time())
+    session_id = get_cookie_manager().get(cookie="session_id")
 
     if session_id:
+        logging.info(f"Session ID found: {session_id}")
         # Check the session in the database
         user = Users().get_user_by_session_id(session_id)
 
@@ -78,6 +58,7 @@ def is_user_authenticated():
 
             return True
         elif user:
+            logging.info(f"User '{user.email}' session has expired")
             # Their session has expired, update the session in the database, and clear the cookie
             # This will force them to login again, as we'll return false
             Users().update_user_session(user.id, None)

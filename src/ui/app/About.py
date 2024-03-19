@@ -49,27 +49,30 @@ def setup_streamlit_interface():
         password = st.text_input("Password", type="password")
 
         if st.button("Login"):
+            logging.info(f"Attempting login with email: {email}")
             user = Users().get_user_by_email(email)
 
-            if user and hasher.verify(password, user.password_hash):
-                # Create the session, store the cookie
-                session_id = Users().create_session(user.id)
+            if user:
+                logging.info(f"Found user: {user.name}")
+                if hasher.verify(password, user.password_hash):
+                    logging.info("Login successful, creating session...")
+                    # Create the session, store the cookie
+                    session_id = Users().create_session(user.id)
 
-                # global cookie_manager
-                # if not cookie_manager:
-                #     cookie_manager = get_cookie_manager()
+                    get_cookie_manager().set(
+                        cookie="session_id",
+                        val=session_id,
+                        expires_at=datetime.now() + timedelta(days=DEFAULT_COOKIE_EXPIRY),
+                        key="cookie_manager_set_" + str(time.time()),
+                    )
 
-                get_cookie_manager().set(
-                    cookie="session_id",
-                    val=session_id,
-                    expires_at=datetime.now() + timedelta(days=DEFAULT_COOKIE_EXPIRY),
-                    key="cookie_manager_set_" + str(time.time()),
-                )
-
-                st.success("Login Successful")
+                    st.success("Login Successful")
+                else:
+                    logging.warning("Invalid password")
+                    st.error("Invalid email or password")
             else:
+                logging.warning("Invalid email")
                 st.error("Invalid email or password")
-
 
     # Display the capabilities of Jarvis
     st.markdown(
@@ -92,27 +95,5 @@ def setup_streamlit_interface():
     """
     )
 
-    # except:
-    #     # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
-    #     # Check to see if the type of exception is a "StopException",
-    #     # which gets thrown when a user navigates away from a page while the debugger is attached.
-    #     # But we don't have access to that type, so we have to check the string.  Dumb.
-
-    #     # Get the last exception
-    #     exc_type, exc_value, exc_traceback = sys.exc_info()
-
-    #     if (
-    #         "RerunException" in str(exc_value.__class__)
-    #         or "StopException" in str(exc_value.__class__)
-    #         or "StreamlitAPIException" in str(exc_value.__class__)
-    #     ):
-    #         # If so, then just return
-    #         return
-    #     else:
-    #         # Otherwise, raise the exception
-    #         raise
-
-
-# Main execution
 if __name__ == "__main__":
     setup_streamlit_interface()
