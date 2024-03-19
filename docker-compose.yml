@@ -8,12 +8,14 @@ services:
     container_name: jarvis-database
     restart: always
     env_file:
-      - .env
+      - .env.do
     environment:
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=localhost
     ports:
       - 5433:5432
+    volumes:
+      - jarvis-db-data:/var/lib/postgresql/data      
 
   jarvis-ui:
     build:
@@ -22,49 +24,37 @@ services:
     container_name: jarvis-ui
     restart: always
     env_file:
-      - .env
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=jarvis-database
-      - API_USER_HOST=jarvis-api-user
-      - API_USER_PORT=8101
-      - API_DOCUMENT_HOST=jarvis-api-document
-      - API_DOCUMENT_PORT=8102
-      - API_CODE_HOST=jarvis-api-code
-      - API_CODE_PORT=8103
-      - API_CONVERSATION_HOST=jarvis-api-conversation
-      - API_CONVERSATION_PORT=8104
-      - RABBITMQ_HOST=jarvis-rabbitmq
+      - .env.do
     ports:
       - 8600:8600
 
-  jarvis-ui-react:
-    build: ./src/react-ui
-    container_name: jarvis-ui-react
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./src/react-ui/app:/app
-      - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - REACT_APP_API_USER_HOST=localhost # What the fuck?? why??  no idea
-      - REACT_APP_API_USER_PORT=8101
+  # jarvis-ui-react:
+  #   build: ./src/react-ui
+  #   container_name: jarvis-ui-react
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./src/react-ui/app:/app
+  #     - /app/node_modules
+  #   environment:
+  #     - CHOKIDAR_USEPOLLING=true
+  #     - REACT_APP_API_USER_HOST=localhost # What the fuck?? why??  no idea
+  #     - REACT_APP_API_USER_PORT=8101
 
-  jarvis-api-user:
-    build:
-      context: .
-      dockerfile: ./src/api/user/Dockerfile
-    container_name: jarvis-api-user
-    restart: always
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_PORT=5432
-      - POSTGRES_HOST=jarvis-database
-      - RABBITMQ_HOST=jarvis-rabbitmq
-    ports:
-      - 8101:8101
+  # jarvis-api-user:
+  #   build:
+  #     context: .
+  #     dockerfile: ./src/api/user/Dockerfile
+  #   container_name: jarvis-api-user
+  #   restart: always
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_HOST=jarvis-database
+  #     - RABBITMQ_HOST=jarvis-rabbitmq
+  #   ports:
+  #     - 8101:8101
 
   # jarvis-api-document:
   #   build:
@@ -116,7 +106,7 @@ services:
     container_name: jarvis-worker-document-processing
     restart: always
     env_file:
-      - .env
+      - .env.do
     environment:
       - POSTGRES_PORT=5432
       - POSTGRES_HOST=jarvis-database
@@ -127,7 +117,11 @@ services:
     container_name: jarvis-rabbitmq
     restart: always
     env_file:
-      - .env
+      - .env.do
     ports:
       - "5672:5672"
       - "15672:15672"
+
+volumes:
+  jarvis-db-data:
+    driver: local

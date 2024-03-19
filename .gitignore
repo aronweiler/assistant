@@ -3,6 +3,8 @@ google_credentials.json
 token.json
 
 #env
+.env.*
+.env.secrets
 _old*
 data/ChromaDB_*/
 *_venv/
@@ -241,3 +243,4 @@ src/ai/voice/training/gaia/positive/clip_6.wav
 src/ai/voice/training/gaia/positive/clip_7.wav
 src/ai/voice/training/gaia/positive/clip_8.wav
 src/ai/voice/training/gaia/positive/clip_9.wav
+k8s/env.secrets
