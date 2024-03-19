@@ -23,6 +23,11 @@ spec:
     spec:
       containers:
         - env:            
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: OPENAI_API_KEY
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 configMapKeyRef:
