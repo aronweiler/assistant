@@ -1,0 +1,18 @@
+apiVersion: v1
+data:
+  ADMIN_EMAIL: aronweiler@gmail.com
+  ADMIN_LOCATION: San Diego, CA
+  ADMIN_NAME: Aron Weiler
+  LIBRE_OFFICE_PATH: /usr/bin/soffice
+  POSTGRES_DB: assistant
+  POSTGRES_HOST: jarvis-database
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: jarvis
+  RABBITMQ_DEFAULT_USER: user
+  RABBITMQ_HOST: localhost
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: jarvis-database-env-do
+  name: env-do
+  namespace: jarvis

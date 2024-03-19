@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: jarvis-database
+  name: jarvis-database
+  namespace: jarvis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: jarvis-database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+        kompose.version: 1.32.0 (765fde254)
+      labels:
+        io.kompose.network/jarvis-default: "true"
+        io.kompose.service: jarvis-database
+    spec:
+      containers:
+        - env:
+            - name: ADMIN_EMAIL
+              valueFrom:
+                configMapKeyRef:
+                  key: ADMIN_EMAIL
+                  name: env-do
+            - name: ADMIN_LOCATION
+              valueFrom:
+                configMapKeyRef:
+                  key: ADMIN_LOCATION
+                  name: env-do
+            - name: ADMIN_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: ADMIN_NAME
+                  name: env-do
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: ADMIN_PASSWORD
+            - name: LIBRE_OFFICE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  key: LIBRE_OFFICE_PATH
+                  name: env-do
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: env-do            
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PORT
+                  name: env-do
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env-do
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: RABBITMQ_DEFAULT_USER
+                  name: env-do
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: RABBITMQ_HOST
+                  name: env-do
+            - name: POSTGRES_HOST
+              value: "localhost"
+          image: registry.digitalocean.com/jarvis-registry/assistant:latest-jarvis-database
+          imagePullPolicy: Always
+          name: jarvis-database
+          ports:
+            - containerPort: 5432
+              hostPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql
+              name: jarvis-db-data
+      initContainers:
+      - name: pgsql-data-permission-fix
+        image: busybox
+        command: ["/bin/sh", "-c", "chmod -R 777 /data && rm -rf /data/lost+found"]
+        volumeMounts:
+        - name: jarvis-db-data
+          mountPath: /data
+      restartPolicy: Always
+      volumes:
+        - name: jarvis-db-data
+          persistentVolumeClaim:
+            claimName: jarvis-db-data

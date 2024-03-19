@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: jarvis-ui
+  name: jarvis-ui
+  namespace: jarvis
+spec:
+  type: LoadBalancer
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: 8600
+    - name: "https"
+      port: 443
+      targetPort: 8600
+  selector:
+    io.kompose.service: jarvis-ui

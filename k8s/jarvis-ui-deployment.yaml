@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: jarvis-ui
+  name: jarvis-ui
+  namespace: jarvis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: jarvis-ui
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+        kompose.version: 1.32.0 (765fde254)
+      labels:
+        io.kompose.network/jarvis-default: "true"
+        io.kompose.service: jarvis-ui
+    spec:
+      containers:
+        - env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: OPENAI_API_KEY
+            - name: YELP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: YELP_API_KEY            
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: POSTGRES_PASSWORD
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: RABBITMQ_DEFAULT_PASS            
+            - name: LIBRE_OFFICE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  key: LIBRE_OFFICE_PATH
+                  name: env-do
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: env-do
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_HOST
+                  name: env-do
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PORT
+                  name: env-do
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env-do
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: RABBITMQ_DEFAULT_USER
+                  name: env-do
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: RABBITMQ_HOST
+                  name: env-do
+          image: registry.digitalocean.com/jarvis-registry/assistant:latest-jarvis-ui
+          imagePullPolicy: Always
+          name: jarvis-ui
+          ports:
+            - containerPort: 8600
+              hostPort: 8600
+              protocol: TCP
+      restartPolicy: Always

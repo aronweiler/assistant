@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+    kompose.version: 1.32.0 (765fde254)
+  labels:
+    io.kompose.service: jarvis-rabbitmq
+  name: jarvis-rabbitmq
+  namespace: jarvis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: jarvis-rabbitmq
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Program Files\kubectl\kompose.exe convert -f ../docker-compose.yml
+        kompose.version: 1.32.0 (765fde254)
+      labels:
+        io.kompose.network/jarvis-default: "true"
+        io.kompose.service: jarvis-rabbitmq
+    spec:
+      containers:
+        - env:
+            - name: ADMIN_EMAIL
+              valueFrom:
+                configMapKeyRef:
+                  key: ADMIN_EMAIL
+                  name: env-do
+            - name: ADMIN_LOCATION
+              valueFrom:
+                configMapKeyRef:
+                  key: ADMIN_LOCATION
+                  name: env-do
+            - name: ADMIN_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: ADMIN_NAME
+                  name: env-do
+            - name: LIBRE_OFFICE_PATH
+              valueFrom:
+                configMapKeyRef:
+                  key: LIBRE_OFFICE_PATH
+                  name: env-do
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: env-do
+            - name: POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_HOST
+                  name: env-do
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PORT
+                  name: env-do
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env-do
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: RABBITMQ_DEFAULT_USER
+                  name: env-do
+            - name: RABBITMQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  key: RABBITMQ_HOST
+                  name: env-do
+          image: rabbitmq:3-management
+          name: jarvis-rabbitmq
+          ports:
+            - containerPort: 5672
+              hostPort: 5672
+              protocol: TCP
+            - containerPort: 15672
+              hostPort: 15672
+              protocol: TCP
+      restartPolicy: Always
