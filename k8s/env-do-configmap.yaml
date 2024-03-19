@@ -9,10 +9,9 @@ data:
   POSTGRES_PORT: "5432"
   POSTGRES_USER: jarvis
   RABBITMQ_DEFAULT_USER: user
-  RABBITMQ_HOST: localhost
+  RABBITMQ_HOST: jarvis-rabbitmq
 kind: ConfigMap
 metadata:
   labels:
     io.kompose.service: jarvis-database-env-do
   name: env-do
-  namespace: jarvis

@@ -7,7 +7,6 @@ metadata:
   labels:
     io.kompose.service: jarvis-database
   name: jarvis-database
-  namespace: jarvis
 spec:
   ports:
     - name: "5432"

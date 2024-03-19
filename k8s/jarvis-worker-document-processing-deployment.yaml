@@ -7,7 +7,6 @@ metadata:
   labels:
     io.kompose.service: jarvis-worker-document-processing
   name: jarvis-worker-document-processing
-  namespace: jarvis
 spec:
   replicas: 1
   selector:
@@ -23,27 +22,27 @@ spec:
         io.kompose.service: jarvis-worker-document-processing
     spec:
       containers:
-        - env:
-            - name: ADMIN_EMAIL
+        - env:            
+            - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 configMapKeyRef:
-                  key: ADMIN_EMAIL
+                  key: RABBITMQ_DEFAULT_USER
                   name: env-do
-            - name: ADMIN_LOCATION
+            - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:
-                  key: ADMIN_LOCATION
+                  key: RABBITMQ_HOST
                   name: env-do
-            - name: ADMIN_NAME
+            - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
-                configMapKeyRef:
-                  key: ADMIN_NAME
-                  name: env-do
-            - name: LIBRE_OFFICE_PATH
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: RABBITMQ_DEFAULT_PASS  
+            - name: POSTGRES_PASSWORD
               valueFrom:
-                configMapKeyRef:
-                  key: LIBRE_OFFICE_PATH
-                  name: env-do
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: POSTGRES_PASSWORD
             - name: POSTGRES_DB
               valueFrom:
                 configMapKeyRef:
@@ -63,16 +62,6 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: POSTGRES_USER
-                  name: env-do
-            - name: RABBITMQ_DEFAULT_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: RABBITMQ_DEFAULT_USER
-                  name: env-do
-            - name: RABBITMQ_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: RABBITMQ_HOST
                   name: env-do
           image: registry.digitalocean.com/jarvis-registry/assistant:latest-jarvis-worker-document-processing
           imagePullPolicy: Always

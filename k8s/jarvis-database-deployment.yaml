@@ -7,7 +7,6 @@ metadata:
   labels:
     io.kompose.service: jarvis-database
   name: jarvis-database
-  namespace: jarvis
 spec:
   replicas: 1
   selector:
@@ -46,11 +45,6 @@ spec:
                 secretKeyRef:
                   name: jarvis-secrets
                   key: ADMIN_PASSWORD
-            - name: LIBRE_OFFICE_PATH
-              valueFrom:
-                configMapKeyRef:
-                  key: LIBRE_OFFICE_PATH
-                  name: env-do
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -71,18 +65,10 @@ spec:
                 configMapKeyRef:
                   key: POSTGRES_USER
                   name: env-do
-            - name: RABBITMQ_DEFAULT_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: RABBITMQ_DEFAULT_USER
-                  name: env-do
-            - name: RABBITMQ_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: RABBITMQ_HOST
-                  name: env-do
             - name: POSTGRES_HOST
               value: "localhost"
+            - name: POSTGRES_FAKE
+              value: "jarvis"
           image: registry.digitalocean.com/jarvis-registry/assistant:latest-jarvis-database
           imagePullPolicy: Always
           name: jarvis-database
@@ -91,17 +77,17 @@ spec:
               hostPort: 5432
               protocol: TCP
           volumeMounts:
-            - mountPath: /var/lib/postgresql
+            - mountPath: /var/lib/postgresql/data
               name: jarvis-db-data
       initContainers:
       - name: pgsql-data-permission-fix
         image: busybox
-        command: ["/bin/sh", "-c", "chmod -R 777 /data && rm -rf /data/lost+found"]
+        command: ["/bin/sh", "-c", "chmod -R 777 /var/lib/postgresql/data && rm -rf /var/lib/postgresql/data/lost+found"]
         volumeMounts:
         - name: jarvis-db-data
-          mountPath: /data
+          mountPath: /var/lib/postgresql/data
       restartPolicy: Always
       volumes:
         - name: jarvis-db-data
           persistentVolumeClaim:
-            claimName: jarvis-db-data
+            claimName: jarvis-db-data-volume-claim

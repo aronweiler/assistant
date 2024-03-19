@@ -7,7 +7,6 @@ metadata:
   labels:
     io.kompose.service: jarvis-ui
   name: jarvis-ui
-  namespace: jarvis
 spec:
   type: LoadBalancer
   ports:

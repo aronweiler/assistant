@@ -7,7 +7,6 @@ metadata:
   labels:
     io.kompose.service: jarvis-rabbitmq
   name: jarvis-rabbitmq
-  namespace: jarvis
 spec:
   replicas: 1
   selector:
@@ -23,47 +22,7 @@ spec:
         io.kompose.service: jarvis-rabbitmq
     spec:
       containers:
-        - env:
-            - name: ADMIN_EMAIL
-              valueFrom:
-                configMapKeyRef:
-                  key: ADMIN_EMAIL
-                  name: env-do
-            - name: ADMIN_LOCATION
-              valueFrom:
-                configMapKeyRef:
-                  key: ADMIN_LOCATION
-                  name: env-do
-            - name: ADMIN_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: ADMIN_NAME
-                  name: env-do
-            - name: LIBRE_OFFICE_PATH
-              valueFrom:
-                configMapKeyRef:
-                  key: LIBRE_OFFICE_PATH
-                  name: env-do
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_DB
-                  name: env-do
-            - name: POSTGRES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_HOST
-                  name: env-do
-            - name: POSTGRES_PORT
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PORT
-                  name: env-do
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_USER
-                  name: env-do
+        - env:            
             - name: RABBITMQ_DEFAULT_USER
               valueFrom:
                 configMapKeyRef:
@@ -74,6 +33,11 @@ spec:
                 configMapKeyRef:
                   key: RABBITMQ_HOST
                   name: env-do
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: jarvis-secrets
+                  key: RABBITMQ_DEFAULT_PASS  
           image: rabbitmq:3-management
           name: jarvis-rabbitmq
           ports:

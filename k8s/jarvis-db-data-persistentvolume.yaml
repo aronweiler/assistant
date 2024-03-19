@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jarvis-db-data-volume  
+  labels:
+    type: jarvis-db-data-volume
+spec:
+  capacity:
+    storage: 5Gi
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /var/lib/postgresql/data
