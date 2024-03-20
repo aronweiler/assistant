@@ -23,18 +23,7 @@ def get_cookie_manager():
 # cookie_manager = None
 
 
-def logout():
-    # global cookie_manager
-    get_cookie_manager().delete(
-        cookie="session_id", key="cookie_manager_delete_" + str(time.time())
-    )
-    st.session_state.user_email = None
-    st.session_state.user_id = None
-    st.session_state.is_admin = False
-    st.session_state.authenticated = False
-    st.info("Logged out successfully!")
-    time.sleep(0.5)
-    st.rerun()
+
 
 
 def is_user_authenticated():
@@ -88,7 +77,7 @@ def set_page_config(page_name, layout="wide", initial_sidebar_state="expanded"):
         layout=layout,
         initial_sidebar_state=initial_sidebar_state,
         menu_items={
-            "About": "https://github.com/aronweiler/assistant",
+            "About": "jarvis.zipbot.ai",
             "Report a bug": "https://github.com/aronweiler/assistant/issues",
         },
     )

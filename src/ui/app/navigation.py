@@ -5,7 +5,7 @@ from time import sleep
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 from streamlit.source_util import get_pages
 
-from src.ui.app.utilities import is_user_authenticated, logout
+from src.ui.app.utilities import is_user_authenticated
 
 
 def get_current_page_name():
@@ -27,7 +27,6 @@ def make_sidebar():
             # redirect them to the login page
             st.switch_page("About.py")
 
-
     else:
         logging.info(f"User '{st.session_state.user_email}' is authenticated")
 
@@ -46,9 +45,11 @@ def make_sidebar():
 
                 st.write("")
 
-                if st.button("Log out"):
-                    logout()
-
+                # Create a link to "/logout" targeting self in an unsafe markdown block.  The font size should be 1.5em.
+                st.markdown(
+                    f'<a href="/logout" target="_self" style="font-size: 1.5em;">Logout</a>',
+                    unsafe_allow_html=True,
+                )
                 st.divider()
 
             except Exception as e:

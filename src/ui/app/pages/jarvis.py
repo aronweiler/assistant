@@ -311,7 +311,7 @@ if __name__ == "__main__":
 
         # Time the operation
         start_time = time.time()
-        ui_shared.show_version()
+        #ui_shared.show_version()
         logging.info(f"Time to show version: {time.time() - start_time}")
     except:
         # This whole thing is dumb as shit, and I don't know why python is like this... maybe I'm just a noob.
