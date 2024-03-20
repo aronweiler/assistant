@@ -3,7 +3,7 @@
 provider: digitalocean
 
 digitalocean:
-  apiToken: <DO API TOKEN>
+  apiToken: <DO API TOKEN> # Replace this before running
 
 interval: "1m"
 

@@ -4,10 +4,15 @@ metadata:
   name: jarvis-zipbot
   annotations:
     external-dns.alpha.kubernetes.io/hostname: jarvis.zipbot.ai
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "https"
+    service.beta.kubernetes.io/do-loadbalancer-disable-lets-encrypt-dns-records: "false"
+    service.beta.kubernetes.io/do-loadbalancer-certificate-id: "03836d6b-0eaa-41a4-9280-09f66ba2bde5"
 spec:
   type: LoadBalancer
   ports:
-  - port: 80
-    targetPort: 8600
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 8600
   selector:
     io.kompose.service: jarvis-ui
