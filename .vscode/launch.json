@@ -84,7 +84,7 @@
       "env": {
         "PYTHONPATH": "${workspaceRoot}",
         "POSTGRES_HOST": "localhost",
-        "POSTGRES_PORT": "5433",
+        "POSTGRES_PORT": "5432",
         "LIBRE_OFFICE_PATH": "/Program Files/LibreOffice/program/soffice.exe"
       },
       "justMyCode": true

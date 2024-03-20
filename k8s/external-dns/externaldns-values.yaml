@@ -1,0 +1,12 @@
+# https://www.digitalocean.com/community/tutorials/how-to-automatically-manage-dns-records-from-digitalocean-kubernetes-using-externaldns
+
+provider: digitalocean
+
+digitalocean:
+  apiToken: <DO API TOKEN>
+
+interval: "1m"
+
+policy: sync # or upsert-only
+
+# domainFilters: [ 'your_domain' ]
