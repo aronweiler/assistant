@@ -72,12 +72,23 @@ def setup_streamlit_interface():
         with col1a.expander("Apply to Join Our Beta Program"):
             # beta_email = st.text_input("Email", key="beta_email")
             st.write(
-                "Email me to join our beta program (until online sign-ups are complete)."
+                "Please send an email with a brief explanation of your expected use case to join our beta program (until online sign-ups are complete)."
             )
             st.markdown(
-                f'<a href="mailto:aronweiler@gmail.com?subject=I\'d like to join the beta program!" target="_self" style="font-size: 1.5em;">aronweiler@gmail.com</a>',
+                f'<a href="mailto:zipbot.ai@gmail.com?subject=I\'d like to join the beta program!" target="_self" style="font-size: 1.5em;">zipbot.ai@gmail.com</a>',
                 unsafe_allow_html=True,
             )
+            
+            # Enable when I get email working
+            # st.write(
+            #     "Sign up to join our beta program and be among the first to experience the future of AI interaction."
+            # )
+            # beta_email = st.text_input("Email", key="beta_email")
+            # use_case = st.text_area(
+            #     "How do you plan to use our AI assistant?", key="use_case"
+            # )
+            # if st.button("Submit"):
+            #     join_beta(beta_email, use_case)
 
         with col2a.expander("Already a member? Log in here:"):
             email = st.text_input("Email")

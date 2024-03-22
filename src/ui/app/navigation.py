@@ -47,7 +47,7 @@ def make_sidebar():
 
                 # Create a link to "/logout" targeting self in an unsafe markdown block.  The font size should be 1.5em.
                 st.markdown(
-                    f'<a href="/logout" target="_self" style="font-size: 1.5em;">Logout</a>',
+                    f'<a href="/logout" target="_self" style="font-size: 0.75em;">Logout</a>',
                     unsafe_allow_html=True,
                 )
                 st.divider()
