@@ -457,7 +457,7 @@ class SourceControlProvider(ModelBase):
     supported_source_control_provider_id = Column(
         Integer, ForeignKey("supported_source_control_providers.id"), nullable=False
     )
-    source_control_provider_name = Column(String, nullable=False, unique=True)
+    source_control_provider_name = Column(String, nullable=False)
     source_control_provider_url = Column(String, nullable=False)
     requires_authentication = Column(Boolean, nullable=False)
     source_control_access_token = Column(String, nullable=True)

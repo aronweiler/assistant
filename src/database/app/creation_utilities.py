@@ -1,14 +1,17 @@
 import os
 import logging
+import sys
 from sqlalchemy import create_engine, text
 
-from migration_utilities import run_migration
-from default_data import (
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+from src.database.app.migration_utilities import run_migration
+from src.database.app.default_data import (
     create_admin_user,
     ensure_conversation_role_types,
     ensure_supported_source_control_providers,
 )
-from connection_utilities import get_connection_string
+from src.database.app.connection_utilities import get_connection_string
 
 
 ERROR_MSG_ROLE_TYPES = "Error ensuring conversation role types are in the database: {}. You probably didn't run the `migration_utilities.create_migration()`"

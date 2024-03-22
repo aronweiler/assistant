@@ -1,4 +1,12 @@
+import os
+import sys
 from urllib.parse import urlparse
+
+from src.shared.database.models.vector_database import VectorDatabase
+
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+
 from src.shared.database.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
     SupportedSourceControlProviderModel,
@@ -7,7 +15,6 @@ from src.shared.database.schema.tables import (
     SourceControlProvider,
     SupportedSourceControlProvider,
 )
-from src.database.app.vector_database import VectorDatabase
 
 
 class SourceControl(VectorDatabase):
