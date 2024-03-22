@@ -10,12 +10,12 @@ sys.path.append(
     os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../"))
 )
 
+from src.shared.database.models.source_control import SourceControl
 from utilities import set_page_config
 
 from src.shared.ai.tools.tool_loader import get_available_tools
 
 from src.shared.configuration.model_configuration import ModelConfiguration
-from src.shared.database.models.code import Code
 from src.shared.database.models.domain.source_control_provider_model import (
     SourceControlProviderModel,
 )
@@ -43,10 +43,10 @@ def settings_page(user_email):
     tabs = [
         "General Settings",
         "Jarvis Web AI",
-        "Jarvis Voice AI",
+        # "Jarvis Voice AI",
         "Source Control",
-        "Tools",
-        "Jama",
+        "Tool Settings",
+        # "Jama",
     ]
 
     # Set callback function for on_change event of tabs
@@ -80,7 +80,7 @@ def settings_page(user_email):
         jarvis_voice_ai_settings(conversation_manager=conversation_manager)
     elif selected_tab == "Source Control":
         source_control_provider_form()
-    elif selected_tab == "Tools":
+    elif selected_tab == "Tool Settings":
         tools_settings(conversation_manager=conversation_manager)
     elif selected_tab == "Jama":
         jama_settings(conversation_manager=conversation_manager)
@@ -1137,13 +1137,13 @@ def general_settings():
 
 def source_control_provider_form():
     st.subheader("Manage Source Control Providers")
-    code_helper = Code()
+    source_control_helper = SourceControl()
 
     # Initialize current_operation if it doesn't exist
     if "current_operation" not in st.session_state:
         st.session_state["current_operation"] = None
 
-    existing_providers = code_helper.get_all_source_control_providers()
+    existing_providers = source_control_helper.get_all_source_control_providers_for_user(user_id=st.session_state["user_id"])
 
     # Only show these buttons if no operation has been selected yet
     if st.session_state["current_operation"] is None:
@@ -1173,12 +1173,12 @@ def source_control_provider_form():
 
     # Now handle each operation separately
     if st.session_state["current_operation"] == "add":
-        add_provider_form(code_helper)
+        add_provider_form(source_control_helper)
 
     elif st.session_state["current_operation"] == "edit":
         selected_provider = get_selected_provider(existing_providers)
         if selected_provider:
-            edit_provider_form(selected_provider, code_helper)
+            edit_provider_form(existing_provider=selected_provider, source_control_helper=source_control_helper)
 
     elif st.session_state["current_operation"] == "delete":
         # Confirm before deleting
@@ -1188,7 +1188,7 @@ def source_control_provider_form():
                 f"Confirm Deletion of '{selected_provider.source_control_provider_name}'",
                 on_click=delete_provider,
                 kwargs={
-                    "code_helper": code_helper,
+                    "source_control_helper": source_control_helper,
                     "selected_provider": selected_provider,
                 },
             )
@@ -1198,8 +1198,8 @@ def set_source_control_operation(operation_type: str):
     st.session_state["current_operation"] = operation_type
 
 
-def delete_provider(code_helper: Code, selected_provider: SourceControlProviderModel):
-    code_helper.delete_source_control_provider(selected_provider.id)
+def delete_provider(source_control_helper: SourceControl, selected_provider: SourceControlProviderModel):
+    source_control_helper.delete_source_control_provider_by_id(selected_provider.id)
     st.success("Provider deleted successfully!")
     # Reset current operation after deletion
     st.session_state["current_operation"] = None
@@ -1223,12 +1223,12 @@ def add_or_edit_cancel_button():
     )
 
 
-def add_provider_form(code_helper: Code):
+def add_provider_form(source_control_helper: SourceControl):
     # Form for adding a new provider
     with st.form("add_provider_form"):
         st.selectbox(
             "Provider",
-            [s.name for s in code_helper.get_supported_source_control_providers()],
+            [s.name for s in source_control_helper.get_supported_source_control_providers()],
             key="supported_provider_name",
         )
         st.text_input(
@@ -1254,21 +1254,21 @@ def add_provider_form(code_helper: Code):
             st.form_submit_button(
                 "Add Provider",
                 on_click=add_update_provider,
-                kwargs={"code_helper": code_helper},
+                kwargs={"source_control_helper": source_control_helper},
             )
 
 
 def add_update_provider(
-    code_helper: Code, existing_provider: SourceControlProviderModel = None
+    source_control_helper: SourceControl, existing_provider: SourceControlProviderModel = None
 ):
     # Get the provider ID from the name
-    supported_provider = code_helper.get_supported_source_control_provider_by_name(
+    supported_provider = source_control_helper.get_supported_source_control_provider_by_name(
         st.session_state["supported_provider_name"]
     )
 
     # Is this an update or a new provider?
     if existing_provider:
-        code_helper.update_source_control_provider(
+        source_control_helper.update_source_control_provider(
             id=existing_provider.id,
             supported_source_control_provider=supported_provider,
             name=st.session_state["name"],
@@ -1279,8 +1279,9 @@ def add_update_provider(
         st.success("Provider updated successfully!")
 
     else:
-        code_helper.add_source_control_provider(
-            supported_provider,
+        source_control_helper.add_source_control_provider(
+            supported_source_control_provider=supported_provider,
+            user_id=st.session_state["user_id"],
             name=st.session_state["name"],
             url=st.session_state["url"],
             requires_auth=st.session_state["requires_auth"],
@@ -1292,11 +1293,11 @@ def add_update_provider(
 
 
 def edit_provider_form(
-    existing_provider: SourceControlProviderModel, code_helper: Code
+    existing_provider: SourceControlProviderModel, source_control_helper: SourceControl
 ):
     # Form for editing an existing provider
     with st.form("edit_provider_form"):
-        supported_providers = code_helper.get_supported_source_control_providers()
+        supported_providers = source_control_helper.get_supported_source_control_providers()
         index = 0
 
         for i, supported_provider in enumerate(supported_providers):
@@ -1345,7 +1346,7 @@ def edit_provider_form(
                 "Update Provider",
                 on_click=add_update_provider,
                 kwargs={
-                    "code_helper": code_helper,
+                    "source_control_helper": source_control_helper,
                     "existing_provider": existing_provider,
                 },
             )

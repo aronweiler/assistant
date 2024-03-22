@@ -453,6 +453,7 @@ class SourceControlProvider(ModelBase):
     __tablename__ = "source_control_providers"
 
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     supported_source_control_provider_id = Column(
         Integer, ForeignKey("supported_source_control_providers.id"), nullable=False
     )

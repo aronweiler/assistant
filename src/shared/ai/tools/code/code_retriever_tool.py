@@ -2,12 +2,13 @@ import sys
 import os
 from typing import List, Union
 
-# Importing necessary modules and classes for the tool.
-from src.shared.ai.tools.tool_registry import register_tool, tool_class
-from src.shared.database.models.code import Code
 
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
+
+# Importing necessary modules and classes for the tool.
+from src.shared.database.models.source_control import SourceControl
+from src.shared.ai.tools.tool_registry import register_tool, tool_class
 
 # Importing database models and utilities.
 from src.shared.ai.conversations.conversation_manager import ConversationManager
@@ -117,16 +118,22 @@ class CodeRetrieverTool:
             return "Please provide either a URL or a list of file IDs."
 
     def get_retriever_instance(self, url):
-        code_helper = Code()
-        source_control_provider = code_helper.get_provider_from_url(url)
+        source_control_helper = SourceControl()
+        source_control_provider = (
+            source_control_helper.get_source_control_provider_from_url(
+                user_id=self.conversation_manager.user_id, url=url
+            )
+        )
 
         if not source_control_provider:
             raise Exception(
                 f"The URL {url} does not correspond to a configured source control provider."
             )
 
-        supported_provider = code_helper.get_supported_source_control_provider_by_id(
-            source_control_provider.supported_source_control_provider_id
+        supported_provider = (
+            source_control_helper.get_supported_source_control_provider_by_id(
+                source_control_provider.supported_source_control_provider_id
+            )
         )
 
         # Get the corresponding retriever class from the map using provider name in lowercase.

@@ -8,6 +8,7 @@ from langchain.base_language import BaseLanguageModel
 # Adjusting system path to include the root directory for module imports.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../")))
 
+from src.shared.database.models.source_control import SourceControl
 from src.shared.ai.utilities.llm_helper import get_llm
 from src.shared.integrations.github import github_issue_creator
 from src.shared.ai.tools.code.issue_tool import IssueTool
@@ -80,12 +81,17 @@ class CodeCommitTool:
         :param code: The code to commit.
         :param file_path: The path to the file to commit.
         """
-        source_control_provider = self.conversation_manager.code_helper.get_provider_from_url(repository)
-        
+        source_control_helper = SourceControl()
+        source_control_provider = (
+            source_control_helper.get_source_control_provider_from_url(
+                user_id=self.conversation_manager.user_id, url=repository
+            )
+        )
+
         committer_class = self.source_control_to_committer_map[
             source_control_provider.source_control_provider_name.lower()
         ]
-        
+
         if committer_class is None:
             raise Exception(
                 f"Source control provider {source_control_provider.source_control_provider_name} is not supported."
