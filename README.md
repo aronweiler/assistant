@@ -1,3 +1,23 @@
+Exciting News! 🚀
+
+I'm thrilled to announce that my AI Assistant (formerly known as Jarvis) is evolving, and the team is growing!
+
+We've taken everything you love about this intelligent assistant and are transforming it into a more powerful, sleeker product: [ZipBot.ai](https://zipbot.ai). This new platform will not only include all the features you've come to rely on but also introduce a host of new capabilities designed to make your life even easier.
+
+👉 What does this mean for you? More power, more features, and an even better user experience.
+
+But, before we officially launch, we want YOU to be a part of our journey. Sign up for the beta at https://zipbot.ai and be the first to experience the future of intelligent assistance.
+
+Your feedback during this beta phase will be invaluable as we fine-tune [ZipBot.ai](https://zipbot.ai) to perfection. Don't miss out on this opportunity to shape the future of AI assistance.
+
+Thank you for your continued support and enthusiasm. We can't wait to embark on this exciting new chapter with you!
+
+Thanks,
+
+The [ZipBot.ai](https://zipbot.ai) Team
+
+---
+
 # AI Assistant (Jarvis)
 An intelligent assistant.  This is a work in progress.  Don't hate over the name... I was younger, and less creative.
 
